@@ -12,7 +12,6 @@ import { requestMetrics } from './middleware/request-metrics.js';
 import { aiRouter } from './routes/ai.js';
 import { healthRouter } from './routes/health.js';
 import { metricsRouter } from './routes/metrics.js';
-import { bucketRouter } from './routes/bucket.js';
 
 export function createApp() {
   const app = express();
@@ -66,7 +65,6 @@ export function createApp() {
   app.use('/health', healthRouter);
   app.use(metricsRouter);
   app.use('/ai', aiRouter);
-  // app.use('/bucket', bucketRouter);
 
   app.use(notFound);
   app.use(errorHandler);

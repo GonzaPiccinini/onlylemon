@@ -11,11 +11,6 @@ const env = cleanEnv(process.env, {
 
   DATABASE_URL: str(),
 
-  // AWS_REGION: str(),
-  // AWS_S3_BUCKET: str(),
-  // AWS_ACCESS_KEY_ID: str(),
-  // AWS_SECRET_ACCESS_KEY: str(),
-
   AI_API_KEY: str(),
   AI_MODEL: str({ default: 'gemini-1.5-flash' }),
 
@@ -31,13 +26,6 @@ export const config = {
   logLevel: env.LOG_LEVEL,
 
   databaseUrl: env.DATABASE_URL,
-
-  // aws: {
-  //   region: env.AWS_REGION,
-  //   bucket: env.AWS_S3_BUCKET,
-  //   accessKeyId: env.AWS_ACCESS_KEY_ID,
-  //   secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-  // },
 
   ai: {
     apiKey: env.AI_API_KEY,
