@@ -8,3 +8,5 @@ coverage/
 prisma/dev.db
 
 /generated/prisma
+
+/generated/prisma

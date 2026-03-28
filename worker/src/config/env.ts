@@ -9,6 +9,8 @@ const env = cleanEnv(process.env, {
   PORT: num({ default: 3000 }),
   LOG_LEVEL: str({ default: 'info' }),
 
+  REDIS_URL: str(),
+
   DATABASE_URL: str(),
 
   AI_API_KEY: str(),
@@ -24,6 +26,8 @@ export const config = {
   isProduction: env.NODE_ENV === 'production',
   port: env.PORT,
   logLevel: env.LOG_LEVEL,
+
+  redisUrl: env.REDIS_URL,
 
   databaseUrl: env.DATABASE_URL,
 
