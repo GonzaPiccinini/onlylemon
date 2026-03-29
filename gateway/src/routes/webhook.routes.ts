@@ -5,11 +5,16 @@ import { requireJsonContentType } from '../middlewares/require-json.middleware.j
 
 export const webhookRouter = Router();
 
-webhookRouter.post('/webhook', requireWebhookToken, requireJsonContentType, async (req, res) => {
-  try {
-    await handleWebhook(req, res);
-  } catch (error) {
-    console.error('Error handling webhook:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+webhookRouter.post(
+  '/webhook',
+  requireWebhookToken,
+  requireJsonContentType,
+  async (req, res) => {
+    try {
+      await handleWebhook(req, res);
+    } catch (error) {
+      console.error('Error handling webhook:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);

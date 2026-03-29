@@ -18,7 +18,7 @@ const safeEqual = (a: string, b: string): boolean => {
 export const requireWebhookToken = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   if (!env.webhookToken) {
     res.status(503).json({ error: 'Webhook auth is not configured' });

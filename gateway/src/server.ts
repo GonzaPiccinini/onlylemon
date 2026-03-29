@@ -1,6 +1,6 @@
-import { createApp } from "./app.js";
-import { env } from "./config/env.js";
-import { connectBullMQ, disconnectBullMQ } from "./config/bullmq.js";
+import { createApp } from './app.js';
+import { env } from './config/env.js';
+import { connectBullMQ, disconnectBullMQ } from './config/bullmq.js';
 
 const app = createApp();
 
@@ -19,10 +19,10 @@ const startServer = async (): Promise<void> => {
       });
     };
 
-    process.on("SIGINT", gracefulShutdown);
-    process.on("SIGTERM", gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown);
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
