@@ -5,16 +5,27 @@ export const healthRouter = Router();
 
 healthRouter.get("/health", async (_req, res) => {
   try {
-    const bullmq = await checkBullMQHealth();
+    const health = await checkBullMQHealth();
+    const httpStatus = health.bullmq === "down" ? 503 : 200;
 
-    res.status(200).json({
-      status: "ok",
-      bullmq
+    res.status(httpStatus).json({
+      status: health.bullmq === "up" ? "ok" : "error",
+      bullmq: health.bullmq,
+      availability: health.availability,
+      queue: health.queue
     });
   } catch {
     res.status(503).json({
       status: "error",
-      bullmq: "down"
+      bullmq: "down",
+      availability: "degraded",
+      queue: {
+        waiting: 0,
+        delayed: 0,
+        active: 0,
+        failed: 0,
+        backlog: 0
+      }
     });
   }
 });
