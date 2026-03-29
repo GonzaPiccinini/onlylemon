@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -8,6 +8,7 @@ const toNumber = (value: string | undefined, fallback: number): number => {
 };
 
 export const env = {
-  port: toNumber(process.env.PORT, 3000),
-  redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379"
+  port: toNumber(process.env.PORT, 3001),
+  bullmqRedisUrl: process.env.BULLMQ_REDIS_URL ?? 'redis://localhost:6379',
+  bullmqQueueName: process.env.BULLMQ_QUEUE_NAME ?? 'waha-messages',
 };

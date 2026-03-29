@@ -1,11 +1,11 @@
 # Casino AI Backend
 
-Base backend project with **Node.js + TypeScript + Express + Redis**.
+Base backend project with **Node.js + TypeScript + Express + BullMQ**.
 
 ## Requirements
 
 - Node.js 20+
-- Redis running locally or accessible via URL
+- Redis running locally or accessible via URL (BullMQ backend)
 
 ## Setup
 
@@ -17,7 +17,8 @@ cp .env.example .env
 ## Environment variables
 
 - `PORT`: HTTP server port (default `3000`)
-- `REDIS_URL`: Redis connection URL (default `redis://localhost:6379`)
+- `BULLMQ_REDIS_URL`: Redis connection URL for BullMQ (default `redis://localhost:6379`)
+- `BULLMQ_QUEUE_NAME`: queue name for webhook jobs (default `waha-messages`)
 
 ## Scripts
 
@@ -35,6 +36,6 @@ Example response:
 ```json
 {
   "status": "ok",
-  "redis": "up"
+  "bullmq": "up"
 }
 ```

@@ -1,12 +1,12 @@
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
-import { connectRedis, disconnectRedis } from "./config/redis.js";
+import { connectBullMQ, disconnectBullMQ } from "./config/bullmq.js";
 
 const app = createApp();
 
 const startServer = async (): Promise<void> => {
   try {
-    await connectRedis();
+    await connectBullMQ();
 
     const server = app.listen(env.port, () => {
       console.info(`API listening on port ${env.port}`);
@@ -14,7 +14,7 @@ const startServer = async (): Promise<void> => {
 
     const gracefulShutdown = async (): Promise<void> => {
       server.close(async () => {
-        await disconnectRedis();
+        await disconnectBullMQ();
         process.exit(0);
       });
     };

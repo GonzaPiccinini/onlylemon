@@ -1,12 +1,12 @@
-import { getRedisClient } from "../config/redis.js";
+import { getWebhookQueue } from "../config/bullmq.js";
 
-export const checkRedisHealth = async (): Promise<"up" | "down"> => {
-  const client = getRedisClient();
+export const checkBullMQHealth = async (): Promise<"up" | "down"> => {
+  const queue = getWebhookQueue();
 
-  if (!client.isOpen) {
+  try {
+    await queue.waitUntilReady();
+    return "up";
+  } catch {
     return "down";
   }
-
-  await client.ping();
-  return "up";
 };
