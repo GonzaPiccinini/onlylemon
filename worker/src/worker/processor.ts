@@ -11,7 +11,73 @@ import { inboundJobSchema } from '../domain/message/schemas.js';
 import { recordFunctionCallAudit } from '../domain/tooling/audit.repository.js';
 import { executeToolCall } from '../domain/tooling/executor.service.js';
 import { generateAiResponse } from '../integrations/ai/gemini.client.js';
-import { executeResponseFlow } from '../integrations/waha/waha.client.js';
+import {
+  executeResponseFlow,
+  getChatMessages,
+} from '../integrations/waha/waha.client.js';
+import { config } from '../core/config.js';
+
+type ChatContextMessage = {
+  id: string;
+  timestamp: number;
+  fromMe: boolean;
+  body: string;
+};
+
+function formatHistoryForPrompt(messages: ChatContextMessage[]) {
+  return messages
+    .map((message) => {
+      const role = message.fromMe ? 'Cajero' : 'Usuario';
+      return `${role}: ${message.body}`;
+    })
+    .join('\n');
+}
+
+async function buildPromptWithChatContext(
+  session: string,
+  chatId: string,
+  currentMessageId: string,
+  currentMessageBody: string,
+) {
+  try {
+    const messages = await getChatMessages(session, chatId, {
+      limit: config.ai.contextLimit,
+      sortBy: 'timestamp',
+      downloadMedia: false,
+    });
+
+    const historyMessages = messages
+      .filter((message) => Boolean(message.body?.trim()))
+      .filter((message) => message.id !== currentMessageId)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (!historyMessages.length) {
+      return currentMessageBody;
+    }
+
+    const formattedHistory = formatHistoryForPrompt(historyMessages);
+
+    return [
+      'Usa el historial para responder con continuidad al usuario.',
+      'Historial reciente del chat:',
+      formattedHistory,
+      'Mensaje actual del usuario:',
+      `Usuario: ${currentMessageBody}`,
+    ].join('\n\n');
+  } catch (error) {
+    logger.warn(
+      {
+        err: error,
+        session,
+        chatId,
+        messageId: currentMessageId,
+      },
+      'Could not load chat history, using single-message prompt',
+    );
+
+    return currentMessageBody;
+  }
+}
 
 export async function processInboundJob(job: Job) {
   const endJob = jobDurationSeconds.startTimer();
@@ -55,7 +121,13 @@ export async function processInboundJob(job: Job) {
   };
 
   try {
-    const aiResponse = await generateAiResponse(data.payload.body);
+    const prompt = await buildPromptWithChatContext(
+      data.session,
+      data.payload.from,
+      data.payload.id,
+      data.payload.body,
+    );
+    const aiResponse = await generateAiResponse(prompt);
     const firstCall = aiResponse.functionCalls?.[0];
 
     if (
@@ -78,7 +150,7 @@ export async function processInboundJob(job: Job) {
           data.session,
           data.payload.from,
           data.payload.id,
-          data.payload.body,
+          toolResult.clientMessage,
         );
       }
     } else {

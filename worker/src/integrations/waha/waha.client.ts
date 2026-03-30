@@ -1,5 +1,18 @@
 import { config } from '../../core/config.js';
 
+type WahaMessage = {
+  id: string;
+  timestamp: number;
+  fromMe: boolean;
+  body: string;
+};
+
+type GetChatMessagesOptions = {
+  limit: number;
+  sortBy?: 'timestamp' | 'messageTimestamp';
+  downloadMedia?: boolean;
+};
+
 async function wahaCall(path: string, payload: Record<string, unknown>) {
   const response = await fetch(`${config.wahaBaseUrl}${path}`, {
     method: 'POST',
@@ -11,6 +24,34 @@ async function wahaCall(path: string, payload: Record<string, unknown>) {
   });
 
   return response.ok;
+}
+
+async function wahaGet<T>(path: string, params: Record<string, string>) {
+  const query = new URLSearchParams(params);
+  const response = await fetch(`${config.wahaBaseUrl}${path}?${query.toString()}`, {
+    method: 'GET',
+    headers: {
+      'X-Api-Key': config.wahaApiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function getChatMessages(
+  session: string,
+  chatId: string,
+  options: GetChatMessagesOptions,
+) {
+  return wahaGet<WahaMessage[]>(`/api/${session}/chats/${chatId}/messages`, {
+    limit: options.limit.toString(),
+    sortBy: options.sortBy ?? 'timestamp',
+    downloadMedia: String(options.downloadMedia ?? false),
+  });
 }
 
 export async function sendSeen(
