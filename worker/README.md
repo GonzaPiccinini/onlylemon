@@ -4,7 +4,7 @@
 
 - Seguridad minima: `helmet`, `hpp`, `cors` por allowlist, `express-rate-limit`, limites de body JSON.
 - Performance minima: `compression`, logs estructurados con `pino`, cierre graceful.
-- Observabilidad minima: logs HTTP (`pino-http`), health checks (`/health/live`, `/health/ready`), metricas Prometheus (`/metrics`).
+- Observabilidad minima: logs HTTP y health checks (`/health/live`, `/health/ready`).
 
 ## Requisitos
 
@@ -47,6 +47,5 @@ npm run dev
 
 - `GET /health/live`
 - `GET /health/ready`
-- `GET /metrics`
 - `POST /google/generate` body: `{ "prompt": "..." }`
 - `POST /s3/upload-url` body: `{ "key": "...", "contentType": "..." }`

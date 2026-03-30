@@ -1,26 +1,12 @@
 import type { NextFunction, Request, Response } from 'express';
 
 import { logger } from '../../core/logger.js';
-import {
-  httpRequestDurationSeconds,
-  httpRequestsTotal,
-} from '../../core/metrics.js';
 
 export function observabilityMiddleware(req: Request, res: Response, next: NextFunction) {
   const start = process.hrtime.bigint();
-  const endMetric = httpRequestDurationSeconds.startTimer();
 
   res.on('finish', () => {
     const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000;
-    const route = req.route?.path ?? req.path;
-    const labels = {
-      method: req.method,
-      route,
-      status_code: String(res.statusCode),
-    };
-
-    httpRequestsTotal.inc(labels);
-    endMetric(labels);
 
     const log = {
       method: req.method,

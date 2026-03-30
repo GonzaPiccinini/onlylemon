@@ -2,7 +2,6 @@ import { Worker, type WorkerOptions } from 'bullmq';
 
 import { config } from '../core/config.js';
 import { logger } from '../core/logger.js';
-import { jobsFailedTotal } from '../core/metrics.js';
 import { processInboundJob } from './processor.js';
 import { setWorkerReady } from './state.js';
 
@@ -23,7 +22,6 @@ export function createWorker() {
   });
 
   worker.on('failed', (job, error) => {
-    jobsFailedTotal.inc({ reason: 'worker_failed' });
     logger.error({ err: error, jobId: job?.id, queue: config.bullmq.queueName }, 'Job failed');
   });
 

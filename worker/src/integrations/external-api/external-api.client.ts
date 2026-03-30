@@ -1,9 +1,4 @@
 import { config } from '../../core/config.js';
-import { logger } from '../../core/logger.js';
-import {
-  externalApiLatencySeconds,
-  externalApiRequestsTotal,
-} from '../../core/metrics.js';
 
 export type ApiErrorKind = 'transient' | 'non_retryable' | 'ambiguous';
 
@@ -60,11 +55,6 @@ async function postJson(path: string, payload: unknown) {
     () => controller.abort(),
     config.externalApi.timeoutMs,
   );
-  const operation = path.includes('/deposits')
-    ? 'deposit_money'
-    : 'create_user';
-  const endLatency = externalApiLatencySeconds.startTimer({ operation });
-
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -74,11 +64,9 @@ async function postJson(path: string, payload: unknown) {
     });
 
     if (!response.ok) {
-      externalApiRequestsTotal.inc({ operation, status: 'error' });
       throw classifyStatus(response.status);
     }
 
-    externalApiRequestsTotal.inc({ operation, status: 'success' });
     return response;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -86,7 +74,6 @@ async function postJson(path: string, payload: unknown) {
     }
 
     if (error instanceof DOMException && error.name === 'AbortError') {
-      externalApiRequestsTotal.inc({ operation, status: 'ambiguous' });
       throw new ApiError(
         'External API timeout with unknown execution state',
         'ambiguous',
@@ -94,14 +81,12 @@ async function postJson(path: string, payload: unknown) {
       );
     }
 
-    externalApiRequestsTotal.inc({ operation, status: 'ambiguous' });
     throw new ApiError(
       'External API network error with unknown execution state',
       'ambiguous',
       'NETWORK_ERROR',
     );
   } finally {
-    endLatency();
     clearTimeout(timeout);
   }
 }

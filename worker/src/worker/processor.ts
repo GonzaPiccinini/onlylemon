@@ -1,21 +1,15 @@
 import type { Job } from 'bullmq';
 
 import { logger } from '../core/logger.js';
-import {
-  jobDurationSeconds,
-  jobsFailedTotal,
-  jobsProcessedTotal,
-} from '../core/metrics.js';
+import { config } from '../core/config.js';
 import { claimMessageProcessing } from '../domain/message/idempotency.repository.js';
 import { inboundJobSchema } from '../domain/message/schemas.js';
-import { recordFunctionCallAudit } from '../domain/tooling/audit.repository.js';
+import { resolveRule } from '../domain/rules/router.js';
 import { executeToolCall } from '../domain/tooling/executor.service.js';
-import { generateAiResponse } from '../integrations/ai/gemini.client.js';
 import {
   executeResponseFlow,
   getChatMessages,
 } from '../integrations/waha/waha.client.js';
-import { config } from '../core/config.js';
 
 type ChatContextMessage = {
   id: string;
@@ -24,46 +18,22 @@ type ChatContextMessage = {
   body: string;
 };
 
-function formatHistoryForPrompt(messages: ChatContextMessage[]) {
-  return messages
-    .map((message) => {
-      const role = message.fromMe ? 'Cajero' : 'Usuario';
-      return `${role}: ${message.body}`;
-    })
-    .join('\n');
-}
-
-async function buildPromptWithChatContext(
+async function loadChatHistory(
   session: string,
   chatId: string,
   currentMessageId: string,
-  currentMessageBody: string,
 ) {
   try {
     const messages = await getChatMessages(session, chatId, {
-      limit: config.ai.contextLimit,
+      limit: config.chatContextLimit,
       sortBy: 'timestamp',
       downloadMedia: false,
     });
 
-    const historyMessages = messages
+    return messages
       .filter((message) => Boolean(message.body?.trim()))
       .filter((message) => message.id !== currentMessageId)
       .sort((a, b) => a.timestamp - b.timestamp);
-
-    if (!historyMessages.length) {
-      return currentMessageBody;
-    }
-
-    const formattedHistory = formatHistoryForPrompt(historyMessages);
-
-    return [
-      'Usa el historial para responder con continuidad al usuario.',
-      'Historial reciente del chat:',
-      formattedHistory,
-      'Mensaje actual del usuario:',
-      `Usuario: ${currentMessageBody}`,
-    ].join('\n\n');
   } catch (error) {
     logger.warn(
       {
@@ -72,19 +42,17 @@ async function buildPromptWithChatContext(
         chatId,
         messageId: currentMessageId,
       },
-      'Could not load chat history, using single-message prompt',
+      'Could not load chat history, using current message only',
     );
 
-    return currentMessageBody;
+    return [] as ChatContextMessage[];
   }
 }
 
 export async function processInboundJob(job: Job) {
-  const endJob = jobDurationSeconds.startTimer();
   const parsed = inboundJobSchema.safeParse(job.data);
 
   if (!parsed.success) {
-    jobsFailedTotal.inc({ reason: 'validation_error' });
     logger.warn(
       { jobId: job.id, issues: parsed.error.issues },
       'Invalid inbound job payload',
@@ -101,7 +69,6 @@ export async function processInboundJob(job: Job) {
   });
 
   if (!claimed) {
-    jobsProcessedTotal.inc({ result: 'duplicate' });
     logger.info(
       {
         jobId: job.id,
@@ -121,19 +88,14 @@ export async function processInboundJob(job: Job) {
   };
 
   try {
-    const prompt = await buildPromptWithChatContext(
+    const history = await loadChatHistory(
       data.session,
       data.payload.from,
       data.payload.id,
-      data.payload.body,
     );
-    const aiResponse = await generateAiResponse(prompt);
-    const firstCall = aiResponse.functionCalls?.[0];
+    const resolution = resolveRule(history, data.payload.body);
 
-    if (
-      firstCall?.name === 'create_user' ||
-      firstCall?.name === 'deposit_money'
-    ) {
+    if (resolution.toolName) {
       const toolResult = await executeToolCall(
         {
           job,
@@ -141,8 +103,8 @@ export async function processInboundJob(job: Job) {
           chatId: data.payload.from,
           messageId: data.payload.id,
         },
-        firstCall.name,
-        firstCall.args ?? {},
+        resolution.toolName,
+        resolution.args,
       );
 
       if (toolResult.clientMessage) {
@@ -155,17 +117,8 @@ export async function processInboundJob(job: Job) {
       }
     } else {
       const fallbackText =
-        aiResponse.text ?? 'I do not have a response available right now.';
-      await recordFunctionCallAudit({
-        jobId: job.id,
-        session: data.session,
-        chatId: data.payload.from,
-        messageId: data.payload.id,
-        toolName: 'none',
-        argumentsJson: {},
-        status: 'success',
-        durationMs: 0,
-      });
+        resolution.fallbackMessage ??
+        'I can help with user creation and deposits. Tell me what you want to do.';
       await executeResponseFlow(
         data.session,
         data.payload.from,
@@ -174,13 +127,9 @@ export async function processInboundJob(job: Job) {
       );
     }
 
-    jobsProcessedTotal.inc({ result: 'success' });
     logger.info(logContext, 'Job processed successfully');
   } catch (error) {
-    jobsFailedTotal.inc({ reason: 'processing_error' });
     logger.error({ err: error, ...logContext }, 'Job processing failed');
     throw error;
-  } finally {
-    endJob();
   }
 }

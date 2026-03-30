@@ -14,9 +14,7 @@ const env = cleanEnv(process.env, {
 
   DATABASE_URL: str(),
 
-  AI_API_KEY: str(),
-  AI_MODEL: str(),
-  AI_CONTEXT_LIMIT: num({ default: 20 }),
+  CHAT_CONTEXT_LIMIT: num({ default: 20 }),
 
   BULLMQ_QUEUE_NAME: str(),
   BULLMQ_REDIS_URL: str(),
@@ -40,11 +38,7 @@ export const config = {
 
   databaseUrl: env.DATABASE_URL,
 
-  ai: {
-    apiKey: env.AI_API_KEY,
-    model: env.AI_MODEL,
-    contextLimit: env.AI_CONTEXT_LIMIT,
-  },
+  chatContextLimit: env.CHAT_CONTEXT_LIMIT,
 
   bullmq: {
     queueName: env.BULLMQ_QUEUE_NAME,

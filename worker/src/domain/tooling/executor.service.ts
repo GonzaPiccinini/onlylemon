@@ -3,19 +3,17 @@ import type { Job } from 'bullmq';
 import { DEPOSIT_UNKNOWN_MESSAGE } from '../../constants/messages.js';
 import { logger } from '../../core/logger.js';
 import {
-  operationsUnknownTotal,
-  toolCallsTotal,
-  toolDurationSeconds,
-} from '../../core/metrics.js';
-import {
   ApiError,
   createUser,
   depositMoney,
 } from '../../integrations/external-api/external-api.client.js';
-import { createUserArgsSchema, depositMoneyArgsSchema } from './schemas.js';
-import { recordFunctionCallAudit } from './audit.repository.js';
-import { recordDepositOperationState } from './operation-state.repository.js';
-import type { ToolName } from './declarations.js';
+import {
+  findChatUserByChatId,
+  upsertChatUser,
+} from '../message/chat-user.repository.js';
+import { createChatTransaction } from '../message/chat-transaction.repository.js';
+
+type ToolName = 'create_user' | 'deposit_money';
 
 type ToolDispatchContext = {
   job: Job;
@@ -33,114 +31,64 @@ export async function executeToolCall(
   toolName: ToolName,
   args: Record<string, unknown>,
 ): Promise<ToolDispatchResult> {
-  const endTool = toolDurationSeconds.startTimer({ tool: toolName });
-  const startedAt = Date.now();
-
   try {
     if (toolName === 'create_user') {
-      const parsed = createUserArgsSchema.safeParse(args);
-      if (!parsed.success) {
-        toolCallsTotal.inc({ tool: toolName, status: 'rejected' });
-        await recordFunctionCallAudit({
-          jobId: context.job.id,
-          session: context.session,
-          chatId: context.chatId,
-          messageId: context.messageId,
-          toolName,
-          argumentsJson: args,
-          status: 'rejected',
-          errorCode: 'INVALID_ARGUMENTS',
-          durationMs: Date.now() - startedAt,
-        });
+      const name = typeof args.name === 'string' ? args.name.trim() : '';
+      if (!name || name.length > 120) {
         return { clientMessage: 'Could not process this request right now.' };
       }
 
-      await createUser(parsed.data);
-      toolCallsTotal.inc({ tool: toolName, status: 'success' });
-      await recordFunctionCallAudit({
-        jobId: context.job.id,
-        session: context.session,
-        chatId: context.chatId,
-        messageId: context.messageId,
-        toolName,
-        argumentsJson: parsed.data,
-        status: 'success',
-        durationMs: Date.now() - startedAt,
-      });
+      await createUser({ name });
+      await upsertChatUser({ chatId: context.chatId, username: name });
 
       return {
-        clientMessage: `User ${parsed.data.name} created successfully.`,
+        clientMessage: `User ${name} created successfully.`,
       };
     }
 
-    const parsed = depositMoneyArgsSchema.safeParse(args);
-    if (!parsed.success) {
-      toolCallsTotal.inc({ tool: toolName, status: 'rejected' });
-      await recordFunctionCallAudit({
-        jobId: context.job.id,
-        session: context.session,
-        chatId: context.chatId,
-        messageId: context.messageId,
-        toolName,
-        argumentsJson: args,
-        status: 'rejected',
-        errorCode: 'INVALID_ARGUMENTS',
-        durationMs: Date.now() - startedAt,
-      });
-      await recordDepositOperationState({
-        jobId: context.job.id,
-        messageId: context.messageId,
-        status: 'failed',
-        reason: 'INVALID_ARGUMENTS',
-      });
+    const amount = typeof args.amount === 'number' ? Math.trunc(args.amount) : NaN;
+    if (!Number.isFinite(amount) || amount < 2000 || amount > 1_000_000_000) {
       return { clientMessage: 'Could not process deposit with those values.' };
     }
 
+    const chatUser = await findChatUserByChatId(context.chatId);
+    if (!chatUser) {
+      return {
+        clientMessage: 'Before depositing, please create your user and share your name.',
+      };
+    }
+
     try {
-      await depositMoney(parsed.data);
-      toolCallsTotal.inc({ tool: toolName, status: 'success' });
-      await recordFunctionCallAudit({
-        jobId: context.job.id,
-        session: context.session,
+      await depositMoney({ name: chatUser.username, amount });
+      await createChatTransaction({
         chatId: context.chatId,
-        messageId: context.messageId,
-        toolName,
-        argumentsJson: parsed.data,
-        status: 'success',
-        durationMs: Date.now() - startedAt,
-      });
-      await recordDepositOperationState({
-        jobId: context.job.id,
-        messageId: context.messageId,
+        type: 'deposit',
+        amount,
         status: 'success',
       });
 
       return { clientMessage: 'Deposit completed successfully.' };
     } catch (error) {
-      // Without external idempotency or operation references, ambiguous failures
-      // must be treated as unknown and should not be auto-retried.
       if (error instanceof ApiError && error.kind === 'ambiguous') {
-        toolCallsTotal.inc({ tool: toolName, status: 'unknown' });
-        operationsUnknownTotal.inc({ operation: 'deposit_money' });
-        await recordFunctionCallAudit({
-          jobId: context.job.id,
-          session: context.session,
+        await createChatTransaction({
           chatId: context.chatId,
-          messageId: context.messageId,
-          toolName,
-          argumentsJson: parsed.data,
-          status: 'failed',
-          errorCode: error.code,
-          durationMs: Date.now() - startedAt,
-        });
-        await recordDepositOperationState({
-          jobId: context.job.id,
-          messageId: context.messageId,
+          type: 'deposit',
+          amount,
           status: 'unknown',
-          reason: error.code,
+          errorCode: error.code,
         });
 
         return { clientMessage: DEPOSIT_UNKNOWN_MESSAGE };
+      }
+
+      if (error instanceof ApiError) {
+        await createChatTransaction({
+          chatId: context.chatId,
+          type: 'deposit',
+          amount,
+          status: 'failed',
+          errorCode: error.code,
+        });
       }
 
       throw error;
@@ -156,21 +104,6 @@ export async function executeToolCall(
       'Tool execution failed',
     );
 
-    toolCallsTotal.inc({ tool: toolName, status: 'error' });
-    await recordFunctionCallAudit({
-      jobId: context.job.id,
-      session: context.session,
-      chatId: context.chatId,
-      messageId: context.messageId,
-      toolName,
-      argumentsJson: args,
-      status: 'failed',
-      errorCode: 'TOOL_EXECUTION_FAILED',
-      durationMs: Date.now() - startedAt,
-    });
-
     throw error;
-  } finally {
-    endTool();
   }
 }

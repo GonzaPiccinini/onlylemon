@@ -11,12 +11,18 @@ export async function claimMessageProcessing(input: IdempotencyClaimInput) {
   try {
     const processedMessage = await prisma.processedMessage.findFirst({
       where: {
-        ...input,
+        session: input.session,
+        messageId: input.messageId,
       },
     });
     if (processedMessage) return false;
     await prisma.processedMessage.create({
-      data: { ...input },
+      data: {
+        session: input.session,
+        chatId: input.chatId,
+        messageId: input.messageId,
+        jobId: input.jobId,
+      },
     });
 
     return true;

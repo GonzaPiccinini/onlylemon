@@ -6,7 +6,6 @@ import { config } from '../core/config.js';
 import { errorHandler, notFound } from './middleware/error.middleware.js';
 import { observabilityMiddleware } from './middleware/observability.middleware.js';
 import { healthRouter } from './routes/health.route.js';
-import { metricsRouter } from './routes/metrics.route.js';
 
 export function createApp() {
   const app = express();
@@ -26,7 +25,6 @@ export function createApp() {
   );
 
   app.use('/health', healthRouter);
-  app.use(metricsRouter);
 
   app.use(notFound);
   app.use(errorHandler);
