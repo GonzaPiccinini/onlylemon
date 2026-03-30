@@ -11,3 +11,72 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum FunctionCallStatus {
+  success
+  failed
+  rejected
+}
+
+enum OperationStatus {
+  success
+  failed
+  unknown
+}
+
+enum OperationType {
+  deposit_money
+}
+
+model ProcessedMessage {
+  id          String   @id @default(cuid())
+  session     String
+  chatId      String
+  messageId   String
+  jobId       String?
+  processedAt DateTime @default(now())
+
+  @@unique([session, messageId])
+  @@index([chatId])
+}
+
+model FunctionCallAudit {
+  id            String             @id @default(cuid())
+  jobId         String?
+  session       String
+  chatId        String
+  messageId     String
+  toolName      String
+  argumentsJson Json
+  status        FunctionCallStatus
+  errorCode     String?
+  durationMs    Int
+  createdAt     DateTime           @default(now())
+
+  @@index([jobId])
+  @@index([messageId])
+  @@index([toolName])
+}
+
+model OperationState {
+  id            String          @id @default(cuid())
+  jobId         String?
+  messageId     String
+  operationType OperationType
+  status        OperationStatus
+  reason        String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ExternalUserSnapshot {
+  id             String   @id @default(cuid())
+  externalUserId String   @unique
+  name           String
+  balanceMinor   BigInt
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
