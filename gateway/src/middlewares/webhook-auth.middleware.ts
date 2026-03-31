@@ -2,8 +2,6 @@ import { timingSafeEqual } from 'node:crypto';
 import { NextFunction, Request, Response } from 'express';
 import { env } from '../config/env.js';
 
-const WEBHOOK_TOKEN_HEADER = 'x-webhook-token';
-
 const safeEqual = (a: string, b: string): boolean => {
   const aBuffer = Buffer.from(a);
   const bBuffer = Buffer.from(b);
@@ -20,14 +18,9 @@ export const requireWebhookToken = (
   res: Response,
   next: NextFunction,
 ): void => {
-  if (!env.webhookToken) {
-    res.status(503).json({ error: 'Webhook auth is not configured' });
-    return;
-  }
+  const token = req.header(env.webhookTokenHeader);
 
-  const token = req.header(WEBHOOK_TOKEN_HEADER);
-
-  if (!token || !safeEqual(token, env.webhookToken)) {
+  if (!token || !safeEqual(token, env.webhookTokenValue)) {
     res.status(401).json({ error: 'Unauthorized webhook request' });
     return;
   }
