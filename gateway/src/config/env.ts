@@ -1,19 +1,21 @@
 import dotenv from 'dotenv';
-import { cleanEnv, num, str } from 'envalid';
+import { z } from 'zod';
 
 dotenv.config();
 
-const validatedEnv = cleanEnv(process.env, {
-  PORT: num(),
-  BULLMQ_REDIS_URL: str({ default: 'redis://localhost:6379' }),
-  BULLMQ_QUEUE_NAME: str({ default: 'waha-messages' }),
-  WEBHOOK_TOKEN_HEADER: str(),
-  WEBHOOK_TOKEN_VALUE: str(),
-  MAX_PAYLOAD_BYTES: num({ default: 262144 }),
-  QUEUE_MAX_BACKLOG: num({ default: 50000 }),
-  QUEUE_DEGRADED_BACKLOG: num({ default: 20000 }),
-  CORS_ALLOWED_ORIGINS: str({ default: '' }),
+const envSchema = z.object({
+  PORT: z.coerce.number(),
+  BULLMQ_REDIS_URL: z.string().min(1),
+  BULLMQ_QUEUE_NAME: z.string().min(1),
+  WEBHOOK_TOKEN_HEADER: z.string().min(1),
+  WEBHOOK_TOKEN_VALUE: z.string().min(1),
+  MAX_PAYLOAD_BYTES: z.coerce.number(),
+  QUEUE_MAX_BACKLOG: z.coerce.number(),
+  QUEUE_DEGRADED_BACKLOG: z.coerce.number(),
+  CORS_ALLOWED_ORIGINS: z.string(),
 });
+
+const validatedEnv = envSchema.parse(process.env);
 
 const parseCsv = (value: string): string[] =>
   value
