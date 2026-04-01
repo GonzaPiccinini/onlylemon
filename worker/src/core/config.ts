@@ -24,6 +24,10 @@ const env = cleanEnv(process.env, {
   EXTERNAL_API_KEY: str(),
   EXTERNAL_API_TIMEOUT_MS: num(),
 
+  OPENAI_API_KEY: str(),
+  OPENAI_BASE_URL: str({ default: 'https://api.openai.com' }),
+  OPENAI_TIMEOUT_MS: num({ default: 10000 }),
+
   CORS_ORIGIN: str(),
 });
 
@@ -50,6 +54,12 @@ export const config = {
     baseUrl: env.EXTERNAL_API_BASE_URL,
     apiKey: env.EXTERNAL_API_KEY || undefined,
     timeoutMs: env.EXTERNAL_API_TIMEOUT_MS,
+  },
+
+  openai: {
+    apiKey: env.OPENAI_API_KEY,
+    baseUrl: env.OPENAI_BASE_URL,
+    timeoutMs: env.OPENAI_TIMEOUT_MS,
   },
 
   corsOrigins: env.CORS_ORIGIN.split(',')

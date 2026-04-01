@@ -6,9 +6,16 @@ import { claimMessageProcessing } from '../domain/message/idempotency.repository
 import { inboundJobSchema } from '../domain/message/schemas.js';
 import { resolveRule } from '../domain/rules/router.js';
 import { executeToolCall } from '../domain/tooling/executor.service.js';
+import { GptNanoMessageParser } from '../integrations/ai/intent-parser.client.js';
 import {
   executeResponseFlow,
   getChatMessages,
+  getRandomTypingTime,
+  sendList,
+  sendSeen,
+  sendStartTyping,
+  sendStopTyping,
+  sendText,
 } from '../integrations/waha/waha.client.js';
 
 type ChatContextMessage = {
@@ -49,6 +56,8 @@ async function loadChatHistory(
   }
 }
 
+const messageParser = new GptNanoMessageParser();
+
 export async function processInboundJob(job: Job) {
   const parsed = inboundJobSchema.safeParse(job.data);
 
@@ -61,6 +70,14 @@ export async function processInboundJob(job: Job) {
   }
 
   const data = parsed.data;
+
+  await sendSeen(data.session, data.payload.from, data.payload.id);
+  await sendStartTyping(data.session, data.payload.from);
+  setTimeout(async () => {
+    await sendStopTyping(data.session, data.payload.from);
+    await sendList(data.session, data.payload.from);
+  }, getRandomTypingTime());
+  /*
   const claimed = await claimMessageProcessing({
     session: data.session,
     chatId: data.payload.from,
@@ -88,12 +105,14 @@ export async function processInboundJob(job: Job) {
   };
 
   try {
-    const history = await loadChatHistory(
+    await loadChatHistory(
       data.session,
       data.payload.from,
       data.payload.id,
     );
-    const resolution = resolveRule(history, data.payload.body);
+
+    const parsedMessage = await messageParser.parse(data.payload.body);
+    const resolution = resolveRule(parsedMessage);
 
     if (resolution.toolName) {
       const toolResult = await executeToolCall(
@@ -117,8 +136,13 @@ export async function processInboundJob(job: Job) {
       }
     } else {
       const fallbackText =
-        resolution.fallbackMessage ??
-        'I can help with user creation and deposits. Tell me what you want to do.';
+        resolution.fallbackMessage;
+
+      if (!fallbackText) {
+        logger.warn({ ...logContext }, 'Rule resolved without tool and fallback message');
+        return;
+      }
+
       await executeResponseFlow(
         data.session,
         data.payload.from,
@@ -132,4 +156,5 @@ export async function processInboundJob(job: Job) {
     logger.error({ err: error, ...logContext }, 'Job processing failed');
     throw error;
   }
+    */
 }

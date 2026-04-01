@@ -28,12 +28,15 @@ async function wahaCall(path: string, payload: Record<string, unknown>) {
 
 async function wahaGet<T>(path: string, params: Record<string, string>) {
   const query = new URLSearchParams(params);
-  const response = await fetch(`${config.wahaBaseUrl}${path}?${query.toString()}`, {
-    method: 'GET',
-    headers: {
-      'X-Api-Key': config.wahaApiKey,
+  const response = await fetch(
+    `${config.wahaBaseUrl}${path}?${query.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': config.wahaApiKey,
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     throw new Error(`WAHA request failed with status ${response.status}`);
@@ -92,7 +95,42 @@ export async function sendText(session: string, chatId: string, text: string) {
   });
 }
 
-function getRandomTypingTime() {
+export async function sendList(session: string, chatId: string) {
+  await wahaCall('/api/sendList', {
+    chatId,
+    session,
+    reply_to: null,
+    message: {
+      title: '¡Hola, bienvenido a Lemonbet 🍋!',
+      description: '¿En qué te puedo ayudar?',
+      button: 'Abrir menú de opciones',
+      sections: [
+        {
+          title: '¿Qué querés hacer?',
+          rows: [
+            {
+              title: 'Quiero crear un usuario en la plataforma',
+              rowId: 'crear_usuario',
+              description: null,
+            },
+            {
+              title: 'Quiero cargar saldo (fichas) en mi cuenta de usuario',
+              rowId: 'cargar_saldo',
+              description: null,
+            },
+            {
+              title: 'Necesito contactar al soporte',
+              rowId: 'contactar_soporte',
+              description: null,
+            },
+          ],
+        },
+      ],
+    },
+  });
+}
+
+export function getRandomTypingTime() {
   const minCeiled = Math.ceil(3);
   const maxFloored = Math.floor(8);
   return Math.floor(Math.random() * (maxFloored - minCeiled + 1) + minCeiled);
