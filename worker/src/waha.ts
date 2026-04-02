@@ -95,30 +95,34 @@ export async function sendText(session: string, chatId: string, text: string) {
   });
 }
 
-interface Contact {
-  fullname: string;
-  organization: string;
-  phoneNumber: string;
-  whatsappId: string;
-  vcard: null;
+interface Preview {
+  title: string;
+  description: string;
+  url: string;
+  image: {
+    url: string;
+  };
 }
 
-export async function sendContacts(
+export async function sendLinkPreview(
   session: string,
   chatId: string,
-  contacts: Contact[],
+  text: string,
+  preview: Preview,
 ) {
-  await wahaCall('/api/sendContactVcard', {
+  await wahaCall('/api/send/link-custom-preview', {
     session,
     chatId,
-    contacts,
+    linkPreviewHighQuality: true,
     replyTo: null,
+    text,
+    preview,
   });
 }
 
 function getRandomTypingTime() {
-  const minCeiled = Math.ceil(2);
-  const maxFloored = Math.floor(4);
+  const minCeiled = Math.ceil(0.3);
+  const maxFloored = Math.floor(1.5);
   const seconds = Math.floor(
     Math.random() * (maxFloored - minCeiled + 1) + minCeiled,
   );
@@ -148,11 +152,12 @@ export async function executeResponseContactSupport(
   session: string,
   chatId: string,
   messageId: string,
-  contacts: Contact[],
+  text: string,
+  preview: Preview,
 ) {
   await sendSeen(session, chatId, messageId);
   await sendStartTyping(session, chatId);
   await wait(getRandomTypingTime());
   await sendStopTyping(session, chatId);
-  await sendContacts(session, chatId, contacts);
+  await sendLinkPreview(session, chatId, text, preview);
 }

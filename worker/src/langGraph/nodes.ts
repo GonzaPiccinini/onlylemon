@@ -65,22 +65,28 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
   try {
     const { session, payload } = state.job;
 
-    const contactSupportMessage = `Podés contactar al equipo de soporte por WhatsApp a través del siguiente contacto:`;
+    const contactSupportMessage = `Podés contactar al equipo de soporte a través del siguiente link:`;
     await executeResponseFlow(
       session,
       payload.from,
       payload.id,
       contactSupportMessage,
     );
-    await executeResponseContactSupport(session, payload.from, payload.id, [
+    await executeResponseContactSupport(
+      session,
+      payload.from,
+      payload.id,
+      'https://wa.me/5493516835986',
       {
-        fullname: 'Soporte Lemon 🍋',
-        organization: 'lemonbet.top',
-        phoneNumber: '+54 9 3516 83-5986',
-        whatsappId: '47408553701472@lid',
-        vcard: null,
+        title: '🍋 Soporte Lemonbet',
+        description:
+          '¿Necesitás ayuda? Contactá al equipo de soporte y resolvé tus dudas de forma rápida y sencilla',
+        url: 'https://wa.me/5493516835986',
+        image: {
+          url: 'https://i.imgur.com/Ss9eSmZ.png',
+        },
       },
-    ]);
+    );
 
     return new Command({
       update: {},
