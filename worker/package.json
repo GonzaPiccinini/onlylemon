@@ -8,30 +8,17 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.866.0",
-    "@aws-sdk/s3-request-presigner": "^3.866.0",
-    "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "bullmq": "^5.71.1",
-    "cors": "^2.8.5",
     "dotenv": "^17.3.1",
-    "envalid": "^8.0.0",
     "express": "^4.21.2",
-    "helmet": "^8.1.0",
-    "pg": "^8.20.0",
-    "pino": "^9.9.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/compression": "^1.8.1",
-    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.23",
-    "@types/hpp": "^0.2.6",
     "@types/node": "^22.15.3",
     "prisma": "^7.6.0",
     "tsx": "^4.20.3",

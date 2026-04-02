@@ -1,53 +1,30 @@
-import { createServer } from 'node:http';
+import express from 'express';
 
-import { config } from './core/config.js';
-import { logger } from './core/logger.js';
-import { prisma } from './core/prisma.js';
-import { createApp } from './http/app.js';
-import { createWorker, getWorker } from './worker/index.js';
-import { setWorkerReady } from './worker/state.js';
+import { config } from './config.js';
+import { worker } from './worker.js';
 
-const app = createApp();
-const server = createServer(app);
+const app = express();
 
-async function start() {
-  await prisma.$connect();
+app.use(express.json());
 
-  createWorker();
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true });
+});
 
-  server.listen(config.port, () => {
-    logger.info(
-      {
-        port: config.port,
-        env: config.nodeEnv,
-        queue: config.bullmq.queueName,
-        concurrency: config.bullmq.concurrency,
-      },
-      'Worker started',
-    );
-  });
-}
+app.post('/receive', (_req, res) => {
+  res.status(202).json({ received: true });
+});
+
+const server = app.listen(config.PORT, () => {
+  console.log(`server listening on ${config.PORT}`);
+});
 
 async function shutdown(signal: string) {
-  logger.info({ signal }, 'Shutdown signal received');
-
-  setWorkerReady(false);
-
-  const worker = getWorker();
-  if (worker) {
-    await worker.close();
-  }
-
-  server.close(async () => {
-    await prisma.$disconnect();
-    logger.info('Shutdown complete');
+  console.log(`shutdown signal: ${signal}`);
+  await worker.close();
+  server.close(() => {
     process.exit(0);
   });
-
-  setTimeout(() => {
-    logger.error('Forced shutdown due to timeout');
-    process.exit(1);
-  }, 10000).unref();
 }
 
 process.on('SIGINT', () => {
@@ -56,9 +33,4 @@ process.on('SIGINT', () => {
 
 process.on('SIGTERM', () => {
   void shutdown('SIGTERM');
-});
-
-start().catch((error) => {
-  logger.error({ err: error }, 'Failed to start worker');
-  process.exit(1);
 });

@@ -6,36 +6,3 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-
-model ProcessedMessage {
-  id          String   @id @default(cuid())
-  session     String
-  chatId      String
-  messageId   String
-  jobId       String?
-  processedAt DateTime @default(now())
-
-  @@unique([session, messageId])
-  @@index([chatId])
-}
-
-model ChatUser {
-  id        String   @id @default(cuid())
-  chatId    String   @unique
-  username  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ChatTransaction {
-  id        String   @id @default(cuid())
-  chatId    String
-  type      String
-  amount    Int
-  status    String
-  errorCode String?
-  createdAt DateTime @default(now())
-
-  @@index([chatId])
-  @@index([createdAt])
-}

@@ -1,12 +1,6 @@
 node_modules/
 dist/
 .env
-.env.*
-!/.env.example
 coverage/
 *.log
-prisma/dev.db
-
-/generated/prisma
-
 /generated/prisma
