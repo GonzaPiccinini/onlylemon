@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { config } from './config.js';
-import { worker } from './worker.js';
+// import { worker } from './worker.js';
 
 const app = express();
 
@@ -21,7 +21,7 @@ const server = app.listen(config.PORT, () => {
 
 async function shutdown(signal: string) {
   console.log(`shutdown signal: ${signal}`);
-  await worker.close();
+  // await worker.close();
   server.close(() => {
     process.exit(0);
   });
