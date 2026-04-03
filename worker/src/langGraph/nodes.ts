@@ -38,14 +38,8 @@ export const classifyMessage: GraphNode<typeof ChatState> = async (
 
     const { intent: nextNode, entity } = parsedResponse.data;
 
-    let currentState;
-    if (nextNode === 'unknown') currentState = 'startUnknownState';
-    if (nextNode === 'contact_support') currentState = 'startContactSupport';
-    if (nextNode === 'create_user') currentState = 'startCreateUser';
-    if (nextNode === 'load_balance') currentState = 'startLoadBalance';
-
     return new Command({
-      update: { intent: nextNode, entity, currentState },
+      update: { intent: nextNode, entity },
       goto: nextNode,
     });
   } catch (error) {
@@ -100,4 +94,38 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
       goto: END,
     });
   }
+};
+
+export const createUser: GraphNode<typeof ChatState> = async (
+  state,
+  config,
+) => {
+  return new Command({ update: {}, goto: END });
+};
+
+export const loadBalance: GraphNode<typeof ChatState> = async (
+  state,
+  config,
+) => {
+  return new Command({ update: {}, goto: END });
+};
+
+export const unknownNode: GraphNode<typeof ChatState> = async (
+  state,
+  config,
+) => {
+  const unknownMessage = `Lo siento, no pude entender tu solicitud. Por favor, intentá reformular tu mensaje o escribí "ayuda" para obtener asistencia.`;
+
+  try {
+    await executeResponseFlow(
+      state.job.session,
+      state.job.payload.from,
+      state.job.payload.id,
+      unknownMessage,
+    );
+  } catch (error) {
+    console.error(`Error executing unknown node: ${error}`);
+  }
+
+  return new Command({ update: {}, goto: END });
 };

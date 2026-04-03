@@ -1,5 +1,11 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
-import { classifyMessage, contactSupport } from './nodes.js';
+import {
+  classifyMessage,
+  contactSupport,
+  createUser,
+  loadBalance,
+  unknownNode,
+} from './nodes.js';
 import { ChatState } from './states.js';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { config } from '../config.js';
@@ -9,11 +15,33 @@ const checkpointer = PostgresSaver.fromConnString(config.DATABASE_URL);
 await checkpointer.setup();
 
 const ChatGraph = new StateGraph(ChatState)
-  .addNode('classifyMessage', classifyMessage, {
-    ends: ['contact_support', END],
+  // Nodes
+  .addNode('classify_message', classifyMessage, {
+    ends: ['contact_support', 'create_user', 'load_balance', 'unknown'],
   })
   .addNode('contact_support', contactSupport)
+  .addNode('create_user', createUser)
+  .addNode('load_balance', loadBalance)
+  .addNode('unknown', unknownNode)
+
+  // Edges
+  .addEdge(START, 'classify_message')
+  .addEdge('classify_message', 'unknown')
+  .addEdge('classify_message', 'contact_support')
+  .addEdge('classify_message', 'create_user')
+  .addEdge('classify_message', 'load_balance')
+  .addEdge('unknown', END)
   .addEdge('contact_support', END)
-  .addEdge(START, 'classifyMessage');
+  .addEdge('create_user', END)
+  .addEdge('load_balance', END)
+  .addEdge('load_balance', 'create_user');
 
 export const chatGraph = ChatGraph.compile({ checkpointer });
+
+const CreateUserGraph = new StateGraph(ChatState);
+
+export const createUserGraph = CreateUserGraph.compile({ checkpointer });
+
+const LoadBalanceGraph = new StateGraph(ChatState);
+
+export const loadBalanceGraph = LoadBalanceGraph.compile({ checkpointer });
