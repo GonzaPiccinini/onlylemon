@@ -114,7 +114,7 @@ export const unknownNode: GraphNode<typeof ChatState> = async (
   state,
   config,
 ) => {
-  const unknownMessage = `Lo siento, no pude entender tu solicitud. Por favor, intentá reformular tu mensaje o escribí "ayuda" para obtener asistencia.`;
+  const unknownMessage = `Lo siento, no pude entender tu solicitud. Por favor, intentá reformular tu mensaje o contactá al soporte para asistencia.`;
 
   try {
     await executeResponseFlow(
