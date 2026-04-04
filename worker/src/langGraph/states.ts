@@ -15,6 +15,7 @@ export const JobSchema = z.object({
   session: z.string().min(1),
   payload: z.object({
     id: z.string().min(1),
+    timestamp: z.number().transform((val) => val * 1000),
     from: z.string(),
     body: z.string().min(1).optional(),
     fromMe: z.boolean(),
