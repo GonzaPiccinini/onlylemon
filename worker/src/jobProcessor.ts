@@ -3,18 +3,18 @@ import { chatGraph } from './langGraph/graphs.js';
 import { JobSchema } from './langGraph/states.js';
 
 export async function processInboundJob(job: Job) {
-  // validar idempotencia del job
-
-  // parsear data del job
-  const parsedData = JobSchema.safeParse(job.data);
-  if (parsedData.error) {
-    console.error(`Error parsing job data: ${parsedData.error.message}`);
-    return;
-  }
-  const data = parsedData.data;
-
-  // invocar (reanudar) grafo del chat
   try {
+    // validar idempotencia del job
+
+    // parsear data del job
+    const parsedData = JobSchema.safeParse(job.data);
+    if (parsedData.error) {
+      console.error(`Error parsing job data: ${parsedData.error.message}`);
+      return;
+    }
+    const data = parsedData.data;
+
+    // invocar (reanudar) grafo del chat
     await chatGraph.invoke(
       {
         intent: 'unknown',

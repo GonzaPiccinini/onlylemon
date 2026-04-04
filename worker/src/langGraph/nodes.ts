@@ -9,7 +9,7 @@ export const classifyMessage: GraphNode<typeof ChatState> = async (
   graphConfig,
 ) => {
   try {
-    const userMessage = state.job.payload.body;
+    const userMessage = state.job.payload.body as string;
 
     const response = await openaiClient.responses.create(
       {
@@ -110,10 +110,7 @@ export const loadBalance: GraphNode<typeof ChatState> = async (
   return new Command({ update: {}, goto: END });
 };
 
-export const unknownNode: GraphNode<typeof ChatState> = async (
-  state,
-  config,
-) => {
+export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
   const unknownMessage = `Lo siento, no pude entender tu solicitud. Por favor, intentá reformular tu mensaje o contactá al soporte para recibir asistencia.`;
 
   try {

@@ -15,8 +15,20 @@ export const JobSchema = z.object({
   session: z.string().min(1),
   payload: z.object({
     id: z.string().min(1),
-    from: z.string().min(1),
-    body: z.string().min(1),
+    from: z.string(),
+    body: z.string().min(1).optional(),
+    fromMe: z.boolean(),
+    hasMedia: z.boolean(),
+    media: z
+      .object({
+        url: z.string(),
+        mimetype: z.string(),
+        s3: z.object({
+          Bucket: z.string(),
+          Key: z.string(),
+        }),
+      })
+      .nullable(),
   }),
 });
 
