@@ -26,15 +26,10 @@ const ChatGraph = new StateGraph(ChatState)
 
   // Edges
   .addEdge(START, 'classify_message')
-  .addEdge('classify_message', 'unknown')
-  .addEdge('classify_message', 'contact_support')
-  .addEdge('classify_message', 'create_user')
-  .addEdge('classify_message', 'load_balance')
   .addEdge('unknown', END)
   .addEdge('contact_support', END)
   .addEdge('create_user', END)
-  .addEdge('load_balance', END)
-  .addEdge('load_balance', 'create_user');
+  .addEdge('load_balance', END);
 
 export const chatGraph = ChatGraph.compile({ checkpointer });
 
