@@ -1,6 +1,7 @@
 import { Job } from 'bullmq';
 import { chatGraph } from './langGraph/graphs.js';
 import { JobSchema } from './langGraph/states.js';
+import { saveInboundMessage } from './messageStore.js';
 
 export async function processInboundJob(job: Job) {
   try {
@@ -13,6 +14,8 @@ export async function processInboundJob(job: Job) {
       return;
     }
     const data = parsedData.data;
+
+    await saveInboundMessage(data);
 
     // invocar (reanudar) grafo del chat
     await chatGraph.invoke(

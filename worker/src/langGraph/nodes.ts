@@ -4,6 +4,7 @@ import { openaiClient, systemInstruction } from '../openai.js';
 import { config } from '../config.js';
 import { executeResponseContactSupport, executeResponseFlow } from '../waha.js';
 import { logNodeError } from './errorHandling.js';
+import { saveWorkerMessage } from '../messageStore.js';
 
 export const classifyMessage: GraphNode<typeof ChatState> = async (
   state,
@@ -88,6 +89,12 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
       payload.id,
       contactSupportMessage,
     );
+    await saveWorkerMessage({
+      session,
+      chatId: payload.from,
+      body: contactSupportMessage,
+    });
+
     await executeResponseContactSupport(
       session,
       payload.from,
@@ -103,6 +110,11 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
         },
       },
     );
+    await saveWorkerMessage({
+      session,
+      chatId: payload.from,
+      body: 'https://wa.me/5493516835986',
+    });
 
     return new Command({
       update: {},
@@ -122,6 +134,11 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
         payload.id,
         fallbackMessage,
       );
+      await saveWorkerMessage({
+        session,
+        chatId: payload.from,
+        body: fallbackMessage,
+      });
     } catch (fallbackError) {
       logNodeError(
         {
@@ -167,6 +184,11 @@ export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
       state.job.payload.id,
       unknownMessage,
     );
+    await saveWorkerMessage({
+      session: state.job.session,
+      chatId: state.job.payload.from,
+      body: unknownMessage,
+    });
   } catch (error) {
     logNodeError(errorContext, error);
 
@@ -177,6 +199,11 @@ export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
         state.job.payload.id,
         'Tuvimos un problema temporal procesando tu mensaje. Intentá nuevamente en unos minutos. Si el problema persiste, contactá al soporte a través del siguiente link: https://wa.me/5493516835986',
       );
+      await saveWorkerMessage({
+        session: state.job.session,
+        chatId: state.job.payload.from,
+        body: 'Tuvimos un problema temporal procesando tu mensaje. Intentá nuevamente en unos minutos. Si el problema persiste, contactá al soporte a través del siguiente link: https://wa.me/5493516835986',
+      });
     } catch (fallbackError) {
       logNodeError(
         {
