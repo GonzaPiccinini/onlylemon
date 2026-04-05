@@ -3,11 +3,20 @@ import { ChatState, MessageClassificationSchema } from './states.js';
 import { openaiClient, systemInstruction } from '../openai.js';
 import { config } from '../config.js';
 import { executeResponseContactSupport, executeResponseFlow } from '../waha.js';
+import { logNodeError } from './errorHandling.js';
 
 export const classifyMessage: GraphNode<typeof ChatState> = async (
   state,
   graphConfig,
 ) => {
+  const errorContext = {
+    node: 'classify_message',
+    session: state.job.session,
+    chatId: state.job.payload.from,
+    messageId: state.job.payload.id,
+    intent: state.intent,
+  };
+
   try {
     const userMessage = state.job.payload.body as string;
 
@@ -43,19 +52,32 @@ export const classifyMessage: GraphNode<typeof ChatState> = async (
       goto: nextNode,
     });
   } catch (error) {
-    // IMPLEMENTAR MANEJO DE ERROR
-    console.error(`Error executing classifyMessage node: ${error}`);
+    logNodeError(errorContext, error);
     return new Command({
-      update: {},
-      goto: END,
+      update: {
+        intent: 'unknown',
+        entity: {
+          name: null,
+          amount: null,
+        },
+      },
+      goto: 'unknown',
     });
   }
 };
 
 export const contactSupport: GraphNode<typeof ChatState> = async (
   state,
-  config,
+  graphConfig,
 ) => {
+  const errorContext = {
+    node: 'contact_support',
+    session: state.job.session,
+    chatId: state.job.payload.from,
+    messageId: state.job.payload.id,
+    intent: state.intent,
+  };
+
   try {
     const { session, payload } = state.job;
 
@@ -87,12 +109,30 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
       goto: END,
     });
   } catch (error) {
-    // IMPLEMENTAR MANEJO DE ERROR
-    console.error(`Error executing contactSupport node : ${error}`);
-    return new Command({
-      update: {},
-      goto: END,
-    });
+    logNodeError(errorContext, error);
+
+    try {
+      const { session, payload } = state.job;
+      const fallbackMessage =
+        'Podés contactar al equipo de soporte a través del siguiente link: https://wa.me/5493516835986';
+
+      await executeResponseFlow(
+        session,
+        payload.from,
+        payload.id,
+        fallbackMessage,
+      );
+    } catch (fallbackError) {
+      logNodeError(
+        {
+          ...errorContext,
+          node: 'contact_support_fallback',
+        },
+        fallbackError,
+      );
+    }
+
+    return new Command({ update: {}, goto: END });
   }
 };
 
@@ -112,6 +152,13 @@ export const loadBalance: GraphNode<typeof ChatState> = async (
 
 export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
   const unknownMessage = `Lo siento, no pude entender tu solicitud. Por favor, intentá reformular tu mensaje o contactá al soporte para recibir asistencia.`;
+  const errorContext = {
+    node: 'unknown',
+    session: state.job.session,
+    chatId: state.job.payload.from,
+    messageId: state.job.payload.id,
+    intent: state.intent,
+  };
 
   try {
     await executeResponseFlow(
@@ -121,7 +168,24 @@ export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
       unknownMessage,
     );
   } catch (error) {
-    console.error(`Error executing unknown node: ${error}`);
+    logNodeError(errorContext, error);
+
+    try {
+      await executeResponseFlow(
+        state.job.session,
+        state.job.payload.from,
+        state.job.payload.id,
+        'Tuvimos un problema temporal procesando tu mensaje. Intentá nuevamente en unos minutos. Si el problema persiste, contactá al soporte a través del siguiente link: https://wa.me/5493516835986',
+      );
+    } catch (fallbackError) {
+      logNodeError(
+        {
+          ...errorContext,
+          node: 'unknown_fallback',
+        },
+        fallbackError,
+      );
+    }
   }
 
   return new Command({ update: {}, goto: END });
