@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
-import { prisma } from './prisma.js';
-import { JobSchema } from './langGraph/states.js';
+import { prisma } from '../prisma/client.js';
+import { JobSchema } from '../../state/langgraph/states.js';
 
 type InboundJobData = z.infer<typeof JobSchema>;
 

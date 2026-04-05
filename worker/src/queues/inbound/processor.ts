@@ -1,7 +1,7 @@
 import { Job } from 'bullmq';
-import { chatGraph } from './langGraph/graphs.js';
-import { JobSchema } from './langGraph/states.js';
-import { saveInboundMessage } from './messageStore.js';
+import { chatGraph } from '../../state/langgraph/graphs.js';
+import { JobSchema } from '../../state/langgraph/states.js';
+import { saveInboundMessage } from '../../persistence/repositories/messageRepository.js';
 
 export async function processInboundJob(job: Job) {
   try {

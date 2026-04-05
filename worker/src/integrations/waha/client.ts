@@ -1,4 +1,4 @@
-import { config } from './config.js';
+import { config } from '../../config/env.js';
 
 type WahaMessage = {
   id: string;
@@ -7,11 +7,20 @@ type WahaMessage = {
   body: string;
 };
 
-type GetChatMessagesOptions = {
+export type GetChatMessagesOptions = {
   limit: number;
   sortBy?: 'timestamp' | 'messageTimestamp';
   downloadMedia?: boolean;
 };
+
+export interface Preview {
+  title: string;
+  description: string;
+  url: string;
+  image: {
+    url: string;
+  };
+}
 
 async function wahaCall(path: string, payload: Record<string, unknown>) {
   const response = await fetch(`${config.WAHA_BASE_URL}${path}`, {
@@ -95,15 +104,6 @@ export async function sendText(session: string, chatId: string, text: string) {
   });
 }
 
-interface Preview {
-  title: string;
-  description: string;
-  url: string;
-  image: {
-    url: string;
-  };
-}
-
 export async function sendLinkPreview(
   session: string,
   chatId: string,
@@ -118,46 +118,4 @@ export async function sendLinkPreview(
     text,
     preview,
   });
-}
-
-function getRandomTypingTime() {
-  const minCeiled = Math.ceil(0.3);
-  const maxFloored = Math.floor(1.5);
-  const seconds = Math.floor(
-    Math.random() * (maxFloored - minCeiled + 1) + minCeiled,
-  );
-  return seconds * 1000;
-}
-
-function wait(ms: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-export async function executeResponseFlow(
-  session: string,
-  chatId: string,
-  messageId: string,
-  text: string,
-) {
-  await sendSeen(session, chatId, messageId);
-  await sendStartTyping(session, chatId);
-  await wait(getRandomTypingTime());
-  await sendStopTyping(session, chatId);
-  await sendText(session, chatId, text);
-}
-
-export async function executeResponseContactSupport(
-  session: string,
-  chatId: string,
-  messageId: string,
-  text: string,
-  preview: Preview,
-) {
-  await sendSeen(session, chatId, messageId);
-  await sendStartTyping(session, chatId);
-  await wait(getRandomTypingTime());
-  await sendStopTyping(session, chatId);
-  await sendLinkPreview(session, chatId, text, preview);
 }

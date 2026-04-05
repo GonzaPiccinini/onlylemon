@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { config } from './config.js';
+import { config } from '../config/env.js';
 import { worker } from './worker.js';
 
 const app = express();

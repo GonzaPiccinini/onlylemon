@@ -8,7 +8,7 @@ import {
 } from './nodes.js';
 import { ChatState } from './states.js';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { config } from '../config.js';
+import { config } from '../../config/env.js';
 
 // tabla para almacenar los estados de los chats, que se buscan con el chatId
 const checkpointer = PostgresSaver.fromConnString(config.DATABASE_URL);

@@ -1,10 +1,14 @@
 import { Command, END, GraphNode } from '@langchain/langgraph';
 import { ChatState, MessageClassificationSchema } from './states.js';
-import { openaiClient, systemInstruction } from '../openai.js';
-import { config } from '../config.js';
-import { executeResponseContactSupport, executeResponseFlow } from '../waha.js';
+import { openaiClient } from '../../ai/openai/client.js';
+import { systemInstruction } from '../../ai/openai/instructions.js';
+import { config } from '../../config/env.js';
+import {
+  executeResponseContactSupport,
+  executeResponseFlow,
+} from '../../integrations/waha/flows.js';
 import { logNodeError } from './errorHandling.js';
-import { saveWorkerMessage } from '../messageStore.js';
+import { saveWorkerMessage } from '../../persistence/repositories/messageRepository.js';
 
 export const classifyMessage: GraphNode<typeof ChatState> = async (
   state,
@@ -168,7 +172,8 @@ export const loadBalance: GraphNode<typeof ChatState> = async (
 };
 
 export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
-  const unknownMessage = `Lo siento, no pude entender tu solicitud. Por favor, intentá reformular tu mensaje o contactá al soporte para recibir asistencia.`;
+  const unknownMessage =
+    'Lo siento, no pude entender tu solicitud. Por favor, intentá reformular tu mensaje o contactá al soporte para recibir asistencia.';
   const errorContext = {
     node: 'unknown',
     session: state.job.session,
