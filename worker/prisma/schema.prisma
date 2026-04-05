@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Session {
+  name String @unique
+
+  cvuNumber String @unique
+  cvu       Cvu    @relation(fields: [cvuNumber], references: [number])
+
+  chats Chat[]
+
+  @@map("Session")
+}
+
+model Chat {
+  id String @unique
+
+  sessionName String
+  session     Session @relation(fields: [sessionName], references: [name])
+
+  user User?
+
+  messages   Message[]
+  addedFunds AddFunds[]
+
+  @@map("Chat")
+}
+
+model User {
+  id       String @id @default(uuid())
+  name     String @unique
+  password String
+
+  chatId String @unique
+  chat   Chat   @relation(fields: [chatId], references: [id])
+
+  @@map("User")
+}
+
+model Message {
+  id              String   @unique
+  timestamp       DateTime
+  body            String?
+  hasMedia        Boolean
+  media           Json?
+  submittedByUser Boolean
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id])
+
+  @@map("Message")
+}
+
+model AddFunds {
+  id     String  @id @default(uuid())
+  amount Decimal @db.Decimal(10, 2)
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id])
+
+  cvuNumber String
+  cvu       Cvu    @relation(fields: [cvuNumber], references: [number])
+
+  @@map("AddFunds")
+}
+
+model Cvu {
+  number String @unique
+
+  session Session[]
+  add     AddFunds[]
+
+  @@map("Cvu")
+}
