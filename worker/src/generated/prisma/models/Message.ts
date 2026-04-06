@@ -405,10 +405,6 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type MessageCreateWithoutChatInput = {
   id: string
   timestamp: Date | string

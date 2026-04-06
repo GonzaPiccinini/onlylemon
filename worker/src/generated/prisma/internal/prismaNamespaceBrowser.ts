@@ -85,6 +85,7 @@ export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeo
 
 export const ChatScalarFieldEnum = {
   id: 'id',
+  lock: 'lock',
   sessionName: 'sessionName'
 } as const
 

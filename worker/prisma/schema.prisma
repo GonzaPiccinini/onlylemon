@@ -19,7 +19,8 @@ model Session {
 }
 
 model Chat {
-  id String @unique
+  id   String  @unique
+  lock Boolean @default(false)
 
   sessionName String
   session     Session @relation(fields: [sessionName], references: [name])

@@ -26,16 +26,19 @@ export type AggregateChat = {
 
 export type ChatMinAggregateOutputType = {
   id: string | null
+  lock: boolean | null
   sessionName: string | null
 }
 
 export type ChatMaxAggregateOutputType = {
   id: string | null
+  lock: boolean | null
   sessionName: string | null
 }
 
 export type ChatCountAggregateOutputType = {
   id: number
+  lock: number
   sessionName: number
   _all: number
 }
@@ -43,16 +46,19 @@ export type ChatCountAggregateOutputType = {
 
 export type ChatMinAggregateInputType = {
   id?: true
+  lock?: true
   sessionName?: true
 }
 
 export type ChatMaxAggregateInputType = {
   id?: true
+  lock?: true
   sessionName?: true
 }
 
 export type ChatCountAggregateInputType = {
   id?: true
+  lock?: true
   sessionName?: true
   _all?: true
 }
@@ -131,6 +137,7 @@ export type ChatGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 
 export type ChatGroupByOutputType = {
   id: string
+  lock: boolean
   sessionName: string
   _count: ChatCountAggregateOutputType | null
   _min: ChatMinAggregateOutputType | null
@@ -157,6 +164,7 @@ export type ChatWhereInput = {
   OR?: Prisma.ChatWhereInput[]
   NOT?: Prisma.ChatWhereInput | Prisma.ChatWhereInput[]
   id?: Prisma.StringFilter<"Chat"> | string
+  lock?: Prisma.BoolFilter<"Chat"> | boolean
   sessionName?: Prisma.StringFilter<"Chat"> | string
   session?: Prisma.XOR<Prisma.SessionScalarRelationFilter, Prisma.SessionWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -166,6 +174,7 @@ export type ChatWhereInput = {
 
 export type ChatOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  lock?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
   session?: Prisma.SessionOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
@@ -178,6 +187,7 @@ export type ChatWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ChatWhereInput | Prisma.ChatWhereInput[]
   OR?: Prisma.ChatWhereInput[]
   NOT?: Prisma.ChatWhereInput | Prisma.ChatWhereInput[]
+  lock?: Prisma.BoolFilter<"Chat"> | boolean
   sessionName?: Prisma.StringFilter<"Chat"> | string
   session?: Prisma.XOR<Prisma.SessionScalarRelationFilter, Prisma.SessionWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -187,6 +197,7 @@ export type ChatWhereUniqueInput = Prisma.AtLeast<{
 
 export type ChatOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  lock?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
   _count?: Prisma.ChatCountOrderByAggregateInput
   _max?: Prisma.ChatMaxOrderByAggregateInput
@@ -198,11 +209,13 @@ export type ChatScalarWhereWithAggregatesInput = {
   OR?: Prisma.ChatScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ChatScalarWhereWithAggregatesInput | Prisma.ChatScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Chat"> | string
+  lock?: Prisma.BoolWithAggregatesFilter<"Chat"> | boolean
   sessionName?: Prisma.StringWithAggregatesFilter<"Chat"> | string
 }
 
 export type ChatCreateInput = {
   id: string
+  lock?: boolean
   session: Prisma.SessionCreateNestedOneWithoutChatsInput
   user?: Prisma.UserCreateNestedOneWithoutChatInput
   messages?: Prisma.MessageCreateNestedManyWithoutChatInput
@@ -211,6 +224,7 @@ export type ChatCreateInput = {
 
 export type ChatUncheckedCreateInput = {
   id: string
+  lock?: boolean
   sessionName: string
   user?: Prisma.UserUncheckedCreateNestedOneWithoutChatInput
   messages?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
@@ -219,6 +233,7 @@ export type ChatUncheckedCreateInput = {
 
 export type ChatUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.SessionUpdateOneRequiredWithoutChatsNestedInput
   user?: Prisma.UserUpdateOneWithoutChatNestedInput
   messages?: Prisma.MessageUpdateManyWithoutChatNestedInput
@@ -227,6 +242,7 @@ export type ChatUpdateInput = {
 
 export type ChatUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   user?: Prisma.UserUncheckedUpdateOneWithoutChatNestedInput
   messages?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
@@ -235,15 +251,18 @@ export type ChatUncheckedUpdateInput = {
 
 export type ChatCreateManyInput = {
   id: string
+  lock?: boolean
   sessionName: string
 }
 
 export type ChatUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ChatUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
@@ -259,16 +278,19 @@ export type ChatOrderByRelationAggregateInput = {
 
 export type ChatCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  lock?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
 }
 
 export type ChatMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  lock?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
 }
 
 export type ChatMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  lock?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
 }
 
@@ -319,6 +341,10 @@ export type ChatUncheckedUpdateManyWithoutSessionNestedInput = {
   deleteMany?: Prisma.ChatScalarWhereInput | Prisma.ChatScalarWhereInput[]
 }
 
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
+}
+
 export type ChatCreateNestedOneWithoutUserInput = {
   create?: Prisma.XOR<Prisma.ChatCreateWithoutUserInput, Prisma.ChatUncheckedCreateWithoutUserInput>
   connectOrCreate?: Prisma.ChatCreateOrConnectWithoutUserInput
@@ -363,6 +389,7 @@ export type ChatUpdateOneRequiredWithoutAddedFundsNestedInput = {
 
 export type ChatCreateWithoutSessionInput = {
   id: string
+  lock?: boolean
   user?: Prisma.UserCreateNestedOneWithoutChatInput
   messages?: Prisma.MessageCreateNestedManyWithoutChatInput
   addedFunds?: Prisma.AddFundsCreateNestedManyWithoutChatInput
@@ -370,6 +397,7 @@ export type ChatCreateWithoutSessionInput = {
 
 export type ChatUncheckedCreateWithoutSessionInput = {
   id: string
+  lock?: boolean
   user?: Prisma.UserUncheckedCreateNestedOneWithoutChatInput
   messages?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
   addedFunds?: Prisma.AddFundsUncheckedCreateNestedManyWithoutChatInput
@@ -406,11 +434,13 @@ export type ChatScalarWhereInput = {
   OR?: Prisma.ChatScalarWhereInput[]
   NOT?: Prisma.ChatScalarWhereInput | Prisma.ChatScalarWhereInput[]
   id?: Prisma.StringFilter<"Chat"> | string
+  lock?: Prisma.BoolFilter<"Chat"> | boolean
   sessionName?: Prisma.StringFilter<"Chat"> | string
 }
 
 export type ChatCreateWithoutUserInput = {
   id: string
+  lock?: boolean
   session: Prisma.SessionCreateNestedOneWithoutChatsInput
   messages?: Prisma.MessageCreateNestedManyWithoutChatInput
   addedFunds?: Prisma.AddFundsCreateNestedManyWithoutChatInput
@@ -418,6 +448,7 @@ export type ChatCreateWithoutUserInput = {
 
 export type ChatUncheckedCreateWithoutUserInput = {
   id: string
+  lock?: boolean
   sessionName: string
   messages?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
   addedFunds?: Prisma.AddFundsUncheckedCreateNestedManyWithoutChatInput
@@ -441,6 +472,7 @@ export type ChatUpdateToOneWithWhereWithoutUserInput = {
 
 export type ChatUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.SessionUpdateOneRequiredWithoutChatsNestedInput
   messages?: Prisma.MessageUpdateManyWithoutChatNestedInput
   addedFunds?: Prisma.AddFundsUpdateManyWithoutChatNestedInput
@@ -448,6 +480,7 @@ export type ChatUpdateWithoutUserInput = {
 
 export type ChatUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   messages?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
   addedFunds?: Prisma.AddFundsUncheckedUpdateManyWithoutChatNestedInput
@@ -455,6 +488,7 @@ export type ChatUncheckedUpdateWithoutUserInput = {
 
 export type ChatCreateWithoutMessagesInput = {
   id: string
+  lock?: boolean
   session: Prisma.SessionCreateNestedOneWithoutChatsInput
   user?: Prisma.UserCreateNestedOneWithoutChatInput
   addedFunds?: Prisma.AddFundsCreateNestedManyWithoutChatInput
@@ -462,6 +496,7 @@ export type ChatCreateWithoutMessagesInput = {
 
 export type ChatUncheckedCreateWithoutMessagesInput = {
   id: string
+  lock?: boolean
   sessionName: string
   user?: Prisma.UserUncheckedCreateNestedOneWithoutChatInput
   addedFunds?: Prisma.AddFundsUncheckedCreateNestedManyWithoutChatInput
@@ -485,6 +520,7 @@ export type ChatUpdateToOneWithWhereWithoutMessagesInput = {
 
 export type ChatUpdateWithoutMessagesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.SessionUpdateOneRequiredWithoutChatsNestedInput
   user?: Prisma.UserUpdateOneWithoutChatNestedInput
   addedFunds?: Prisma.AddFundsUpdateManyWithoutChatNestedInput
@@ -492,6 +528,7 @@ export type ChatUpdateWithoutMessagesInput = {
 
 export type ChatUncheckedUpdateWithoutMessagesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   user?: Prisma.UserUncheckedUpdateOneWithoutChatNestedInput
   addedFunds?: Prisma.AddFundsUncheckedUpdateManyWithoutChatNestedInput
@@ -499,6 +536,7 @@ export type ChatUncheckedUpdateWithoutMessagesInput = {
 
 export type ChatCreateWithoutAddedFundsInput = {
   id: string
+  lock?: boolean
   session: Prisma.SessionCreateNestedOneWithoutChatsInput
   user?: Prisma.UserCreateNestedOneWithoutChatInput
   messages?: Prisma.MessageCreateNestedManyWithoutChatInput
@@ -506,6 +544,7 @@ export type ChatCreateWithoutAddedFundsInput = {
 
 export type ChatUncheckedCreateWithoutAddedFundsInput = {
   id: string
+  lock?: boolean
   sessionName: string
   user?: Prisma.UserUncheckedCreateNestedOneWithoutChatInput
   messages?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
@@ -529,6 +568,7 @@ export type ChatUpdateToOneWithWhereWithoutAddedFundsInput = {
 
 export type ChatUpdateWithoutAddedFundsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.SessionUpdateOneRequiredWithoutChatsNestedInput
   user?: Prisma.UserUpdateOneWithoutChatNestedInput
   messages?: Prisma.MessageUpdateManyWithoutChatNestedInput
@@ -536,6 +576,7 @@ export type ChatUpdateWithoutAddedFundsInput = {
 
 export type ChatUncheckedUpdateWithoutAddedFundsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   user?: Prisma.UserUncheckedUpdateOneWithoutChatNestedInput
   messages?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
@@ -543,10 +584,12 @@ export type ChatUncheckedUpdateWithoutAddedFundsInput = {
 
 export type ChatCreateManySessionInput = {
   id: string
+  lock?: boolean
 }
 
 export type ChatUpdateWithoutSessionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   user?: Prisma.UserUpdateOneWithoutChatNestedInput
   messages?: Prisma.MessageUpdateManyWithoutChatNestedInput
   addedFunds?: Prisma.AddFundsUpdateManyWithoutChatNestedInput
@@ -554,6 +597,7 @@ export type ChatUpdateWithoutSessionInput = {
 
 export type ChatUncheckedUpdateWithoutSessionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
   user?: Prisma.UserUncheckedUpdateOneWithoutChatNestedInput
   messages?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
   addedFunds?: Prisma.AddFundsUncheckedUpdateManyWithoutChatNestedInput
@@ -561,6 +605,7 @@ export type ChatUncheckedUpdateWithoutSessionInput = {
 
 export type ChatUncheckedUpdateManyWithoutSessionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lock?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -605,6 +650,7 @@ export type ChatCountOutputTypeCountAddedFundsArgs<ExtArgs extends runtime.Types
 
 export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  lock?: boolean
   sessionName?: boolean
   session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.Chat$userArgs<ExtArgs>
@@ -615,22 +661,25 @@ export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 
 export type ChatSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  lock?: boolean
   sessionName?: boolean
   session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chat"]>
 
 export type ChatSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  lock?: boolean
   sessionName?: boolean
   session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chat"]>
 
 export type ChatSelectScalar = {
   id?: boolean
+  lock?: boolean
   sessionName?: boolean
 }
 
-export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sessionName", ExtArgs["result"]["chat"]>
+export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "lock" | "sessionName", ExtArgs["result"]["chat"]>
 export type ChatInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.Chat$userArgs<ExtArgs>
@@ -655,6 +704,7 @@ export type $ChatPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    lock: boolean
     sessionName: string
   }, ExtArgs["result"]["chat"]>
   composites: {}
@@ -1084,6 +1134,7 @@ export interface Prisma__ChatClient<T, Null = never, ExtArgs extends runtime.Typ
  */
 export interface ChatFieldRefs {
   readonly id: Prisma.FieldRef<"Chat", 'String'>
+  readonly lock: Prisma.FieldRef<"Chat", 'Boolean'>
   readonly sessionName: Prisma.FieldRef<"Chat", 'String'>
 }
     
