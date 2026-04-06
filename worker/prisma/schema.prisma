@@ -20,7 +20,7 @@ model Session {
 
 model Chat {
   id   String  @unique
-  lock Boolean @default(false)
+  lock Boolean @default(true)
 
   sessionName String
   session     Session @relation(fields: [sessionName], references: [name])
