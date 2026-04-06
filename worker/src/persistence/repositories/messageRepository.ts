@@ -14,7 +14,7 @@ type WorkerMessageInput = {
 export async function saveChat(sessionName: string, chatId: string) {
   try {
     const chatExists = await getChat(sessionName, chatId);
-    if (!chatExists) throw new Error('Chat not exists');
+    if (chatExists) throw new Error('Chat already exists');
 
     await prisma.chat.create({
       data: {
@@ -23,7 +23,7 @@ export async function saveChat(sessionName: string, chatId: string) {
       },
     });
   } catch (error) {
-    console.error(`Error saving inbound message: ${error}`);
+    console.error(`Error saving chat: ${error}`);
   }
 }
 
