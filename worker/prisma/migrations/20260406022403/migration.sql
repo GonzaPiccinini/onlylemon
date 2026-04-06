@@ -7,6 +7,7 @@ CREATE TABLE "Session" (
 -- CreateTable
 CREATE TABLE "Chat" (
     "id" TEXT NOT NULL,
+    "lock" BOOLEAN NOT NULL DEFAULT false,
     "sessionName" TEXT NOT NULL
 );
 
@@ -24,7 +25,7 @@ CREATE TABLE "User" (
 CREATE TABLE "Message" (
     "id" TEXT NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL,
-    "body" TEXT NOT NULL,
+    "body" TEXT,
     "hasMedia" BOOLEAN NOT NULL,
     "media" JSONB,
     "submittedByUser" BOOLEAN NOT NULL,
