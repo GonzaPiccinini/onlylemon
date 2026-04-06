@@ -22,6 +22,17 @@ export interface Preview {
   };
 }
 
+export interface List {
+  title: string;
+  description: string;
+  footer?: string;
+  button: string;
+  sections: {
+    title: string;
+    rows: { title: string; rowId: string; description?: string }[];
+  }[];
+}
+
 async function wahaCall(path: string, payload: Record<string, unknown>) {
   const response = await fetch(`${config.WAHA_BASE_URL}${path}`, {
     method: 'POST',
@@ -117,5 +128,14 @@ export async function sendLinkPreview(
     replyTo: null,
     text,
     preview,
+  });
+}
+
+export async function sendList(session: string, chatId: string, list: List) {
+  await wahaCall('/api/sendList', {
+    session,
+    chatId,
+    replyTo: null,
+    list,
   });
 }

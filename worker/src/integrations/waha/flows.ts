@@ -1,6 +1,8 @@
 import {
+  List,
   Preview,
   sendLinkPreview,
+  sendList,
   sendSeen,
   sendStartTyping,
   sendStopTyping,
@@ -22,7 +24,7 @@ function wait(ms: number) {
   });
 }
 
-export async function executeResponseFlow(
+export async function executeSendTextFlow(
   session: string,
   chatId: string,
   messageId: string,
@@ -35,7 +37,7 @@ export async function executeResponseFlow(
   await sendText(session, chatId, text);
 }
 
-export async function executeResponseContactSupport(
+export async function executeSendLinkPreviewFlow(
   session: string,
   chatId: string,
   messageId: string,
@@ -47,4 +49,15 @@ export async function executeResponseContactSupport(
   await wait(getRandomTypingTime());
   await sendStopTyping(session, chatId);
   await sendLinkPreview(session, chatId, text, preview);
+}
+
+export async function exectuteSendListFlow(
+  session: string,
+  chatId: string,
+  list: List,
+) {
+  await sendStartTyping(session, chatId);
+  await wait(getRandomTypingTime());
+  await sendStopTyping(session, chatId);
+  await sendList(session, chatId, list);
 }

@@ -4,8 +4,8 @@ import { openaiClient } from '../../ai/openai/client.js';
 import { systemInstruction } from '../../ai/openai/instructions.js';
 import { config } from '../../config/env.js';
 import {
-  executeResponseContactSupport,
-  executeResponseFlow,
+  executeSendLinkPreviewFlow,
+  executeSendTextFlow,
 } from '../../integrations/waha/flows.js';
 import { logNodeError } from './errorHandling.js';
 import { saveWorkerMessage } from '../../persistence/repositories/messageRepository.js';
@@ -87,7 +87,7 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
     const { session, payload } = state.job;
 
     const contactSupportMessage = `Podés contactar al equipo de soporte a través del siguiente link:`;
-    await executeResponseFlow(
+    await executeSendTextFlow(
       session,
       payload.from,
       payload.id,
@@ -99,7 +99,7 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
       body: contactSupportMessage,
     });
 
-    await executeResponseContactSupport(
+    await executeSendLinkPreviewFlow(
       session,
       payload.from,
       payload.id,
@@ -132,7 +132,7 @@ export const contactSupport: GraphNode<typeof ChatState> = async (
       const fallbackMessage =
         'Podés contactar al equipo de soporte a través del siguiente link: https://wa.me/5493516835986';
 
-      await executeResponseFlow(
+      await executeSendTextFlow(
         session,
         payload.from,
         payload.id,
@@ -183,7 +183,7 @@ export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
   };
 
   try {
-    await executeResponseFlow(
+    await executeSendTextFlow(
       state.job.session,
       state.job.payload.from,
       state.job.payload.id,
@@ -198,7 +198,7 @@ export const unknownNode: GraphNode<typeof ChatState> = async (state) => {
     logNodeError(errorContext, error);
 
     try {
-      await executeResponseFlow(
+      await executeSendTextFlow(
         state.job.session,
         state.job.payload.from,
         state.job.payload.id,
