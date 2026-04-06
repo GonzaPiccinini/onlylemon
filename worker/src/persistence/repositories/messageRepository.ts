@@ -11,54 +11,71 @@ type WorkerMessageInput = {
   body: string;
 };
 
-async function ensureChatExists(sessionName: string, chatId: string) {
-  await prisma.chat.upsert({
-    where: {
-      id: chatId,
-    },
-    update: {},
-    create: {
-      id: chatId,
-      session: {
-        connect: {
-          name: sessionName,
-        },
+export async function saveChat(sessionName: string, chatId: string) {
+  try {
+    const chatExists = await getChat(sessionName, chatId);
+    if (!chatExists) throw new Error('Chat not exists');
+
+    await prisma.chat.create({
+      data: {
+        id: chatId,
+        sessionName,
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error(`Error saving inbound message: ${error}`);
+  }
+}
+
+export async function getChat(sessionName: string, chatId: string) {
+  try {
+    return await prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        sessionName,
+      },
+    });
+  } catch (error) {
+    console.error(`Error getting chat: ${error}`);
+  }
 }
 
 export async function saveInboundMessage(jobData: InboundJobData) {
-  const { session, payload } = jobData;
+  try {
+    const { session, payload } = jobData;
 
-  await ensureChatExists(session, payload.from);
+    const chatExists = await getChat(session, payload.from);
+    if (!chatExists) throw new Error('Chat not exists');
 
-  await prisma.message.upsert({
-    where: {
-      id: payload.id,
-    },
-    update: {
-      timestamp: new Date(payload.timestamp),
-      body: payload.body,
-      hasMedia: payload.hasMedia,
-      media: payload.media ?? undefined,
-      submittedByUser: !payload.fromMe,
-      chatId: payload.from,
-    },
-    create: {
-      id: payload.id,
-      timestamp: new Date(payload.timestamp),
-      body: payload.body,
-      hasMedia: payload.hasMedia,
-      media: payload.media ?? undefined,
-      submittedByUser: !payload.fromMe,
-      chat: {
-        connect: {
-          id: payload.from,
+    await prisma.message.upsert({
+      where: {
+        id: payload.id,
+      },
+      update: {
+        timestamp: new Date(payload.timestamp),
+        body: payload.body,
+        hasMedia: payload.hasMedia,
+        media: payload.media ?? undefined,
+        submittedByUser: !payload.fromMe,
+        chatId: payload.from,
+      },
+      create: {
+        id: payload.id,
+        timestamp: new Date(payload.timestamp),
+        body: payload.body,
+        hasMedia: payload.hasMedia,
+        media: payload.media ?? undefined,
+        submittedByUser: !payload.fromMe,
+        chat: {
+          connect: {
+            id: payload.from,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error(`Error saving inbound message: ${error}`);
+  }
 }
 
 export async function saveWorkerMessage({
@@ -66,7 +83,7 @@ export async function saveWorkerMessage({
   chatId,
   body,
 }: WorkerMessageInput) {
-  await ensureChatExists(session, chatId);
+  await getChat(session, chatId);
 
   await prisma.message.create({
     data: {

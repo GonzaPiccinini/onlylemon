@@ -1,7 +1,15 @@
 import { Job } from 'bullmq';
 import { chatGraph } from '../../state/langgraph/graphs.js';
 import { JobSchema } from '../../state/langgraph/states.js';
-import { saveInboundMessage } from '../../persistence/repositories/messageRepository.js';
+import {
+  getChat,
+  saveChat,
+  saveInboundMessage,
+} from '../../persistence/repositories/messageRepository.js';
+import {
+  exectuteSendListFlow,
+  executeSendTextFlow,
+} from '../../integrations/waha/flows.js';
 
 export async function processInboundJob(job: Job) {
   try {
@@ -15,24 +23,67 @@ export async function processInboundJob(job: Job) {
     }
     const data = parsedData.data;
 
+    // validar si es el primer mensaje del chat
+    const chat = await getChat(data.session, data.payload.from);
+    if (!chat) {
+      // enviar mensaje de bienvenida
+      await exectuteSendListFlow(data.session, data.payload.from, {
+        title: '¡Bienvenido a Lemonbet 🍋!',
+        description: '¿En qué te puedo ayudar?',
+        button: 'Abrir menú de opciones',
+        sections: [
+          {
+            title: '¿Qué querés hacer? (Elegí una opción)',
+            rows: [
+              {
+                title: 'Crear un usuario',
+                rowId: 'create_user',
+              },
+              {
+                title: 'Cargar saldo (fichas)',
+                rowId: 'add_funds',
+              },
+              {
+                title: 'Contactar a soporte',
+                rowId: 'contact_support',
+              },
+              {
+                title: 'Recordar mi usuario y contraseña',
+                rowId: 'remember_user',
+              },
+              {
+                title: 'Saber el link de la página',
+                rowId: 'get_link',
+              },
+            ],
+          },
+        ],
+      });
+
+      // guardar chat en db
+      await saveChat(data.session, data.payload.from);
+
+      return;
+    }
+
     await saveInboundMessage(data);
 
-    // invocar (reanudar) grafo del chat
-    await chatGraph.invoke(
-      {
-        intent: 'unknown',
-        entity: {
-          name: null,
-          amount: null,
-        },
-        job: data,
-      },
-      {
-        configurable: {
-          thread_id: data.payload.from, // el thread_id == chatId, de esa forma identificamos el hilo de cada chat
-        },
-      },
-    );
+    // // invocar (reanudar) grafo del chat
+    // await chatGraph.invoke(
+    //   {
+    //     intent: 'unknown',
+    //     entity: {
+    //       name: null,
+    //       amount: null,
+    //     },
+    //     job: data,
+    //   },
+    //   {
+    //     configurable: {
+    //       thread_id: data.payload.from, // el thread_id == chatId, de esa forma identificamos el hilo de cada chat
+    //     },
+    //   },
+    // );
   } catch (error) {
     console.error(`Error processing inbound job ${job.id}: ${error}`);
     throw error;

@@ -136,6 +136,6 @@ export async function sendList(session: string, chatId: string, list: List) {
     session,
     chatId,
     replyTo: null,
-    list,
+    message: list,
   });
 }
