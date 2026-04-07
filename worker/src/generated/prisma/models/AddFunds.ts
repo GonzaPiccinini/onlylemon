@@ -38,21 +38,21 @@ export type AddFundsMinAggregateOutputType = {
   id: string | null
   amount: runtime.Decimal | null
   chatId: string | null
-  cvuNumber: string | null
+  createdAt: Date | null
 }
 
 export type AddFundsMaxAggregateOutputType = {
   id: string | null
   amount: runtime.Decimal | null
   chatId: string | null
-  cvuNumber: string | null
+  createdAt: Date | null
 }
 
 export type AddFundsCountAggregateOutputType = {
   id: number
   amount: number
   chatId: number
-  cvuNumber: number
+  createdAt: number
   _all: number
 }
 
@@ -69,21 +69,21 @@ export type AddFundsMinAggregateInputType = {
   id?: true
   amount?: true
   chatId?: true
-  cvuNumber?: true
+  createdAt?: true
 }
 
 export type AddFundsMaxAggregateInputType = {
   id?: true
   amount?: true
   chatId?: true
-  cvuNumber?: true
+  createdAt?: true
 }
 
 export type AddFundsCountAggregateInputType = {
   id?: true
   amount?: true
   chatId?: true
-  cvuNumber?: true
+  createdAt?: true
   _all?: true
 }
 
@@ -177,7 +177,7 @@ export type AddFundsGroupByOutputType = {
   id: string
   amount: runtime.Decimal
   chatId: string
-  cvuNumber: string
+  createdAt: Date
   _count: AddFundsCountAggregateOutputType | null
   _avg: AddFundsAvgAggregateOutputType | null
   _sum: AddFundsSumAggregateOutputType | null
@@ -207,18 +207,16 @@ export type AddFundsWhereInput = {
   id?: Prisma.StringFilter<"AddFunds"> | string
   amount?: Prisma.DecimalFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFilter<"AddFunds"> | string
-  cvuNumber?: Prisma.StringFilter<"AddFunds"> | string
+  createdAt?: Prisma.DateTimeFilter<"AddFunds"> | Date | string
   chat?: Prisma.XOR<Prisma.ChatScalarRelationFilter, Prisma.ChatWhereInput>
-  cvu?: Prisma.XOR<Prisma.CvuScalarRelationFilter, Prisma.CvuWhereInput>
 }
 
 export type AddFundsOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   chat?: Prisma.ChatOrderByWithRelationInput
-  cvu?: Prisma.CvuOrderByWithRelationInput
 }
 
 export type AddFundsWhereUniqueInput = Prisma.AtLeast<{
@@ -228,16 +226,15 @@ export type AddFundsWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.AddFundsWhereInput | Prisma.AddFundsWhereInput[]
   amount?: Prisma.DecimalFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFilter<"AddFunds"> | string
-  cvuNumber?: Prisma.StringFilter<"AddFunds"> | string
+  createdAt?: Prisma.DateTimeFilter<"AddFunds"> | Date | string
   chat?: Prisma.XOR<Prisma.ChatScalarRelationFilter, Prisma.ChatWhereInput>
-  cvu?: Prisma.XOR<Prisma.CvuScalarRelationFilter, Prisma.CvuWhereInput>
 }, "id">
 
 export type AddFundsOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   _count?: Prisma.AddFundsCountOrderByAggregateInput
   _avg?: Prisma.AddFundsAvgOrderByAggregateInput
   _max?: Prisma.AddFundsMaxOrderByAggregateInput
@@ -252,54 +249,55 @@ export type AddFundsScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
   amount?: Prisma.DecimalWithAggregatesFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
-  cvuNumber?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"AddFunds"> | Date | string
 }
 
 export type AddFundsCreateInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
   chat: Prisma.ChatCreateNestedOneWithoutAddedFundsInput
-  cvu: Prisma.CvuCreateNestedOneWithoutAddInput
 }
 
 export type AddFundsUncheckedCreateInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId: string
-  cvuNumber: string
+  createdAt?: Date | string
 }
 
 export type AddFundsUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chat?: Prisma.ChatUpdateOneRequiredWithoutAddedFundsNestedInput
-  cvu?: Prisma.CvuUpdateOneRequiredWithoutAddNestedInput
 }
 
 export type AddFundsUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
-  cvuNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsCreateManyInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId: string
-  cvuNumber: string
+  createdAt?: Date | string
 }
 
 export type AddFundsUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
-  cvuNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsListRelationFilter = {
@@ -316,7 +314,7 @@ export type AddFundsCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
 }
 
 export type AddFundsAvgOrderByAggregateInput = {
@@ -327,14 +325,14 @@ export type AddFundsMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
 }
 
 export type AddFundsMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
 }
 
 export type AddFundsSumOrderByAggregateInput = {
@@ -391,58 +389,16 @@ export type DecimalFieldUpdateOperationsInput = {
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
 }
 
-export type AddFundsCreateNestedManyWithoutCvuInput = {
-  create?: Prisma.XOR<Prisma.AddFundsCreateWithoutCvuInput, Prisma.AddFundsUncheckedCreateWithoutCvuInput> | Prisma.AddFundsCreateWithoutCvuInput[] | Prisma.AddFundsUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.AddFundsCreateOrConnectWithoutCvuInput | Prisma.AddFundsCreateOrConnectWithoutCvuInput[]
-  createMany?: Prisma.AddFundsCreateManyCvuInputEnvelope
-  connect?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-}
-
-export type AddFundsUncheckedCreateNestedManyWithoutCvuInput = {
-  create?: Prisma.XOR<Prisma.AddFundsCreateWithoutCvuInput, Prisma.AddFundsUncheckedCreateWithoutCvuInput> | Prisma.AddFundsCreateWithoutCvuInput[] | Prisma.AddFundsUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.AddFundsCreateOrConnectWithoutCvuInput | Prisma.AddFundsCreateOrConnectWithoutCvuInput[]
-  createMany?: Prisma.AddFundsCreateManyCvuInputEnvelope
-  connect?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-}
-
-export type AddFundsUpdateManyWithoutCvuNestedInput = {
-  create?: Prisma.XOR<Prisma.AddFundsCreateWithoutCvuInput, Prisma.AddFundsUncheckedCreateWithoutCvuInput> | Prisma.AddFundsCreateWithoutCvuInput[] | Prisma.AddFundsUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.AddFundsCreateOrConnectWithoutCvuInput | Prisma.AddFundsCreateOrConnectWithoutCvuInput[]
-  upsert?: Prisma.AddFundsUpsertWithWhereUniqueWithoutCvuInput | Prisma.AddFundsUpsertWithWhereUniqueWithoutCvuInput[]
-  createMany?: Prisma.AddFundsCreateManyCvuInputEnvelope
-  set?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  disconnect?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  delete?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  connect?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  update?: Prisma.AddFundsUpdateWithWhereUniqueWithoutCvuInput | Prisma.AddFundsUpdateWithWhereUniqueWithoutCvuInput[]
-  updateMany?: Prisma.AddFundsUpdateManyWithWhereWithoutCvuInput | Prisma.AddFundsUpdateManyWithWhereWithoutCvuInput[]
-  deleteMany?: Prisma.AddFundsScalarWhereInput | Prisma.AddFundsScalarWhereInput[]
-}
-
-export type AddFundsUncheckedUpdateManyWithoutCvuNestedInput = {
-  create?: Prisma.XOR<Prisma.AddFundsCreateWithoutCvuInput, Prisma.AddFundsUncheckedCreateWithoutCvuInput> | Prisma.AddFundsCreateWithoutCvuInput[] | Prisma.AddFundsUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.AddFundsCreateOrConnectWithoutCvuInput | Prisma.AddFundsCreateOrConnectWithoutCvuInput[]
-  upsert?: Prisma.AddFundsUpsertWithWhereUniqueWithoutCvuInput | Prisma.AddFundsUpsertWithWhereUniqueWithoutCvuInput[]
-  createMany?: Prisma.AddFundsCreateManyCvuInputEnvelope
-  set?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  disconnect?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  delete?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  connect?: Prisma.AddFundsWhereUniqueInput | Prisma.AddFundsWhereUniqueInput[]
-  update?: Prisma.AddFundsUpdateWithWhereUniqueWithoutCvuInput | Prisma.AddFundsUpdateWithWhereUniqueWithoutCvuInput[]
-  updateMany?: Prisma.AddFundsUpdateManyWithWhereWithoutCvuInput | Prisma.AddFundsUpdateManyWithWhereWithoutCvuInput[]
-  deleteMany?: Prisma.AddFundsScalarWhereInput | Prisma.AddFundsScalarWhereInput[]
-}
-
 export type AddFundsCreateWithoutChatInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
-  cvu: Prisma.CvuCreateNestedOneWithoutAddInput
+  createdAt?: Date | string
 }
 
 export type AddFundsUncheckedCreateWithoutChatInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
-  cvuNumber: string
+  createdAt?: Date | string
 }
 
 export type AddFundsCreateOrConnectWithoutChatInput = {
@@ -478,93 +434,31 @@ export type AddFundsScalarWhereInput = {
   id?: Prisma.StringFilter<"AddFunds"> | string
   amount?: Prisma.DecimalFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFilter<"AddFunds"> | string
-  cvuNumber?: Prisma.StringFilter<"AddFunds"> | string
-}
-
-export type AddFundsCreateWithoutCvuInput = {
-  id?: string
-  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
-  chat: Prisma.ChatCreateNestedOneWithoutAddedFundsInput
-}
-
-export type AddFundsUncheckedCreateWithoutCvuInput = {
-  id?: string
-  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
-  chatId: string
-}
-
-export type AddFundsCreateOrConnectWithoutCvuInput = {
-  where: Prisma.AddFundsWhereUniqueInput
-  create: Prisma.XOR<Prisma.AddFundsCreateWithoutCvuInput, Prisma.AddFundsUncheckedCreateWithoutCvuInput>
-}
-
-export type AddFundsCreateManyCvuInputEnvelope = {
-  data: Prisma.AddFundsCreateManyCvuInput | Prisma.AddFundsCreateManyCvuInput[]
-  skipDuplicates?: boolean
-}
-
-export type AddFundsUpsertWithWhereUniqueWithoutCvuInput = {
-  where: Prisma.AddFundsWhereUniqueInput
-  update: Prisma.XOR<Prisma.AddFundsUpdateWithoutCvuInput, Prisma.AddFundsUncheckedUpdateWithoutCvuInput>
-  create: Prisma.XOR<Prisma.AddFundsCreateWithoutCvuInput, Prisma.AddFundsUncheckedCreateWithoutCvuInput>
-}
-
-export type AddFundsUpdateWithWhereUniqueWithoutCvuInput = {
-  where: Prisma.AddFundsWhereUniqueInput
-  data: Prisma.XOR<Prisma.AddFundsUpdateWithoutCvuInput, Prisma.AddFundsUncheckedUpdateWithoutCvuInput>
-}
-
-export type AddFundsUpdateManyWithWhereWithoutCvuInput = {
-  where: Prisma.AddFundsScalarWhereInput
-  data: Prisma.XOR<Prisma.AddFundsUpdateManyMutationInput, Prisma.AddFundsUncheckedUpdateManyWithoutCvuInput>
+  createdAt?: Prisma.DateTimeFilter<"AddFunds"> | Date | string
 }
 
 export type AddFundsCreateManyChatInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
-  cvuNumber: string
+  createdAt?: Date | string
 }
 
 export type AddFundsUpdateWithoutChatInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  cvu?: Prisma.CvuUpdateOneRequiredWithoutAddNestedInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsUncheckedUpdateWithoutChatInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  cvuNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsUncheckedUpdateManyWithoutChatInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  cvuNumber?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type AddFundsCreateManyCvuInput = {
-  id?: string
-  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
-  chatId: string
-}
-
-export type AddFundsUpdateWithoutCvuInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  chat?: Prisma.ChatUpdateOneRequiredWithoutAddedFundsNestedInput
-}
-
-export type AddFundsUncheckedUpdateWithoutCvuInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  chatId?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type AddFundsUncheckedUpdateManyWithoutCvuInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  chatId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -573,61 +467,54 @@ export type AddFundsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   id?: boolean
   amount?: boolean
   chatId?: boolean
-  cvuNumber?: boolean
+  createdAt?: boolean
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["addFunds"]>
 
 export type AddFundsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   amount?: boolean
   chatId?: boolean
-  cvuNumber?: boolean
+  createdAt?: boolean
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["addFunds"]>
 
 export type AddFundsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   amount?: boolean
   chatId?: boolean
-  cvuNumber?: boolean
+  createdAt?: boolean
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["addFunds"]>
 
 export type AddFundsSelectScalar = {
   id?: boolean
   amount?: boolean
   chatId?: boolean
-  cvuNumber?: boolean
+  createdAt?: boolean
 }
 
-export type AddFundsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "amount" | "chatId" | "cvuNumber", ExtArgs["result"]["addFunds"]>
+export type AddFundsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "amount" | "chatId" | "createdAt", ExtArgs["result"]["addFunds"]>
 export type AddFundsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
 }
 export type AddFundsIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
 }
 export type AddFundsIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
 }
 
 export type $AddFundsPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AddFunds"
   objects: {
     chat: Prisma.$ChatPayload<ExtArgs>
-    cvu: Prisma.$CvuPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     amount: runtime.Decimal
     chatId: string
-    cvuNumber: string
+    createdAt: Date
   }, ExtArgs["result"]["addFunds"]>
   composites: {}
 }
@@ -1023,7 +910,6 @@ readonly fields: AddFundsFieldRefs;
 export interface Prisma__AddFundsClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   chat<T extends Prisma.ChatDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ChatDefaultArgs<ExtArgs>>): Prisma.Prisma__ChatClient<runtime.Types.Result.GetResult<Prisma.$ChatPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  cvu<T extends Prisma.CvuDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CvuDefaultArgs<ExtArgs>>): Prisma.Prisma__CvuClient<runtime.Types.Result.GetResult<Prisma.$CvuPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1056,7 +942,7 @@ export interface AddFundsFieldRefs {
   readonly id: Prisma.FieldRef<"AddFunds", 'String'>
   readonly amount: Prisma.FieldRef<"AddFunds", 'Decimal'>
   readonly chatId: Prisma.FieldRef<"AddFunds", 'String'>
-  readonly cvuNumber: Prisma.FieldRef<"AddFunds", 'String'>
+  readonly createdAt: Prisma.FieldRef<"AddFunds", 'DateTime'>
 }
     
 

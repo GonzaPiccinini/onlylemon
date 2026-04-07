@@ -4,7 +4,7 @@
 // biome-ignore-all lint: generated file
 // @ts-nocheck 
 /*
- * This file exports the `Leads` model and its related types.
+ * This file exports the `Lead` model and its related types.
  *
  * 🟢 You can import this file directly.
  */
@@ -13,18 +13,18 @@ import type * as $Enums from "../enums.js"
 import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
- * Model Leads
+ * Model Lead
  * 
  */
-export type LeadsModel = runtime.Types.Result.DefaultSelection<Prisma.$LeadsPayload>
+export type LeadModel = runtime.Types.Result.DefaultSelection<Prisma.$LeadPayload>
 
-export type AggregateLeads = {
-  _count: LeadsCountAggregateOutputType | null
-  _min: LeadsMinAggregateOutputType | null
-  _max: LeadsMaxAggregateOutputType | null
+export type AggregateLead = {
+  _count: LeadCountAggregateOutputType | null
+  _min: LeadMinAggregateOutputType | null
+  _max: LeadMaxAggregateOutputType | null
 }
 
-export type LeadsMinAggregateOutputType = {
+export type LeadMinAggregateOutputType = {
   id: string | null
   code: string | null
   fbc: string | null
@@ -38,7 +38,7 @@ export type LeadsMinAggregateOutputType = {
   updateAt: Date | null
 }
 
-export type LeadsMaxAggregateOutputType = {
+export type LeadMaxAggregateOutputType = {
   id: string | null
   code: string | null
   fbc: string | null
@@ -52,7 +52,7 @@ export type LeadsMaxAggregateOutputType = {
   updateAt: Date | null
 }
 
-export type LeadsCountAggregateOutputType = {
+export type LeadCountAggregateOutputType = {
   id: number
   code: number
   fbc: number
@@ -68,7 +68,7 @@ export type LeadsCountAggregateOutputType = {
 }
 
 
-export type LeadsMinAggregateInputType = {
+export type LeadMinAggregateInputType = {
   id?: true
   code?: true
   fbc?: true
@@ -82,7 +82,7 @@ export type LeadsMinAggregateInputType = {
   updateAt?: true
 }
 
-export type LeadsMaxAggregateInputType = {
+export type LeadMaxAggregateInputType = {
   id?: true
   code?: true
   fbc?: true
@@ -96,7 +96,7 @@ export type LeadsMaxAggregateInputType = {
   updateAt?: true
 }
 
-export type LeadsCountAggregateInputType = {
+export type LeadCountAggregateInputType = {
   id?: true
   code?: true
   fbc?: true
@@ -111,23 +111,23 @@ export type LeadsCountAggregateInputType = {
   _all?: true
 }
 
-export type LeadsAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Filter which Leads to aggregate.
+   * Filter which Lead to aggregate.
    */
-  where?: Prisma.LeadsWhereInput
+  where?: Prisma.LeadWhereInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
    * 
    * Determine the order of Leads to fetch.
    */
-  orderBy?: Prisma.LeadsOrderByWithRelationInput | Prisma.LeadsOrderByWithRelationInput[]
+  orderBy?: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[]
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
    * 
    * Sets the start position
    */
-  cursor?: Prisma.LeadsWhereUniqueInput
+  cursor?: Prisma.LeadWhereUniqueInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
    * 
@@ -145,45 +145,45 @@ export type LeadsAggregateArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * 
    * Count returned Leads
   **/
-  _count?: true | LeadsCountAggregateInputType
+  _count?: true | LeadCountAggregateInputType
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
    * Select which fields to find the minimum value
   **/
-  _min?: LeadsMinAggregateInputType
+  _min?: LeadMinAggregateInputType
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
    * Select which fields to find the maximum value
   **/
-  _max?: LeadsMaxAggregateInputType
+  _max?: LeadMaxAggregateInputType
 }
 
-export type GetLeadsAggregateType<T extends LeadsAggregateArgs> = {
-      [P in keyof T & keyof AggregateLeads]: P extends '_count' | 'count'
+export type GetLeadAggregateType<T extends LeadAggregateArgs> = {
+      [P in keyof T & keyof AggregateLead]: P extends '_count' | 'count'
     ? T[P] extends true
       ? number
-      : Prisma.GetScalarType<T[P], AggregateLeads[P]>
-    : Prisma.GetScalarType<T[P], AggregateLeads[P]>
+      : Prisma.GetScalarType<T[P], AggregateLead[P]>
+    : Prisma.GetScalarType<T[P], AggregateLead[P]>
 }
 
 
 
 
-export type LeadsGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.LeadsWhereInput
-  orderBy?: Prisma.LeadsOrderByWithAggregationInput | Prisma.LeadsOrderByWithAggregationInput[]
-  by: Prisma.LeadsScalarFieldEnum[] | Prisma.LeadsScalarFieldEnum
-  having?: Prisma.LeadsScalarWhereWithAggregatesInput
+export type LeadGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LeadWhereInput
+  orderBy?: Prisma.LeadOrderByWithAggregationInput | Prisma.LeadOrderByWithAggregationInput[]
+  by: Prisma.LeadScalarFieldEnum[] | Prisma.LeadScalarFieldEnum
+  having?: Prisma.LeadScalarWhereWithAggregatesInput
   take?: number
   skip?: number
-  _count?: LeadsCountAggregateInputType | true
-  _min?: LeadsMinAggregateInputType
-  _max?: LeadsMaxAggregateInputType
+  _count?: LeadCountAggregateInputType | true
+  _min?: LeadMinAggregateInputType
+  _max?: LeadMaxAggregateInputType
 }
 
-export type LeadsGroupByOutputType = {
+export type LeadGroupByOutputType = {
   id: string
   code: string
   fbc: string
@@ -195,44 +195,44 @@ export type LeadsGroupByOutputType = {
   matchedAt: Date | null
   createdAt: Date
   updateAt: Date
-  _count: LeadsCountAggregateOutputType | null
-  _min: LeadsMinAggregateOutputType | null
-  _max: LeadsMaxAggregateOutputType | null
+  _count: LeadCountAggregateOutputType | null
+  _min: LeadMinAggregateOutputType | null
+  _max: LeadMaxAggregateOutputType | null
 }
 
-export type GetLeadsGroupByPayload<T extends LeadsGroupByArgs> = Prisma.PrismaPromise<
+export type GetLeadGroupByPayload<T extends LeadGroupByArgs> = Prisma.PrismaPromise<
   Array<
-    Prisma.PickEnumerable<LeadsGroupByOutputType, T['by']> &
+    Prisma.PickEnumerable<LeadGroupByOutputType, T['by']> &
       {
-        [P in ((keyof T) & (keyof LeadsGroupByOutputType))]: P extends '_count'
+        [P in ((keyof T) & (keyof LeadGroupByOutputType))]: P extends '_count'
           ? T[P] extends boolean
             ? number
-            : Prisma.GetScalarType<T[P], LeadsGroupByOutputType[P]>
-          : Prisma.GetScalarType<T[P], LeadsGroupByOutputType[P]>
+            : Prisma.GetScalarType<T[P], LeadGroupByOutputType[P]>
+          : Prisma.GetScalarType<T[P], LeadGroupByOutputType[P]>
       }
     >
   >
 
 
 
-export type LeadsWhereInput = {
-  AND?: Prisma.LeadsWhereInput | Prisma.LeadsWhereInput[]
-  OR?: Prisma.LeadsWhereInput[]
-  NOT?: Prisma.LeadsWhereInput | Prisma.LeadsWhereInput[]
-  id?: Prisma.StringFilter<"Leads"> | string
-  code?: Prisma.StringFilter<"Leads"> | string
-  fbc?: Prisma.StringFilter<"Leads"> | string
-  fbp?: Prisma.StringFilter<"Leads"> | string
-  status?: Prisma.EnumLEADS_STATUSFilter<"Leads"> | $Enums.LEADS_STATUS
-  userAgent?: Prisma.StringFilter<"Leads"> | string
-  phone?: Prisma.StringNullableFilter<"Leads"> | string | null
-  expiresAt?: Prisma.DateTimeFilter<"Leads"> | Date | string
-  matchedAt?: Prisma.DateTimeNullableFilter<"Leads"> | Date | string | null
-  createdAt?: Prisma.DateTimeFilter<"Leads"> | Date | string
-  updateAt?: Prisma.DateTimeFilter<"Leads"> | Date | string
+export type LeadWhereInput = {
+  AND?: Prisma.LeadWhereInput | Prisma.LeadWhereInput[]
+  OR?: Prisma.LeadWhereInput[]
+  NOT?: Prisma.LeadWhereInput | Prisma.LeadWhereInput[]
+  id?: Prisma.StringFilter<"Lead"> | string
+  code?: Prisma.StringFilter<"Lead"> | string
+  fbc?: Prisma.StringFilter<"Lead"> | string
+  fbp?: Prisma.StringFilter<"Lead"> | string
+  status?: Prisma.EnumLEADS_STATUSFilter<"Lead"> | $Enums.LEADS_STATUS
+  userAgent?: Prisma.StringFilter<"Lead"> | string
+  phone?: Prisma.StringNullableFilter<"Lead"> | string | null
+  expiresAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
+  matchedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
+  createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
+  updateAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
 }
 
-export type LeadsOrderByWithRelationInput = {
+export type LeadOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
@@ -246,24 +246,24 @@ export type LeadsOrderByWithRelationInput = {
   updateAt?: Prisma.SortOrder
 }
 
-export type LeadsWhereUniqueInput = Prisma.AtLeast<{
+export type LeadWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   code?: string
-  AND?: Prisma.LeadsWhereInput | Prisma.LeadsWhereInput[]
-  OR?: Prisma.LeadsWhereInput[]
-  NOT?: Prisma.LeadsWhereInput | Prisma.LeadsWhereInput[]
-  fbc?: Prisma.StringFilter<"Leads"> | string
-  fbp?: Prisma.StringFilter<"Leads"> | string
-  status?: Prisma.EnumLEADS_STATUSFilter<"Leads"> | $Enums.LEADS_STATUS
-  userAgent?: Prisma.StringFilter<"Leads"> | string
-  phone?: Prisma.StringNullableFilter<"Leads"> | string | null
-  expiresAt?: Prisma.DateTimeFilter<"Leads"> | Date | string
-  matchedAt?: Prisma.DateTimeNullableFilter<"Leads"> | Date | string | null
-  createdAt?: Prisma.DateTimeFilter<"Leads"> | Date | string
-  updateAt?: Prisma.DateTimeFilter<"Leads"> | Date | string
+  AND?: Prisma.LeadWhereInput | Prisma.LeadWhereInput[]
+  OR?: Prisma.LeadWhereInput[]
+  NOT?: Prisma.LeadWhereInput | Prisma.LeadWhereInput[]
+  fbc?: Prisma.StringFilter<"Lead"> | string
+  fbp?: Prisma.StringFilter<"Lead"> | string
+  status?: Prisma.EnumLEADS_STATUSFilter<"Lead"> | $Enums.LEADS_STATUS
+  userAgent?: Prisma.StringFilter<"Lead"> | string
+  phone?: Prisma.StringNullableFilter<"Lead"> | string | null
+  expiresAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
+  matchedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
+  createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
+  updateAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
 }, "id" | "code">
 
-export type LeadsOrderByWithAggregationInput = {
+export type LeadOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
@@ -275,29 +275,29 @@ export type LeadsOrderByWithAggregationInput = {
   matchedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updateAt?: Prisma.SortOrder
-  _count?: Prisma.LeadsCountOrderByAggregateInput
-  _max?: Prisma.LeadsMaxOrderByAggregateInput
-  _min?: Prisma.LeadsMinOrderByAggregateInput
+  _count?: Prisma.LeadCountOrderByAggregateInput
+  _max?: Prisma.LeadMaxOrderByAggregateInput
+  _min?: Prisma.LeadMinOrderByAggregateInput
 }
 
-export type LeadsScalarWhereWithAggregatesInput = {
-  AND?: Prisma.LeadsScalarWhereWithAggregatesInput | Prisma.LeadsScalarWhereWithAggregatesInput[]
-  OR?: Prisma.LeadsScalarWhereWithAggregatesInput[]
-  NOT?: Prisma.LeadsScalarWhereWithAggregatesInput | Prisma.LeadsScalarWhereWithAggregatesInput[]
-  id?: Prisma.StringWithAggregatesFilter<"Leads"> | string
-  code?: Prisma.StringWithAggregatesFilter<"Leads"> | string
-  fbc?: Prisma.StringWithAggregatesFilter<"Leads"> | string
-  fbp?: Prisma.StringWithAggregatesFilter<"Leads"> | string
-  status?: Prisma.EnumLEADS_STATUSWithAggregatesFilter<"Leads"> | $Enums.LEADS_STATUS
-  userAgent?: Prisma.StringWithAggregatesFilter<"Leads"> | string
-  phone?: Prisma.StringNullableWithAggregatesFilter<"Leads"> | string | null
-  expiresAt?: Prisma.DateTimeWithAggregatesFilter<"Leads"> | Date | string
-  matchedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Leads"> | Date | string | null
-  createdAt?: Prisma.DateTimeWithAggregatesFilter<"Leads"> | Date | string
-  updateAt?: Prisma.DateTimeWithAggregatesFilter<"Leads"> | Date | string
+export type LeadScalarWhereWithAggregatesInput = {
+  AND?: Prisma.LeadScalarWhereWithAggregatesInput | Prisma.LeadScalarWhereWithAggregatesInput[]
+  OR?: Prisma.LeadScalarWhereWithAggregatesInput[]
+  NOT?: Prisma.LeadScalarWhereWithAggregatesInput | Prisma.LeadScalarWhereWithAggregatesInput[]
+  id?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  code?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  fbc?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  fbp?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  status?: Prisma.EnumLEADS_STATUSWithAggregatesFilter<"Lead"> | $Enums.LEADS_STATUS
+  userAgent?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  phone?: Prisma.StringNullableWithAggregatesFilter<"Lead"> | string | null
+  expiresAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
+  matchedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Lead"> | Date | string | null
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
+  updateAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
 }
 
-export type LeadsCreateInput = {
+export type LeadCreateInput = {
   id?: string
   code: string
   fbc: string
@@ -311,7 +311,7 @@ export type LeadsCreateInput = {
   updateAt?: Date | string
 }
 
-export type LeadsUncheckedCreateInput = {
+export type LeadUncheckedCreateInput = {
   id?: string
   code: string
   fbc: string
@@ -325,7 +325,7 @@ export type LeadsUncheckedCreateInput = {
   updateAt?: Date | string
 }
 
-export type LeadsUpdateInput = {
+export type LeadUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
@@ -339,7 +339,7 @@ export type LeadsUpdateInput = {
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type LeadsUncheckedUpdateInput = {
+export type LeadUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
@@ -353,7 +353,7 @@ export type LeadsUncheckedUpdateInput = {
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type LeadsCreateManyInput = {
+export type LeadCreateManyInput = {
   id?: string
   code: string
   fbc: string
@@ -367,7 +367,7 @@ export type LeadsCreateManyInput = {
   updateAt?: Date | string
 }
 
-export type LeadsUpdateManyMutationInput = {
+export type LeadUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
@@ -381,7 +381,7 @@ export type LeadsUpdateManyMutationInput = {
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type LeadsUncheckedUpdateManyInput = {
+export type LeadUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
@@ -395,7 +395,7 @@ export type LeadsUncheckedUpdateManyInput = {
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type LeadsCountOrderByAggregateInput = {
+export type LeadCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
@@ -409,7 +409,7 @@ export type LeadsCountOrderByAggregateInput = {
   updateAt?: Prisma.SortOrder
 }
 
-export type LeadsMaxOrderByAggregateInput = {
+export type LeadMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
@@ -423,7 +423,7 @@ export type LeadsMaxOrderByAggregateInput = {
   updateAt?: Prisma.SortOrder
 }
 
-export type LeadsMinOrderByAggregateInput = {
+export type LeadMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
@@ -441,13 +441,13 @@ export type EnumLEADS_STATUSFieldUpdateOperationsInput = {
   set?: $Enums.LEADS_STATUS
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
 }
 
 
 
-export type LeadsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
   fbc?: boolean
@@ -459,9 +459,9 @@ export type LeadsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   matchedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
-}, ExtArgs["result"]["leads"]>
+}, ExtArgs["result"]["lead"]>
 
-export type LeadsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
   fbc?: boolean
@@ -473,9 +473,9 @@ export type LeadsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   matchedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
-}, ExtArgs["result"]["leads"]>
+}, ExtArgs["result"]["lead"]>
 
-export type LeadsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+export type LeadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
   fbc?: boolean
@@ -487,9 +487,9 @@ export type LeadsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   matchedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
-}, ExtArgs["result"]["leads"]>
+}, ExtArgs["result"]["lead"]>
 
-export type LeadsSelectScalar = {
+export type LeadSelectScalar = {
   id?: boolean
   code?: boolean
   fbc?: boolean
@@ -503,10 +503,10 @@ export type LeadsSelectScalar = {
   updateAt?: boolean
 }
 
-export type LeadsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "fbc" | "fbp" | "status" | "userAgent" | "phone" | "expiresAt" | "matchedAt" | "createdAt" | "updateAt", ExtArgs["result"]["leads"]>
+export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "fbc" | "fbp" | "status" | "userAgent" | "phone" | "expiresAt" | "matchedAt" | "createdAt" | "updateAt", ExtArgs["result"]["lead"]>
 
-export type $LeadsPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  name: "Leads"
+export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  name: "Lead"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -520,136 +520,136 @@ export type $LeadsPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     matchedAt: Date | null
     createdAt: Date
     updateAt: Date
-  }, ExtArgs["result"]["leads"]>
+  }, ExtArgs["result"]["lead"]>
   composites: {}
 }
 
-export type LeadsGetPayload<S extends boolean | null | undefined | LeadsDefaultArgs> = runtime.Types.Result.GetResult<Prisma.$LeadsPayload, S>
+export type LeadGetPayload<S extends boolean | null | undefined | LeadDefaultArgs> = runtime.Types.Result.GetResult<Prisma.$LeadPayload, S>
 
-export type LeadsCountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> =
-  Omit<LeadsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-    select?: LeadsCountAggregateInputType | true
+export type LeadCountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> =
+  Omit<LeadFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+    select?: LeadCountAggregateInputType | true
   }
 
-export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-  [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Leads'], meta: { name: 'Leads' } }
+export interface LeadDelegate<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+  [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Lead'], meta: { name: 'Lead' } }
   /**
-   * Find zero or one Leads that matches the filter.
-   * @param {LeadsFindUniqueArgs} args - Arguments to find a Leads
+   * Find zero or one Lead that matches the filter.
+   * @param {LeadFindUniqueArgs} args - Arguments to find a Lead
    * @example
-   * // Get one Leads
-   * const leads = await prisma.leads.findUnique({
+   * // Get one Lead
+   * const lead = await prisma.lead.findUnique({
    *   where: {
    *     // ... provide filter here
    *   }
    * })
    */
-  findUnique<T extends LeadsFindUniqueArgs>(args: Prisma.SelectSubset<T, LeadsFindUniqueArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  findUnique<T extends LeadFindUniqueArgs>(args: Prisma.SelectSubset<T, LeadFindUniqueArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
 
   /**
-   * Find one Leads that matches the filter or throw an error with `error.code='P2025'`
+   * Find one Lead that matches the filter or throw an error with `error.code='P2025'`
    * if no matches were found.
-   * @param {LeadsFindUniqueOrThrowArgs} args - Arguments to find a Leads
+   * @param {LeadFindUniqueOrThrowArgs} args - Arguments to find a Lead
    * @example
-   * // Get one Leads
-   * const leads = await prisma.leads.findUniqueOrThrow({
+   * // Get one Lead
+   * const lead = await prisma.lead.findUniqueOrThrow({
    *   where: {
    *     // ... provide filter here
    *   }
    * })
    */
-  findUniqueOrThrow<T extends LeadsFindUniqueOrThrowArgs>(args: Prisma.SelectSubset<T, LeadsFindUniqueOrThrowArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+  findUniqueOrThrow<T extends LeadFindUniqueOrThrowArgs>(args: Prisma.SelectSubset<T, LeadFindUniqueOrThrowArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
   /**
-   * Find the first Leads that matches the filter.
+   * Find the first Lead that matches the filter.
    * Note, that providing `undefined` is treated as the value not being there.
    * Read more here: https://pris.ly/d/null-undefined
-   * @param {LeadsFindFirstArgs} args - Arguments to find a Leads
+   * @param {LeadFindFirstArgs} args - Arguments to find a Lead
    * @example
-   * // Get one Leads
-   * const leads = await prisma.leads.findFirst({
+   * // Get one Lead
+   * const lead = await prisma.lead.findFirst({
    *   where: {
    *     // ... provide filter here
    *   }
    * })
    */
-  findFirst<T extends LeadsFindFirstArgs>(args?: Prisma.SelectSubset<T, LeadsFindFirstArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  findFirst<T extends LeadFindFirstArgs>(args?: Prisma.SelectSubset<T, LeadFindFirstArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
 
   /**
-   * Find the first Leads that matches the filter or
+   * Find the first Lead that matches the filter or
    * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
    * Note, that providing `undefined` is treated as the value not being there.
    * Read more here: https://pris.ly/d/null-undefined
-   * @param {LeadsFindFirstOrThrowArgs} args - Arguments to find a Leads
+   * @param {LeadFindFirstOrThrowArgs} args - Arguments to find a Lead
    * @example
-   * // Get one Leads
-   * const leads = await prisma.leads.findFirstOrThrow({
+   * // Get one Lead
+   * const lead = await prisma.lead.findFirstOrThrow({
    *   where: {
    *     // ... provide filter here
    *   }
    * })
    */
-  findFirstOrThrow<T extends LeadsFindFirstOrThrowArgs>(args?: Prisma.SelectSubset<T, LeadsFindFirstOrThrowArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+  findFirstOrThrow<T extends LeadFindFirstOrThrowArgs>(args?: Prisma.SelectSubset<T, LeadFindFirstOrThrowArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
   /**
    * Find zero or more Leads that matches the filter.
    * Note, that providing `undefined` is treated as the value not being there.
    * Read more here: https://pris.ly/d/null-undefined
-   * @param {LeadsFindManyArgs} args - Arguments to filter and select certain fields only.
+   * @param {LeadFindManyArgs} args - Arguments to filter and select certain fields only.
    * @example
    * // Get all Leads
-   * const leads = await prisma.leads.findMany()
+   * const leads = await prisma.lead.findMany()
    * 
    * // Get first 10 Leads
-   * const leads = await prisma.leads.findMany({ take: 10 })
+   * const leads = await prisma.lead.findMany({ take: 10 })
    * 
    * // Only select the `id`
-   * const leadsWithIdOnly = await prisma.leads.findMany({ select: { id: true } })
+   * const leadWithIdOnly = await prisma.lead.findMany({ select: { id: true } })
    * 
    */
-  findMany<T extends LeadsFindManyArgs>(args?: Prisma.SelectSubset<T, LeadsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+  findMany<T extends LeadFindManyArgs>(args?: Prisma.SelectSubset<T, LeadFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
 
   /**
-   * Create a Leads.
-   * @param {LeadsCreateArgs} args - Arguments to create a Leads.
+   * Create a Lead.
+   * @param {LeadCreateArgs} args - Arguments to create a Lead.
    * @example
-   * // Create one Leads
-   * const Leads = await prisma.leads.create({
+   * // Create one Lead
+   * const Lead = await prisma.lead.create({
    *   data: {
-   *     // ... data to create a Leads
+   *     // ... data to create a Lead
    *   }
    * })
    * 
    */
-  create<T extends LeadsCreateArgs>(args: Prisma.SelectSubset<T, LeadsCreateArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+  create<T extends LeadCreateArgs>(args: Prisma.SelectSubset<T, LeadCreateArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
   /**
    * Create many Leads.
-   * @param {LeadsCreateManyArgs} args - Arguments to create many Leads.
+   * @param {LeadCreateManyArgs} args - Arguments to create many Leads.
    * @example
    * // Create many Leads
-   * const leads = await prisma.leads.createMany({
+   * const lead = await prisma.lead.createMany({
    *   data: [
    *     // ... provide data here
    *   ]
    * })
    *     
    */
-  createMany<T extends LeadsCreateManyArgs>(args?: Prisma.SelectSubset<T, LeadsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
+  createMany<T extends LeadCreateManyArgs>(args?: Prisma.SelectSubset<T, LeadCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
    * Create many Leads and returns the data saved in the database.
-   * @param {LeadsCreateManyAndReturnArgs} args - Arguments to create many Leads.
+   * @param {LeadCreateManyAndReturnArgs} args - Arguments to create many Leads.
    * @example
    * // Create many Leads
-   * const leads = await prisma.leads.createManyAndReturn({
+   * const lead = await prisma.lead.createManyAndReturn({
    *   data: [
    *     // ... provide data here
    *   ]
    * })
    * 
    * // Create many Leads and only return the `id`
-   * const leadsWithIdOnly = await prisma.leads.createManyAndReturn({
+   * const leadWithIdOnly = await prisma.lead.createManyAndReturn({
    *   select: { id: true },
    *   data: [
    *     // ... provide data here
@@ -659,28 +659,28 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    * Read more here: https://pris.ly/d/null-undefined
    * 
    */
-  createManyAndReturn<T extends LeadsCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, LeadsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+  createManyAndReturn<T extends LeadCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, LeadCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
 
   /**
-   * Delete a Leads.
-   * @param {LeadsDeleteArgs} args - Arguments to delete one Leads.
+   * Delete a Lead.
+   * @param {LeadDeleteArgs} args - Arguments to delete one Lead.
    * @example
-   * // Delete one Leads
-   * const Leads = await prisma.leads.delete({
+   * // Delete one Lead
+   * const Lead = await prisma.lead.delete({
    *   where: {
-   *     // ... filter to delete one Leads
+   *     // ... filter to delete one Lead
    *   }
    * })
    * 
    */
-  delete<T extends LeadsDeleteArgs>(args: Prisma.SelectSubset<T, LeadsDeleteArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+  delete<T extends LeadDeleteArgs>(args: Prisma.SelectSubset<T, LeadDeleteArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
   /**
-   * Update one Leads.
-   * @param {LeadsUpdateArgs} args - Arguments to update one Leads.
+   * Update one Lead.
+   * @param {LeadUpdateArgs} args - Arguments to update one Lead.
    * @example
-   * // Update one Leads
-   * const leads = await prisma.leads.update({
+   * // Update one Lead
+   * const lead = await prisma.lead.update({
    *   where: {
    *     // ... provide filter here
    *   },
@@ -690,30 +690,30 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    * })
    * 
    */
-  update<T extends LeadsUpdateArgs>(args: Prisma.SelectSubset<T, LeadsUpdateArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+  update<T extends LeadUpdateArgs>(args: Prisma.SelectSubset<T, LeadUpdateArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
   /**
    * Delete zero or more Leads.
-   * @param {LeadsDeleteManyArgs} args - Arguments to filter Leads to delete.
+   * @param {LeadDeleteManyArgs} args - Arguments to filter Leads to delete.
    * @example
    * // Delete a few Leads
-   * const { count } = await prisma.leads.deleteMany({
+   * const { count } = await prisma.lead.deleteMany({
    *   where: {
    *     // ... provide filter here
    *   }
    * })
    * 
    */
-  deleteMany<T extends LeadsDeleteManyArgs>(args?: Prisma.SelectSubset<T, LeadsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
+  deleteMany<T extends LeadDeleteManyArgs>(args?: Prisma.SelectSubset<T, LeadDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
    * Update zero or more Leads.
    * Note, that providing `undefined` is treated as the value not being there.
    * Read more here: https://pris.ly/d/null-undefined
-   * @param {LeadsUpdateManyArgs} args - Arguments to update one or more rows.
+   * @param {LeadUpdateManyArgs} args - Arguments to update one or more rows.
    * @example
    * // Update many Leads
-   * const leads = await prisma.leads.updateMany({
+   * const lead = await prisma.lead.updateMany({
    *   where: {
    *     // ... provide filter here
    *   },
@@ -723,14 +723,14 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    * })
    * 
    */
-  updateMany<T extends LeadsUpdateManyArgs>(args: Prisma.SelectSubset<T, LeadsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
+  updateMany<T extends LeadUpdateManyArgs>(args: Prisma.SelectSubset<T, LeadUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
    * Update zero or more Leads and returns the data updated in the database.
-   * @param {LeadsUpdateManyAndReturnArgs} args - Arguments to update many Leads.
+   * @param {LeadUpdateManyAndReturnArgs} args - Arguments to update many Leads.
    * @example
    * // Update many Leads
-   * const leads = await prisma.leads.updateManyAndReturn({
+   * const lead = await prisma.lead.updateManyAndReturn({
    *   where: {
    *     // ... provide filter here
    *   },
@@ -740,7 +740,7 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    * })
    * 
    * // Update zero or more Leads and only return the `id`
-   * const leadsWithIdOnly = await prisma.leads.updateManyAndReturn({
+   * const leadWithIdOnly = await prisma.lead.updateManyAndReturn({
    *   select: { id: true },
    *   where: {
    *     // ... provide filter here
@@ -753,56 +753,56 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    * Read more here: https://pris.ly/d/null-undefined
    * 
    */
-  updateManyAndReturn<T extends LeadsUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, LeadsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+  updateManyAndReturn<T extends LeadUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, LeadUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
-   * Create or update one Leads.
-   * @param {LeadsUpsertArgs} args - Arguments to update or create a Leads.
+   * Create or update one Lead.
+   * @param {LeadUpsertArgs} args - Arguments to update or create a Lead.
    * @example
-   * // Update or create a Leads
-   * const leads = await prisma.leads.upsert({
+   * // Update or create a Lead
+   * const lead = await prisma.lead.upsert({
    *   create: {
-   *     // ... data to create a Leads
+   *     // ... data to create a Lead
    *   },
    *   update: {
    *     // ... in case it already exists, update
    *   },
    *   where: {
-   *     // ... the filter for the Leads we want to update
+   *     // ... the filter for the Lead we want to update
    *   }
    * })
    */
-  upsert<T extends LeadsUpsertArgs>(args: Prisma.SelectSubset<T, LeadsUpsertArgs<ExtArgs>>): Prisma.Prisma__LeadsClient<runtime.Types.Result.GetResult<Prisma.$LeadsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+  upsert<T extends LeadUpsertArgs>(args: Prisma.SelectSubset<T, LeadUpsertArgs<ExtArgs>>): Prisma.Prisma__LeadClient<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
 
   /**
    * Count the number of Leads.
    * Note, that providing `undefined` is treated as the value not being there.
    * Read more here: https://pris.ly/d/null-undefined
-   * @param {LeadsCountArgs} args - Arguments to filter Leads to count.
+   * @param {LeadCountArgs} args - Arguments to filter Leads to count.
    * @example
    * // Count the number of Leads
-   * const count = await prisma.leads.count({
+   * const count = await prisma.lead.count({
    *   where: {
    *     // ... the filter for the Leads we want to count
    *   }
    * })
   **/
-  count<T extends LeadsCountArgs>(
-    args?: Prisma.Subset<T, LeadsCountArgs>,
+  count<T extends LeadCountArgs>(
+    args?: Prisma.Subset<T, LeadCountArgs>,
   ): Prisma.PrismaPromise<
     T extends runtime.Types.Utils.Record<'select', any>
       ? T['select'] extends true
         ? number
-        : Prisma.GetScalarType<T['select'], LeadsCountAggregateOutputType>
+        : Prisma.GetScalarType<T['select'], LeadCountAggregateOutputType>
       : number
   >
 
   /**
-   * Allows you to perform aggregations operations on a Leads.
+   * Allows you to perform aggregations operations on a Lead.
    * Note, that providing `undefined` is treated as the value not being there.
    * Read more here: https://pris.ly/d/null-undefined
-   * @param {LeadsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+   * @param {LeadAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
    * @example
    * // Ordered by age ascending
    * // Where email contains prisma.io
@@ -822,13 +822,13 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    *   take: 10,
    * })
   **/
-  aggregate<T extends LeadsAggregateArgs>(args: Prisma.Subset<T, LeadsAggregateArgs>): Prisma.PrismaPromise<GetLeadsAggregateType<T>>
+  aggregate<T extends LeadAggregateArgs>(args: Prisma.Subset<T, LeadAggregateArgs>): Prisma.PrismaPromise<GetLeadAggregateType<T>>
 
   /**
-   * Group by Leads.
+   * Group by Lead.
    * Note, that providing `undefined` is treated as the value not being there.
    * Read more here: https://pris.ly/d/null-undefined
-   * @param {LeadsGroupByArgs} args - Group by arguments.
+   * @param {LeadGroupByArgs} args - Group by arguments.
    * @example
    * // Group by city, order by createdAt, get count
    * const result = await prisma.user.groupBy({
@@ -843,14 +843,14 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    * 
   **/
   groupBy<
-    T extends LeadsGroupByArgs,
+    T extends LeadGroupByArgs,
     HasSelectOrTake extends Prisma.Or<
       Prisma.Extends<'skip', Prisma.Keys<T>>,
       Prisma.Extends<'take', Prisma.Keys<T>>
     >,
     OrderByArg extends Prisma.True extends HasSelectOrTake
-      ? { orderBy: LeadsGroupByArgs['orderBy'] }
-      : { orderBy?: LeadsGroupByArgs['orderBy'] },
+      ? { orderBy: LeadGroupByArgs['orderBy'] }
+      : { orderBy?: LeadGroupByArgs['orderBy'] },
     OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>,
     ByFields extends Prisma.MaybeTupleToUnion<T['by']>,
     ByValid extends Prisma.Has<ByFields, OrderFields>,
@@ -899,20 +899,20 @@ export interface LeadsDelegate<ExtArgs extends runtime.Types.Extensions.Internal
           ? never
           : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
       }[OrderFields]
-  >(args: Prisma.SubsetIntersection<T, LeadsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLeadsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  >(args: Prisma.SubsetIntersection<T, LeadGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLeadGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
 /**
- * Fields of the Leads model
+ * Fields of the Lead model
  */
-readonly fields: LeadsFieldRefs;
+readonly fields: LeadFieldRefs;
 }
 
 /**
- * The delegate class that acts as a "Promise-like" for Leads.
+ * The delegate class that acts as a "Promise-like" for Lead.
  * Why is this prefixed with `Prisma__`?
  * Because we want to prevent naming conflicts as mentioned in
  * https://github.com/prisma/prisma-client-js/issues/707
  */
-export interface Prisma__LeadsClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+export interface Prisma__LeadClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -940,88 +940,88 @@ export interface Prisma__LeadsClient<T, Null = never, ExtArgs extends runtime.Ty
 
 
 /**
- * Fields of the Leads model
+ * Fields of the Lead model
  */
-export interface LeadsFieldRefs {
-  readonly id: Prisma.FieldRef<"Leads", 'String'>
-  readonly code: Prisma.FieldRef<"Leads", 'String'>
-  readonly fbc: Prisma.FieldRef<"Leads", 'String'>
-  readonly fbp: Prisma.FieldRef<"Leads", 'String'>
-  readonly status: Prisma.FieldRef<"Leads", 'LEADS_STATUS'>
-  readonly userAgent: Prisma.FieldRef<"Leads", 'String'>
-  readonly phone: Prisma.FieldRef<"Leads", 'String'>
-  readonly expiresAt: Prisma.FieldRef<"Leads", 'DateTime'>
-  readonly matchedAt: Prisma.FieldRef<"Leads", 'DateTime'>
-  readonly createdAt: Prisma.FieldRef<"Leads", 'DateTime'>
-  readonly updateAt: Prisma.FieldRef<"Leads", 'DateTime'>
+export interface LeadFieldRefs {
+  readonly id: Prisma.FieldRef<"Lead", 'String'>
+  readonly code: Prisma.FieldRef<"Lead", 'String'>
+  readonly fbc: Prisma.FieldRef<"Lead", 'String'>
+  readonly fbp: Prisma.FieldRef<"Lead", 'String'>
+  readonly status: Prisma.FieldRef<"Lead", 'LEADS_STATUS'>
+  readonly userAgent: Prisma.FieldRef<"Lead", 'String'>
+  readonly phone: Prisma.FieldRef<"Lead", 'String'>
+  readonly expiresAt: Prisma.FieldRef<"Lead", 'DateTime'>
+  readonly matchedAt: Prisma.FieldRef<"Lead", 'DateTime'>
+  readonly createdAt: Prisma.FieldRef<"Lead", 'DateTime'>
+  readonly updateAt: Prisma.FieldRef<"Lead", 'DateTime'>
 }
     
 
 // Custom InputTypes
 /**
- * Leads findUnique
+ * Lead findUnique
  */
-export type LeadsFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * Filter, which Leads to fetch.
+   * Filter, which Lead to fetch.
    */
-  where: Prisma.LeadsWhereUniqueInput
+  where: Prisma.LeadWhereUniqueInput
 }
 
 /**
- * Leads findUniqueOrThrow
+ * Lead findUniqueOrThrow
  */
-export type LeadsFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * Filter, which Leads to fetch.
+   * Filter, which Lead to fetch.
    */
-  where: Prisma.LeadsWhereUniqueInput
+  where: Prisma.LeadWhereUniqueInput
 }
 
 /**
- * Leads findFirst
+ * Lead findFirst
  */
-export type LeadsFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * Filter, which Leads to fetch.
+   * Filter, which Lead to fetch.
    */
-  where?: Prisma.LeadsWhereInput
+  where?: Prisma.LeadWhereInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
    * 
    * Determine the order of Leads to fetch.
    */
-  orderBy?: Prisma.LeadsOrderByWithRelationInput | Prisma.LeadsOrderByWithRelationInput[]
+  orderBy?: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[]
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
    * 
    * Sets the position for searching for Leads.
    */
-  cursor?: Prisma.LeadsWhereUniqueInput
+  cursor?: Prisma.LeadWhereUniqueInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
    * 
@@ -1039,37 +1039,37 @@ export type LeadsFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * 
    * Filter by unique combinations of Leads.
    */
-  distinct?: Prisma.LeadsScalarFieldEnum | Prisma.LeadsScalarFieldEnum[]
+  distinct?: Prisma.LeadScalarFieldEnum | Prisma.LeadScalarFieldEnum[]
 }
 
 /**
- * Leads findFirstOrThrow
+ * Lead findFirstOrThrow
  */
-export type LeadsFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * Filter, which Leads to fetch.
+   * Filter, which Lead to fetch.
    */
-  where?: Prisma.LeadsWhereInput
+  where?: Prisma.LeadWhereInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
    * 
    * Determine the order of Leads to fetch.
    */
-  orderBy?: Prisma.LeadsOrderByWithRelationInput | Prisma.LeadsOrderByWithRelationInput[]
+  orderBy?: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[]
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
    * 
    * Sets the position for searching for Leads.
    */
-  cursor?: Prisma.LeadsWhereUniqueInput
+  cursor?: Prisma.LeadWhereUniqueInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
    * 
@@ -1087,37 +1087,37 @@ export type LeadsFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.I
    * 
    * Filter by unique combinations of Leads.
    */
-  distinct?: Prisma.LeadsScalarFieldEnum | Prisma.LeadsScalarFieldEnum[]
+  distinct?: Prisma.LeadScalarFieldEnum | Prisma.LeadScalarFieldEnum[]
 }
 
 /**
- * Leads findMany
+ * Lead findMany
  */
-export type LeadsFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
    * Filter, which Leads to fetch.
    */
-  where?: Prisma.LeadsWhereInput
+  where?: Prisma.LeadWhereInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
    * 
    * Determine the order of Leads to fetch.
    */
-  orderBy?: Prisma.LeadsOrderByWithRelationInput | Prisma.LeadsOrderByWithRelationInput[]
+  orderBy?: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[]
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
    * 
    * Sets the position for listing Leads.
    */
-  cursor?: Prisma.LeadsWhereUniqueInput
+  cursor?: Prisma.LeadWhereUniqueInput
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
    * 
@@ -1135,91 +1135,91 @@ export type LeadsFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * 
    * Filter by unique combinations of Leads.
    */
-  distinct?: Prisma.LeadsScalarFieldEnum | Prisma.LeadsScalarFieldEnum[]
+  distinct?: Prisma.LeadScalarFieldEnum | Prisma.LeadScalarFieldEnum[]
 }
 
 /**
- * Leads create
+ * Lead create
  */
-export type LeadsCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * The data needed to create a Leads.
+   * The data needed to create a Lead.
    */
-  data: Prisma.XOR<Prisma.LeadsCreateInput, Prisma.LeadsUncheckedCreateInput>
+  data: Prisma.XOR<Prisma.LeadCreateInput, Prisma.LeadUncheckedCreateInput>
 }
 
 /**
- * Leads createMany
+ * Lead createMany
  */
-export type LeadsCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * The data used to create many Leads.
    */
-  data: Prisma.LeadsCreateManyInput | Prisma.LeadsCreateManyInput[]
+  data: Prisma.LeadCreateManyInput | Prisma.LeadCreateManyInput[]
   skipDuplicates?: boolean
 }
 
 /**
- * Leads createManyAndReturn
+ * Lead createManyAndReturn
  */
-export type LeadsCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelectCreateManyAndReturn<ExtArgs> | null
+  select?: Prisma.LeadSelectCreateManyAndReturn<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
    * The data used to create many Leads.
    */
-  data: Prisma.LeadsCreateManyInput | Prisma.LeadsCreateManyInput[]
+  data: Prisma.LeadCreateManyInput | Prisma.LeadCreateManyInput[]
   skipDuplicates?: boolean
 }
 
 /**
- * Leads update
+ * Lead update
  */
-export type LeadsUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * The data needed to update a Leads.
+   * The data needed to update a Lead.
    */
-  data: Prisma.XOR<Prisma.LeadsUpdateInput, Prisma.LeadsUncheckedUpdateInput>
+  data: Prisma.XOR<Prisma.LeadUpdateInput, Prisma.LeadUncheckedUpdateInput>
   /**
-   * Choose, which Leads to update.
+   * Choose, which Lead to update.
    */
-  where: Prisma.LeadsWhereUniqueInput
+  where: Prisma.LeadWhereUniqueInput
 }
 
 /**
- * Leads updateMany
+ * Lead updateMany
  */
-export type LeadsUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * The data used to update Leads.
    */
-  data: Prisma.XOR<Prisma.LeadsUpdateManyMutationInput, Prisma.LeadsUncheckedUpdateManyInput>
+  data: Prisma.XOR<Prisma.LeadUpdateManyMutationInput, Prisma.LeadUncheckedUpdateManyInput>
   /**
    * Filter which Leads to update
    */
-  where?: Prisma.LeadsWhereInput
+  where?: Prisma.LeadWhereInput
   /**
    * Limit how many Leads to update.
    */
@@ -1227,25 +1227,25 @@ export type LeadsUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Leads updateManyAndReturn
+ * Lead updateManyAndReturn
  */
-export type LeadsUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelectUpdateManyAndReturn<ExtArgs> | null
+  select?: Prisma.LeadSelectUpdateManyAndReturn<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
    * The data used to update Leads.
    */
-  data: Prisma.XOR<Prisma.LeadsUpdateManyMutationInput, Prisma.LeadsUncheckedUpdateManyInput>
+  data: Prisma.XOR<Prisma.LeadUpdateManyMutationInput, Prisma.LeadUncheckedUpdateManyInput>
   /**
    * Filter which Leads to update
    */
-  where?: Prisma.LeadsWhereInput
+  where?: Prisma.LeadWhereInput
   /**
    * Limit how many Leads to update.
    */
@@ -1253,57 +1253,57 @@ export type LeadsUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
 }
 
 /**
- * Leads upsert
+ * Lead upsert
  */
-export type LeadsUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * The filter to search for the Leads to update in case it exists.
+   * The filter to search for the Lead to update in case it exists.
    */
-  where: Prisma.LeadsWhereUniqueInput
+  where: Prisma.LeadWhereUniqueInput
   /**
-   * In case the Leads found by the `where` argument doesn't exist, create a new Leads with this data.
+   * In case the Lead found by the `where` argument doesn't exist, create a new Lead with this data.
    */
-  create: Prisma.XOR<Prisma.LeadsCreateInput, Prisma.LeadsUncheckedCreateInput>
+  create: Prisma.XOR<Prisma.LeadCreateInput, Prisma.LeadUncheckedCreateInput>
   /**
-   * In case the Leads was found with the provided `where` argument, update it with this data.
+   * In case the Lead was found with the provided `where` argument, update it with this data.
    */
-  update: Prisma.XOR<Prisma.LeadsUpdateInput, Prisma.LeadsUncheckedUpdateInput>
+  update: Prisma.XOR<Prisma.LeadUpdateInput, Prisma.LeadUncheckedUpdateInput>
 }
 
 /**
- * Leads delete
+ * Lead delete
  */
-export type LeadsDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
-   * Filter which Leads to delete.
+   * Filter which Lead to delete.
    */
-  where: Prisma.LeadsWhereUniqueInput
+  where: Prisma.LeadWhereUniqueInput
 }
 
 /**
- * Leads deleteMany
+ * Lead deleteMany
  */
-export type LeadsDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Filter which Leads to delete
    */
-  where?: Prisma.LeadsWhereInput
+  where?: Prisma.LeadWhereInput
   /**
    * Limit how many Leads to delete.
    */
@@ -1311,15 +1311,15 @@ export type LeadsDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Leads without action
+ * Lead without action
  */
-export type LeadsDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type LeadDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Leads
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.LeadsSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Leads
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.LeadsOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
 }

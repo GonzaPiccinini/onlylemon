@@ -25,35 +25,47 @@ export type AggregateSession = {
 }
 
 export type SessionMinAggregateOutputType = {
-  name: string | null
-  cvuNumber: string | null
+  id: string | null
+  cashierId: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type SessionMaxAggregateOutputType = {
-  name: string | null
-  cvuNumber: string | null
+  id: string | null
+  cashierId: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type SessionCountAggregateOutputType = {
-  name: number
-  cvuNumber: number
+  id: number
+  cashierId: number
+  createdAt: number
+  updatedAt: number
   _all: number
 }
 
 
 export type SessionMinAggregateInputType = {
-  name?: true
-  cvuNumber?: true
+  id?: true
+  cashierId?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type SessionMaxAggregateInputType = {
-  name?: true
-  cvuNumber?: true
+  id?: true
+  cashierId?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type SessionCountAggregateInputType = {
-  name?: true
-  cvuNumber?: true
+  id?: true
+  cashierId?: true
+  createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -130,8 +142,10 @@ export type SessionGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 export type SessionGroupByOutputType = {
-  name: string
-  cvuNumber: string
+  id: string
+  cashierId: string
+  createdAt: Date
+  updatedAt: Date
   _count: SessionCountAggregateOutputType | null
   _min: SessionMinAggregateOutputType | null
   _max: SessionMaxAggregateOutputType | null
@@ -156,32 +170,43 @@ export type SessionWhereInput = {
   AND?: Prisma.SessionWhereInput | Prisma.SessionWhereInput[]
   OR?: Prisma.SessionWhereInput[]
   NOT?: Prisma.SessionWhereInput | Prisma.SessionWhereInput[]
-  name?: Prisma.StringFilter<"Session"> | string
-  cvuNumber?: Prisma.StringFilter<"Session"> | string
-  cvu?: Prisma.XOR<Prisma.CvuScalarRelationFilter, Prisma.CvuWhereInput>
+  id?: Prisma.StringFilter<"Session"> | string
+  cashierId?: Prisma.StringFilter<"Session"> | string
+  createdAt?: Prisma.DateTimeFilter<"Session"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Session"> | Date | string
+  cashier?: Prisma.XOR<Prisma.CashierScalarRelationFilter, Prisma.CashierWhereInput>
+  activity?: Prisma.SessionActivityListRelationFilter
   chats?: Prisma.ChatListRelationFilter
 }
 
 export type SessionOrderByWithRelationInput = {
-  name?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
-  cvu?: Prisma.CvuOrderByWithRelationInput
+  id?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
+  cashier?: Prisma.CashierOrderByWithRelationInput
+  activity?: Prisma.SessionActivityOrderByRelationAggregateInput
   chats?: Prisma.ChatOrderByRelationAggregateInput
 }
 
 export type SessionWhereUniqueInput = Prisma.AtLeast<{
-  name?: string
-  cvuNumber?: string
+  id?: string
+  cashierId?: string
   AND?: Prisma.SessionWhereInput | Prisma.SessionWhereInput[]
   OR?: Prisma.SessionWhereInput[]
   NOT?: Prisma.SessionWhereInput | Prisma.SessionWhereInput[]
-  cvu?: Prisma.XOR<Prisma.CvuScalarRelationFilter, Prisma.CvuWhereInput>
+  createdAt?: Prisma.DateTimeFilter<"Session"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Session"> | Date | string
+  cashier?: Prisma.XOR<Prisma.CashierScalarRelationFilter, Prisma.CashierWhereInput>
+  activity?: Prisma.SessionActivityListRelationFilter
   chats?: Prisma.ChatListRelationFilter
-}, "name" | "cvuNumber">
+}, "id" | "cashierId">
 
 export type SessionOrderByWithAggregationInput = {
-  name?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  id?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.SessionCountOrderByAggregateInput
   _max?: Prisma.SessionMaxOrderByAggregateInput
   _min?: Prisma.SessionMinOrderByAggregateInput
@@ -191,61 +216,92 @@ export type SessionScalarWhereWithAggregatesInput = {
   AND?: Prisma.SessionScalarWhereWithAggregatesInput | Prisma.SessionScalarWhereWithAggregatesInput[]
   OR?: Prisma.SessionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SessionScalarWhereWithAggregatesInput | Prisma.SessionScalarWhereWithAggregatesInput[]
-  name?: Prisma.StringWithAggregatesFilter<"Session"> | string
-  cvuNumber?: Prisma.StringWithAggregatesFilter<"Session"> | string
+  id?: Prisma.StringWithAggregatesFilter<"Session"> | string
+  cashierId?: Prisma.StringWithAggregatesFilter<"Session"> | string
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"Session"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Session"> | Date | string
 }
 
 export type SessionCreateInput = {
-  name: string
-  cvu: Prisma.CvuCreateNestedOneWithoutSessionInput
+  id?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cashier: Prisma.CashierCreateNestedOneWithoutSessionInput
+  activity?: Prisma.SessionActivityCreateNestedManyWithoutSessionInput
   chats?: Prisma.ChatCreateNestedManyWithoutSessionInput
 }
 
 export type SessionUncheckedCreateInput = {
-  name: string
-  cvuNumber: string
+  id?: string
+  cashierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutSessionInput
   chats?: Prisma.ChatUncheckedCreateNestedManyWithoutSessionInput
 }
 
 export type SessionUpdateInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  cvu?: Prisma.CvuUpdateOneRequiredWithoutSessionNestedInput
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cashier?: Prisma.CashierUpdateOneRequiredWithoutSessionNestedInput
+  activity?: Prisma.SessionActivityUpdateManyWithoutSessionNestedInput
   chats?: Prisma.ChatUpdateManyWithoutSessionNestedInput
 }
 
 export type SessionUncheckedUpdateInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  cvuNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutSessionNestedInput
   chats?: Prisma.ChatUncheckedUpdateManyWithoutSessionNestedInput
 }
 
 export type SessionCreateManyInput = {
-  name: string
-  cvuNumber: string
+  id?: string
+  cashierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type SessionUpdateManyMutationInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type SessionUncheckedUpdateManyInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  cvuNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type SessionNullableScalarRelationFilter = {
+  is?: Prisma.SessionWhereInput | null
+  isNot?: Prisma.SessionWhereInput | null
 }
 
 export type SessionCountOrderByAggregateInput = {
-  name?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  id?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type SessionMaxOrderByAggregateInput = {
-  name?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  id?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type SessionMinOrderByAggregateInput = {
-  name?: Prisma.SortOrder
-  cvuNumber?: Prisma.SortOrder
+  id?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type SessionScalarRelationFilter = {
@@ -253,18 +309,50 @@ export type SessionScalarRelationFilter = {
   isNot?: Prisma.SessionWhereInput
 }
 
-export type SessionListRelationFilter = {
-  every?: Prisma.SessionWhereInput
-  some?: Prisma.SessionWhereInput
-  none?: Prisma.SessionWhereInput
+export type SessionCreateNestedOneWithoutCashierInput = {
+  create?: Prisma.XOR<Prisma.SessionCreateWithoutCashierInput, Prisma.SessionUncheckedCreateWithoutCashierInput>
+  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCashierInput
+  connect?: Prisma.SessionWhereUniqueInput
 }
 
-export type SessionOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
+export type SessionUncheckedCreateNestedOneWithoutCashierInput = {
+  create?: Prisma.XOR<Prisma.SessionCreateWithoutCashierInput, Prisma.SessionUncheckedCreateWithoutCashierInput>
+  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCashierInput
+  connect?: Prisma.SessionWhereUniqueInput
 }
 
-export type StringFieldUpdateOperationsInput = {
-  set?: string
+export type SessionUpdateOneWithoutCashierNestedInput = {
+  create?: Prisma.XOR<Prisma.SessionCreateWithoutCashierInput, Prisma.SessionUncheckedCreateWithoutCashierInput>
+  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCashierInput
+  upsert?: Prisma.SessionUpsertWithoutCashierInput
+  disconnect?: Prisma.SessionWhereInput | boolean
+  delete?: Prisma.SessionWhereInput | boolean
+  connect?: Prisma.SessionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SessionUpdateToOneWithWhereWithoutCashierInput, Prisma.SessionUpdateWithoutCashierInput>, Prisma.SessionUncheckedUpdateWithoutCashierInput>
+}
+
+export type SessionUncheckedUpdateOneWithoutCashierNestedInput = {
+  create?: Prisma.XOR<Prisma.SessionCreateWithoutCashierInput, Prisma.SessionUncheckedCreateWithoutCashierInput>
+  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCashierInput
+  upsert?: Prisma.SessionUpsertWithoutCashierInput
+  disconnect?: Prisma.SessionWhereInput | boolean
+  delete?: Prisma.SessionWhereInput | boolean
+  connect?: Prisma.SessionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SessionUpdateToOneWithWhereWithoutCashierInput, Prisma.SessionUpdateWithoutCashierInput>, Prisma.SessionUncheckedUpdateWithoutCashierInput>
+}
+
+export type SessionCreateNestedOneWithoutActivityInput = {
+  create?: Prisma.XOR<Prisma.SessionCreateWithoutActivityInput, Prisma.SessionUncheckedCreateWithoutActivityInput>
+  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutActivityInput
+  connect?: Prisma.SessionWhereUniqueInput
+}
+
+export type SessionUpdateOneRequiredWithoutActivityNestedInput = {
+  create?: Prisma.XOR<Prisma.SessionCreateWithoutActivityInput, Prisma.SessionUncheckedCreateWithoutActivityInput>
+  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutActivityInput
+  upsert?: Prisma.SessionUpsertWithoutActivityInput
+  connect?: Prisma.SessionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SessionUpdateToOneWithWhereWithoutActivityInput, Prisma.SessionUpdateWithoutActivityInput>, Prisma.SessionUncheckedUpdateWithoutActivityInput>
 }
 
 export type SessionCreateNestedOneWithoutChatsInput = {
@@ -281,56 +369,116 @@ export type SessionUpdateOneRequiredWithoutChatsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.SessionUpdateToOneWithWhereWithoutChatsInput, Prisma.SessionUpdateWithoutChatsInput>, Prisma.SessionUncheckedUpdateWithoutChatsInput>
 }
 
-export type SessionCreateNestedManyWithoutCvuInput = {
-  create?: Prisma.XOR<Prisma.SessionCreateWithoutCvuInput, Prisma.SessionUncheckedCreateWithoutCvuInput> | Prisma.SessionCreateWithoutCvuInput[] | Prisma.SessionUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCvuInput | Prisma.SessionCreateOrConnectWithoutCvuInput[]
-  createMany?: Prisma.SessionCreateManyCvuInputEnvelope
-  connect?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
+export type SessionCreateWithoutCashierInput = {
+  id?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  activity?: Prisma.SessionActivityCreateNestedManyWithoutSessionInput
+  chats?: Prisma.ChatCreateNestedManyWithoutSessionInput
 }
 
-export type SessionUncheckedCreateNestedManyWithoutCvuInput = {
-  create?: Prisma.XOR<Prisma.SessionCreateWithoutCvuInput, Prisma.SessionUncheckedCreateWithoutCvuInput> | Prisma.SessionCreateWithoutCvuInput[] | Prisma.SessionUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCvuInput | Prisma.SessionCreateOrConnectWithoutCvuInput[]
-  createMany?: Prisma.SessionCreateManyCvuInputEnvelope
-  connect?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
+export type SessionUncheckedCreateWithoutCashierInput = {
+  id?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutSessionInput
+  chats?: Prisma.ChatUncheckedCreateNestedManyWithoutSessionInput
 }
 
-export type SessionUpdateManyWithoutCvuNestedInput = {
-  create?: Prisma.XOR<Prisma.SessionCreateWithoutCvuInput, Prisma.SessionUncheckedCreateWithoutCvuInput> | Prisma.SessionCreateWithoutCvuInput[] | Prisma.SessionUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCvuInput | Prisma.SessionCreateOrConnectWithoutCvuInput[]
-  upsert?: Prisma.SessionUpsertWithWhereUniqueWithoutCvuInput | Prisma.SessionUpsertWithWhereUniqueWithoutCvuInput[]
-  createMany?: Prisma.SessionCreateManyCvuInputEnvelope
-  set?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  disconnect?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  delete?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  connect?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  update?: Prisma.SessionUpdateWithWhereUniqueWithoutCvuInput | Prisma.SessionUpdateWithWhereUniqueWithoutCvuInput[]
-  updateMany?: Prisma.SessionUpdateManyWithWhereWithoutCvuInput | Prisma.SessionUpdateManyWithWhereWithoutCvuInput[]
-  deleteMany?: Prisma.SessionScalarWhereInput | Prisma.SessionScalarWhereInput[]
+export type SessionCreateOrConnectWithoutCashierInput = {
+  where: Prisma.SessionWhereUniqueInput
+  create: Prisma.XOR<Prisma.SessionCreateWithoutCashierInput, Prisma.SessionUncheckedCreateWithoutCashierInput>
 }
 
-export type SessionUncheckedUpdateManyWithoutCvuNestedInput = {
-  create?: Prisma.XOR<Prisma.SessionCreateWithoutCvuInput, Prisma.SessionUncheckedCreateWithoutCvuInput> | Prisma.SessionCreateWithoutCvuInput[] | Prisma.SessionUncheckedCreateWithoutCvuInput[]
-  connectOrCreate?: Prisma.SessionCreateOrConnectWithoutCvuInput | Prisma.SessionCreateOrConnectWithoutCvuInput[]
-  upsert?: Prisma.SessionUpsertWithWhereUniqueWithoutCvuInput | Prisma.SessionUpsertWithWhereUniqueWithoutCvuInput[]
-  createMany?: Prisma.SessionCreateManyCvuInputEnvelope
-  set?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  disconnect?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  delete?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  connect?: Prisma.SessionWhereUniqueInput | Prisma.SessionWhereUniqueInput[]
-  update?: Prisma.SessionUpdateWithWhereUniqueWithoutCvuInput | Prisma.SessionUpdateWithWhereUniqueWithoutCvuInput[]
-  updateMany?: Prisma.SessionUpdateManyWithWhereWithoutCvuInput | Prisma.SessionUpdateManyWithWhereWithoutCvuInput[]
-  deleteMany?: Prisma.SessionScalarWhereInput | Prisma.SessionScalarWhereInput[]
+export type SessionUpsertWithoutCashierInput = {
+  update: Prisma.XOR<Prisma.SessionUpdateWithoutCashierInput, Prisma.SessionUncheckedUpdateWithoutCashierInput>
+  create: Prisma.XOR<Prisma.SessionCreateWithoutCashierInput, Prisma.SessionUncheckedCreateWithoutCashierInput>
+  where?: Prisma.SessionWhereInput
+}
+
+export type SessionUpdateToOneWithWhereWithoutCashierInput = {
+  where?: Prisma.SessionWhereInput
+  data: Prisma.XOR<Prisma.SessionUpdateWithoutCashierInput, Prisma.SessionUncheckedUpdateWithoutCashierInput>
+}
+
+export type SessionUpdateWithoutCashierInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  activity?: Prisma.SessionActivityUpdateManyWithoutSessionNestedInput
+  chats?: Prisma.ChatUpdateManyWithoutSessionNestedInput
+}
+
+export type SessionUncheckedUpdateWithoutCashierInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutSessionNestedInput
+  chats?: Prisma.ChatUncheckedUpdateManyWithoutSessionNestedInput
+}
+
+export type SessionCreateWithoutActivityInput = {
+  id?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cashier: Prisma.CashierCreateNestedOneWithoutSessionInput
+  chats?: Prisma.ChatCreateNestedManyWithoutSessionInput
+}
+
+export type SessionUncheckedCreateWithoutActivityInput = {
+  id?: string
+  cashierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  chats?: Prisma.ChatUncheckedCreateNestedManyWithoutSessionInput
+}
+
+export type SessionCreateOrConnectWithoutActivityInput = {
+  where: Prisma.SessionWhereUniqueInput
+  create: Prisma.XOR<Prisma.SessionCreateWithoutActivityInput, Prisma.SessionUncheckedCreateWithoutActivityInput>
+}
+
+export type SessionUpsertWithoutActivityInput = {
+  update: Prisma.XOR<Prisma.SessionUpdateWithoutActivityInput, Prisma.SessionUncheckedUpdateWithoutActivityInput>
+  create: Prisma.XOR<Prisma.SessionCreateWithoutActivityInput, Prisma.SessionUncheckedCreateWithoutActivityInput>
+  where?: Prisma.SessionWhereInput
+}
+
+export type SessionUpdateToOneWithWhereWithoutActivityInput = {
+  where?: Prisma.SessionWhereInput
+  data: Prisma.XOR<Prisma.SessionUpdateWithoutActivityInput, Prisma.SessionUncheckedUpdateWithoutActivityInput>
+}
+
+export type SessionUpdateWithoutActivityInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cashier?: Prisma.CashierUpdateOneRequiredWithoutSessionNestedInput
+  chats?: Prisma.ChatUpdateManyWithoutSessionNestedInput
+}
+
+export type SessionUncheckedUpdateWithoutActivityInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chats?: Prisma.ChatUncheckedUpdateManyWithoutSessionNestedInput
 }
 
 export type SessionCreateWithoutChatsInput = {
-  name: string
-  cvu: Prisma.CvuCreateNestedOneWithoutSessionInput
+  id?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cashier: Prisma.CashierCreateNestedOneWithoutSessionInput
+  activity?: Prisma.SessionActivityCreateNestedManyWithoutSessionInput
 }
 
 export type SessionUncheckedCreateWithoutChatsInput = {
-  name: string
-  cvuNumber: string
+  id?: string
+  cashierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutSessionInput
 }
 
 export type SessionCreateOrConnectWithoutChatsInput = {
@@ -350,75 +498,19 @@ export type SessionUpdateToOneWithWhereWithoutChatsInput = {
 }
 
 export type SessionUpdateWithoutChatsInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  cvu?: Prisma.CvuUpdateOneRequiredWithoutSessionNestedInput
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cashier?: Prisma.CashierUpdateOneRequiredWithoutSessionNestedInput
+  activity?: Prisma.SessionActivityUpdateManyWithoutSessionNestedInput
 }
 
 export type SessionUncheckedUpdateWithoutChatsInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  cvuNumber?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type SessionCreateWithoutCvuInput = {
-  name: string
-  chats?: Prisma.ChatCreateNestedManyWithoutSessionInput
-}
-
-export type SessionUncheckedCreateWithoutCvuInput = {
-  name: string
-  chats?: Prisma.ChatUncheckedCreateNestedManyWithoutSessionInput
-}
-
-export type SessionCreateOrConnectWithoutCvuInput = {
-  where: Prisma.SessionWhereUniqueInput
-  create: Prisma.XOR<Prisma.SessionCreateWithoutCvuInput, Prisma.SessionUncheckedCreateWithoutCvuInput>
-}
-
-export type SessionCreateManyCvuInputEnvelope = {
-  data: Prisma.SessionCreateManyCvuInput | Prisma.SessionCreateManyCvuInput[]
-  skipDuplicates?: boolean
-}
-
-export type SessionUpsertWithWhereUniqueWithoutCvuInput = {
-  where: Prisma.SessionWhereUniqueInput
-  update: Prisma.XOR<Prisma.SessionUpdateWithoutCvuInput, Prisma.SessionUncheckedUpdateWithoutCvuInput>
-  create: Prisma.XOR<Prisma.SessionCreateWithoutCvuInput, Prisma.SessionUncheckedCreateWithoutCvuInput>
-}
-
-export type SessionUpdateWithWhereUniqueWithoutCvuInput = {
-  where: Prisma.SessionWhereUniqueInput
-  data: Prisma.XOR<Prisma.SessionUpdateWithoutCvuInput, Prisma.SessionUncheckedUpdateWithoutCvuInput>
-}
-
-export type SessionUpdateManyWithWhereWithoutCvuInput = {
-  where: Prisma.SessionScalarWhereInput
-  data: Prisma.XOR<Prisma.SessionUpdateManyMutationInput, Prisma.SessionUncheckedUpdateManyWithoutCvuInput>
-}
-
-export type SessionScalarWhereInput = {
-  AND?: Prisma.SessionScalarWhereInput | Prisma.SessionScalarWhereInput[]
-  OR?: Prisma.SessionScalarWhereInput[]
-  NOT?: Prisma.SessionScalarWhereInput | Prisma.SessionScalarWhereInput[]
-  name?: Prisma.StringFilter<"Session"> | string
-  cvuNumber?: Prisma.StringFilter<"Session"> | string
-}
-
-export type SessionCreateManyCvuInput = {
-  name: string
-}
-
-export type SessionUpdateWithoutCvuInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  chats?: Prisma.ChatUpdateManyWithoutSessionNestedInput
-}
-
-export type SessionUncheckedUpdateWithoutCvuInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  chats?: Prisma.ChatUncheckedUpdateManyWithoutSessionNestedInput
-}
-
-export type SessionUncheckedUpdateManyWithoutCvuInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutSessionNestedInput
 }
 
 
@@ -427,10 +519,12 @@ export type SessionUncheckedUpdateManyWithoutCvuInput = {
  */
 
 export type SessionCountOutputType = {
+  activity: number
   chats: number
 }
 
 export type SessionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  activity?: boolean | SessionCountOutputTypeCountActivityArgs
   chats?: boolean | SessionCountOutputTypeCountChatsArgs
 }
 
@@ -447,58 +541,78 @@ export type SessionCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exte
 /**
  * SessionCountOutputType without action
  */
+export type SessionCountOutputTypeCountActivityArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SessionActivityWhereInput
+}
+
+/**
+ * SessionCountOutputType without action
+ */
 export type SessionCountOutputTypeCountChatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ChatWhereInput
 }
 
 
 export type SessionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  name?: boolean
-  cvuNumber?: boolean
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
+  id?: boolean
+  cashierId?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
+  activity?: boolean | Prisma.Session$activityArgs<ExtArgs>
   chats?: boolean | Prisma.Session$chatsArgs<ExtArgs>
   _count?: boolean | Prisma.SessionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["session"]>
 
 export type SessionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  name?: boolean
-  cvuNumber?: boolean
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
+  id?: boolean
+  cashierId?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["session"]>
 
 export type SessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  name?: boolean
-  cvuNumber?: boolean
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
+  id?: boolean
+  cashierId?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["session"]>
 
 export type SessionSelectScalar = {
-  name?: boolean
-  cvuNumber?: boolean
+  id?: boolean
+  cashierId?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type SessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"name" | "cvuNumber", ExtArgs["result"]["session"]>
+export type SessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cashierId" | "createdAt" | "updatedAt", ExtArgs["result"]["session"]>
 export type SessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
+  activity?: boolean | Prisma.Session$activityArgs<ExtArgs>
   chats?: boolean | Prisma.Session$chatsArgs<ExtArgs>
   _count?: boolean | Prisma.SessionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SessionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }
 export type SessionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  cvu?: boolean | Prisma.CvuDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }
 
 export type $SessionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Session"
   objects: {
-    cvu: Prisma.$CvuPayload<ExtArgs>
+    cashier: Prisma.$CashierPayload<ExtArgs>
+    activity: Prisma.$SessionActivityPayload<ExtArgs>[]
     chats: Prisma.$ChatPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
-    name: string
-    cvuNumber: string
+    id: string
+    cashierId: string
+    createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["session"]>
   composites: {}
 }
@@ -582,8 +696,8 @@ export interface SessionDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    * // Get first 10 Sessions
    * const sessions = await prisma.session.findMany({ take: 10 })
    * 
-   * // Only select the `name`
-   * const sessionWithNameOnly = await prisma.session.findMany({ select: { name: true } })
+   * // Only select the `id`
+   * const sessionWithIdOnly = await prisma.session.findMany({ select: { id: true } })
    * 
    */
   findMany<T extends SessionFindManyArgs>(args?: Prisma.SelectSubset<T, SessionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -627,9 +741,9 @@ export interface SessionDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    *   ]
    * })
    * 
-   * // Create many Sessions and only return the `name`
-   * const sessionWithNameOnly = await prisma.session.createManyAndReturn({
-   *   select: { name: true },
+   * // Create many Sessions and only return the `id`
+   * const sessionWithIdOnly = await prisma.session.createManyAndReturn({
+   *   select: { id: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -718,9 +832,9 @@ export interface SessionDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    *   ]
    * })
    * 
-   * // Update zero or more Sessions and only return the `name`
-   * const sessionWithNameOnly = await prisma.session.updateManyAndReturn({
-   *   select: { name: true },
+   * // Update zero or more Sessions and only return the `id`
+   * const sessionWithIdOnly = await prisma.session.updateManyAndReturn({
+   *   select: { id: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -893,7 +1007,8 @@ readonly fields: SessionFieldRefs;
  */
 export interface Prisma__SessionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  cvu<T extends Prisma.CvuDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CvuDefaultArgs<ExtArgs>>): Prisma.Prisma__CvuClient<runtime.Types.Result.GetResult<Prisma.$CvuPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  cashier<T extends Prisma.CashierDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CashierDefaultArgs<ExtArgs>>): Prisma.Prisma__CashierClient<runtime.Types.Result.GetResult<Prisma.$CashierPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  activity<T extends Prisma.Session$activityArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Session$activityArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   chats<T extends Prisma.Session$chatsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Session$chatsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -924,8 +1039,10 @@ export interface Prisma__SessionClient<T, Null = never, ExtArgs extends runtime.
  * Fields of the Session model
  */
 export interface SessionFieldRefs {
-  readonly name: Prisma.FieldRef<"Session", 'String'>
-  readonly cvuNumber: Prisma.FieldRef<"Session", 'String'>
+  readonly id: Prisma.FieldRef<"Session", 'String'>
+  readonly cashierId: Prisma.FieldRef<"Session", 'String'>
+  readonly createdAt: Prisma.FieldRef<"Session", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"Session", 'DateTime'>
 }
     
 
@@ -1324,6 +1441,30 @@ export type SessionDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Limit how many Sessions to delete.
    */
   limit?: number
+}
+
+/**
+ * Session.activity
+ */
+export type Session$activityArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SessionActivity
+   */
+  select?: Prisma.SessionActivitySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SessionActivity
+   */
+  omit?: Prisma.SessionActivityOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SessionActivityInclude<ExtArgs> | null
+  where?: Prisma.SessionActivityWhereInput
+  orderBy?: Prisma.SessionActivityOrderByWithRelationInput | Prisma.SessionActivityOrderByWithRelationInput[]
+  cursor?: Prisma.SessionActivityWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SessionActivityScalarFieldEnum | Prisma.SessionActivityScalarFieldEnum[]
 }
 
 /**

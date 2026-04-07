@@ -7,55 +7,96 @@ datasource db {
   provider = "postgresql"
 }
 
-model Session {
-  name String @unique
-
-  cvuNumber String @unique
-  cvu       Cvu    @relation(fields: [cvuNumber], references: [number])
-
-  chats Chat[]
-
-  @@map("Session")
-}
-
-model Chat {
-  id   String  @unique
-  lock Boolean @default(true)
-
-  sessionName String
-  session     Session @relation(fields: [sessionName], references: [name])
-
-  user User?
-
-  messages   Message[]
-  addedFunds AddFunds[]
-
-  @@map("Chat")
+enum Role {
+  CASHIER
+  ADMIN
 }
 
 model User {
   id       String @id @default(uuid())
-  name     String @unique
+  username String @unique
   password String
 
-  chatId String @unique
-  chat   Chat   @relation(fields: [chatId], references: [id])
+  role Role
+
+  admin   Admin?
+  cashier Cashier?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("User")
 }
 
-model Message {
-  id              String   @unique
-  timestamp       DateTime
-  body            String?
-  hasMedia        Boolean
-  media           Json?
-  submittedByUser Boolean
+model Admin {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
 
-  chatId String
-  chat   Chat   @relation(fields: [chatId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("Message")
+  @@map("Admin")
+}
+
+enum CashierStatus {
+  ACTIVE
+  DISABLED
+}
+
+model Cashier {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  status  CashierStatus @default(ACTIVE)
+  session Session?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Cashier")
+}
+
+model Session {
+  id String @id @default(uuid())
+
+  cashierId String  @unique
+  cashier   Cashier @relation(fields: [cashierId], references: [id])
+
+  activity SessionActivity[]
+
+  chats Chat[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Session")
+}
+
+model SessionActivity {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id])
+}
+
+model Chat {
+  id String @id
+
+  fromAds Boolean
+
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  addedFunds AddFunds[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Chat")
 }
 
 model AddFunds {
@@ -65,22 +106,12 @@ model AddFunds {
   chatId String
   chat   Chat   @relation(fields: [chatId], references: [id])
 
-  cvuNumber String
-  cvu       Cvu    @relation(fields: [cvuNumber], references: [number])
+  createdAt DateTime @default(now())
 
   @@map("AddFunds")
 }
 
-model Cvu {
-  number String @unique
-
-  session Session[]
-  add     AddFunds[]
-
-  @@map("Cvu")
-}
-
-model Leads {
+model Lead {
   id   String @id @default(uuid())
   code String @unique
 

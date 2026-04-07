@@ -9,6 +9,22 @@
 * 🟢 You can import this file directly.
 */
 
+export const Role = {
+  CASHIER: 'CASHIER',
+  ADMIN: 'ADMIN'
+} as const
+
+export type Role = (typeof Role)[keyof typeof Role]
+
+
+export const CashierStatus = {
+  ACTIVE: 'ACTIVE',
+  DISABLED: 'DISABLED'
+} as const
+
+export type CashierStatus = (typeof CashierStatus)[keyof typeof CashierStatus]
+
+
 export const LEADS_STATUS = {
   PENDING: 'PENDING',
   CONTACTED: 'CONTACTED',
