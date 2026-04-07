@@ -389,7 +389,8 @@ export const ModelName = {
   User: 'User',
   Message: 'Message',
   AddFunds: 'AddFunds',
-  Cvu: 'Cvu'
+  Cvu: 'Cvu',
+  Leads: 'Leads'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "chat" | "user" | "message" | "addFunds" | "cvu"
+    modelProps: "session" | "chat" | "user" | "message" | "addFunds" | "cvu" | "leads"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -853,6 +854,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Leads: {
+      payload: Prisma.$LeadsPayload<ExtArgs>
+      fields: Prisma.LeadsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LeadsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LeadsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>
+        }
+        findFirst: {
+          args: Prisma.LeadsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LeadsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>
+        }
+        findMany: {
+          args: Prisma.LeadsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>[]
+        }
+        create: {
+          args: Prisma.LeadsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>
+        }
+        createMany: {
+          args: Prisma.LeadsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LeadsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>[]
+        }
+        delete: {
+          args: Prisma.LeadsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>
+        }
+        update: {
+          args: Prisma.LeadsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>
+        }
+        deleteMany: {
+          args: Prisma.LeadsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LeadsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LeadsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>[]
+        }
+        upsert: {
+          args: Prisma.LeadsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadsPayload>
+        }
+        aggregate: {
+          args: Prisma.LeadsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLeads>
+        }
+        groupBy: {
+          args: Prisma.LeadsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LeadsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadsCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -947,6 +1022,23 @@ export const CvuScalarFieldEnum = {
 } as const
 
 export type CvuScalarFieldEnum = (typeof CvuScalarFieldEnum)[keyof typeof CvuScalarFieldEnum]
+
+
+export const LeadsScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  fbc: 'fbc',
+  fbp: 'fbp',
+  status: 'status',
+  userAgent: 'userAgent',
+  phone: 'phone',
+  expiresAt: 'expiresAt',
+  matchedAt: 'matchedAt',
+  createdAt: 'createdAt',
+  updateAt: 'updateAt'
+} as const
+
+export type LeadsScalarFieldEnum = (typeof LeadsScalarFieldEnum)[keyof typeof LeadsScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1056,6 +1148,20 @@ export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'Decimal[]'
  */
 export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LEADS_STATUS'
+ */
+export type EnumLEADS_STATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LEADS_STATUS'>
+    
+
+
+/**
+ * Reference to a field of type 'LEADS_STATUS[]'
+ */
+export type ListEnumLEADS_STATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LEADS_STATUS[]'>
     
 
 
@@ -1173,6 +1279,7 @@ export type GlobalOmitConfig = {
   message?: Prisma.MessageOmit
   addFunds?: Prisma.AddFundsOmit
   cvu?: Prisma.CvuOmit
+  leads?: Prisma.LeadsOmit
 }
 
 /* Types for Logging */

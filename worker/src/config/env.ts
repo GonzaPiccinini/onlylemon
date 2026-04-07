@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3002),
+  LEADS_CODE_TTL_HOURS: z.coerce.number().int().positive().default(24),
   DATABASE_URL: z.string(),
   BULLMQ_REDIS_URL: z.string(),
   BULLMQ_QUEUE_NAME: z.string(),

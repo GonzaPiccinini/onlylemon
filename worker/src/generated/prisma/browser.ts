@@ -47,3 +47,8 @@ export type AddFunds = Prisma.AddFundsModel
  * 
  */
 export type Cvu = Prisma.CvuModel
+/**
+ * Model Leads
+ * 
+ */
+export type Leads = Prisma.LeadsModel

@@ -6,10 +6,8 @@ import {
   saveChat,
   saveInboundMessage,
 } from '../../persistence/repositories/messageRepository.js';
-import {
-  exectuteSendListFlow,
-  executeSendTextFlow,
-} from '../../integrations/waha/flows.js';
+import { exectuteSendListFlow } from '../../integrations/waha/flows.js';
+import { mapLeadsToPhone } from '../../integrations/leads/client.js';
 
 export async function processInboundJob(job: Job) {
   try {
@@ -26,6 +24,13 @@ export async function processInboundJob(job: Job) {
     // validar si es el primer mensaje del chat
     const chat = await getChat(data.session, data.payload.from);
     if (!chat) {
+      // verificar si existe codigo de leads en el mensaje
+      await mapLeadsToPhone(
+        data.session,
+        data.payload.from,
+        data.payload.body ? data.payload.body : '',
+      );
+
       // enviar mensaje de bienvenida
       await exectuteSendListFlow(data.session, data.payload.from, {
         title: '¡Bienvenido a Lemonbet 🍋!',

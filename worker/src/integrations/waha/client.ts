@@ -13,6 +13,34 @@ export type GetChatMessagesOptions = {
   downloadMedia?: boolean;
 };
 
+export type SessionsList = {
+  name: string;
+  status: string;
+  config: {
+    proxy: string | null;
+    webhooks: {
+      url: string;
+      events: string[];
+      hmac: string | null;
+      retries: string | number | null;
+      customHeaders: Record<string, string> | null;
+    }[];
+    debug: boolean;
+  };
+  me: {
+    id: string;
+    pushname: string;
+  };
+  engine: {
+    engine: string;
+  };
+}[];
+
+export type NumberLidMap = {
+  lid: string;
+  pn: string;
+};
+
 export interface Preview {
   title: string;
   description: string;
@@ -33,7 +61,7 @@ export interface List {
   }[];
 }
 
-async function wahaCall(path: string, payload: Record<string, unknown>) {
+export async function wahaCall(path: string, payload: Record<string, unknown>) {
   const response = await fetch(`${config.WAHA_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
@@ -75,6 +103,14 @@ export async function getChatMessages(
     sortBy: options.sortBy ?? 'timestamp',
     downloadMedia: String(options.downloadMedia ?? false),
   });
+}
+
+export async function getSessions() {
+  return wahaGet<SessionsList>('/api/sessions', {});
+}
+
+export async function getNumberByLid(session: string, chatId: string) {
+  return wahaGet<NumberLidMap>(`/api/${session}/lids/${chatId}`, {});
 }
 
 export async function sendSeen(

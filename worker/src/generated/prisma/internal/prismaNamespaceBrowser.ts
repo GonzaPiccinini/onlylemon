@@ -56,7 +56,8 @@ export const ModelName = {
   User: 'User',
   Message: 'Message',
   AddFunds: 'AddFunds',
-  Cvu: 'Cvu'
+  Cvu: 'Cvu',
+  Leads: 'Leads'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -130,6 +131,23 @@ export const CvuScalarFieldEnum = {
 } as const
 
 export type CvuScalarFieldEnum = (typeof CvuScalarFieldEnum)[keyof typeof CvuScalarFieldEnum]
+
+
+export const LeadsScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  fbc: 'fbc',
+  fbp: 'fbp',
+  status: 'status',
+  userAgent: 'userAgent',
+  phone: 'phone',
+  expiresAt: 'expiresAt',
+  matchedAt: 'matchedAt',
+  createdAt: 'createdAt',
+  updateAt: 'updateAt'
+} as const
+
+export type LeadsScalarFieldEnum = (typeof LeadsScalarFieldEnum)[keyof typeof LeadsScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -1,11 +1,14 @@
 import express from 'express';
+import cors, { CorsOptions } from 'cors';
 
 import { config } from '../config/env.js';
 import { worker } from './worker.js';
+import { leadsPost } from '../integrations/leads/client.js';
 
 const app = express();
 const port = config.PORT; // NO TOCAR PORQUE ROMPE EL CODIGO DE OPENAI
 
+app.use(cors());
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
@@ -15,6 +18,8 @@ app.get('/health', (_req, res) => {
 app.post('/receive', (_req, res) => {
   res.status(202).json({ received: true });
 });
+
+app.post('/api/leads', leadsPost);
 
 const server = app.listen(port, () => {
   console.log(`server listening on ${port}`);

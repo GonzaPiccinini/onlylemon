@@ -79,3 +79,28 @@ model Cvu {
 
   @@map("Cvu")
 }
+
+model Leads {
+  id   String @id @default(uuid())
+  code String @unique
+
+  fbc String
+  fbp String
+
+  status LEADS_STATUS @default(PENDING)
+
+  userAgent String
+  phone     String?
+  expiresAt DateTime
+  matchedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
+}
+
+enum LEADS_STATUS {
+  PENDING
+  CONTACTED
+  CONVERTED
+  EXPIRED
+}
