@@ -36,7 +36,7 @@ export interface AddFunds {
   id: string;
   cashierId: string;
   cashierName: string;
-  clientName: string;
+  userName: string;
   phoneId: string;
   phoneNumber: string;
   amount: number;

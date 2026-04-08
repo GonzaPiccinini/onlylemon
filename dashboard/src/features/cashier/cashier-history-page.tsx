@@ -59,7 +59,7 @@ export const CashierHistoryPage = () => {
                 operations.map((operation) => (
                   <TableRow key={operation.id}>
                     <TableCell>{formatDateTime(operation.createdAt)}</TableCell>
-                    <TableCell>{operation.clientName}</TableCell>
+                    <TableCell>{operation.userName}</TableCell>
                     <TableCell>{operation.phoneNumber}</TableCell>
                     <TableCell>{formatCurrency(operation.amount)}</TableCell>
                     <TableCell>
