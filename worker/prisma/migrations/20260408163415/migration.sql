@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "AddFunds" ALTER COLUMN "userName" DROP DEFAULT,
+ALTER COLUMN "phoneId" DROP DEFAULT,
+ALTER COLUMN "phoneNumber" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "name" DROP DEFAULT;
