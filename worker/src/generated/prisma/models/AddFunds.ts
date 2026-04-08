@@ -36,6 +36,9 @@ export type AddFundsSumAggregateOutputType = {
 
 export type AddFundsMinAggregateOutputType = {
   id: string | null
+  userName: string | null
+  phoneId: string | null
+  phoneNumber: string | null
   amount: runtime.Decimal | null
   chatId: string | null
   createdAt: Date | null
@@ -43,6 +46,9 @@ export type AddFundsMinAggregateOutputType = {
 
 export type AddFundsMaxAggregateOutputType = {
   id: string | null
+  userName: string | null
+  phoneId: string | null
+  phoneNumber: string | null
   amount: runtime.Decimal | null
   chatId: string | null
   createdAt: Date | null
@@ -50,6 +56,9 @@ export type AddFundsMaxAggregateOutputType = {
 
 export type AddFundsCountAggregateOutputType = {
   id: number
+  userName: number
+  phoneId: number
+  phoneNumber: number
   amount: number
   chatId: number
   createdAt: number
@@ -67,6 +76,9 @@ export type AddFundsSumAggregateInputType = {
 
 export type AddFundsMinAggregateInputType = {
   id?: true
+  userName?: true
+  phoneId?: true
+  phoneNumber?: true
   amount?: true
   chatId?: true
   createdAt?: true
@@ -74,6 +86,9 @@ export type AddFundsMinAggregateInputType = {
 
 export type AddFundsMaxAggregateInputType = {
   id?: true
+  userName?: true
+  phoneId?: true
+  phoneNumber?: true
   amount?: true
   chatId?: true
   createdAt?: true
@@ -81,6 +96,9 @@ export type AddFundsMaxAggregateInputType = {
 
 export type AddFundsCountAggregateInputType = {
   id?: true
+  userName?: true
+  phoneId?: true
+  phoneNumber?: true
   amount?: true
   chatId?: true
   createdAt?: true
@@ -175,6 +193,9 @@ export type AddFundsGroupByArgs<ExtArgs extends runtime.Types.Extensions.Interna
 
 export type AddFundsGroupByOutputType = {
   id: string
+  userName: string
+  phoneId: string
+  phoneNumber: string
   amount: runtime.Decimal
   chatId: string
   createdAt: Date
@@ -205,6 +226,9 @@ export type AddFundsWhereInput = {
   OR?: Prisma.AddFundsWhereInput[]
   NOT?: Prisma.AddFundsWhereInput | Prisma.AddFundsWhereInput[]
   id?: Prisma.StringFilter<"AddFunds"> | string
+  userName?: Prisma.StringFilter<"AddFunds"> | string
+  phoneId?: Prisma.StringFilter<"AddFunds"> | string
+  phoneNumber?: Prisma.StringFilter<"AddFunds"> | string
   amount?: Prisma.DecimalFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFilter<"AddFunds"> | string
   createdAt?: Prisma.DateTimeFilter<"AddFunds"> | Date | string
@@ -213,6 +237,9 @@ export type AddFundsWhereInput = {
 
 export type AddFundsOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  userName?: Prisma.SortOrder
+  phoneId?: Prisma.SortOrder
+  phoneNumber?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -224,6 +251,9 @@ export type AddFundsWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.AddFundsWhereInput | Prisma.AddFundsWhereInput[]
   OR?: Prisma.AddFundsWhereInput[]
   NOT?: Prisma.AddFundsWhereInput | Prisma.AddFundsWhereInput[]
+  userName?: Prisma.StringFilter<"AddFunds"> | string
+  phoneId?: Prisma.StringFilter<"AddFunds"> | string
+  phoneNumber?: Prisma.StringFilter<"AddFunds"> | string
   amount?: Prisma.DecimalFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFilter<"AddFunds"> | string
   createdAt?: Prisma.DateTimeFilter<"AddFunds"> | Date | string
@@ -232,6 +262,9 @@ export type AddFundsWhereUniqueInput = Prisma.AtLeast<{
 
 export type AddFundsOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  userName?: Prisma.SortOrder
+  phoneId?: Prisma.SortOrder
+  phoneNumber?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -247,6 +280,9 @@ export type AddFundsScalarWhereWithAggregatesInput = {
   OR?: Prisma.AddFundsScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AddFundsScalarWhereWithAggregatesInput | Prisma.AddFundsScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
+  userName?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
+  phoneId?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
+  phoneNumber?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
   amount?: Prisma.DecimalWithAggregatesFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringWithAggregatesFilter<"AddFunds"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AddFunds"> | Date | string
@@ -254,6 +290,9 @@ export type AddFundsScalarWhereWithAggregatesInput = {
 
 export type AddFundsCreateInput = {
   id?: string
+  userName: string
+  phoneId: string
+  phoneNumber: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   chat: Prisma.ChatCreateNestedOneWithoutAddedFundsInput
@@ -261,6 +300,9 @@ export type AddFundsCreateInput = {
 
 export type AddFundsUncheckedCreateInput = {
   id?: string
+  userName: string
+  phoneId: string
+  phoneNumber: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId: string
   createdAt?: Date | string
@@ -268,6 +310,9 @@ export type AddFundsUncheckedCreateInput = {
 
 export type AddFundsUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneId?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chat?: Prisma.ChatUpdateOneRequiredWithoutAddedFundsNestedInput
@@ -275,6 +320,9 @@ export type AddFundsUpdateInput = {
 
 export type AddFundsUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneId?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -282,6 +330,9 @@ export type AddFundsUncheckedUpdateInput = {
 
 export type AddFundsCreateManyInput = {
   id?: string
+  userName: string
+  phoneId: string
+  phoneNumber: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId: string
   createdAt?: Date | string
@@ -289,12 +340,18 @@ export type AddFundsCreateManyInput = {
 
 export type AddFundsUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneId?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneId?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -312,6 +369,9 @@ export type AddFundsOrderByRelationAggregateInput = {
 
 export type AddFundsCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userName?: Prisma.SortOrder
+  phoneId?: Prisma.SortOrder
+  phoneNumber?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -323,6 +383,9 @@ export type AddFundsAvgOrderByAggregateInput = {
 
 export type AddFundsMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userName?: Prisma.SortOrder
+  phoneId?: Prisma.SortOrder
+  phoneNumber?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -330,6 +393,9 @@ export type AddFundsMaxOrderByAggregateInput = {
 
 export type AddFundsMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userName?: Prisma.SortOrder
+  phoneId?: Prisma.SortOrder
+  phoneNumber?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -391,12 +457,18 @@ export type DecimalFieldUpdateOperationsInput = {
 
 export type AddFundsCreateWithoutChatInput = {
   id?: string
+  userName: string
+  phoneId: string
+  phoneNumber: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
 }
 
 export type AddFundsUncheckedCreateWithoutChatInput = {
   id?: string
+  userName: string
+  phoneId: string
+  phoneNumber: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
 }
@@ -432,6 +504,9 @@ export type AddFundsScalarWhereInput = {
   OR?: Prisma.AddFundsScalarWhereInput[]
   NOT?: Prisma.AddFundsScalarWhereInput | Prisma.AddFundsScalarWhereInput[]
   id?: Prisma.StringFilter<"AddFunds"> | string
+  userName?: Prisma.StringFilter<"AddFunds"> | string
+  phoneId?: Prisma.StringFilter<"AddFunds"> | string
+  phoneNumber?: Prisma.StringFilter<"AddFunds"> | string
   amount?: Prisma.DecimalFilter<"AddFunds"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   chatId?: Prisma.StringFilter<"AddFunds"> | string
   createdAt?: Prisma.DateTimeFilter<"AddFunds"> | Date | string
@@ -439,24 +514,36 @@ export type AddFundsScalarWhereInput = {
 
 export type AddFundsCreateManyChatInput = {
   id?: string
+  userName: string
+  phoneId: string
+  phoneNumber: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
 }
 
 export type AddFundsUpdateWithoutChatInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneId?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsUncheckedUpdateWithoutChatInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneId?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AddFundsUncheckedUpdateManyWithoutChatInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneId?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -465,6 +552,9 @@ export type AddFundsUncheckedUpdateManyWithoutChatInput = {
 
 export type AddFundsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userName?: boolean
+  phoneId?: boolean
+  phoneNumber?: boolean
   amount?: boolean
   chatId?: boolean
   createdAt?: boolean
@@ -473,6 +563,9 @@ export type AddFundsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
 
 export type AddFundsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userName?: boolean
+  phoneId?: boolean
+  phoneNumber?: boolean
   amount?: boolean
   chatId?: boolean
   createdAt?: boolean
@@ -481,6 +574,9 @@ export type AddFundsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
 
 export type AddFundsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userName?: boolean
+  phoneId?: boolean
+  phoneNumber?: boolean
   amount?: boolean
   chatId?: boolean
   createdAt?: boolean
@@ -489,12 +585,15 @@ export type AddFundsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 
 export type AddFundsSelectScalar = {
   id?: boolean
+  userName?: boolean
+  phoneId?: boolean
+  phoneNumber?: boolean
   amount?: boolean
   chatId?: boolean
   createdAt?: boolean
 }
 
-export type AddFundsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "amount" | "chatId" | "createdAt", ExtArgs["result"]["addFunds"]>
+export type AddFundsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userName" | "phoneId" | "phoneNumber" | "amount" | "chatId" | "createdAt", ExtArgs["result"]["addFunds"]>
 export type AddFundsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
 }
@@ -512,6 +611,9 @@ export type $AddFundsPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    userName: string
+    phoneId: string
+    phoneNumber: string
     amount: runtime.Decimal
     chatId: string
     createdAt: Date
@@ -940,6 +1042,9 @@ export interface Prisma__AddFundsClient<T, Null = never, ExtArgs extends runtime
  */
 export interface AddFundsFieldRefs {
   readonly id: Prisma.FieldRef<"AddFunds", 'String'>
+  readonly userName: Prisma.FieldRef<"AddFunds", 'String'>
+  readonly phoneId: Prisma.FieldRef<"AddFunds", 'String'>
+  readonly phoneNumber: Prisma.FieldRef<"AddFunds", 'String'>
   readonly amount: Prisma.FieldRef<"AddFunds", 'Decimal'>
   readonly chatId: Prisma.FieldRef<"AddFunds", 'String'>
   readonly createdAt: Prisma.FieldRef<"AddFunds", 'DateTime'>

@@ -81,3 +81,8 @@ export type AddFunds = Prisma.AddFundsModel
  * 
  */
 export type Lead = Prisma.LeadModel
+/**
+ * Model ProcessedJob
+ * 
+ */
+export type ProcessedJob = Prisma.ProcessedJobModel

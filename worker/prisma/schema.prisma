@@ -14,6 +14,7 @@ enum Role {
 
 model User {
   id       String @id @default(uuid())
+  name     String
   username String @unique
   password String
 
@@ -100,8 +101,11 @@ model Chat {
 }
 
 model AddFunds {
-  id     String  @id @default(uuid())
-  amount Decimal @db.Decimal(10, 2)
+  id          String  @id @default(uuid())
+  userName    String
+  phoneId     String
+  phoneNumber String
+  amount      Decimal @db.Decimal(10, 2)
 
   chatId String
   chat   Chat   @relation(fields: [chatId], references: [id])
@@ -124,9 +128,19 @@ model Lead {
   phone     String?
   expiresAt DateTime
   matchedAt DateTime?
+  convertedAt DateTime?
 
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt
+
+  @@index([phone])
+}
+
+model ProcessedJob {
+  id          String   @id @default(uuid())
+  jobKey      String   @unique
+  source      String
+  processedAt DateTime @default(now())
 }
 
 enum LEADS_STATUS {

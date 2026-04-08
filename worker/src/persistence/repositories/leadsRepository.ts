@@ -1,5 +1,5 @@
 import { prisma } from '../prisma/client.js';
-import { Leads, LEADS_STATUS } from '../../generated/prisma/client.js';
+import { Lead, LEADS_STATUS } from '../../generated/prisma/client.js';
 
 type CreateLeadData = {
   code: string;
@@ -15,20 +15,23 @@ type UpdateLeadData = {
   matchedAt?: Date;
 };
 
-export async function saveLead(data: CreateLeadData): Promise<Leads> {
-  return prisma.leads.create({
+export async function saveLead(data: CreateLeadData): Promise<Lead> {
+  return prisma.lead.create({
     data,
   });
 }
 
-export async function getLeadByCode(code: string): Promise<Leads | null> {
-  return prisma.leads.findUnique({
+export async function getLeadByCode(code: string): Promise<Lead | null> {
+  return prisma.lead.findUnique({
     where: { code },
   });
 }
 
-export async function updateLead(id: string, data: UpdateLeadData): Promise<Leads> {
-  return prisma.leads.update({
+export async function updateLead(
+  id: string,
+  data: UpdateLeadData,
+): Promise<Lead> {
+  return prisma.lead.update({
     where: { id },
     data,
   });
@@ -39,7 +42,7 @@ export async function markLeadAsContactedIfPending(
   phone: string,
   now: Date,
 ): Promise<number> {
-  const result = await prisma.leads.updateMany({
+  const result = await prisma.lead.updateMany({
     where: {
       id,
       status: 'PENDING',
@@ -52,6 +55,48 @@ export async function markLeadAsContactedIfPending(
       phone,
       status: 'CONTACTED',
       matchedAt: now,
+    },
+  });
+
+  return result.count;
+}
+
+export async function getLatestContactedLeadByPhone(phone: string) {
+  return prisma.lead.findFirst({
+    where: {
+      phone,
+      status: 'CONTACTED',
+    },
+    orderBy: {
+      matchedAt: 'desc',
+    },
+  });
+}
+
+export async function getLatestTrackedLeadByPhone(phone: string) {
+  return prisma.lead.findFirst({
+    where: {
+      phone,
+      status: {
+        in: ['CONTACTED', 'CONVERTED'],
+      },
+    },
+    orderBy: {
+      matchedAt: 'desc',
+    },
+  });
+}
+
+export async function markLeadAsConvertedIfContacted(id: string): Promise<number> {
+  const result = await prisma.lead.updateMany({
+    where: {
+      id,
+      status: 'CONTACTED',
+      convertedAt: null,
+    },
+    data: {
+      status: 'CONVERTED',
+      convertedAt: new Date(),
     },
   });
 

@@ -391,7 +391,8 @@ export const ModelName = {
   SessionActivity: 'SessionActivity',
   Chat: 'Chat',
   AddFunds: 'AddFunds',
-  Lead: 'Lead'
+  Lead: 'Lead',
+  ProcessedJob: 'ProcessedJob'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -407,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "admin" | "cashier" | "session" | "sessionActivity" | "chat" | "addFunds" | "lead"
+    modelProps: "user" | "admin" | "cashier" | "session" | "sessionActivity" | "chat" | "addFunds" | "lead" | "processedJob"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1003,6 +1004,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ProcessedJob: {
+      payload: Prisma.$ProcessedJobPayload<ExtArgs>
+      fields: Prisma.ProcessedJobFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProcessedJobFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProcessedJobFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>
+        }
+        findFirst: {
+          args: Prisma.ProcessedJobFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProcessedJobFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>
+        }
+        findMany: {
+          args: Prisma.ProcessedJobFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>[]
+        }
+        create: {
+          args: Prisma.ProcessedJobCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>
+        }
+        createMany: {
+          args: Prisma.ProcessedJobCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProcessedJobCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>[]
+        }
+        delete: {
+          args: Prisma.ProcessedJobDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>
+        }
+        update: {
+          args: Prisma.ProcessedJobUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProcessedJobDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProcessedJobUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProcessedJobUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProcessedJobUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedJobPayload>
+        }
+        aggregate: {
+          args: Prisma.ProcessedJobAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProcessedJob>
+        }
+        groupBy: {
+          args: Prisma.ProcessedJobGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProcessedJobGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProcessedJobCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProcessedJobCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1044,6 +1119,7 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
+  name: 'name',
   username: 'username',
   password: 'password',
   role: 'role',
@@ -1108,6 +1184,9 @@ export type ChatScalarFieldEnum = (typeof ChatScalarFieldEnum)[keyof typeof Chat
 
 export const AddFundsScalarFieldEnum = {
   id: 'id',
+  userName: 'userName',
+  phoneId: 'phoneId',
+  phoneNumber: 'phoneNumber',
   amount: 'amount',
   chatId: 'chatId',
   createdAt: 'createdAt'
@@ -1126,11 +1205,22 @@ export const LeadScalarFieldEnum = {
   phone: 'phone',
   expiresAt: 'expiresAt',
   matchedAt: 'matchedAt',
+  convertedAt: 'convertedAt',
   createdAt: 'createdAt',
   updateAt: 'updateAt'
 } as const
 
 export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const ProcessedJobScalarFieldEnum = {
+  id: 'id',
+  jobKey: 'jobKey',
+  source: 'source',
+  processedAt: 'processedAt'
+} as const
+
+export type ProcessedJobScalarFieldEnum = (typeof ProcessedJobScalarFieldEnum)[keyof typeof ProcessedJobScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1370,6 +1460,7 @@ export type GlobalOmitConfig = {
   chat?: Prisma.ChatOmit
   addFunds?: Prisma.AddFundsOmit
   lead?: Prisma.LeadOmit
+  processedJob?: Prisma.ProcessedJobOmit
 }
 
 /* Types for Logging */

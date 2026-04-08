@@ -58,7 +58,8 @@ export const ModelName = {
   SessionActivity: 'SessionActivity',
   Chat: 'Chat',
   AddFunds: 'AddFunds',
-  Lead: 'Lead'
+  Lead: 'Lead',
+  ProcessedJob: 'ProcessedJob'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -79,6 +80,7 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
+  name: 'name',
   username: 'username',
   password: 'password',
   role: 'role',
@@ -143,6 +145,9 @@ export type ChatScalarFieldEnum = (typeof ChatScalarFieldEnum)[keyof typeof Chat
 
 export const AddFundsScalarFieldEnum = {
   id: 'id',
+  userName: 'userName',
+  phoneId: 'phoneId',
+  phoneNumber: 'phoneNumber',
   amount: 'amount',
   chatId: 'chatId',
   createdAt: 'createdAt'
@@ -161,11 +166,22 @@ export const LeadScalarFieldEnum = {
   phone: 'phone',
   expiresAt: 'expiresAt',
   matchedAt: 'matchedAt',
+  convertedAt: 'convertedAt',
   createdAt: 'createdAt',
   updateAt: 'updateAt'
 } as const
 
 export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const ProcessedJobScalarFieldEnum = {
+  id: 'id',
+  jobKey: 'jobKey',
+  source: 'source',
+  processedAt: 'processedAt'
+} as const
+
+export type ProcessedJobScalarFieldEnum = (typeof ProcessedJobScalarFieldEnum)[keyof typeof ProcessedJobScalarFieldEnum]
 
 
 export const SortOrder = {
