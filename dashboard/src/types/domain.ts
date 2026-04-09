@@ -5,6 +5,8 @@ export interface User {
   name: string;
   username: string;
   role: Role;
+  cashierId?: string;
+  sessionName?: string | null;
 }
 
 export interface AuthSession {
@@ -42,6 +44,29 @@ export interface Session {
   endDate: string | null;
   isActive: boolean;
   activeMinutes: number;
+}
+
+export interface WhatsappLinkState {
+  needsLink: boolean;
+  sessionName: string;
+  refreshCount: number;
+  maxRefresh: number;
+  status: string;
+}
+
+export interface WhatsappLinkArtifacts {
+  sessionName: string;
+  pairingCode: string | null;
+  qr: string | null;
+  refreshCount: number;
+  maxRefresh: number;
+  nextRefreshInSeconds: number;
+}
+
+export interface WhatsappLinkStatus {
+  sessionName: string;
+  status: string;
+  linked: boolean;
 }
 
 export interface AddFunds {

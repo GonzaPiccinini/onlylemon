@@ -25,5 +25,11 @@ export const endpoints = {
     clientPhones: "/cashier/client-phones",
     addFunds: "/cashier/add-funds",
     addFundsHistory: "/cashier/add-funds/history",
+    whatsappLinkState: "/cashier/whatsapp/link-state",
+    whatsappLinkStart: "/cashier/whatsapp/link/start",
+    whatsappLinkRefresh: "/cashier/whatsapp/link/refresh",
+    whatsappLinkReset: "/cashier/whatsapp/link/reset",
+    whatsappLinkStatus: "/cashier/whatsapp/link/status",
+    whatsappLinkComplete: "/cashier/whatsapp/link/complete",
   },
 };

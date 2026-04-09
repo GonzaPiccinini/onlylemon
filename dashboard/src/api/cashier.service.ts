@@ -5,6 +5,9 @@ import type {
   AddFundsInput,
   ClientPhoneOption,
   Session,
+  WhatsappLinkArtifacts,
+  WhatsappLinkState,
+  WhatsappLinkStatus,
 } from "@/types/domain";
 
 export const cashierService = {
@@ -40,6 +43,39 @@ export const cashierService = {
 
   async listAddFundsHistory(): Promise<AddFunds[]> {
     const { data } = await http.get<AddFunds[]>(endpoints.cashier.addFundsHistory);
+    return data;
+  },
+
+  async getWhatsappLinkState(): Promise<WhatsappLinkState> {
+    const { data } = await http.get<WhatsappLinkState>(endpoints.cashier.whatsappLinkState);
+    return data;
+  },
+
+  async startWhatsappLink(phoneNumber: string): Promise<WhatsappLinkArtifacts> {
+    const { data } = await http.post<WhatsappLinkArtifacts>(endpoints.cashier.whatsappLinkStart, {
+      phoneNumber,
+    });
+    return data;
+  },
+
+  async refreshWhatsappLink(): Promise<WhatsappLinkArtifacts> {
+    const { data } = await http.post<WhatsappLinkArtifacts>(endpoints.cashier.whatsappLinkRefresh);
+    return data;
+  },
+
+  async resetWhatsappLink(): Promise<void> {
+    await http.post(endpoints.cashier.whatsappLinkReset);
+  },
+
+  async getWhatsappLinkStatus(): Promise<WhatsappLinkStatus> {
+    const { data } = await http.get<WhatsappLinkStatus>(endpoints.cashier.whatsappLinkStatus);
+    return data;
+  },
+
+  async completeWhatsappLink(sessionName: string): Promise<WhatsappLinkStatus> {
+    const { data } = await http.post<WhatsappLinkStatus>(endpoints.cashier.whatsappLinkComplete, {
+      sessionName,
+    });
     return data;
   },
 };

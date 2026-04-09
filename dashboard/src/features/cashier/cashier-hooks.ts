@@ -7,6 +7,8 @@ const cashierKeys = {
   currentSession: ["cashier", "current-session"] as const,
   clientPhones: ["cashier", "client-phones"] as const,
   addFundsHistory: ["cashier", "add-funds-history"] as const,
+  whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
+  whatsappLinkStatus: ["cashier", "whatsapp-link-status"] as const,
 };
 
 export const useCashierSessions = () =>
@@ -68,6 +70,60 @@ export const useAddFunds = () => {
     mutationFn: (input: AddFundsInput) => cashierService.addFunds(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: cashierKeys.addFundsHistory });
+    },
+  });
+};
+
+export const useWhatsappLinkState = () =>
+  useQuery({
+    queryKey: cashierKeys.whatsappLinkState,
+    queryFn: cashierService.getWhatsappLinkState,
+  });
+
+export const useStartWhatsappLink = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (phoneNumber: string) => cashierService.startWhatsappLink(phoneNumber),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkState });
+    },
+  });
+};
+
+export const useRefreshWhatsappLink = () =>
+  useMutation({
+    mutationFn: cashierService.refreshWhatsappLink,
+  });
+
+export const useResetWhatsappLink = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: cashierService.resetWhatsappLink,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkState });
+    },
+  });
+};
+
+export const useWhatsappLinkStatus = () =>
+  useQuery({
+    queryKey: cashierKeys.whatsappLinkStatus,
+    queryFn: cashierService.getWhatsappLinkStatus,
+    refetchInterval: 5_000,
+  });
+
+export const useCompleteWhatsappLink = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionName: string) => cashierService.completeWhatsappLink(sessionName),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkState }),
+        queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkStatus }),
+      ]);
     },
   });
 };
