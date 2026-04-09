@@ -165,9 +165,46 @@ export async function createSessionIfNotExists(
   if (existing) {
     return;
   }
-
+  console.log('llego');
   await wahaCallJson('/api/sessions', {
     name: sessionName,
+    config: {
+      debug: false,
+      ignore: {
+        status: true,
+        groups: true,
+        channels: true,
+        broadcast: true,
+      },
+      gows: {
+        storage: {
+          messages: false,
+          groups: false,
+          chats: false,
+          labels: false,
+        },
+      },
+      webhooks: [
+        {
+          url: config.WAHA_WEBHOOK_URL,
+          events: config.WAHA_WEBHOOK_EVENTS.split(',').map((event) =>
+            event.trim(),
+          ),
+          hmac: null,
+          customHeaders: [
+            {
+              name: config.WAHA_WEBHOOK_TOKEN_HEADER,
+              value: config.WAHA_WEBHOOK_TOKEN_VALUE,
+            },
+          ],
+          retries: {
+            policy: 'exponential',
+            delaySeconds: 2,
+            attempts: 15,
+          },
+        },
+      ],
+    },
   });
 }
 
