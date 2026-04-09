@@ -1,6 +1,6 @@
 import { Job } from 'bullmq';
 import { JobSchema, getChat } from '../../persistence/repositories/chatRepository.js';
-import { mapLeadsToPhone } from '../../integrations/leads/client.js';
+import { mapLeadsToPhone } from '../../integrations/leads/http.js';
 import { validateJobIdempotency } from '../../modules/idempotency/idempotency.service.js';
 
 export async function processInboundJob(job: Job) {

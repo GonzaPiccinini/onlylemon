@@ -3,7 +3,7 @@ import cors from 'cors';
 
 import { config } from '../config/env.js';
 import { worker } from './worker.js';
-import { leadsPost } from '../integrations/leads/client.js';
+import { leadsPost } from '../integrations/leads/http.js';
 import { authRouter } from '../modules/auth/auth.routes.js';
 import { adminRouter } from '../modules/admin/admin.routes.js';
 import { cashierRouter } from '../modules/cashier/cashier.routes.js';
@@ -11,11 +11,27 @@ import { cashierRouter } from '../modules/cashier/cashier.routes.js';
 const app = express();
 const port = config.PORT; // NO TOCAR PORQUE ROMPE EL CODIGO DE OPENAI
 
+const parseCorsOrigin = () => {
+  if (config.CORS_ORIGIN === '*') {
+    return true;
+  }
+
+  const origins = config.CORS_ORIGIN.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (origins.length === 0 || origins.includes('*')) {
+    return true;
+  }
+
+  return origins;
+};
+
 app.use(express.json());
 
 app.use(
   cors({
-    origin: config.CORS_ORIGIN === '*' ? true : config.CORS_ORIGIN,
+    origin: parseCorsOrigin(),
     credentials: true,
   }),
 );

@@ -2,7 +2,7 @@ import {
   getLatestContactedLeadByPhone,
   markLeadAsConvertedIfContacted,
 } from '../../persistence/repositories/leadsRepository.js';
-import { sendMetaConversion } from '../../integrations/meta/client.js';
+import { sendMetaConversion } from '../../integrations/leads/conversion.js';
 import {
   createAddFunds,
   createChatInSession,
@@ -11,7 +11,7 @@ import {
   getCashierSession,
   getCurrentSessionActivity,
   listClientPhones,
-  listAddFundsBySession,
+  listAddFundsByCashier,
   listSessionActivities,
   resolveFromAdsByPhone,
   startSessionActivity,
@@ -37,19 +37,19 @@ const toSessionDto = (item: {
 };
 
 export const listSessionsService = async (cashierId: string) => {
-  const session = await getCashierSession(cashierId);
-  const activities = await listSessionActivities(session.id);
+  const cashier = await getCashierSession(cashierId);
+  const activities = await listSessionActivities(cashier.id);
 
   return activities.map((activity) => ({
     ...toSessionDto(activity),
     cashierId,
-    cashierName: session.cashier.user.name,
+    cashierName: cashier.user.name,
   }));
 };
 
 export const getCurrentSessionService = async (cashierId: string) => {
-  const session = await getCashierSession(cashierId);
-  const current = await getCurrentSessionActivity(session.id);
+  const cashier = await getCashierSession(cashierId);
+  const current = await getCurrentSessionActivity(cashier.id);
 
   if (!current) {
     return null;
@@ -58,28 +58,28 @@ export const getCurrentSessionService = async (cashierId: string) => {
   return {
     ...toSessionDto(current),
     cashierId,
-    cashierName: session.cashier.user.name,
+    cashierName: cashier.user.name,
   };
 };
 
 export const startSessionService = async (cashierId: string) => {
-  const session = await getCashierSession(cashierId);
-  const current = await getCurrentSessionActivity(session.id);
+  const cashier = await getCashierSession(cashierId);
+  const current = await getCurrentSessionActivity(cashier.id);
   if (current) {
     return null;
   }
 
-  const activity = await startSessionActivity(session.id);
+  const activity = await startSessionActivity(cashier.id);
   return {
     ...toSessionDto(activity),
     cashierId,
-    cashierName: session.cashier.user.name,
+    cashierName: cashier.user.name,
   };
 };
 
 export const finishSessionService = async (cashierId: string) => {
-  const session = await getCashierSession(cashierId);
-  const current = await getCurrentSessionActivity(session.id);
+  const cashier = await getCashierSession(cashierId);
+  const current = await getCurrentSessionActivity(cashier.id);
   if (!current) {
     return null;
   }
@@ -88,7 +88,7 @@ export const finishSessionService = async (cashierId: string) => {
   return {
     ...toSessionDto(finished),
     cashierId,
-    cashierName: session.cashier.user.name,
+    cashierName: cashier.user.name,
   };
 };
 
@@ -96,7 +96,7 @@ export const listClientPhonesService = async (cashierId: string) => {
   await getCashierSession(cashierId);
   const existing = await listClientPhones();
   return existing.map((item) => ({
-    phoneId: item.phoneId,
+    phoneId: item.phoneNumber,
     phoneNumber: item.phoneNumber,
   }));
 };
@@ -133,16 +133,16 @@ export const createAddFundsService = async (
   cashierId: string,
   input: AddFundsPayload,
 ) => {
-  const session = await getCashierSession(cashierId);
-  const current = await getCurrentSessionActivity(session.id);
+  const cashier = await getCashierSession(cashierId);
+  const current = await getCurrentSessionActivity(cashier.id);
   if (!current) {
     return null;
   }
 
-  let chat = await findChatByPhoneInSession(session.id, input.phoneNumber);
+  let chat = await findChatByPhoneInSession(cashier.id, input.phoneNumber);
   if (!chat) {
     const fromAds = await resolveFromAdsByPhone(input.phoneNumber);
-    chat = await createChatInSession(session.id, input.phoneNumber, fromAds);
+    chat = await createChatInSession(cashier.id, input.phoneNumber, fromAds);
   }
 
   const addFunds = await createAddFunds({
@@ -155,9 +155,9 @@ export const createAddFundsService = async (
   return {
     id: addFunds.id,
     cashierId,
-    cashierName: addFunds.chat.session.cashier.user.name,
+    cashierName: addFunds.chat.cashier.user.name,
     userName: addFunds.userName,
-    phoneId: addFunds.phoneId,
+    phoneId: addFunds.phoneNumber,
     phoneNumber: addFunds.phoneNumber,
     amount: Number(addFunds.amount),
     fromAds: addFunds.chat.fromAds,
@@ -166,15 +166,15 @@ export const createAddFundsService = async (
 };
 
 export const listAddFundsHistoryService = async (cashierId: string) => {
-  const session = await getCashierSession(cashierId);
-  const addFunds = await listAddFundsBySession(session.id);
+  const cashier = await getCashierSession(cashierId);
+  const addFunds = await listAddFundsByCashier(cashier.id);
 
   return addFunds.map((item) => ({
     id: item.id,
     cashierId,
-    cashierName: session.cashier.user.name,
+    cashierName: cashier.user.name,
     userName: item.userName,
-    phoneId: item.phoneId,
+    phoneId: item.phoneNumber,
     phoneNumber: item.phoneNumber,
     amount: Number(item.amount),
     fromAds: item.chat.fromAds,
