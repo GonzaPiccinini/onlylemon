@@ -1219,6 +1219,9 @@ export const CashierScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   sessionName: 'sessionName',
+  whatsappPhoneNumber: 'whatsappPhoneNumber',
+  whatsappLinkRefreshCount: 'whatsappLinkRefreshCount',
+  whatsappLinkUpdatedAt: 'whatsappLinkUpdatedAt',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1383,6 +1386,20 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'CashierStatus'
  */
 export type EnumCashierStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CashierStatus'>
@@ -1446,16 +1463,16 @@ export type ListEnumLandingStatusFieldRefInput<$PrismaModel> = FieldRefInputType
 
 
 /**
- * Reference to a field of type 'Int'
+ * Reference to a field of type 'Float'
  */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
     
 
 
 /**
- * Reference to a field of type 'Int[]'
+ * Reference to a field of type 'Float[]'
  */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 /**

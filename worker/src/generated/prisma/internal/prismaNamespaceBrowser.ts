@@ -106,6 +106,9 @@ export const CashierScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   sessionName: 'sessionName',
+  whatsappPhoneNumber: 'whatsappPhoneNumber',
+  whatsappLinkRefreshCount: 'whatsappLinkRefreshCount',
+  whatsappLinkUpdatedAt: 'whatsappLinkUpdatedAt',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

@@ -12,6 +12,8 @@ interface LoginResult {
     name: string;
     username: string;
     role: Role;
+    cashierId?: string;
+    sessionName?: string | null;
   };
 }
 
@@ -29,6 +31,12 @@ const toPublicUser = (
     name: user.name,
     username: user.username,
     role: toRole(user.role),
+    ...(user.cashier
+      ? {
+          cashierId: user.cashier.id,
+          sessionName: user.cashier.sessionName,
+        }
+      : {}),
   };
 };
 

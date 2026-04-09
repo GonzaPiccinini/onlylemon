@@ -4,6 +4,13 @@ import {
 } from '../../persistence/repositories/leadsRepository.js';
 import { sendMetaConversion } from '../../integrations/leads/conversion.js';
 import {
+  createSessionIfNotExists,
+  getSession,
+  getSessionQr,
+  requestSessionCode,
+  startSession,
+} from '../../integrations/waha/client.js';
+import {
   createAddFunds,
   createChatInSession,
   findChatByPhoneInSession,
@@ -15,8 +22,11 @@ import {
   listSessionActivities,
   resolveFromAdsByPhone,
   startSessionActivity,
+  updateCashierWhatsappLink,
 } from './cashier.repository.js';
 import type { AddFundsPayload } from './cashier.types.js';
+
+const WHATSAPP_LINK_MAX_REFRESH = 3;
 
 const toSessionDto = (item: {
   id: string;
@@ -99,6 +109,149 @@ export const listClientPhonesService = async (cashierId: string) => {
     phoneId: item.phoneNumber,
     phoneNumber: item.phoneNumber,
   }));
+};
+
+const getSessionCandidateName = (cashierId: string) => `cashier-${cashierId}`;
+
+const requestWhatsappAuthArtifacts = async (
+  sessionName: string,
+  phoneNumber: string,
+) => {
+  await createSessionIfNotExists(sessionName);
+  await startSession(sessionName);
+
+  const [pairingCode, qr] = await Promise.all([
+    requestSessionCode(sessionName, phoneNumber),
+    getSessionQr(sessionName),
+  ]);
+
+  return {
+    sessionName,
+    pairingCode,
+    qr,
+  };
+};
+
+export const getWhatsappLinkStateService = async (cashierId: string) => {
+  const cashier = await getCashierSession(cashierId);
+  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
+
+  let wahaStatus: string | null = null;
+  try {
+    const session = await getSession(sessionName);
+    wahaStatus = session?.status ?? null;
+  } catch {
+    wahaStatus = null;
+  }
+
+  return {
+    needsLink: !cashier.sessionName,
+    sessionName,
+    refreshCount: cashier.whatsappLinkRefreshCount,
+    maxRefresh: WHATSAPP_LINK_MAX_REFRESH,
+    status: wahaStatus ?? 'UNLINKED',
+  };
+};
+
+export const startWhatsappLinkService = async (
+  cashierId: string,
+  phoneNumber: string,
+) => {
+  const cashier = await updateCashierWhatsappLink(cashierId, {
+    whatsappPhoneNumber: phoneNumber,
+    whatsappLinkRefreshCount: 0,
+    whatsappLinkUpdatedAt: new Date(),
+  });
+
+  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
+  const artifacts = await requestWhatsappAuthArtifacts(sessionName, phoneNumber);
+
+  return {
+    ...artifacts,
+    refreshCount: 0,
+    maxRefresh: WHATSAPP_LINK_MAX_REFRESH,
+    nextRefreshInSeconds: 45,
+  };
+};
+
+export const refreshWhatsappLinkService = async (cashierId: string) => {
+  const cashier = await getCashierSession(cashierId);
+  if (!cashier.whatsappPhoneNumber) {
+    throw new Error('PHONE_NUMBER_REQUIRED');
+  }
+
+  if (cashier.whatsappLinkRefreshCount >= WHATSAPP_LINK_MAX_REFRESH) {
+    return null;
+  }
+
+  const nextCount = cashier.whatsappLinkRefreshCount + 1;
+  await updateCashierWhatsappLink(cashierId, {
+    whatsappLinkRefreshCount: nextCount,
+    whatsappLinkUpdatedAt: new Date(),
+  });
+
+  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
+  const artifacts = await requestWhatsappAuthArtifacts(
+    sessionName,
+    cashier.whatsappPhoneNumber,
+  );
+
+  return {
+    ...artifacts,
+    refreshCount: nextCount,
+    maxRefresh: WHATSAPP_LINK_MAX_REFRESH,
+    nextRefreshInSeconds: 45,
+  };
+};
+
+export const resetWhatsappLinkService = async (cashierId: string) => {
+  await updateCashierWhatsappLink(cashierId, {
+    whatsappLinkRefreshCount: 0,
+    whatsappLinkUpdatedAt: new Date(),
+  });
+};
+
+export const getWhatsappLinkStatusService = async (cashierId: string) => {
+  const cashier = await getCashierSession(cashierId);
+  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
+  const session = await getSession(sessionName);
+  const status = session?.status ?? 'UNLINKED';
+
+  if (status === 'WORKING' && !cashier.sessionName) {
+    await updateCashierWhatsappLink(cashierId, {
+      sessionName,
+      whatsappLinkRefreshCount: 0,
+      whatsappLinkUpdatedAt: new Date(),
+    });
+  }
+
+  return {
+    sessionName,
+    status,
+    linked: status === 'WORKING',
+  };
+};
+
+export const completeWhatsappLinkService = async (
+  cashierId: string,
+  sessionName: string,
+) => {
+  const session = await getSession(sessionName);
+  if (!session || session.status !== 'WORKING') {
+    return null;
+  }
+
+  await updateCashierWhatsappLink(cashierId, {
+    sessionName,
+    whatsappLinkRefreshCount: 0,
+    whatsappLinkUpdatedAt: new Date(),
+  });
+
+  return {
+    linked: true,
+    sessionName,
+    status: session.status,
+  };
 };
 
 const sendConversionIfApplicable = async (addFundsId: string, input: AddFundsPayload) => {

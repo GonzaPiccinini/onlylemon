@@ -7,3 +7,11 @@ export const addFundsSchema = z.object({
 });
 
 export type AddFundsPayload = z.infer<typeof addFundsSchema>;
+
+export const completeWhatsappLinkSchema = z.object({
+  sessionName: z.string().trim().min(1),
+});
+
+export const startWhatsappLinkSchema = z.object({
+  phoneNumber: z.string().trim().regex(/^\+?[0-9]{8,15}$/, 'Invalid phone number'),
+});

@@ -463,10 +463,6 @@ export type EnumLEADS_STATUSFieldUpdateOperationsInput = {
   set?: $Enums.LEADS_STATUS
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 
 
 export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{

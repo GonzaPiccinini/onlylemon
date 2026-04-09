@@ -33,7 +33,7 @@ export const createCashier = async (input: {
     return tx.cashier.create({
       data: {
         userId: user.id,
-        sessionName: `cashier-${user.username}`,
+        sessionName: null,
       },
       include: {
         user: true,

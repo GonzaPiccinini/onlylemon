@@ -9,6 +9,23 @@ export const getCashierSession = (cashierId: string) =>
     },
   });
 
+export const updateCashierWhatsappLink = (
+  cashierId: string,
+  input: {
+    sessionName?: string | null;
+    whatsappPhoneNumber?: string | null;
+    whatsappLinkRefreshCount?: number;
+    whatsappLinkUpdatedAt?: Date | null;
+  },
+) =>
+  prisma.cashier.update({
+    where: { id: cashierId },
+    data: input,
+    include: {
+      user: true,
+    },
+  });
+
 export const getCurrentSessionActivity = (cashierId: string) =>
   prisma.sessionActivity.findFirst({
     where: {

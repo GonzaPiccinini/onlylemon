@@ -40,8 +40,11 @@ model Cashier {
   user   User   @relation(fields: [userId], references: [id])
   userId String @unique
 
-  sessionName String            @unique
-  status      CashierStatus     @default(ACTIVE)
+  sessionName               String? @unique
+  whatsappPhoneNumber       String?
+  whatsappLinkRefreshCount  Int     @default(0)
+  whatsappLinkUpdatedAt     DateTime?
+  status                    CashierStatus     @default(ACTIVE)
   activity    SessionActivity[]
   chat        Chat[]
 
