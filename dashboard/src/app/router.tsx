@@ -5,6 +5,7 @@ import { RoleGuard } from "@/components/app/role-guard";
 import { LoginPage } from "@/features/auth/login-page";
 import { AdminCashiersPage } from "@/features/admin/admin-cashiers-page";
 import { AdminStatsPage } from "@/features/admin/admin-stats-page";
+import { AdminLandingsPage } from "@/features/admin/admin-landings-page";
 import { CashierSessionPage } from "@/features/cashier/cashier-session-page";
 import { CashierAddFundsPage } from "@/features/cashier/cashier-add-funds-page";
 import { CashierHistoryPage } from "@/features/cashier/cashier-history-page";
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
               {
                 path: "/admin/stats",
                 element: <AdminStatsPage />,
+              },
+              {
+                path: "/admin/landings",
+                element: <AdminLandingsPage />,
               },
             ],
           },

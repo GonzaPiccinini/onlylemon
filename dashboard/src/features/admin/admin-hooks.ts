@@ -1,9 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminService } from "@/api/admin.service";
-import type { CreateCashierInput, DateRangeFilters, UpdateCashierInput } from "@/types/domain";
+import type {
+  CreateCashierInput,
+  CreateLandingInput,
+  DateRangeFilters,
+  UpdateCashierInput,
+  UpdateLandingInput,
+} from "@/types/domain";
 
 const adminKeys = {
   cashiers: ["admin", "cashiers"] as const,
+  landings: ["admin", "landings"] as const,
   summary: (filters: DateRangeFilters) => ["admin", "summary", filters] as const,
   cashierStats: (filters: DateRangeFilters) => ["admin", "cashier-stats", filters] as const,
   fundsSeries: (filters: DateRangeFilters) => ["admin", "funds-series", filters] as const,
@@ -21,6 +28,21 @@ export const useCreateCashier = () => {
     mutationFn: (input: CreateCashierInput) => adminService.createCashier(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
+    },
+  });
+};
+
+export const useReplaceCashierLandings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ cashierId, landingIds }: { cashierId: string; landingIds: string[] }) =>
+      adminService.replaceCashierLandings(cashierId, landingIds),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminKeys.cashiers }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
+      ]);
     },
   });
 };
@@ -44,6 +66,50 @@ export const useDisableCashier = () => {
     mutationFn: (cashierId: string) => adminService.disableCashier(cashierId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
+    },
+  });
+};
+
+export const useLandings = () =>
+  useQuery({
+    queryKey: adminKeys.landings,
+    queryFn: adminService.listLandings,
+  });
+
+export const useCreateLanding = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateLandingInput) => adminService.createLanding(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.landings });
+    },
+  });
+};
+
+export const useUpdateLanding = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ landingId, input }: { landingId: string; input: UpdateLandingInput }) =>
+      adminService.updateLanding(landingId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.landings });
+    },
+  });
+};
+
+export const useSetLandingStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ landingId, enabled }: { landingId: string; enabled: boolean }) =>
+      enabled ? adminService.enableLanding(landingId) : adminService.disableLanding(landingId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.cashiers }),
+      ]);
     },
   });
 };

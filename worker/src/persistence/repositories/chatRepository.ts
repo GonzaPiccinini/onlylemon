@@ -26,18 +26,18 @@ export const JobSchema = z.object({
 type InboundJobData = z.infer<typeof JobSchema>;
 
 export async function saveChat(
-  sessionId: string,
+  cashierId: string,
   chatId: string,
   fromAds: boolean,
 ) {
   try {
-    const chatExists = await getChat(sessionId, chatId);
+    const chatExists = await getChat(cashierId, chatId);
     if (chatExists) throw new Error('Chat already exists');
 
     await prisma.chat.create({
       data: {
-        id: chatId,
-        sessionId,
+        phone: chatId,
+        cashierId,
         fromAds,
       },
     });
@@ -46,12 +46,12 @@ export async function saveChat(
   }
 }
 
-export async function getChat(sessionId: string, chatId: string) {
+export async function getChat(cashierId: string, chatId: string) {
   try {
     return await prisma.chat.findFirst({
       where: {
-        id: chatId,
-        sessionId,
+        phone: chatId,
+        cashierId,
       },
     });
   } catch (error) {

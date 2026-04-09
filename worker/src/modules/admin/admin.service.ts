@@ -1,10 +1,16 @@
 import { hashPassword } from '../../utils/password.js';
 import {
   createCashier,
+  createLanding,
   disableCashier,
+  getCashierLandings,
   getAddFundsByDateRange,
   getSessionActivitiesByDateRange,
+  listLandings,
   listCashiers,
+  replaceCashierLandings,
+  setLandingStatus,
+  updateLanding,
   updateCashier,
 } from './admin.repository.js';
 import type { DateRangeQuery } from './admin.types.js';
@@ -16,6 +22,29 @@ const toRange = (query: DateRangeQuery) => ({
 
 const toNumber = (value: unknown): number => Number(value);
 
+const maskToken = (token: string): string => {
+  const visibleTail = token.slice(-4);
+  return `${'*'.repeat(Math.max(token.length - 4, 6))}${visibleTail}`;
+};
+
+const toLandingDto = (landing: {
+  id: string;
+  url: string;
+  metaPixelId: string;
+  metaAccessToken: string;
+  status: 'ACTIVE' | 'DISABLED';
+  createdAt: Date;
+  updatedAt: Date;
+}) => ({
+  id: landing.id,
+  url: landing.url,
+  metaPixelId: landing.metaPixelId,
+  metaAccessTokenMasked: maskToken(landing.metaAccessToken),
+  status: landing.status,
+  createdAt: landing.createdAt,
+  updatedAt: landing.updatedAt,
+});
+
 export const listCashiersService = async () => {
   const cashiers = await listCashiers();
   return cashiers.map((cashier) => ({
@@ -24,6 +53,7 @@ export const listCashiersService = async () => {
     username: cashier.user.username,
     status: cashier.status,
     createdAt: cashier.createdAt,
+    landings: cashier.landings.map((entry) => toLandingDto(entry.landing)),
   }));
 };
 
@@ -43,6 +73,7 @@ export const createCashierService = async (input: {
     username: created.user.username,
     status: created.status,
     createdAt: created.createdAt,
+    landings: [],
   };
 };
 
@@ -61,6 +92,7 @@ export const updateCashierService = async (
     username: updated.user.username,
     status: updated.status,
     createdAt: updated.createdAt,
+    landings: updated.landings.map((entry) => toLandingDto(entry.landing)),
   };
 };
 
@@ -72,6 +104,7 @@ export const disableCashierService = async (cashierId: string) => {
     username: disabled.user.username,
     status: disabled.status,
     createdAt: disabled.createdAt,
+    landings: disabled.landings.map((entry) => toLandingDto(entry.landing)),
   };
 };
 
@@ -126,8 +159,8 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
   >();
 
   addFunds.forEach((item) => {
-    const cashierId = item.chat.session.cashierId;
-    const cashierName = item.chat.session.cashier.user.name;
+    const cashierId = item.chat.cashierId;
+    const cashierName = item.chat.cashier.user.name;
 
     if (!grouped.has(cashierId)) {
       grouped.set(cashierId, {
@@ -159,8 +192,8 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
       return;
     }
 
-    const cashierId = item.session.cashierId;
-    const cashierName = item.session.cashier.user.name;
+    const cashierId = item.cashierId;
+    const cashierName = item.cashier.user.name;
 
     if (!grouped.has(cashierId)) {
       grouped.set(cashierId, {
@@ -212,4 +245,51 @@ export const getFundsSeriesService = async (query: DateRangeQuery) => {
   return [...grouped.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([date, totalAmount]) => ({ date, totalAmount }));
+};
+
+export const listLandingsService = async () => {
+  const landings = await listLandings();
+  return landings.map(toLandingDto);
+};
+
+export const createLandingService = async (input: {
+  url: string;
+  metaPixelId: string;
+  metaAccessToken: string;
+}) => {
+  const landing = await createLanding(input);
+  return toLandingDto(landing);
+};
+
+export const updateLandingService = async (
+  landingId: string,
+  input: {
+    url: string;
+    metaPixelId: string;
+    metaAccessToken?: string;
+  },
+) => {
+  const landing = await updateLanding(landingId, input);
+  return toLandingDto(landing);
+};
+
+export const setLandingStatusService = async (
+  landingId: string,
+  status: 'ACTIVE' | 'DISABLED',
+) => {
+  const landing = await setLandingStatus(landingId, status);
+  return toLandingDto(landing);
+};
+
+export const listCashierLandingsService = async (cashierId: string) => {
+  const items = await getCashierLandings(cashierId);
+  return items.map((item) => toLandingDto(item.landing));
+};
+
+export const replaceCashierLandingsService = async (
+  cashierId: string,
+  landingIds: string[],
+) => {
+  const items = await replaceCashierLandings(cashierId, landingIds);
+  return items.map((item) => toLandingDto(item.landing));
 };

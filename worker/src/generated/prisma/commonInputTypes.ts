@@ -226,6 +226,23 @@ export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedStringNullableFilter<$PrismaModel>
 }
 
+export type EnumLandingStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.LandingStatus | Prisma.EnumLandingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLandingStatusFilter<$PrismaModel> | $Enums.LandingStatus
+}
+
+export type EnumLandingStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.LandingStatus | Prisma.EnumLandingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLandingStatusWithAggregatesFilter<$PrismaModel> | $Enums.LandingStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumLandingStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumLandingStatusFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -449,6 +466,23 @@ export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedStringNullableFilter<$PrismaModel>
   _max?: Prisma.NestedStringNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumLandingStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.LandingStatus | Prisma.EnumLandingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLandingStatusFilter<$PrismaModel> | $Enums.LandingStatus
+}
+
+export type NestedEnumLandingStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.LandingStatus | Prisma.EnumLandingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.LandingStatus[] | Prisma.ListEnumLandingStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumLandingStatusWithAggregatesFilter<$PrismaModel> | $Enums.LandingStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumLandingStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumLandingStatusFilter<$PrismaModel>
 }
 
 

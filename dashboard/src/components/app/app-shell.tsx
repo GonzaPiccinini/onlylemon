@@ -5,6 +5,7 @@ import {
   CircleDollarSignIcon,
   Clock3Icon,
   LogOutIcon,
+  TagsIcon,
   UsersIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ interface ShellLink {
 const adminLinks: ShellLink[] = [
   { to: "/admin", label: "Cajeros", icon: UsersIcon },
   { to: "/admin/stats", label: "Estadisticas", icon: BarChart3Icon },
+  { to: "/admin/landings", label: "Landings", icon: TagsIcon },
 ];
 
 const cashierLinks: ShellLink[] = [

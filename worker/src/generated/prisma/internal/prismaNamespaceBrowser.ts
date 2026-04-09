@@ -54,11 +54,12 @@ export const ModelName = {
   User: 'User',
   Admin: 'Admin',
   Cashier: 'Cashier',
-  Session: 'Session',
   SessionActivity: 'SessionActivity',
   Chat: 'Chat',
   AddFunds: 'AddFunds',
   Lead: 'Lead',
+  Landing: 'Landing',
+  CashierLanding: 'CashierLanding',
   ProcessedJob: 'ProcessedJob'
 } as const
 
@@ -104,6 +105,7 @@ export type AdminScalarFieldEnum = (typeof AdminScalarFieldEnum)[keyof typeof Ad
 export const CashierScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  sessionName: 'sessionName',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -112,21 +114,11 @@ export const CashierScalarFieldEnum = {
 export type CashierScalarFieldEnum = (typeof CashierScalarFieldEnum)[keyof typeof CashierScalarFieldEnum]
 
 
-export const SessionScalarFieldEnum = {
-  id: 'id',
-  cashierId: 'cashierId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
-
-
 export const SessionActivityScalarFieldEnum = {
   id: 'id',
   createdAt: 'createdAt',
   endedAt: 'endedAt',
-  sessionId: 'sessionId'
+  cashierId: 'cashierId'
 } as const
 
 export type SessionActivityScalarFieldEnum = (typeof SessionActivityScalarFieldEnum)[keyof typeof SessionActivityScalarFieldEnum]
@@ -134,8 +126,9 @@ export type SessionActivityScalarFieldEnum = (typeof SessionActivityScalarFieldE
 
 export const ChatScalarFieldEnum = {
   id: 'id',
+  phone: 'phone',
   fromAds: 'fromAds',
-  sessionId: 'sessionId',
+  cashierId: 'cashierId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -146,7 +139,6 @@ export type ChatScalarFieldEnum = (typeof ChatScalarFieldEnum)[keyof typeof Chat
 export const AddFundsScalarFieldEnum = {
   id: 'id',
   userName: 'userName',
-  phoneId: 'phoneId',
   phoneNumber: 'phoneNumber',
   amount: 'amount',
   chatId: 'chatId',
@@ -172,6 +164,27 @@ export const LeadScalarFieldEnum = {
 } as const
 
 export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const LandingScalarFieldEnum = {
+  id: 'id',
+  url: 'url',
+  metaPixelId: 'metaPixelId',
+  metaAccessToken: 'metaAccessToken',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LandingScalarFieldEnum = (typeof LandingScalarFieldEnum)[keyof typeof LandingScalarFieldEnum]
+
+
+export const CashierLandingScalarFieldEnum = {
+  cashierId: 'cashierId',
+  landingId: 'landingId'
+} as const
+
+export type CashierLandingScalarFieldEnum = (typeof CashierLandingScalarFieldEnum)[keyof typeof CashierLandingScalarFieldEnum]
 
 
 export const ProcessedJobScalarFieldEnum = {

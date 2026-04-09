@@ -13,6 +13,17 @@ export interface AuthSession {
 }
 
 export type CashierStatus = "ACTIVE" | "DISABLED";
+export type LandingStatus = "ACTIVE" | "DISABLED";
+
+export interface Landing {
+  id: string;
+  url: string;
+  metaPixelId: string;
+  metaAccessTokenMasked: string;
+  status: LandingStatus;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Cashier {
   id: string;
@@ -20,6 +31,7 @@ export interface Cashier {
   username: string;
   status: CashierStatus;
   createdAt: string;
+  landings: Landing[];
 }
 
 export interface Session {
@@ -89,6 +101,18 @@ export interface CreateCashierInput {
 export interface UpdateCashierInput {
   name: string;
   username: string;
+}
+
+export interface CreateLandingInput {
+  url: string;
+  metaPixelId: string;
+  metaAccessToken: string;
+}
+
+export interface UpdateLandingInput {
+  url: string;
+  metaPixelId: string;
+  metaAccessToken?: string;
 }
 
 export interface AddFundsInput {

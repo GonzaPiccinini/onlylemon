@@ -4,6 +4,11 @@ export const listCashiers = () =>
   prisma.cashier.findMany({
     include: {
       user: true,
+      landings: {
+        include: {
+          landing: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -28,9 +33,15 @@ export const createCashier = async (input: {
     return tx.cashier.create({
       data: {
         userId: user.id,
+        sessionName: `cashier-${user.username}`,
       },
       include: {
         user: true,
+        landings: {
+          include: {
+            landing: true,
+          },
+        },
       },
     });
   });
@@ -57,6 +68,11 @@ export const updateCashier = async (
       where: { id: cashierId },
       include: {
         user: true,
+        landings: {
+          include: {
+            landing: true,
+          },
+        },
       },
     });
   });
@@ -69,6 +85,11 @@ export const disableCashier = (cashierId: string) =>
     },
     include: {
       user: true,
+      landings: {
+        include: {
+          landing: true,
+        },
+      },
     },
   });
 
@@ -91,19 +112,13 @@ export const getSessionActivitiesByDateRange = (
         gte: from,
         lte: to,
       },
-      session: {
-        ...(cashierId ? { cashierId } : {}),
-      },
+      ...(cashierId ? { cashierId } : {}),
     },
     include: {
-      session: {
+      cashier: {
         include: {
-          cashier: {
-            include: {
-              user: true,
-            },
-          },
-          chats: {
+          user: true,
+          chat: {
             include: {
               addedFunds: true,
             },
@@ -125,19 +140,18 @@ export const getAddFundsByDateRange = (
         lte: to,
       },
       chat: {
-        session: {
-          ...(cashierId ? { cashierId } : {}),
-        },
+        ...(cashierId ? { cashierId } : {}),
       },
     },
     include: {
       chat: {
         include: {
-          session: {
+          cashier: {
             include: {
-              cashier: {
+              user: true,
+              landings: {
                 include: {
-                  user: true,
+                  landing: true,
                 },
               },
             },
@@ -148,4 +162,107 @@ export const getAddFundsByDateRange = (
     orderBy: {
       createdAt: 'asc',
     },
+  });
+
+export const listLandings = () =>
+  prisma.landing.findMany({
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+export const createLanding = (input: {
+  url: string;
+  metaPixelId: string;
+  metaAccessToken: string;
+}) =>
+  prisma.landing.create({
+    data: input,
+  });
+
+export const updateLanding = (
+  landingId: string,
+  input: {
+    url: string;
+    metaPixelId: string;
+    metaAccessToken?: string;
+  },
+) =>
+  prisma.landing.update({
+    where: { id: landingId },
+    data: {
+      url: input.url,
+      metaPixelId: input.metaPixelId,
+      ...(input.metaAccessToken ? { metaAccessToken: input.metaAccessToken } : {}),
+    },
+  });
+
+export const setLandingStatus = (
+  landingId: string,
+  status: 'ACTIVE' | 'DISABLED',
+) =>
+  prisma.landing.update({
+    where: { id: landingId },
+    data: { status },
+  });
+
+export const getCashierLandings = (cashierId: string) =>
+  prisma.cashierLanding.findMany({
+    where: {
+      cashierId,
+    },
+    include: {
+      landing: true,
+    },
+  });
+
+export const replaceCashierLandings = async (
+  cashierId: string,
+  landingIds: string[],
+) =>
+  prisma.$transaction(async (tx) => {
+    await tx.cashier.findUniqueOrThrow({
+      where: { id: cashierId },
+    });
+
+    if (landingIds.length > 0) {
+      const existing = await tx.landing.findMany({
+        where: {
+          id: {
+            in: landingIds,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existing.length !== new Set(landingIds).size) {
+        throw new Error('Some landingIds do not exist');
+      }
+    }
+
+    await tx.cashierLanding.deleteMany({
+      where: {
+        cashierId,
+      },
+    });
+
+    if (landingIds.length > 0) {
+      await tx.cashierLanding.createMany({
+        data: landingIds.map((landingId) => ({
+          cashierId,
+          landingId,
+        })),
+      });
+    }
+
+    return tx.cashierLanding.findMany({
+      where: {
+        cashierId,
+      },
+      include: {
+        landing: true,
+      },
+    });
   });

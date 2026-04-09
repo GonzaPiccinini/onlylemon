@@ -28,21 +28,21 @@ export type SessionActivityMinAggregateOutputType = {
   id: string | null
   createdAt: Date | null
   endedAt: Date | null
-  sessionId: string | null
+  cashierId: string | null
 }
 
 export type SessionActivityMaxAggregateOutputType = {
   id: string | null
   createdAt: Date | null
   endedAt: Date | null
-  sessionId: string | null
+  cashierId: string | null
 }
 
 export type SessionActivityCountAggregateOutputType = {
   id: number
   createdAt: number
   endedAt: number
-  sessionId: number
+  cashierId: number
   _all: number
 }
 
@@ -51,21 +51,21 @@ export type SessionActivityMinAggregateInputType = {
   id?: true
   createdAt?: true
   endedAt?: true
-  sessionId?: true
+  cashierId?: true
 }
 
 export type SessionActivityMaxAggregateInputType = {
   id?: true
   createdAt?: true
   endedAt?: true
-  sessionId?: true
+  cashierId?: true
 }
 
 export type SessionActivityCountAggregateInputType = {
   id?: true
   createdAt?: true
   endedAt?: true
-  sessionId?: true
+  cashierId?: true
   _all?: true
 }
 
@@ -145,7 +145,7 @@ export type SessionActivityGroupByOutputType = {
   id: string
   createdAt: Date
   endedAt: Date | null
-  sessionId: string
+  cashierId: string
   _count: SessionActivityCountAggregateOutputType | null
   _min: SessionActivityMinAggregateOutputType | null
   _max: SessionActivityMaxAggregateOutputType | null
@@ -173,16 +173,16 @@ export type SessionActivityWhereInput = {
   id?: Prisma.StringFilter<"SessionActivity"> | string
   createdAt?: Prisma.DateTimeFilter<"SessionActivity"> | Date | string
   endedAt?: Prisma.DateTimeNullableFilter<"SessionActivity"> | Date | string | null
-  sessionId?: Prisma.StringFilter<"SessionActivity"> | string
-  session?: Prisma.XOR<Prisma.SessionScalarRelationFilter, Prisma.SessionWhereInput>
+  cashierId?: Prisma.StringFilter<"SessionActivity"> | string
+  cashier?: Prisma.XOR<Prisma.CashierScalarRelationFilter, Prisma.CashierWhereInput>
 }
 
 export type SessionActivityOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
-  session?: Prisma.SessionOrderByWithRelationInput
+  cashierId?: Prisma.SortOrder
+  cashier?: Prisma.CashierOrderByWithRelationInput
 }
 
 export type SessionActivityWhereUniqueInput = Prisma.AtLeast<{
@@ -192,15 +192,15 @@ export type SessionActivityWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.SessionActivityWhereInput | Prisma.SessionActivityWhereInput[]
   createdAt?: Prisma.DateTimeFilter<"SessionActivity"> | Date | string
   endedAt?: Prisma.DateTimeNullableFilter<"SessionActivity"> | Date | string | null
-  sessionId?: Prisma.StringFilter<"SessionActivity"> | string
-  session?: Prisma.XOR<Prisma.SessionScalarRelationFilter, Prisma.SessionWhereInput>
+  cashierId?: Prisma.StringFilter<"SessionActivity"> | string
+  cashier?: Prisma.XOR<Prisma.CashierScalarRelationFilter, Prisma.CashierWhereInput>
 }, "id">
 
 export type SessionActivityOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
   _count?: Prisma.SessionActivityCountOrderByAggregateInput
   _max?: Prisma.SessionActivityMaxOrderByAggregateInput
   _min?: Prisma.SessionActivityMinOrderByAggregateInput
@@ -213,42 +213,42 @@ export type SessionActivityScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"SessionActivity"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SessionActivity"> | Date | string
   endedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SessionActivity"> | Date | string | null
-  sessionId?: Prisma.StringWithAggregatesFilter<"SessionActivity"> | string
+  cashierId?: Prisma.StringWithAggregatesFilter<"SessionActivity"> | string
 }
 
 export type SessionActivityCreateInput = {
   id?: string
   createdAt?: Date | string
   endedAt?: Date | string | null
-  session: Prisma.SessionCreateNestedOneWithoutActivityInput
+  cashier: Prisma.CashierCreateNestedOneWithoutActivityInput
 }
 
 export type SessionActivityUncheckedCreateInput = {
   id?: string
   createdAt?: Date | string
   endedAt?: Date | string | null
-  sessionId: string
+  cashierId: string
 }
 
 export type SessionActivityUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  session?: Prisma.SessionUpdateOneRequiredWithoutActivityNestedInput
+  cashier?: Prisma.CashierUpdateOneRequiredWithoutActivityNestedInput
 }
 
 export type SessionActivityUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SessionActivityCreateManyInput = {
   id?: string
   createdAt?: Date | string
   endedAt?: Date | string | null
-  sessionId: string
+  cashierId: string
 }
 
 export type SessionActivityUpdateManyMutationInput = {
@@ -261,7 +261,7 @@ export type SessionActivityUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SessionActivityListRelationFilter = {
@@ -278,62 +278,62 @@ export type SessionActivityCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
 }
 
 export type SessionActivityMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
 }
 
 export type SessionActivityMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
 }
 
-export type SessionActivityCreateNestedManyWithoutSessionInput = {
-  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutSessionInput, Prisma.SessionActivityUncheckedCreateWithoutSessionInput> | Prisma.SessionActivityCreateWithoutSessionInput[] | Prisma.SessionActivityUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutSessionInput | Prisma.SessionActivityCreateOrConnectWithoutSessionInput[]
-  createMany?: Prisma.SessionActivityCreateManySessionInputEnvelope
+export type SessionActivityCreateNestedManyWithoutCashierInput = {
+  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutCashierInput, Prisma.SessionActivityUncheckedCreateWithoutCashierInput> | Prisma.SessionActivityCreateWithoutCashierInput[] | Prisma.SessionActivityUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutCashierInput | Prisma.SessionActivityCreateOrConnectWithoutCashierInput[]
+  createMany?: Prisma.SessionActivityCreateManyCashierInputEnvelope
   connect?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
 }
 
-export type SessionActivityUncheckedCreateNestedManyWithoutSessionInput = {
-  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutSessionInput, Prisma.SessionActivityUncheckedCreateWithoutSessionInput> | Prisma.SessionActivityCreateWithoutSessionInput[] | Prisma.SessionActivityUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutSessionInput | Prisma.SessionActivityCreateOrConnectWithoutSessionInput[]
-  createMany?: Prisma.SessionActivityCreateManySessionInputEnvelope
+export type SessionActivityUncheckedCreateNestedManyWithoutCashierInput = {
+  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutCashierInput, Prisma.SessionActivityUncheckedCreateWithoutCashierInput> | Prisma.SessionActivityCreateWithoutCashierInput[] | Prisma.SessionActivityUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutCashierInput | Prisma.SessionActivityCreateOrConnectWithoutCashierInput[]
+  createMany?: Prisma.SessionActivityCreateManyCashierInputEnvelope
   connect?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
 }
 
-export type SessionActivityUpdateManyWithoutSessionNestedInput = {
-  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutSessionInput, Prisma.SessionActivityUncheckedCreateWithoutSessionInput> | Prisma.SessionActivityCreateWithoutSessionInput[] | Prisma.SessionActivityUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutSessionInput | Prisma.SessionActivityCreateOrConnectWithoutSessionInput[]
-  upsert?: Prisma.SessionActivityUpsertWithWhereUniqueWithoutSessionInput | Prisma.SessionActivityUpsertWithWhereUniqueWithoutSessionInput[]
-  createMany?: Prisma.SessionActivityCreateManySessionInputEnvelope
+export type SessionActivityUpdateManyWithoutCashierNestedInput = {
+  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutCashierInput, Prisma.SessionActivityUncheckedCreateWithoutCashierInput> | Prisma.SessionActivityCreateWithoutCashierInput[] | Prisma.SessionActivityUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutCashierInput | Prisma.SessionActivityCreateOrConnectWithoutCashierInput[]
+  upsert?: Prisma.SessionActivityUpsertWithWhereUniqueWithoutCashierInput | Prisma.SessionActivityUpsertWithWhereUniqueWithoutCashierInput[]
+  createMany?: Prisma.SessionActivityCreateManyCashierInputEnvelope
   set?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
   disconnect?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
   delete?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
   connect?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
-  update?: Prisma.SessionActivityUpdateWithWhereUniqueWithoutSessionInput | Prisma.SessionActivityUpdateWithWhereUniqueWithoutSessionInput[]
-  updateMany?: Prisma.SessionActivityUpdateManyWithWhereWithoutSessionInput | Prisma.SessionActivityUpdateManyWithWhereWithoutSessionInput[]
+  update?: Prisma.SessionActivityUpdateWithWhereUniqueWithoutCashierInput | Prisma.SessionActivityUpdateWithWhereUniqueWithoutCashierInput[]
+  updateMany?: Prisma.SessionActivityUpdateManyWithWhereWithoutCashierInput | Prisma.SessionActivityUpdateManyWithWhereWithoutCashierInput[]
   deleteMany?: Prisma.SessionActivityScalarWhereInput | Prisma.SessionActivityScalarWhereInput[]
 }
 
-export type SessionActivityUncheckedUpdateManyWithoutSessionNestedInput = {
-  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutSessionInput, Prisma.SessionActivityUncheckedCreateWithoutSessionInput> | Prisma.SessionActivityCreateWithoutSessionInput[] | Prisma.SessionActivityUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutSessionInput | Prisma.SessionActivityCreateOrConnectWithoutSessionInput[]
-  upsert?: Prisma.SessionActivityUpsertWithWhereUniqueWithoutSessionInput | Prisma.SessionActivityUpsertWithWhereUniqueWithoutSessionInput[]
-  createMany?: Prisma.SessionActivityCreateManySessionInputEnvelope
+export type SessionActivityUncheckedUpdateManyWithoutCashierNestedInput = {
+  create?: Prisma.XOR<Prisma.SessionActivityCreateWithoutCashierInput, Prisma.SessionActivityUncheckedCreateWithoutCashierInput> | Prisma.SessionActivityCreateWithoutCashierInput[] | Prisma.SessionActivityUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.SessionActivityCreateOrConnectWithoutCashierInput | Prisma.SessionActivityCreateOrConnectWithoutCashierInput[]
+  upsert?: Prisma.SessionActivityUpsertWithWhereUniqueWithoutCashierInput | Prisma.SessionActivityUpsertWithWhereUniqueWithoutCashierInput[]
+  createMany?: Prisma.SessionActivityCreateManyCashierInputEnvelope
   set?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
   disconnect?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
   delete?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
   connect?: Prisma.SessionActivityWhereUniqueInput | Prisma.SessionActivityWhereUniqueInput[]
-  update?: Prisma.SessionActivityUpdateWithWhereUniqueWithoutSessionInput | Prisma.SessionActivityUpdateWithWhereUniqueWithoutSessionInput[]
-  updateMany?: Prisma.SessionActivityUpdateManyWithWhereWithoutSessionInput | Prisma.SessionActivityUpdateManyWithWhereWithoutSessionInput[]
+  update?: Prisma.SessionActivityUpdateWithWhereUniqueWithoutCashierInput | Prisma.SessionActivityUpdateWithWhereUniqueWithoutCashierInput[]
+  updateMany?: Prisma.SessionActivityUpdateManyWithWhereWithoutCashierInput | Prisma.SessionActivityUpdateManyWithWhereWithoutCashierInput[]
   deleteMany?: Prisma.SessionActivityScalarWhereInput | Prisma.SessionActivityScalarWhereInput[]
 }
 
@@ -341,42 +341,42 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
 
-export type SessionActivityCreateWithoutSessionInput = {
+export type SessionActivityCreateWithoutCashierInput = {
   id?: string
   createdAt?: Date | string
   endedAt?: Date | string | null
 }
 
-export type SessionActivityUncheckedCreateWithoutSessionInput = {
+export type SessionActivityUncheckedCreateWithoutCashierInput = {
   id?: string
   createdAt?: Date | string
   endedAt?: Date | string | null
 }
 
-export type SessionActivityCreateOrConnectWithoutSessionInput = {
+export type SessionActivityCreateOrConnectWithoutCashierInput = {
   where: Prisma.SessionActivityWhereUniqueInput
-  create: Prisma.XOR<Prisma.SessionActivityCreateWithoutSessionInput, Prisma.SessionActivityUncheckedCreateWithoutSessionInput>
+  create: Prisma.XOR<Prisma.SessionActivityCreateWithoutCashierInput, Prisma.SessionActivityUncheckedCreateWithoutCashierInput>
 }
 
-export type SessionActivityCreateManySessionInputEnvelope = {
-  data: Prisma.SessionActivityCreateManySessionInput | Prisma.SessionActivityCreateManySessionInput[]
+export type SessionActivityCreateManyCashierInputEnvelope = {
+  data: Prisma.SessionActivityCreateManyCashierInput | Prisma.SessionActivityCreateManyCashierInput[]
   skipDuplicates?: boolean
 }
 
-export type SessionActivityUpsertWithWhereUniqueWithoutSessionInput = {
+export type SessionActivityUpsertWithWhereUniqueWithoutCashierInput = {
   where: Prisma.SessionActivityWhereUniqueInput
-  update: Prisma.XOR<Prisma.SessionActivityUpdateWithoutSessionInput, Prisma.SessionActivityUncheckedUpdateWithoutSessionInput>
-  create: Prisma.XOR<Prisma.SessionActivityCreateWithoutSessionInput, Prisma.SessionActivityUncheckedCreateWithoutSessionInput>
+  update: Prisma.XOR<Prisma.SessionActivityUpdateWithoutCashierInput, Prisma.SessionActivityUncheckedUpdateWithoutCashierInput>
+  create: Prisma.XOR<Prisma.SessionActivityCreateWithoutCashierInput, Prisma.SessionActivityUncheckedCreateWithoutCashierInput>
 }
 
-export type SessionActivityUpdateWithWhereUniqueWithoutSessionInput = {
+export type SessionActivityUpdateWithWhereUniqueWithoutCashierInput = {
   where: Prisma.SessionActivityWhereUniqueInput
-  data: Prisma.XOR<Prisma.SessionActivityUpdateWithoutSessionInput, Prisma.SessionActivityUncheckedUpdateWithoutSessionInput>
+  data: Prisma.XOR<Prisma.SessionActivityUpdateWithoutCashierInput, Prisma.SessionActivityUncheckedUpdateWithoutCashierInput>
 }
 
-export type SessionActivityUpdateManyWithWhereWithoutSessionInput = {
+export type SessionActivityUpdateManyWithWhereWithoutCashierInput = {
   where: Prisma.SessionActivityScalarWhereInput
-  data: Prisma.XOR<Prisma.SessionActivityUpdateManyMutationInput, Prisma.SessionActivityUncheckedUpdateManyWithoutSessionInput>
+  data: Prisma.XOR<Prisma.SessionActivityUpdateManyMutationInput, Prisma.SessionActivityUncheckedUpdateManyWithoutCashierInput>
 }
 
 export type SessionActivityScalarWhereInput = {
@@ -386,28 +386,28 @@ export type SessionActivityScalarWhereInput = {
   id?: Prisma.StringFilter<"SessionActivity"> | string
   createdAt?: Prisma.DateTimeFilter<"SessionActivity"> | Date | string
   endedAt?: Prisma.DateTimeNullableFilter<"SessionActivity"> | Date | string | null
-  sessionId?: Prisma.StringFilter<"SessionActivity"> | string
+  cashierId?: Prisma.StringFilter<"SessionActivity"> | string
 }
 
-export type SessionActivityCreateManySessionInput = {
+export type SessionActivityCreateManyCashierInput = {
   id?: string
   createdAt?: Date | string
   endedAt?: Date | string | null
 }
 
-export type SessionActivityUpdateWithoutSessionInput = {
+export type SessionActivityUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
-export type SessionActivityUncheckedUpdateWithoutSessionInput = {
+export type SessionActivityUncheckedUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
-export type SessionActivityUncheckedUpdateManyWithoutSessionInput = {
+export type SessionActivityUncheckedUpdateManyWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -419,54 +419,54 @@ export type SessionActivitySelect<ExtArgs extends runtime.Types.Extensions.Inter
   id?: boolean
   createdAt?: boolean
   endedAt?: boolean
-  sessionId?: boolean
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashierId?: boolean
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sessionActivity"]>
 
 export type SessionActivitySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   createdAt?: boolean
   endedAt?: boolean
-  sessionId?: boolean
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashierId?: boolean
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sessionActivity"]>
 
 export type SessionActivitySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   createdAt?: boolean
   endedAt?: boolean
-  sessionId?: boolean
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashierId?: boolean
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sessionActivity"]>
 
 export type SessionActivitySelectScalar = {
   id?: boolean
   createdAt?: boolean
   endedAt?: boolean
-  sessionId?: boolean
+  cashierId?: boolean
 }
 
-export type SessionActivityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdAt" | "endedAt" | "sessionId", ExtArgs["result"]["sessionActivity"]>
+export type SessionActivityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdAt" | "endedAt" | "cashierId", ExtArgs["result"]["sessionActivity"]>
 export type SessionActivityInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }
 export type SessionActivityIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }
 export type SessionActivityIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }
 
 export type $SessionActivityPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SessionActivity"
   objects: {
-    session: Prisma.$SessionPayload<ExtArgs>
+    cashier: Prisma.$CashierPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     createdAt: Date
     endedAt: Date | null
-    sessionId: string
+    cashierId: string
   }, ExtArgs["result"]["sessionActivity"]>
   composites: {}
 }
@@ -861,7 +861,7 @@ readonly fields: SessionActivityFieldRefs;
  */
 export interface Prisma__SessionActivityClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  session<T extends Prisma.SessionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SessionDefaultArgs<ExtArgs>>): Prisma.Prisma__SessionClient<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  cashier<T extends Prisma.CashierDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CashierDefaultArgs<ExtArgs>>): Prisma.Prisma__CashierClient<runtime.Types.Result.GetResult<Prisma.$CashierPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -894,7 +894,7 @@ export interface SessionActivityFieldRefs {
   readonly id: Prisma.FieldRef<"SessionActivity", 'String'>
   readonly createdAt: Prisma.FieldRef<"SessionActivity", 'DateTime'>
   readonly endedAt: Prisma.FieldRef<"SessionActivity", 'DateTime'>
-  readonly sessionId: Prisma.FieldRef<"SessionActivity", 'String'>
+  readonly cashierId: Prisma.FieldRef<"SessionActivity", 'String'>
 }
     
 

@@ -2,23 +2,17 @@ import { getLatestTrackedLeadByPhone } from '../../persistence/repositories/lead
 import { prisma } from '../../persistence/prisma/client.js';
 
 export const getCashierSession = (cashierId: string) =>
-  prisma.session.upsert({
-    where: { cashierId },
-    create: { cashierId },
-    update: {},
+  prisma.cashier.findUniqueOrThrow({
+    where: { id: cashierId },
     include: {
-      cashier: {
-        include: {
-          user: true,
-        },
-      },
+      user: true,
     },
   });
 
-export const getCurrentSessionActivity = (sessionId: string) =>
+export const getCurrentSessionActivity = (cashierId: string) =>
   prisma.sessionActivity.findFirst({
     where: {
-      sessionId,
+      cashierId,
       endedAt: null,
     },
     orderBy: {
@@ -26,17 +20,17 @@ export const getCurrentSessionActivity = (sessionId: string) =>
     },
   });
 
-export const listSessionActivities = (sessionId: string) =>
+export const listSessionActivities = (cashierId: string) =>
   prisma.sessionActivity.findMany({
-    where: { sessionId },
+    where: { cashierId },
     orderBy: {
       createdAt: 'desc',
     },
   });
 
-export const startSessionActivity = (sessionId: string) =>
+export const startSessionActivity = (cashierId: string) =>
   prisma.sessionActivity.create({
-    data: { sessionId },
+    data: { cashierId },
   });
 
 export const finishSessionActivity = (activityId: string, endedAt: Date) =>
@@ -45,23 +39,23 @@ export const finishSessionActivity = (activityId: string, endedAt: Date) =>
     data: { endedAt },
   });
 
-export const findChatByPhoneInSession = (sessionId: string, phoneNumber: string) =>
+export const findChatByPhoneInSession = (cashierId: string, phoneNumber: string) =>
   prisma.chat.findFirst({
     where: {
-      sessionId,
-      id: phoneNumber,
+      cashierId,
+      phone: phoneNumber,
     },
   });
 
 export const createChatInSession = (
-  sessionId: string,
+  cashierId: string,
   phoneNumber: string,
   fromAds: boolean,
 ) =>
   prisma.chat.create({
     data: {
-      id: phoneNumber,
-      sessionId,
+      phone: phoneNumber,
+      cashierId,
       fromAds,
     },
   });
@@ -73,7 +67,6 @@ export const resolveFromAdsByPhone = async (phoneNumber: string): Promise<boolea
 
 export const createAddFunds = (input: {
   userName: string;
-  phoneId: string;
   phoneNumber: string;
   amount: number;
   chatId: string;
@@ -81,7 +74,6 @@ export const createAddFunds = (input: {
   prisma.addFunds.create({
     data: {
       userName: input.userName,
-      phoneId: input.phoneId,
       phoneNumber: input.phoneNumber,
       amount: input.amount,
       chatId: input.chatId,
@@ -89,13 +81,9 @@ export const createAddFunds = (input: {
     include: {
       chat: {
         include: {
-          session: {
+          cashier: {
             include: {
-              cashier: {
-                include: {
-                  user: true,
-                },
-              },
+              user: true,
             },
           },
         },
@@ -103,11 +91,11 @@ export const createAddFunds = (input: {
     },
   });
 
-export const listAddFundsBySession = (sessionId: string) =>
+export const listAddFundsByCashier = (cashierId: string) =>
   prisma.addFunds.findMany({
     where: {
       chat: {
-        sessionId,
+        cashierId,
       },
     },
     include: {
@@ -139,7 +127,6 @@ export const listClientPhones = async () => {
 
   const addFundsPhones = await prisma.addFunds.findMany({
     select: {
-      phoneId: true,
       phoneNumber: true,
       createdAt: true,
     },
@@ -166,7 +153,7 @@ export const listClientPhones = async () => {
   addFundsPhones.forEach((item) => {
     if (!unique.has(item.phoneNumber)) {
       unique.set(item.phoneNumber, {
-        phoneId: item.phoneId,
+        phoneId: item.phoneNumber,
         phoneNumber: item.phoneNumber,
       });
     }

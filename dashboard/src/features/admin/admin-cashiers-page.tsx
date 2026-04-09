@@ -2,7 +2,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PencilLineIcon, PlusIcon, UserX2Icon } from "lucide-react";
+import { PencilLineIcon, PlusIcon, TagsIcon, UserX2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -38,6 +39,8 @@ import {
   useAdminCashiers,
   useCreateCashier,
   useDisableCashier,
+  useLandings,
+  useReplaceCashierLandings,
   useUpdateCashier,
 } from "@/features/admin/admin-hooks";
 
@@ -57,12 +60,16 @@ type UpdateValues = z.infer<typeof updateSchema>;
 
 export const AdminCashiersPage = () => {
   const { data: cashiers = [], isLoading } = useAdminCashiers();
+  const { data: landings = [] } = useLandings();
   const createCashier = useCreateCashier();
   const disableCashier = useDisableCashier();
   const updateCashier = useUpdateCashier();
+  const replaceCashierLandings = useReplaceCashierLandings();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingCashier, setEditingCashier] = useState<Cashier | null>(null);
+  const [assigningCashier, setAssigningCashier] = useState<Cashier | null>(null);
+  const [selectedLandingIds, setSelectedLandingIds] = useState<string[]>([]);
 
   const createForm = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
@@ -124,6 +131,36 @@ export const AdminCashiersPage = () => {
       name: cashier.name,
       username: cashier.username,
     });
+  };
+
+  const openLandingDialog = (cashier: Cashier) => {
+    setAssigningCashier(cashier);
+    setSelectedLandingIds(cashier.landings.map((landing) => landing.id));
+  };
+
+  const toggleLandingSelection = (landingId: string) => {
+    setSelectedLandingIds((current) =>
+      current.includes(landingId)
+        ? current.filter((id) => id !== landingId)
+        : [...current, landingId],
+    );
+  };
+
+  const saveLandingAssociation = async () => {
+    if (!assigningCashier) {
+      return;
+    }
+
+    try {
+      await replaceCashierLandings.mutateAsync({
+        cashierId: assigningCashier.id,
+        landingIds: selectedLandingIds,
+      });
+      toast.success("Landings actualizadas");
+      setAssigningCashier(null);
+    } catch {
+      toast.error("No se pudieron actualizar las landings");
+    }
   };
 
   return (
@@ -189,6 +226,7 @@ export const AdminCashiersPage = () => {
               <TableHead>Nombre</TableHead>
               <TableHead>Usuario</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Landings</TableHead>
               <TableHead>Creado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -196,11 +234,11 @@ export const AdminCashiersPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5}>Cargando cajeros...</TableCell>
+                <TableCell colSpan={6}>Cargando cajeros...</TableCell>
               </TableRow>
             ) : cashiers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5}>No hay cajeros registrados.</TableCell>
+                <TableCell colSpan={6}>No hay cajeros registrados.</TableCell>
               </TableRow>
             ) : (
               cashiers.map((cashier) => (
@@ -212,9 +250,26 @@ export const AdminCashiersPage = () => {
                       {cashier.status === "ACTIVE" ? "Activo" : "Deshabilitado"}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {cashier.landings.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">Sin landings</span>
+                      ) : (
+                        cashier.landings.map((landing) => (
+                          <Badge key={landing.id} variant="secondary">
+                            {landing.url}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{formatDateTime(cashier.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openLandingDialog(cashier)}>
+                        <TagsIcon data-icon="inline-start" />
+                        Landings
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => openEditDialog(cashier)}>
                         <PencilLineIcon data-icon="inline-start" />
                         Editar
@@ -274,6 +329,50 @@ export const AdminCashiersPage = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(assigningCashier)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAssigningCashier(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Asociar landings</DialogTitle>
+            <DialogDescription>
+              Define 0 o mas landings para el cajero seleccionado (replace total).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex max-h-[320px] flex-col gap-3 overflow-y-auto rounded-lg border p-3">
+            {landings.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay landings disponibles.</p>
+            ) : (
+              landings
+                .filter((landing) => landing.status === "ACTIVE")
+                .map((landing) => (
+                <label key={landing.id} className="flex items-start gap-3 rounded-md border p-3">
+                  <Checkbox
+                    checked={selectedLandingIds.includes(landing.id)}
+                    onCheckedChange={() => toggleLandingSelection(landing.id)}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{landing.url}</p>
+                    <p className="text-xs text-muted-foreground">Pixel: {landing.metaPixelId}</p>
+                  </div>
+                  <Badge>Activa</Badge>
+                </label>
+                ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={saveLandingAssociation} disabled={replaceCashierLandings.isPending}>
+              {replaceCashierLandings.isPending ? "Guardando..." : "Guardar asociaciones"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>

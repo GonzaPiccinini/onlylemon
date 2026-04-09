@@ -3,10 +3,13 @@ import { http } from "@/api/http";
 import type {
   Cashier,
   CashierStats,
+  CreateLandingInput,
   CreateCashierInput,
   DateRangeFilters,
   FundsSeriesPoint,
+  Landing,
   StatsSummary,
+  UpdateLandingInput,
   UpdateCashierInput,
 } from "@/types/domain";
 
@@ -37,6 +40,38 @@ export const adminService = {
 
   async disableCashier(cashierId: string): Promise<void> {
     await http.patch(endpoints.admin.cashierDisable(cashierId));
+  },
+
+  async replaceCashierLandings(cashierId: string, landingIds: string[]): Promise<Landing[]> {
+    const { data } = await http.put<Landing[]>(endpoints.admin.cashierLandings(cashierId), {
+      landingIds,
+    });
+    return data;
+  },
+
+  async listLandings(): Promise<Landing[]> {
+    const { data } = await http.get<Landing[]>(endpoints.admin.landings);
+    return data;
+  },
+
+  async createLanding(input: CreateLandingInput): Promise<Landing> {
+    const { data } = await http.post<Landing>(endpoints.admin.landings, input);
+    return data;
+  },
+
+  async updateLanding(landingId: string, input: UpdateLandingInput): Promise<Landing> {
+    const { data } = await http.put<Landing>(endpoints.admin.landingById(landingId), input);
+    return data;
+  },
+
+  async disableLanding(landingId: string): Promise<Landing> {
+    const { data } = await http.patch<Landing>(endpoints.admin.landingDisable(landingId));
+    return data;
+  },
+
+  async enableLanding(landingId: string): Promise<Landing> {
+    const { data } = await http.patch<Landing>(endpoints.admin.landingEnable(landingId));
+    return data;
   },
 
   async getSummary(filters: DateRangeFilters): Promise<StatsSummary> {

@@ -387,11 +387,12 @@ export const ModelName = {
   User: 'User',
   Admin: 'Admin',
   Cashier: 'Cashier',
-  Session: 'Session',
   SessionActivity: 'SessionActivity',
   Chat: 'Chat',
   AddFunds: 'AddFunds',
   Lead: 'Lead',
+  Landing: 'Landing',
+  CashierLanding: 'CashierLanding',
   ProcessedJob: 'ProcessedJob'
 } as const
 
@@ -408,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "admin" | "cashier" | "session" | "sessionActivity" | "chat" | "addFunds" | "lead" | "processedJob"
+    modelProps: "user" | "admin" | "cashier" | "sessionActivity" | "chat" | "addFunds" | "lead" | "landing" | "cashierLanding" | "processedJob"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -631,80 +632,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CashierCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CashierCountAggregateOutputType> | number
-        }
-      }
-    }
-    Session: {
-      payload: Prisma.$SessionPayload<ExtArgs>
-      fields: Prisma.SessionFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.SessionFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.SessionFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
-        }
-        findFirst: {
-          args: Prisma.SessionFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.SessionFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
-        }
-        findMany: {
-          args: Prisma.SessionFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
-        }
-        create: {
-          args: Prisma.SessionCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
-        }
-        createMany: {
-          args: Prisma.SessionCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.SessionCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
-        }
-        delete: {
-          args: Prisma.SessionDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
-        }
-        update: {
-          args: Prisma.SessionUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
-        }
-        deleteMany: {
-          args: Prisma.SessionDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.SessionUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SessionUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>[]
-        }
-        upsert: {
-          args: Prisma.SessionUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SessionPayload>
-        }
-        aggregate: {
-          args: Prisma.SessionAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSession>
-        }
-        groupBy: {
-          args: Prisma.SessionGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SessionGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.SessionCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SessionCountAggregateOutputType> | number
         }
       }
     }
@@ -1004,6 +931,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Landing: {
+      payload: Prisma.$LandingPayload<ExtArgs>
+      fields: Prisma.LandingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LandingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LandingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>
+        }
+        findFirst: {
+          args: Prisma.LandingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LandingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>
+        }
+        findMany: {
+          args: Prisma.LandingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>[]
+        }
+        create: {
+          args: Prisma.LandingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>
+        }
+        createMany: {
+          args: Prisma.LandingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LandingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>[]
+        }
+        delete: {
+          args: Prisma.LandingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>
+        }
+        update: {
+          args: Prisma.LandingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>
+        }
+        deleteMany: {
+          args: Prisma.LandingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LandingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LandingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>[]
+        }
+        upsert: {
+          args: Prisma.LandingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingPayload>
+        }
+        aggregate: {
+          args: Prisma.LandingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLanding>
+        }
+        groupBy: {
+          args: Prisma.LandingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LandingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LandingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LandingCountAggregateOutputType> | number
+        }
+      }
+    }
+    CashierLanding: {
+      payload: Prisma.$CashierLandingPayload<ExtArgs>
+      fields: Prisma.CashierLandingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CashierLandingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CashierLandingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>
+        }
+        findFirst: {
+          args: Prisma.CashierLandingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CashierLandingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>
+        }
+        findMany: {
+          args: Prisma.CashierLandingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>[]
+        }
+        create: {
+          args: Prisma.CashierLandingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>
+        }
+        createMany: {
+          args: Prisma.CashierLandingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CashierLandingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>[]
+        }
+        delete: {
+          args: Prisma.CashierLandingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>
+        }
+        update: {
+          args: Prisma.CashierLandingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>
+        }
+        deleteMany: {
+          args: Prisma.CashierLandingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CashierLandingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CashierLandingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>[]
+        }
+        upsert: {
+          args: Prisma.CashierLandingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CashierLandingPayload>
+        }
+        aggregate: {
+          args: Prisma.CashierLandingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCashierLanding>
+        }
+        groupBy: {
+          args: Prisma.CashierLandingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CashierLandingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CashierLandingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CashierLandingCountAggregateOutputType> | number
+        }
+      }
+    }
     ProcessedJob: {
       payload: Prisma.$ProcessedJobPayload<ExtArgs>
       fields: Prisma.ProcessedJobFieldRefs
@@ -1143,6 +1218,7 @@ export type AdminScalarFieldEnum = (typeof AdminScalarFieldEnum)[keyof typeof Ad
 export const CashierScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  sessionName: 'sessionName',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1151,21 +1227,11 @@ export const CashierScalarFieldEnum = {
 export type CashierScalarFieldEnum = (typeof CashierScalarFieldEnum)[keyof typeof CashierScalarFieldEnum]
 
 
-export const SessionScalarFieldEnum = {
-  id: 'id',
-  cashierId: 'cashierId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
-
-
 export const SessionActivityScalarFieldEnum = {
   id: 'id',
   createdAt: 'createdAt',
   endedAt: 'endedAt',
-  sessionId: 'sessionId'
+  cashierId: 'cashierId'
 } as const
 
 export type SessionActivityScalarFieldEnum = (typeof SessionActivityScalarFieldEnum)[keyof typeof SessionActivityScalarFieldEnum]
@@ -1173,8 +1239,9 @@ export type SessionActivityScalarFieldEnum = (typeof SessionActivityScalarFieldE
 
 export const ChatScalarFieldEnum = {
   id: 'id',
+  phone: 'phone',
   fromAds: 'fromAds',
-  sessionId: 'sessionId',
+  cashierId: 'cashierId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1185,7 +1252,6 @@ export type ChatScalarFieldEnum = (typeof ChatScalarFieldEnum)[keyof typeof Chat
 export const AddFundsScalarFieldEnum = {
   id: 'id',
   userName: 'userName',
-  phoneId: 'phoneId',
   phoneNumber: 'phoneNumber',
   amount: 'amount',
   chatId: 'chatId',
@@ -1211,6 +1277,27 @@ export const LeadScalarFieldEnum = {
 } as const
 
 export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const LandingScalarFieldEnum = {
+  id: 'id',
+  url: 'url',
+  metaPixelId: 'metaPixelId',
+  metaAccessToken: 'metaAccessToken',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LandingScalarFieldEnum = (typeof LandingScalarFieldEnum)[keyof typeof LandingScalarFieldEnum]
+
+
+export const CashierLandingScalarFieldEnum = {
+  cashierId: 'cashierId',
+  landingId: 'landingId'
+} as const
+
+export type CashierLandingScalarFieldEnum = (typeof CashierLandingScalarFieldEnum)[keyof typeof CashierLandingScalarFieldEnum]
 
 
 export const ProcessedJobScalarFieldEnum = {
@@ -1345,6 +1432,20 @@ export type ListEnumLEADS_STATUSFieldRefInput<$PrismaModel> = FieldRefInputType<
 
 
 /**
+ * Reference to a field of type 'LandingStatus'
+ */
+export type EnumLandingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LandingStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'LandingStatus[]'
+ */
+export type ListEnumLandingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LandingStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1455,11 +1556,12 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   admin?: Prisma.AdminOmit
   cashier?: Prisma.CashierOmit
-  session?: Prisma.SessionOmit
   sessionActivity?: Prisma.SessionActivityOmit
   chat?: Prisma.ChatOmit
   addFunds?: Prisma.AddFundsOmit
   lead?: Prisma.LeadOmit
+  landing?: Prisma.LandingOmit
+  cashierLanding?: Prisma.CashierLandingOmit
   processedJob?: Prisma.ProcessedJobOmit
 }
 

@@ -13,10 +13,13 @@ npm run dev
 ## Variables de entorno
 
 ```env
-VITE_API_BASE_URL=http://localhost:3002/api
+# opcional
+# VITE_API_BASE_URL=http://localhost:3002/api
 ```
 
 - `VITE_API_BASE_URL`: URL base del backend real.
+  - Si no se define, el frontend usa automaticamente `http(s)://<host-actual>:3002/api`.
+  - Esto permite login desde otros dispositivos (movil/laptop) sin hardcodear `localhost`.
 
 ## Backend esperado
 

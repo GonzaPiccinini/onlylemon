@@ -11,6 +11,22 @@ export const updateCashierSchema = z.object({
   username: z.string().trim().min(3),
 });
 
+export const createLandingSchema = z.object({
+  url: z.string().trim().url(),
+  metaPixelId: z.string().trim().min(1),
+  metaAccessToken: z.string().trim().min(1),
+});
+
+export const updateLandingSchema = z.object({
+  url: z.string().trim().url(),
+  metaPixelId: z.string().trim().min(1),
+  metaAccessToken: z.string().trim().min(1).optional(),
+});
+
+export const replaceCashierLandingsSchema = z.object({
+  landingIds: z.array(z.string().trim().min(1)),
+});
+
 export const dateRangeSchema = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

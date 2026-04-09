@@ -33,11 +33,6 @@ export type Admin = Prisma.AdminModel
  */
 export type Cashier = Prisma.CashierModel
 /**
- * Model Session
- * 
- */
-export type Session = Prisma.SessionModel
-/**
  * Model SessionActivity
  * 
  */
@@ -57,6 +52,16 @@ export type AddFunds = Prisma.AddFundsModel
  * 
  */
 export type Lead = Prisma.LeadModel
+/**
+ * Model Landing
+ * 
+ */
+export type Landing = Prisma.LandingModel
+/**
+ * Model CashierLanding
+ * 
+ */
+export type CashierLanding = Prisma.CashierLandingModel
 /**
  * Model ProcessedJob
  * 

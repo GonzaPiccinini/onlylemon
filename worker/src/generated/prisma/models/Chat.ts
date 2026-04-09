@@ -26,24 +26,27 @@ export type AggregateChat = {
 
 export type ChatMinAggregateOutputType = {
   id: string | null
+  phone: string | null
   fromAds: boolean | null
-  sessionId: string | null
+  cashierId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type ChatMaxAggregateOutputType = {
   id: string | null
+  phone: string | null
   fromAds: boolean | null
-  sessionId: string | null
+  cashierId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type ChatCountAggregateOutputType = {
   id: number
+  phone: number
   fromAds: number
-  sessionId: number
+  cashierId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -52,24 +55,27 @@ export type ChatCountAggregateOutputType = {
 
 export type ChatMinAggregateInputType = {
   id?: true
+  phone?: true
   fromAds?: true
-  sessionId?: true
+  cashierId?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type ChatMaxAggregateInputType = {
   id?: true
+  phone?: true
   fromAds?: true
-  sessionId?: true
+  cashierId?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type ChatCountAggregateInputType = {
   id?: true
+  phone?: true
   fromAds?: true
-  sessionId?: true
+  cashierId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -149,8 +155,9 @@ export type ChatGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 
 export type ChatGroupByOutputType = {
   id: string
+  phone: string
   fromAds: boolean
-  sessionId: string
+  cashierId: string
   createdAt: Date
   updatedAt: Date
   _count: ChatCountAggregateOutputType | null
@@ -178,21 +185,23 @@ export type ChatWhereInput = {
   OR?: Prisma.ChatWhereInput[]
   NOT?: Prisma.ChatWhereInput | Prisma.ChatWhereInput[]
   id?: Prisma.StringFilter<"Chat"> | string
+  phone?: Prisma.StringFilter<"Chat"> | string
   fromAds?: Prisma.BoolFilter<"Chat"> | boolean
-  sessionId?: Prisma.StringFilter<"Chat"> | string
+  cashierId?: Prisma.StringFilter<"Chat"> | string
   createdAt?: Prisma.DateTimeFilter<"Chat"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Chat"> | Date | string
-  session?: Prisma.XOR<Prisma.SessionScalarRelationFilter, Prisma.SessionWhereInput>
+  cashier?: Prisma.XOR<Prisma.CashierScalarRelationFilter, Prisma.CashierWhereInput>
   addedFunds?: Prisma.AddFundsListRelationFilter
 }
 
 export type ChatOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
   fromAds?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  session?: Prisma.SessionOrderByWithRelationInput
+  cashier?: Prisma.CashierOrderByWithRelationInput
   addedFunds?: Prisma.AddFundsOrderByRelationAggregateInput
 }
 
@@ -201,18 +210,20 @@ export type ChatWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ChatWhereInput | Prisma.ChatWhereInput[]
   OR?: Prisma.ChatWhereInput[]
   NOT?: Prisma.ChatWhereInput | Prisma.ChatWhereInput[]
+  phone?: Prisma.StringFilter<"Chat"> | string
   fromAds?: Prisma.BoolFilter<"Chat"> | boolean
-  sessionId?: Prisma.StringFilter<"Chat"> | string
+  cashierId?: Prisma.StringFilter<"Chat"> | string
   createdAt?: Prisma.DateTimeFilter<"Chat"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Chat"> | Date | string
-  session?: Prisma.XOR<Prisma.SessionScalarRelationFilter, Prisma.SessionWhereInput>
+  cashier?: Prisma.XOR<Prisma.CashierScalarRelationFilter, Prisma.CashierWhereInput>
   addedFunds?: Prisma.AddFundsListRelationFilter
 }, "id">
 
 export type ChatOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
   fromAds?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ChatCountOrderByAggregateInput
@@ -225,25 +236,28 @@ export type ChatScalarWhereWithAggregatesInput = {
   OR?: Prisma.ChatScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ChatScalarWhereWithAggregatesInput | Prisma.ChatScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Chat"> | string
+  phone?: Prisma.StringWithAggregatesFilter<"Chat"> | string
   fromAds?: Prisma.BoolWithAggregatesFilter<"Chat"> | boolean
-  sessionId?: Prisma.StringWithAggregatesFilter<"Chat"> | string
+  cashierId?: Prisma.StringWithAggregatesFilter<"Chat"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Chat"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Chat"> | Date | string
 }
 
 export type ChatCreateInput = {
-  id: string
+  id?: string
+  phone: string
   fromAds: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  session: Prisma.SessionCreateNestedOneWithoutChatsInput
+  cashier: Prisma.CashierCreateNestedOneWithoutChatInput
   addedFunds?: Prisma.AddFundsCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateInput = {
-  id: string
+  id?: string
+  phone: string
   fromAds: boolean
-  sessionId: string
+  cashierId: string
   createdAt?: Date | string
   updatedAt?: Date | string
   addedFunds?: Prisma.AddFundsUncheckedCreateNestedManyWithoutChatInput
@@ -251,32 +265,36 @@ export type ChatUncheckedCreateInput = {
 
 export type ChatUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  session?: Prisma.SessionUpdateOneRequiredWithoutChatsNestedInput
+  cashier?: Prisma.CashierUpdateOneRequiredWithoutChatNestedInput
   addedFunds?: Prisma.AddFundsUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  sessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   addedFunds?: Prisma.AddFundsUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateManyInput = {
-  id: string
+  id?: string
+  phone: string
   fromAds: boolean
-  sessionId: string
+  cashierId: string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type ChatUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -284,8 +302,9 @@ export type ChatUpdateManyMutationInput = {
 
 export type ChatUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  sessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -302,24 +321,27 @@ export type ChatOrderByRelationAggregateInput = {
 
 export type ChatCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
   fromAds?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type ChatMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
   fromAds?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type ChatMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
   fromAds?: Prisma.SortOrder
-  sessionId?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -329,45 +351,45 @@ export type ChatScalarRelationFilter = {
   isNot?: Prisma.ChatWhereInput
 }
 
-export type ChatCreateNestedManyWithoutSessionInput = {
-  create?: Prisma.XOR<Prisma.ChatCreateWithoutSessionInput, Prisma.ChatUncheckedCreateWithoutSessionInput> | Prisma.ChatCreateWithoutSessionInput[] | Prisma.ChatUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutSessionInput | Prisma.ChatCreateOrConnectWithoutSessionInput[]
-  createMany?: Prisma.ChatCreateManySessionInputEnvelope
+export type ChatCreateNestedManyWithoutCashierInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutCashierInput, Prisma.ChatUncheckedCreateWithoutCashierInput> | Prisma.ChatCreateWithoutCashierInput[] | Prisma.ChatUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutCashierInput | Prisma.ChatCreateOrConnectWithoutCashierInput[]
+  createMany?: Prisma.ChatCreateManyCashierInputEnvelope
   connect?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
 }
 
-export type ChatUncheckedCreateNestedManyWithoutSessionInput = {
-  create?: Prisma.XOR<Prisma.ChatCreateWithoutSessionInput, Prisma.ChatUncheckedCreateWithoutSessionInput> | Prisma.ChatCreateWithoutSessionInput[] | Prisma.ChatUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutSessionInput | Prisma.ChatCreateOrConnectWithoutSessionInput[]
-  createMany?: Prisma.ChatCreateManySessionInputEnvelope
+export type ChatUncheckedCreateNestedManyWithoutCashierInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutCashierInput, Prisma.ChatUncheckedCreateWithoutCashierInput> | Prisma.ChatCreateWithoutCashierInput[] | Prisma.ChatUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutCashierInput | Prisma.ChatCreateOrConnectWithoutCashierInput[]
+  createMany?: Prisma.ChatCreateManyCashierInputEnvelope
   connect?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
 }
 
-export type ChatUpdateManyWithoutSessionNestedInput = {
-  create?: Prisma.XOR<Prisma.ChatCreateWithoutSessionInput, Prisma.ChatUncheckedCreateWithoutSessionInput> | Prisma.ChatCreateWithoutSessionInput[] | Prisma.ChatUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutSessionInput | Prisma.ChatCreateOrConnectWithoutSessionInput[]
-  upsert?: Prisma.ChatUpsertWithWhereUniqueWithoutSessionInput | Prisma.ChatUpsertWithWhereUniqueWithoutSessionInput[]
-  createMany?: Prisma.ChatCreateManySessionInputEnvelope
+export type ChatUpdateManyWithoutCashierNestedInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutCashierInput, Prisma.ChatUncheckedCreateWithoutCashierInput> | Prisma.ChatCreateWithoutCashierInput[] | Prisma.ChatUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutCashierInput | Prisma.ChatCreateOrConnectWithoutCashierInput[]
+  upsert?: Prisma.ChatUpsertWithWhereUniqueWithoutCashierInput | Prisma.ChatUpsertWithWhereUniqueWithoutCashierInput[]
+  createMany?: Prisma.ChatCreateManyCashierInputEnvelope
   set?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
   disconnect?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
   delete?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
   connect?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
-  update?: Prisma.ChatUpdateWithWhereUniqueWithoutSessionInput | Prisma.ChatUpdateWithWhereUniqueWithoutSessionInput[]
-  updateMany?: Prisma.ChatUpdateManyWithWhereWithoutSessionInput | Prisma.ChatUpdateManyWithWhereWithoutSessionInput[]
+  update?: Prisma.ChatUpdateWithWhereUniqueWithoutCashierInput | Prisma.ChatUpdateWithWhereUniqueWithoutCashierInput[]
+  updateMany?: Prisma.ChatUpdateManyWithWhereWithoutCashierInput | Prisma.ChatUpdateManyWithWhereWithoutCashierInput[]
   deleteMany?: Prisma.ChatScalarWhereInput | Prisma.ChatScalarWhereInput[]
 }
 
-export type ChatUncheckedUpdateManyWithoutSessionNestedInput = {
-  create?: Prisma.XOR<Prisma.ChatCreateWithoutSessionInput, Prisma.ChatUncheckedCreateWithoutSessionInput> | Prisma.ChatCreateWithoutSessionInput[] | Prisma.ChatUncheckedCreateWithoutSessionInput[]
-  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutSessionInput | Prisma.ChatCreateOrConnectWithoutSessionInput[]
-  upsert?: Prisma.ChatUpsertWithWhereUniqueWithoutSessionInput | Prisma.ChatUpsertWithWhereUniqueWithoutSessionInput[]
-  createMany?: Prisma.ChatCreateManySessionInputEnvelope
+export type ChatUncheckedUpdateManyWithoutCashierNestedInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutCashierInput, Prisma.ChatUncheckedCreateWithoutCashierInput> | Prisma.ChatCreateWithoutCashierInput[] | Prisma.ChatUncheckedCreateWithoutCashierInput[]
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutCashierInput | Prisma.ChatCreateOrConnectWithoutCashierInput[]
+  upsert?: Prisma.ChatUpsertWithWhereUniqueWithoutCashierInput | Prisma.ChatUpsertWithWhereUniqueWithoutCashierInput[]
+  createMany?: Prisma.ChatCreateManyCashierInputEnvelope
   set?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
   disconnect?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
   delete?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
   connect?: Prisma.ChatWhereUniqueInput | Prisma.ChatWhereUniqueInput[]
-  update?: Prisma.ChatUpdateWithWhereUniqueWithoutSessionInput | Prisma.ChatUpdateWithWhereUniqueWithoutSessionInput[]
-  updateMany?: Prisma.ChatUpdateManyWithWhereWithoutSessionInput | Prisma.ChatUpdateManyWithWhereWithoutSessionInput[]
+  update?: Prisma.ChatUpdateWithWhereUniqueWithoutCashierInput | Prisma.ChatUpdateWithWhereUniqueWithoutCashierInput[]
+  updateMany?: Prisma.ChatUpdateManyWithWhereWithoutCashierInput | Prisma.ChatUpdateManyWithWhereWithoutCashierInput[]
   deleteMany?: Prisma.ChatScalarWhereInput | Prisma.ChatScalarWhereInput[]
 }
 
@@ -389,46 +411,48 @@ export type ChatUpdateOneRequiredWithoutAddedFundsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ChatUpdateToOneWithWhereWithoutAddedFundsInput, Prisma.ChatUpdateWithoutAddedFundsInput>, Prisma.ChatUncheckedUpdateWithoutAddedFundsInput>
 }
 
-export type ChatCreateWithoutSessionInput = {
-  id: string
+export type ChatCreateWithoutCashierInput = {
+  id?: string
+  phone: string
   fromAds: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   addedFunds?: Prisma.AddFundsCreateNestedManyWithoutChatInput
 }
 
-export type ChatUncheckedCreateWithoutSessionInput = {
-  id: string
+export type ChatUncheckedCreateWithoutCashierInput = {
+  id?: string
+  phone: string
   fromAds: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   addedFunds?: Prisma.AddFundsUncheckedCreateNestedManyWithoutChatInput
 }
 
-export type ChatCreateOrConnectWithoutSessionInput = {
+export type ChatCreateOrConnectWithoutCashierInput = {
   where: Prisma.ChatWhereUniqueInput
-  create: Prisma.XOR<Prisma.ChatCreateWithoutSessionInput, Prisma.ChatUncheckedCreateWithoutSessionInput>
+  create: Prisma.XOR<Prisma.ChatCreateWithoutCashierInput, Prisma.ChatUncheckedCreateWithoutCashierInput>
 }
 
-export type ChatCreateManySessionInputEnvelope = {
-  data: Prisma.ChatCreateManySessionInput | Prisma.ChatCreateManySessionInput[]
+export type ChatCreateManyCashierInputEnvelope = {
+  data: Prisma.ChatCreateManyCashierInput | Prisma.ChatCreateManyCashierInput[]
   skipDuplicates?: boolean
 }
 
-export type ChatUpsertWithWhereUniqueWithoutSessionInput = {
+export type ChatUpsertWithWhereUniqueWithoutCashierInput = {
   where: Prisma.ChatWhereUniqueInput
-  update: Prisma.XOR<Prisma.ChatUpdateWithoutSessionInput, Prisma.ChatUncheckedUpdateWithoutSessionInput>
-  create: Prisma.XOR<Prisma.ChatCreateWithoutSessionInput, Prisma.ChatUncheckedCreateWithoutSessionInput>
+  update: Prisma.XOR<Prisma.ChatUpdateWithoutCashierInput, Prisma.ChatUncheckedUpdateWithoutCashierInput>
+  create: Prisma.XOR<Prisma.ChatCreateWithoutCashierInput, Prisma.ChatUncheckedCreateWithoutCashierInput>
 }
 
-export type ChatUpdateWithWhereUniqueWithoutSessionInput = {
+export type ChatUpdateWithWhereUniqueWithoutCashierInput = {
   where: Prisma.ChatWhereUniqueInput
-  data: Prisma.XOR<Prisma.ChatUpdateWithoutSessionInput, Prisma.ChatUncheckedUpdateWithoutSessionInput>
+  data: Prisma.XOR<Prisma.ChatUpdateWithoutCashierInput, Prisma.ChatUncheckedUpdateWithoutCashierInput>
 }
 
-export type ChatUpdateManyWithWhereWithoutSessionInput = {
+export type ChatUpdateManyWithWhereWithoutCashierInput = {
   where: Prisma.ChatScalarWhereInput
-  data: Prisma.XOR<Prisma.ChatUpdateManyMutationInput, Prisma.ChatUncheckedUpdateManyWithoutSessionInput>
+  data: Prisma.XOR<Prisma.ChatUpdateManyMutationInput, Prisma.ChatUncheckedUpdateManyWithoutCashierInput>
 }
 
 export type ChatScalarWhereInput = {
@@ -436,24 +460,27 @@ export type ChatScalarWhereInput = {
   OR?: Prisma.ChatScalarWhereInput[]
   NOT?: Prisma.ChatScalarWhereInput | Prisma.ChatScalarWhereInput[]
   id?: Prisma.StringFilter<"Chat"> | string
+  phone?: Prisma.StringFilter<"Chat"> | string
   fromAds?: Prisma.BoolFilter<"Chat"> | boolean
-  sessionId?: Prisma.StringFilter<"Chat"> | string
+  cashierId?: Prisma.StringFilter<"Chat"> | string
   createdAt?: Prisma.DateTimeFilter<"Chat"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Chat"> | Date | string
 }
 
 export type ChatCreateWithoutAddedFundsInput = {
-  id: string
+  id?: string
+  phone: string
   fromAds: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  session: Prisma.SessionCreateNestedOneWithoutChatsInput
+  cashier: Prisma.CashierCreateNestedOneWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutAddedFundsInput = {
-  id: string
+  id?: string
+  phone: string
   fromAds: boolean
-  sessionId: string
+  cashierId: string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -476,45 +503,51 @@ export type ChatUpdateToOneWithWhereWithoutAddedFundsInput = {
 
 export type ChatUpdateWithoutAddedFundsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  session?: Prisma.SessionUpdateOneRequiredWithoutChatsNestedInput
+  cashier?: Prisma.CashierUpdateOneRequiredWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutAddedFundsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  sessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  cashierId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type ChatCreateManySessionInput = {
-  id: string
+export type ChatCreateManyCashierInput = {
+  id?: string
+  phone: string
   fromAds: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
-export type ChatUpdateWithoutSessionInput = {
+export type ChatUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   addedFunds?: Prisma.AddFundsUpdateManyWithoutChatNestedInput
 }
 
-export type ChatUncheckedUpdateWithoutSessionInput = {
+export type ChatUncheckedUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   addedFunds?: Prisma.AddFundsUncheckedUpdateManyWithoutChatNestedInput
 }
 
-export type ChatUncheckedUpdateManyWithoutSessionInput = {
+export type ChatUncheckedUpdateManyWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
   fromAds?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -553,64 +586,69 @@ export type ChatCountOutputTypeCountAddedFundsArgs<ExtArgs extends runtime.Types
 
 export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  phone?: boolean
   fromAds?: boolean
-  sessionId?: boolean
+  cashierId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
   addedFunds?: boolean | Prisma.Chat$addedFundsArgs<ExtArgs>
   _count?: boolean | Prisma.ChatCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chat"]>
 
 export type ChatSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  phone?: boolean
   fromAds?: boolean
-  sessionId?: boolean
+  cashierId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chat"]>
 
 export type ChatSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  phone?: boolean
   fromAds?: boolean
-  sessionId?: boolean
+  cashierId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chat"]>
 
 export type ChatSelectScalar = {
   id?: boolean
+  phone?: boolean
   fromAds?: boolean
-  sessionId?: boolean
+  cashierId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fromAds" | "sessionId" | "createdAt" | "updatedAt", ExtArgs["result"]["chat"]>
+export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "phone" | "fromAds" | "cashierId" | "createdAt" | "updatedAt", ExtArgs["result"]["chat"]>
 export type ChatInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
   addedFunds?: boolean | Prisma.Chat$addedFundsArgs<ExtArgs>
   _count?: boolean | Prisma.ChatCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ChatIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }
 export type ChatIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  session?: boolean | Prisma.SessionDefaultArgs<ExtArgs>
+  cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
 }
 
 export type $ChatPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Chat"
   objects: {
-    session: Prisma.$SessionPayload<ExtArgs>
+    cashier: Prisma.$CashierPayload<ExtArgs>
     addedFunds: Prisma.$AddFundsPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    phone: string
     fromAds: boolean
-    sessionId: string
+    cashierId: string
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["chat"]>
@@ -1007,7 +1045,7 @@ readonly fields: ChatFieldRefs;
  */
 export interface Prisma__ChatClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  session<T extends Prisma.SessionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SessionDefaultArgs<ExtArgs>>): Prisma.Prisma__SessionClient<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  cashier<T extends Prisma.CashierDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CashierDefaultArgs<ExtArgs>>): Prisma.Prisma__CashierClient<runtime.Types.Result.GetResult<Prisma.$CashierPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   addedFunds<T extends Prisma.Chat$addedFundsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$addedFundsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AddFundsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1039,8 +1077,9 @@ export interface Prisma__ChatClient<T, Null = never, ExtArgs extends runtime.Typ
  */
 export interface ChatFieldRefs {
   readonly id: Prisma.FieldRef<"Chat", 'String'>
+  readonly phone: Prisma.FieldRef<"Chat", 'String'>
   readonly fromAds: Prisma.FieldRef<"Chat", 'Boolean'>
-  readonly sessionId: Prisma.FieldRef<"Chat", 'String'>
+  readonly cashierId: Prisma.FieldRef<"Chat", 'String'>
   readonly createdAt: Prisma.FieldRef<"Chat", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Chat", 'DateTime'>
 }
