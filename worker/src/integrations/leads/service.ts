@@ -10,9 +10,12 @@ import {
   updateLead,
 } from '../../persistence/repositories/leadsRepository.js';
 
-const CODE_LENGTH = 6;
+const CODE_LENGTH = 8;
 const MAX_CODE_GENERATION_ATTEMPTS = 5;
-const generateCode = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', CODE_LENGTH);
+const generateCode = customAlphabet(
+  'ABCDEFGHIJQLMNOPQRSTUVWXYZ0123456789',
+  CODE_LENGTH,
+);
 
 export const CreateLeadPayloadSchema = z.object({
   fbc: z.string().trim().min(1).max(512),
@@ -53,7 +56,9 @@ function extractLeadCode(body: string): string | null {
   return match[1].toLowerCase();
 }
 
-export async function createLead(payload: CreateLeadPayload): Promise<CreateLeadResult> {
+export async function createLead(
+  payload: CreateLeadPayload,
+): Promise<CreateLeadResult> {
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
     const code = generateCode();
     const expiresAt = getExpiresAt(new Date());
