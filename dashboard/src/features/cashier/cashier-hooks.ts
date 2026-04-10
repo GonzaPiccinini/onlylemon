@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cashierService } from "@/api/cashier.service";
-import type { AddFundsInput } from "@/types/domain";
+import type { ConvertLeadInput, LeadStatus } from "@/types/domain";
 
 const cashierKeys = {
   sessions: ["cashier", "sessions"] as const,
   currentSession: ["cashier", "current-session"] as const,
-  clientPhones: ["cashier", "client-phones"] as const,
-  addFundsHistory: ["cashier", "add-funds-history"] as const,
+  queueCurrentLead: ["cashier", "queue-current-lead"] as const,
+  leads: (status?: LeadStatus) => ["cashier", "leads", status ?? "ALL"] as const,
   whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
   whatsappLinkStatus: ["cashier", "whatsapp-link-status"] as const,
 };
@@ -51,28 +51,48 @@ export const useFinishSession = () => {
   });
 };
 
-export const useClientPhones = () =>
+export const useQueueCurrentLead = () =>
   useQuery({
-    queryKey: cashierKeys.clientPhones,
-    queryFn: cashierService.listClientPhones,
+    queryKey: cashierKeys.queueCurrentLead,
+    queryFn: cashierService.getQueueCurrentLead,
   });
 
-export const useAddFundsHistory = () =>
-  useQuery({
-    queryKey: cashierKeys.addFundsHistory,
-    queryFn: cashierService.listAddFundsHistory,
-  });
-
-export const useAddFunds = () => {
+export const useConvertQueueLead = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: AddFundsInput) => cashierService.addFunds(input),
+    mutationFn: ({ leadId, input }: { leadId: string; input: ConvertLeadInput }) =>
+      cashierService.convertQueueLead(leadId, input),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: cashierKeys.addFundsHistory });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: cashierKeys.queueCurrentLead }),
+        queryClient.invalidateQueries({ queryKey: ["cashier", "leads"] }),
+      ]);
     },
   });
 };
+
+export const useSkipQueueLead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (leadId: string) => cashierService.skipQueueLead(leadId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: cashierKeys.queueCurrentLead });
+    },
+  });
+};
+
+export const useCashierLeads = (status?: LeadStatus) =>
+  useQuery({
+    queryKey: cashierKeys.leads(status),
+    queryFn: () => cashierService.listLeads(status),
+  });
+
+export const useUpdateCashierAccount = () =>
+  useMutation<void, unknown, { username?: string; password?: string }>({
+    mutationFn: cashierService.updateAccount,
+  });
 
 export const useWhatsappLinkState = () =>
   useQuery({

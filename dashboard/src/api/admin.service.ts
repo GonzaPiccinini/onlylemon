@@ -8,6 +8,8 @@ import type {
   DateRangeFilters,
   FundsSeriesPoint,
   Landing,
+  Lead,
+  LeadsFilters,
   StatsSummary,
   UpdateLandingInput,
   UpdateCashierInput,
@@ -40,6 +42,10 @@ export const adminService = {
 
   async disableCashier(cashierId: string): Promise<void> {
     await http.patch(endpoints.admin.cashierDisable(cashierId));
+  },
+
+  async enableCashier(cashierId: string): Promise<void> {
+    await http.patch(endpoints.admin.cashierEnable(cashierId));
   },
 
   async replaceCashierLandings(cashierId: string, landingIds: string[]): Promise<Landing[]> {
@@ -95,6 +101,17 @@ export const adminService = {
         params: toDateRangeParams(filters),
       },
     );
+    return data;
+  },
+
+  async listLeads(filters: LeadsFilters): Promise<Lead[]> {
+    const { data } = await http.get<Lead[]>(endpoints.admin.leads, {
+      params: {
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
+      },
+    });
+
     return data;
   },
 };

@@ -16,6 +16,7 @@ export interface AuthSession {
 
 export type CashierStatus = "ACTIVE" | "DISABLED";
 export type LandingStatus = "ACTIVE" | "DISABLED";
+export type LeadStatus = "NOT_CONTACTED" | "CONTACTED" | "CONVERTED" | "EXPIRED";
 
 export interface Landing {
   id: string;
@@ -69,51 +70,59 @@ export interface WhatsappLinkStatus {
   linked: boolean;
 }
 
-export interface AddFunds {
+export interface Lead {
   id: string;
-  cashierId: string;
-  cashierName: string;
-  userName: string;
-  phoneId: string;
-  phoneNumber: string;
-  amount: number;
-  fromAds: boolean;
+  code: string;
+  status: LeadStatus;
+  phone: string | null;
+  amount: number | null;
+  metaPixelId: string;
+  contactedAt: string | null;
+  convertedAt: string | null;
+  expiresAt: string;
   createdAt: string;
-}
-
-export interface ClientPhoneOption {
-  phoneId: string;
-  phoneNumber: string;
+  cashierId?: string | null;
+  cashierName?: string | null;
+  cashierUsername?: string | null;
 }
 
 export interface StatsSummary {
-  totalAddedFunds: number;
-  totalOperations: number;
+  totalLeads: number;
+  contactedLeads: number;
+  convertedLeads: number;
+  expiredLeads: number;
+  conversionRate: number;
+  totalConvertedValue: number;
+  averageConvertedValue: number;
+  averageConversionHours: number;
   totalActiveHours: number;
-  totalClients: number;
-  adsClients: number;
-  adsClientsPercentage: number;
 }
 
 export interface CashierStats {
   cashierId: string;
   cashierName: string;
-  addedFundsTotal: number;
-  operationsCount: number;
+  totalLeads: number;
+  contactedLeads: number;
+  convertedLeads: number;
+  expiredLeads: number;
+  conversionRate: number;
+  convertedValue: number;
   activeHours: number;
-  adsClients: number;
-  totalClients: number;
-  adsClientsPercentage: number;
 }
 
 export interface FundsSeriesPoint {
   date: string;
-  totalAmount: number;
+  totalValue: number;
 }
 
 export interface DateRangeFilters {
   from: string;
   to: string;
+  cashierId?: string;
+}
+
+export interface LeadsFilters {
+  status?: LeadStatus;
   cashierId?: string;
 }
 
@@ -126,6 +135,7 @@ export interface CreateCashierInput {
 export interface UpdateCashierInput {
   name: string;
   username: string;
+  password?: string;
 }
 
 export interface CreateLandingInput {
@@ -140,9 +150,11 @@ export interface UpdateLandingInput {
   metaAccessToken?: string;
 }
 
-export interface AddFundsInput {
-  userName: string;
-  phoneId: string;
-  phoneNumber: string;
+export interface ConvertLeadInput {
   amount: number;
+}
+
+export interface UpdateCashierAccountInput {
+  username?: string;
+  password?: string;
 }

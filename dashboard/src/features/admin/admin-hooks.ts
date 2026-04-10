@@ -4,6 +4,7 @@ import type {
   CreateCashierInput,
   CreateLandingInput,
   DateRangeFilters,
+  LeadsFilters,
   UpdateCashierInput,
   UpdateLandingInput,
 } from "@/types/domain";
@@ -14,6 +15,7 @@ const adminKeys = {
   summary: (filters: DateRangeFilters) => ["admin", "summary", filters] as const,
   cashierStats: (filters: DateRangeFilters) => ["admin", "cashier-stats", filters] as const,
   fundsSeries: (filters: DateRangeFilters) => ["admin", "funds-series", filters] as const,
+  leads: (filters: LeadsFilters) => ["admin", "leads", filters] as const,
 };
 
 export const useAdminCashiers = () =>
@@ -64,6 +66,17 @@ export const useDisableCashier = () => {
 
   return useMutation({
     mutationFn: (cashierId: string) => adminService.disableCashier(cashierId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
+    },
+  });
+};
+
+export const useEnableCashier = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (cashierId: string) => adminService.enableCashier(cashierId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
     },
@@ -130,4 +143,10 @@ export const useFundsSeries = (filters: DateRangeFilters) =>
   useQuery({
     queryKey: adminKeys.fundsSeries(filters),
     queryFn: () => adminService.getFundsSeries(filters),
+  });
+
+export const useAdminLeads = (filters: LeadsFilters) =>
+  useQuery({
+    queryKey: adminKeys.leads(filters),
+    queryFn: () => adminService.listLeads(filters),
   });

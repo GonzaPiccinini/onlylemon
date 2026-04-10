@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
+import { useAdminCashiers, useAdminLeads } from '@/features/admin/admin-hooks';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -26,7 +27,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/format';
-import { useCashierLeads } from '@/features/cashier/cashier-hooks';
 import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
 import { PaginationControls } from '@/components/common/pagination-controls';
@@ -39,12 +39,21 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
   { label: 'Expirado', value: 'EXPIRED' },
 ];
 
-export const CashierHistoryPage = () => {
+export const AdminLeadsPage = () => {
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
+  const [cashierId, setCashierId] = useState<string>('ALL');
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const filterStatus = status === 'ALL' ? undefined : status;
-  const { data: leads = [], isLoading } = useCashierLeads(filterStatus);
+
+  const { data: cashiers = [] } = useAdminCashiers();
+  const filters = useMemo(
+    () => ({
+      status: status === 'ALL' ? undefined : status,
+      cashierId: cashierId === 'ALL' ? undefined : cashierId,
+    }),
+    [cashierId, status],
+  );
+  const { data: leads = [], isLoading } = useAdminLeads(filters);
   const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
   const normalizedPage = Math.min(page, totalPages);
   const start = (normalizedPage - 1) * pageSize;
@@ -53,19 +62,19 @@ export const CashierHistoryPage = () => {
   return (
     <section className='flex flex-col gap-4'>
       <PageHeader
-        title='Leads del cajero'
-        description='Tabla de leads con filtros por estado.'
+        title='Leads'
+        description='Tabla global de leads con filtros por estado y cajero.'
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>Leads registrados</CardTitle>
+          <CardTitle>Leads del sistema</CardTitle>
           <CardDescription>
-            Visualiza estado, telefono, valor y fechas clave.
+            Visualiza estados de conversion y asignacion por cajero.
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>
-          <div className='max-w-xs'>
+          <div className='grid gap-3 md:grid-cols-2'>
             <div className='flex flex-col gap-2'>
               <FieldLabel>Filtrar por estado</FieldLabel>
               <Select
@@ -89,6 +98,31 @@ export const CashierHistoryPage = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className='flex flex-col gap-2'>
+              <FieldLabel>Filtrar por cajero</FieldLabel>
+              <Select
+                value={cashierId}
+                onValueChange={(value) => {
+                  setCashierId(value ?? 'ALL');
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder='Filtrar por cajero' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value='ALL'>Todos</SelectItem>
+                    {cashiers.map((cashier) => (
+                      <SelectItem key={cashier.id} value={cashier.id}>
+                        {cashier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Table>
@@ -96,6 +130,7 @@ export const CashierHistoryPage = () => {
               <TableRow>
                 <TableHead>Codigo</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
                 <TableHead>Monto</TableHead>
               </TableRow>
@@ -103,11 +138,11 @@ export const CashierHistoryPage = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4}>Cargando leads...</TableCell>
+                  <TableCell colSpan={5}>Cargando leads...</TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={5}>
                     No hay leads para el filtro seleccionado.
                   </TableCell>
                 </TableRow>
@@ -124,6 +159,7 @@ export const CashierHistoryPage = () => {
                         {leadStatusLabel(lead.status)}
                       </Badge>
                     </TableCell>
+                    <TableCell>{lead.cashierName ?? 'Sin asignar'}</TableCell>
                     <TableCell>{lead.phone ?? '-'}</TableCell>
                     <TableCell>
                       {lead.amount === null ? '-' : formatCurrency(lead.amount)}

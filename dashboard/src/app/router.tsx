@@ -6,9 +6,11 @@ import { LoginPage } from "@/features/auth/login-page";
 import { AdminCashiersPage } from "@/features/admin/admin-cashiers-page";
 import { AdminStatsPage } from "@/features/admin/admin-stats-page";
 import { AdminLandingsPage } from "@/features/admin/admin-landings-page";
+import { AdminLeadsPage } from "@/features/admin/admin-leads-page";
 import { CashierSessionPage } from "@/features/cashier/cashier-session-page";
 import { CashierAddFundsPage } from "@/features/cashier/cashier-add-funds-page";
 import { CashierHistoryPage } from "@/features/cashier/cashier-history-page";
+import { CashierAccountPage } from "@/features/cashier/cashier-account-page";
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +42,10 @@ export const router = createBrowserRouter([
                 path: "/admin/landings",
                 element: <AdminLandingsPage />,
               },
+              {
+                path: "/admin/leads",
+                element: <AdminLeadsPage />,
+              },
             ],
           },
           {
@@ -56,6 +62,10 @@ export const router = createBrowserRouter([
               {
                 path: "/cashier/history",
                 element: <CashierHistoryPage />,
+              },
+              {
+                path: "/cashier/account",
+                element: <CashierAccountPage />,
               },
             ],
           },

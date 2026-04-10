@@ -1,9 +1,11 @@
 import type { ComponentType } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import {
+  CircleUserRoundIcon,
   BarChart3Icon,
   CircleDollarSignIcon,
   Clock3Icon,
+  ListChecksIcon,
   LogOutIcon,
   TagsIcon,
   UsersIcon,
@@ -23,13 +25,15 @@ interface ShellLink {
 const adminLinks: ShellLink[] = [
   { to: "/admin", label: "Cajeros", icon: UsersIcon },
   { to: "/admin/stats", label: "Estadisticas", icon: BarChart3Icon },
+  { to: "/admin/leads", label: "Leads", icon: ListChecksIcon },
   { to: "/admin/landings", label: "Landings", icon: TagsIcon },
 ];
 
 const cashierLinks: ShellLink[] = [
   { to: "/cashier", label: "Sesion", icon: Clock3Icon },
   { to: "/cashier/add-funds", label: "Cargas", icon: CircleDollarSignIcon },
-  { to: "/cashier/history", label: "Historial", icon: BarChart3Icon },
+  { to: "/cashier/history", label: "Leads", icon: BarChart3Icon },
+  { to: "/cashier/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
 ];
 
 export const AppShell = () => {
@@ -110,7 +114,11 @@ export const AppShell = () => {
         <div
           className={cn(
             "mx-auto grid w-full max-w-[520px] gap-2",
-            links.length === 2 ? "grid-cols-2" : "grid-cols-3",
+            links.length === 2
+              ? "grid-cols-2"
+              : links.length === 4
+                ? "grid-cols-4"
+                : "grid-cols-3",
           )}
         >
           {links.map((link) => (

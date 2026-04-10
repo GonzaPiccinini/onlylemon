@@ -1,10 +1,11 @@
 import { endpoints } from "@/api/endpoints";
 import { http } from "@/api/http";
 import type {
-  AddFunds,
-  AddFundsInput,
-  ClientPhoneOption,
+  ConvertLeadInput,
+  Lead,
+  LeadStatus,
   Session,
+  UpdateCashierAccountInput,
   WhatsappLinkArtifacts,
   WhatsappLinkState,
   WhatsappLinkStatus,
@@ -31,19 +32,29 @@ export const cashierService = {
     return data;
   },
 
-  async listClientPhones(): Promise<ClientPhoneOption[]> {
-    const { data } = await http.get<ClientPhoneOption[]>(endpoints.cashier.clientPhones);
+  async getQueueCurrentLead(): Promise<Lead | null> {
+    const { data } = await http.get<Lead | null>(endpoints.cashier.queueCurrentLead);
     return data;
   },
 
-  async addFunds(input: AddFundsInput): Promise<AddFunds> {
-    const { data } = await http.post<AddFunds>(endpoints.cashier.addFunds, input);
+  async convertQueueLead(leadId: string, input: ConvertLeadInput): Promise<Lead> {
+    const { data } = await http.post<Lead>(endpoints.cashier.queueConvertLead(leadId), input);
     return data;
   },
 
-  async listAddFundsHistory(): Promise<AddFunds[]> {
-    const { data } = await http.get<AddFunds[]>(endpoints.cashier.addFundsHistory);
+  async skipQueueLead(leadId: string): Promise<void> {
+    await http.post(endpoints.cashier.queueSkipLead(leadId));
+  },
+
+  async listLeads(status?: LeadStatus): Promise<Lead[]> {
+    const { data } = await http.get<Lead[]>(endpoints.cashier.leads, {
+      params: status ? { status } : undefined,
+    });
     return data;
+  },
+
+  async updateAccount(input: UpdateCashierAccountInput): Promise<void> {
+    await http.patch(endpoints.cashier.account, input);
   },
 
   async getWhatsappLinkState(): Promise<WhatsappLinkState> {

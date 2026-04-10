@@ -1,17 +1,12 @@
+import { useMemo } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CircleDollarSignIcon } from 'lucide-react';
+import { CheckIcon, SkipForwardIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Field,
   FieldContent,
@@ -21,171 +16,164 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@/lib/format';
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useAddFunds, useClientPhones } from '@/features/cashier/cashier-hooks';
+  useConvertQueueLead,
+  useQueueCurrentLead,
+  useSkipQueueLead,
+} from '@/features/cashier/cashier-hooks';
+import { leadStatusLabel } from '@/lib/lead-status';
 
 const schema = z.object({
-  userName: z.string().min(2, 'Nombre de usuario obligatorio'),
-  phoneId: z.string().min(1, 'Telefono obligatorio'),
-  phoneNumber: z.string().min(1, 'Telefono obligatorio'),
-  amount: z.number().positive('El monto debe ser mayor a 0'),
+  amount: z
+    .string()
+    .trim()
+    .min(1, 'El monto es obligatorio')
+    .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
+      message: 'El monto debe ser mayor a 0',
+    }),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export const CashierAddFundsPage = () => {
-  const addFunds = useAddFunds();
-  const { data: clientPhones = [], isLoading: phonesLoading } =
-    useClientPhones();
+  const { data: currentLead, isLoading } = useQueueCurrentLead();
+  const convertLead = useConvertQueueLead();
+  const skipLead = useSkipQueueLead();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      userName: '',
-      phoneId: '',
-      phoneNumber: '',
-      amount: 0,
+      amount: '',
     },
   });
 
-  const selectedPhoneNumber = form.watch('phoneNumber');
-
-  const handlePhoneChange = (value: string | null) => {
-    if (!value) {
-      form.setValue('phoneId', '', { shouldValidate: true });
-      form.setValue('phoneNumber', '', { shouldValidate: true });
-      return;
-    }
-
-    const selected = clientPhones.find((item) => item.phoneId === value);
-    if (!selected) {
-      form.setValue('phoneId', '', { shouldValidate: true });
-      form.setValue('phoneNumber', '', { shouldValidate: true });
-      return;
-    }
-
-    form.setValue('phoneId', selected.phoneId, { shouldValidate: true });
-    form.setValue('phoneNumber', selected.phoneNumber, {
-      shouldValidate: true,
-    });
-  };
+  const canSubmit = useMemo(
+    () => Boolean(currentLead) && !convertLead.isPending,
+    [convertLead.isPending, currentLead],
+  );
 
   const onSubmit = async (values: FormValues) => {
+    if (!currentLead) {
+      toast.error('No hay lead en cola para convertir');
+      return;
+    }
+
     try {
-      await addFunds.mutateAsync(values);
-      toast.success('Carga registrada correctamente');
-      form.reset({ userName: '', phoneId: '', phoneNumber: '', amount: 0 });
+      await convertLead.mutateAsync({
+        leadId: currentLead.id,
+        input: {
+          amount: Number(values.amount),
+        },
+      });
+      toast.success('Conversion registrada');
+      form.reset({ amount: '' });
     } catch {
-      toast.error('No se pudo registrar la carga');
+      toast.error('No se pudo registrar la conversion');
+    }
+  };
+
+  const handleSkip = async () => {
+    if (!currentLead) {
+      return;
+    }
+
+    try {
+      await skipLead.mutateAsync(currentLead.id);
+      toast.success('Lead omitido');
+    } catch {
+      toast.error('No se pudo omitir el lead');
     }
   };
 
   return (
     <section className='flex flex-col gap-4'>
       <PageHeader
-        title='Registrar carga de saldo'
-        description='Ingresa nombre del usuario, telefono y monto para registrar la operación.'
+        title='Cola de conversiones'
+        description='Procesa un lead contactado por vez: convertir u omitir.'
       />
 
       <Card className='max-w-2xl'>
         <CardHeader>
-          <CardTitle>Nueva carga</CardTitle>
-          <CardDescription>
-            Ingresá los datos para registrar una nueva carga.
-          </CardDescription>
+          <CardTitle>Lead actual</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-          >
-            <FieldGroup>
-              <Field data-invalid={Boolean(form.formState.errors.userName)}>
-                <FieldLabel htmlFor='user-name'>Nombre del usuario</FieldLabel>
-                <FieldContent>
-                  <Input
-                    id='user-name'
-                    aria-invalid={Boolean(form.formState.errors.userName)}
-                    {...form.register('userName')}
-                  />
-                  <FieldError errors={[form.formState.errors.userName]} />
-                </FieldContent>
-              </Field>
+        <CardContent className='flex flex-col gap-4'>
+          {isLoading ? (
+            <p className='text-sm text-muted-foreground'>
+              Cargando lead en cola...
+            </p>
+          ) : !currentLead ? (
+            <p className='text-sm text-muted-foreground'>
+              No hay leads contactados en cola.
+            </p>
+          ) : (
+            <>
+              <div className='flex flex-wrap gap-2'>
+                <Badge variant='outline'>Codigo: {currentLead.code}</Badge>
+                <Badge variant='outline'>Estado: {leadStatusLabel(currentLead.status)}</Badge>
+              </div>
 
-              <Field data-invalid={Boolean(form.formState.errors.phoneId)}>
-                <FieldLabel htmlFor='phone'>Telefono asociado</FieldLabel>
-                <FieldContent>
-                  <Select
-                    value={selectedPhoneNumber}
-                    onValueChange={handlePhoneChange}
-                  >
-                    <SelectTrigger
-                      id='phone'
-                      aria-invalid={Boolean(form.formState.errors.phoneId)}
-                      className='w-full'
-                    >
-                      <SelectValue
-                        placeholder={
-                          phonesLoading
-                            ? 'Cargando telefonos...'
-                            : 'Selecciona un telefono'
-                        }
+              <div className='grid gap-2 rounded-lg border p-3 text-sm'>
+                <p>
+                  <span className='font-medium'>Telefono:</span>{' '}
+                  {currentLead.phone ?? '-'}
+                </p>
+                <p>
+                  <span className='font-medium'>Se contactó el</span>{' '}
+                  {currentLead.contactedAt
+                    ? formatDateTime(currentLead.contactedAt)
+                    : '-'}
+                </p>
+              </div>
+
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className='flex flex-col gap-4'
+              >
+                <FieldGroup>
+                  <Field data-invalid={Boolean(form.formState.errors.amount)}>
+                    <FieldLabel htmlFor='amount'>
+                      Monto de conversion
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id='amount'
+                        type='number'
+                        min={1}
+                        step={1}
+                        placeholder='Ingresa el monto'
+                        aria-invalid={Boolean(form.formState.errors.amount)}
+                        {...form.register('amount')}
                       />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {clientPhones.map((phone) => (
-                          <SelectItem key={phone.phoneId} value={phone.phoneId}>
-                            {phone.phoneNumber}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <FieldDescription>
-                    Seleccioná el número de teléfono del usuario.
-                  </FieldDescription>
-                  <FieldError errors={[form.formState.errors.phoneId]} />
-                </FieldContent>
-              </Field>
+                      <FieldDescription>
+                        Valor reportado de conversion.
+                      </FieldDescription>
+                      <FieldError errors={[form.formState.errors.amount]} />
+                    </FieldContent>
+                  </Field>
+                </FieldGroup>
 
-              <Field data-invalid={Boolean(form.formState.errors.amount)}>
-                <FieldLabel htmlFor='amount'>Monto</FieldLabel>
-                <FieldContent>
-                  <Input
-                    id='amount'
-                    type='number'
-                    min={1}
-                    step={1}
-                    aria-invalid={Boolean(form.formState.errors.amount)}
-                    {...form.register('amount', {
-                      setValueAs: (value: string) => Number(value),
-                    })}
-                  />
-                  <FieldDescription>Monto en ARS.</FieldDescription>
-                  <FieldError errors={[form.formState.errors.amount]} />
-                </FieldContent>
-              </Field>
-            </FieldGroup>
-
-            <Button
-              type='submit'
-              className='w-fit'
-              disabled={
-                addFunds.isPending || phonesLoading || clientPhones.length === 0
-              }
-            >
-              <CircleDollarSignIcon data-icon='inline-start' />
-              {addFunds.isPending ? 'Registrando...' : 'Registrar carga'}
-            </Button>
-          </form>
+                <div className='flex flex-wrap gap-2'>
+                  <Button type='submit' disabled={!canSubmit}>
+                    <CheckIcon data-icon='inline-start' />
+                    {convertLead.isPending
+                      ? 'Convirtiendo...'
+                      : 'Confirmar conversion'}
+                  </Button>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    onClick={handleSkip}
+                    disabled={skipLead.isPending}
+                  >
+                    <SkipForwardIcon data-icon='inline-start' />
+                    Pasar lead
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
         </CardContent>
       </Card>
     </section>

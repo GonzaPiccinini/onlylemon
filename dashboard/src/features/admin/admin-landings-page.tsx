@@ -41,6 +41,7 @@ import {
   useSetLandingStatus,
   useUpdateLanding,
 } from "@/features/admin/admin-hooks";
+import { PaginationControls } from "@/components/common/pagination-controls";
 
 const createSchema = z.object({
   url: z.string().url("URL invalida"),
@@ -65,6 +66,8 @@ export const AdminLandingsPage = () => {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingLanding, setEditingLanding] = useState<Landing | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const createForm = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
@@ -141,6 +144,11 @@ export const AdminLandingsPage = () => {
       metaAccessToken: "",
     });
   };
+
+  const totalPages = Math.max(1, Math.ceil(landings.length / pageSize));
+  const normalizedPage = Math.min(page, totalPages);
+  const start = (normalizedPage - 1) * pageSize;
+  const paginatedLandings = landings.slice(start, start + pageSize);
 
   return (
     <section className="flex flex-col gap-4">
@@ -233,7 +241,7 @@ export const AdminLandingsPage = () => {
                 <TableCell colSpan={6}>No hay landings registradas.</TableCell>
               </TableRow>
             ) : (
-              landings.map((landing) => (
+              paginatedLandings.map((landing) => (
                 <TableRow key={landing.id}>
                   <TableCell>{landing.url}</TableCell>
                   <TableCell>{landing.metaPixelId}</TableCell>
@@ -269,6 +277,13 @@ export const AdminLandingsPage = () => {
             )}
           </TableBody>
         </Table>
+        <div className="mt-3">
+          <PaginationControls
+            page={normalizedPage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </div>
       </div>
 
       <Dialog

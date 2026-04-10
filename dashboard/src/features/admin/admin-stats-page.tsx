@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PaginationControls } from "@/components/common/pagination-controls";
 import { getDefaultDateRange } from "@/lib/date-range";
 import { formatCurrency, formatHours, formatPercentage } from "@/lib/format";
 import {
@@ -31,39 +32,48 @@ import {
 
 export const AdminStatsPage = () => {
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const { data: summary, isLoading: summaryLoading } = useAdminSummary(dateRange);
   const { data: cashierStats = [], isLoading: cashierStatsLoading } = useCashierStats(dateRange);
   const { data: fundsSeries = [], isLoading: seriesLoading } = useFundsSeries(dateRange);
+  const totalPages = Math.max(1, Math.ceil(cashierStats.length / pageSize));
+  const normalizedPage = Math.min(page, totalPages);
+  const start = (normalizedPage - 1) * pageSize;
+  const paginatedStats = cashierStats.slice(start, start + pageSize);
 
   return (
     <section className="flex flex-col gap-4">
       <PageHeader
-        title="Estadisticas operativas"
-        description="Analiza rendimiento por cajero y actividad de cargas en periodos definidos."
+        title="Estadisticas de leads"
+        description="Analiza conversiones por cajero y rendimiento por periodo."
       />
 
-      <PeriodFilter value={dateRange} onChange={setDateRange} />
+      <PeriodFilter
+        value={dateRange}
+        onChange={(nextRange) => {
+          setDateRange(nextRange);
+          setPage(1);
+        }}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {summaryLoading || !summary ? (
           Array.from({ length: 5 }).map((_, index) => <LoadingCard key={index} />)
         ) : (
           <>
-            <MetricCard label="Monto cargado" value={formatCurrency(summary.totalAddedFunds)} />
-            <MetricCard label="Cargas realizadas" value={String(summary.totalOperations)} />
+            <MetricCard label="Leads totales" value={String(summary.totalLeads)} />
+            <MetricCard label="Leads convertidos" value={String(summary.convertedLeads)} />
+            <MetricCard label="Tasa conversion" value={formatPercentage(summary.conversionRate)} />
+            <MetricCard label="Valor convertido" value={formatCurrency(summary.totalConvertedValue)} />
             <MetricCard label="Horas activas" value={formatHours(summary.totalActiveHours)} />
-            <MetricCard label="Clientes desde ads" value={String(summary.adsClients)} />
-            <MetricCard
-              label="% clientes desde ads"
-              value={formatPercentage(summary.adsClientsPercentage)}
-            />
           </>
         )}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Evolucion de cargas</CardTitle>
+          <CardTitle>Evolucion de valor convertido</CardTitle>
           <CardDescription>Total acumulado por dia en el periodo.</CardDescription>
         </CardHeader>
         <CardContent className="h-[300px]">
@@ -78,7 +88,7 @@ export const AdminStatsPage = () => {
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Bar dataKey="totalAmount" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="totalValue" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -89,7 +99,7 @@ export const AdminStatsPage = () => {
         <CardHeader>
           <CardTitle>Comparativa por cajero</CardTitle>
           <CardDescription>
-            Horas activas, cargas y clientes desde publicidad por cajero.
+            Leads por estado, conversion y horas activas por cajero.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -97,36 +107,47 @@ export const AdminStatsPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Cajero</TableHead>
-                <TableHead>Cargas</TableHead>
-                <TableHead>Monto</TableHead>
+                <TableHead>Total leads</TableHead>
+                <TableHead>Contactados</TableHead>
+                <TableHead>Convertidos</TableHead>
+                <TableHead>Expirados</TableHead>
+                <TableHead>Tasa conversion</TableHead>
+                <TableHead>Valor convertido</TableHead>
                 <TableHead>Horas</TableHead>
-                <TableHead>Clientes ads</TableHead>
-                <TableHead>% ads</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {cashierStatsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6}>Cargando estadisticas...</TableCell>
+                  <TableCell colSpan={8}>Cargando estadisticas...</TableCell>
                 </TableRow>
               ) : cashierStats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6}>No hay datos para el periodo seleccionado.</TableCell>
+                  <TableCell colSpan={8}>No hay datos para el periodo seleccionado.</TableCell>
                 </TableRow>
               ) : (
-                cashierStats.map((cashier) => (
+                paginatedStats.map((cashier) => (
                   <TableRow key={cashier.cashierId}>
                     <TableCell>{cashier.cashierName}</TableCell>
-                    <TableCell>{cashier.operationsCount}</TableCell>
-                    <TableCell>{formatCurrency(cashier.addedFundsTotal)}</TableCell>
+                    <TableCell>{cashier.totalLeads}</TableCell>
+                    <TableCell>{cashier.contactedLeads}</TableCell>
+                    <TableCell>{cashier.convertedLeads}</TableCell>
+                    <TableCell>{cashier.expiredLeads}</TableCell>
+                    <TableCell>{formatPercentage(cashier.conversionRate)}</TableCell>
+                    <TableCell>{formatCurrency(cashier.convertedValue)}</TableCell>
                     <TableCell>{formatHours(cashier.activeHours)}</TableCell>
-                    <TableCell>{cashier.adsClients}</TableCell>
-                    <TableCell>{formatPercentage(cashier.adsClientsPercentage)}</TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          <div className="mt-3">
+          <PaginationControls
+            page={normalizedPage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+          </div>
         </CardContent>
       </Card>
     </section>

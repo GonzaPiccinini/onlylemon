@@ -33,6 +33,7 @@ import {
   useWhatsappLinkState,
   useWhatsappLinkStatus,
 } from '@/features/cashier/cashier-hooks';
+import { PaginationControls } from '@/components/common/pagination-controls';
 
 const REFRESH_INTERVAL_SECONDS = 45;
 
@@ -58,6 +59,8 @@ export const CashierSessionPage = () => {
   const [refreshCount, setRefreshCount] = useState(0);
   const [maxRefresh, setMaxRefresh] = useState(3);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL_SECONDS);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const timerRef = useRef<number | null>(null);
 
   const stopRefreshTimer = () => {
@@ -162,6 +165,11 @@ export const CashierSessionPage = () => {
     [maxRefresh, refreshCount],
   );
 
+  const totalPages = Math.max(1, Math.ceil(sessions.length / pageSize));
+  const normalizedPage = Math.min(page, totalPages);
+  const start = (normalizedPage - 1) * pageSize;
+  const paginatedSessions = sessions.slice(start, start + pageSize);
+
   const handleStart = async () => {
     try {
       await startSession.mutateAsync();
@@ -175,6 +183,7 @@ export const CashierSessionPage = () => {
     try {
       await finishSession.mutateAsync();
       toast.success('Sesion finalizada');
+      setPage(1);
     } catch {
       toast.error('No se pudo finalizar sesion');
     }
@@ -357,7 +366,7 @@ export const CashierSessionPage = () => {
                   <TableCell colSpan={4}>Aun no registras sesiones.</TableCell>
                 </TableRow>
               ) : (
-                sessions.map((session) => (
+                paginatedSessions.map((session) => (
                   <TableRow key={session.id}>
                     <TableCell>{formatDateTime(session.startDate)}</TableCell>
                     <TableCell>
@@ -368,12 +377,19 @@ export const CashierSessionPage = () => {
                         {session.isActive ? 'Activa' : 'Finalizada'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{session.activeMinutes}</TableCell>
+                    <TableCell>{session.activeMinutes.toFixed(2)}</TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          <div className='mt-3'>
+            <PaginationControls
+              page={normalizedPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         </CardContent>
       </Card>
     </section>
