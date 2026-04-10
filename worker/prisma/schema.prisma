@@ -8,16 +8,13 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
-  name     String
-  username String @unique
-  password String
-
-  role Role
-
-  admin   Admin?
-  cashier Cashier?
-
+  id        String   @id @default(uuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      Role
+  admin     Admin?
+  cashier   Cashier?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -25,10 +22,9 @@ model User {
 }
 
 model Admin {
-  id     String @id @default(uuid())
-  user   User   @relation(fields: [userId], references: [id])
-  userId String @unique
-
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -36,22 +32,19 @@ model Admin {
 }
 
 model Cashier {
-  id     String @id @default(uuid())
-  user   User   @relation(fields: [userId], references: [id])
-  userId String @unique
-
-  sessionName               String? @unique
-  whatsappPhoneNumber       String?
-  whatsappLinkRefreshCount  Int     @default(0)
-  whatsappLinkUpdatedAt     DateTime?
-  status                    CashierStatus     @default(ACTIVE)
-  activity    SessionActivity[]
-  chat        Chat[]
-
-  landings CashierLanding[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String            @id @default(uuid())
+  user                     User              @relation(fields: [userId], references: [id])
+  userId                   String            @unique
+  sessionName              String?           @unique
+  whatsappPhoneNumber      String?
+  whatsappLinkRefreshCount Int               @default(0)
+  whatsappLinkUpdatedAt    DateTime?
+  status                   CashierStatus     @default(ACTIVE)
+  activity                 SessionActivity[]
+  leads                    Lead[]
+  landings                 CashierLanding[]
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
 
   @@map("Cashier")
 }
@@ -60,80 +53,46 @@ model SessionActivity {
   id        String    @id @default(uuid())
   createdAt DateTime  @default(now())
   endedAt   DateTime?
-
-  cashierId String  @map("cashierId")
-  cashier   Cashier @relation(fields: [cashierId], references: [id])
-}
-
-model Chat {
-  id      String  @id @default(uuid())
-  phone   String
-  fromAds Boolean
-
-  cashierId String  @map("cashierId")
-  cashier   Cashier @relation(fields: [cashierId], references: [id])
-
-  addedFunds AddFunds[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("Chat")
-}
-
-model AddFunds {
-  id          String  @id @default(uuid())
-  userName    String
-  phoneNumber String
-  amount      Decimal @db.Decimal(10, 2)
-
-  chatId String
-  chat   Chat   @relation(fields: [chatId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@map("AddFunds")
+  cashierId String    @map("cashierId")
+  cashier   Cashier   @relation(fields: [cashierId], references: [id])
 }
 
 model Lead {
-  id   String @id @default(uuid())
-  code String @unique
-
-  fbc String
-  fbp String
-
-  status LEADS_STATUS @default(PENDING)
-
+  id          String     @id @default(uuid())
+  code        String     @unique
+  fbc         String
+  fbp         String
+  metaPixelId String
+  amount      Decimal?   @db.Decimal(10, 2)
+  status      LeadStatus @default(NOT_CONTACTED)
   userAgent   String
   phone       String?
+  cashierId   String?
+  cashier     Cashier?   @relation(fields: [cashierId], references: [id])
   expiresAt   DateTime
-  matchedAt   DateTime?
+  contactedAt DateTime?
   convertedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  createdAt   DateTime   @default(now())
+  updateAt    DateTime   @updatedAt
 
   @@index([phone])
+  @@index([cashierId, status, contactedAt])
 }
 
 model Landing {
-  id String @id @default(uuid())
-
+  id              String           @id @default(uuid())
   url             String
-  metaPixelId     String
+  metaPixelId     String           @unique
   metaAccessToken String
-  status          LandingStatus @default(ACTIVE)
-
-  cashiers CashierLanding[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status          LandingStatus    @default(ACTIVE)
+  cashiers        CashierLanding[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model CashierLanding {
   cashierId String
   cashier   Cashier @relation(fields: [cashierId], references: [id])
-
   landingId String
   landing   Landing @relation(fields: [landingId], references: [id])
 
@@ -164,8 +123,8 @@ enum LandingStatus {
   DISABLED
 }
 
-enum LEADS_STATUS {
-  PENDING
+enum LeadStatus {
+  NOT_CONTACTED
   CONTACTED
   CONVERTED
   EXPIRED

@@ -3,17 +3,19 @@ import {
   createCashier,
   createLanding,
   disableCashier,
+  enableCashier,
   getCashierLandings,
-  getAddFundsByDateRange,
+  getLeadsByDateRange,
   getSessionActivitiesByDateRange,
-  listLandings,
   listCashiers,
+  listLandings,
+  listLeads,
   replaceCashierLandings,
   setLandingStatus,
-  updateLanding,
   updateCashier,
+  updateLanding,
 } from './admin.repository.js';
-import type { DateRangeQuery } from './admin.types.js';
+import type { DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
 
 const toRange = (query: DateRangeQuery) => ({
   from: new Date(`${query.from}T00:00:00.000Z`),
@@ -43,6 +45,40 @@ const toLandingDto = (landing: {
   status: landing.status,
   createdAt: landing.createdAt,
   updatedAt: landing.updatedAt,
+});
+
+const toLeadDto = (lead: {
+  id: string;
+  code: string;
+  status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  phone: string | null;
+  amount: unknown | null;
+  metaPixelId: string;
+  contactedAt: Date | null;
+  convertedAt: Date | null;
+  expiresAt: Date;
+  createdAt: Date;
+  cashier: {
+    id: string;
+    user: {
+      name: string;
+      username: string;
+    };
+  } | null;
+}) => ({
+  id: lead.id,
+  code: lead.code,
+  status: lead.status,
+  phone: lead.phone,
+  amount: lead.amount === null ? null : Number(lead.amount),
+  metaPixelId: lead.metaPixelId,
+  contactedAt: lead.contactedAt,
+  convertedAt: lead.convertedAt,
+  expiresAt: lead.expiresAt,
+  createdAt: lead.createdAt,
+  cashierId: lead.cashier?.id ?? null,
+  cashierName: lead.cashier?.user.name ?? null,
+  cashierUsername: lead.cashier?.user.username ?? null,
 });
 
 export const listCashiersService = async () => {
@@ -79,9 +115,12 @@ export const createCashierService = async (input: {
 
 export const updateCashierService = async (
   cashierId: string,
-  input: { name: string; username: string },
+  input: { name: string; username: string; password?: string },
 ) => {
-  const updated = await updateCashier(cashierId, input);
+  const updated = await updateCashier(cashierId, {
+    ...input,
+    ...(input.password ? { password: hashPassword(input.password) } : {}),
+  });
   if (!updated) {
     return null;
   }
@@ -108,13 +147,58 @@ export const disableCashierService = async (cashierId: string) => {
   };
 };
 
+export const enableCashierService = async (cashierId: string) => {
+  const enabled = await enableCashier(cashierId);
+  return {
+    id: enabled.id,
+    name: enabled.user.name,
+    username: enabled.user.username,
+    status: enabled.status,
+    createdAt: enabled.createdAt,
+    landings: enabled.landings.map((entry) => toLandingDto(entry.landing)),
+  };
+};
+
 export const getSummaryService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const addFunds = await getAddFundsByDateRange(range.from, range.to, query.cashierId);
-  const activities = await getSessionActivitiesByDateRange(range.from, range.to, query.cashierId);
+  const leads = await getLeadsByDateRange(range.from, range.to, query.cashierId);
+  const activities = await getSessionActivitiesByDateRange(
+    range.from,
+    range.to,
+    query.cashierId,
+  );
 
-  const totalAddedFunds = addFunds.reduce((acc, item) => acc + toNumber(item.amount), 0);
-  const totalOperations = addFunds.length;
+  const contacted = leads.filter((lead) => lead.status === 'CONTACTED').length;
+  const converted = leads.filter((lead) => lead.status === 'CONVERTED').length;
+  const expired = leads.filter((lead) => lead.status === 'EXPIRED').length;
+
+  const totalConvertedValue = leads
+    .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
+    .reduce((acc, lead) => acc + toNumber(lead.amount), 0);
+
+  const averageConvertedValue = converted === 0 ? 0 : totalConvertedValue / converted;
+
+  const averageConversionHours = (() => {
+    const convertedWithContact = leads.filter(
+      (lead) => lead.status === 'CONVERTED' && lead.contactedAt && lead.convertedAt,
+    );
+
+    if (convertedWithContact.length === 0) {
+      return 0;
+    }
+
+    const totalHours = convertedWithContact.reduce((acc, lead) => {
+      const contactedAt = lead.contactedAt;
+      const convertedAt = lead.convertedAt;
+      if (!contactedAt || !convertedAt) {
+        return acc;
+      }
+
+      return acc + (convertedAt.getTime() - contactedAt.getTime()) / 1000 / 60 / 60;
+    }, 0);
+
+    return totalHours / convertedWithContact.length;
+  })();
 
   const totalActiveMinutes = activities.reduce((acc, item) => {
     if (!item.endedAt) {
@@ -124,53 +208,60 @@ export const getSummaryService = async (query: DateRangeQuery) => {
     return acc + (item.endedAt.getTime() - item.createdAt.getTime()) / 1000 / 60;
   }, 0);
 
-  const uniqueClients = new Set(addFunds.map((item) => item.userName));
-  const adsClients = new Set(
-    addFunds.filter((item) => item.chat.fromAds).map((item) => item.userName),
-  );
-
   return {
-    totalAddedFunds,
-    totalOperations,
+    totalLeads: leads.length,
+    contactedLeads: contacted,
+    convertedLeads: converted,
+    expiredLeads: expired,
+    conversionRate: contacted === 0 ? 0 : (converted / contacted) * 100,
+    totalConvertedValue,
+    averageConvertedValue,
+    averageConversionHours,
     totalActiveHours: totalActiveMinutes / 60,
-    totalClients: uniqueClients.size,
-    adsClients: adsClients.size,
-    adsClientsPercentage:
-      uniqueClients.size === 0 ? 0 : (adsClients.size / uniqueClients.size) * 100,
   };
 };
 
 export const getCashierStatsService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const addFunds = await getAddFundsByDateRange(range.from, range.to, query.cashierId);
-  const activities = await getSessionActivitiesByDateRange(range.from, range.to, query.cashierId);
+  const leads = await getLeadsByDateRange(range.from, range.to, query.cashierId);
+  const activities = await getSessionActivitiesByDateRange(
+    range.from,
+    range.to,
+    query.cashierId,
+  );
 
   const grouped = new Map<
     string,
     {
       cashierId: string;
       cashierName: string;
-      addedFundsTotal: number;
-      operationsCount: number;
+      totalLeads: number;
+      contactedLeads: number;
+      convertedLeads: number;
+      expiredLeads: number;
+      convertedValue: number;
       activeMinutes: number;
-      totalClients: Set<string>;
-      adsClients: Set<string>;
     }
   >();
 
-  addFunds.forEach((item) => {
-    const cashierId = item.chat.cashierId;
-    const cashierName = item.chat.cashier.user.name;
+  leads.forEach((lead) => {
+    if (!lead.cashier) {
+      return;
+    }
+
+    const cashierId = lead.cashier.id;
+    const cashierName = lead.cashier.user.name;
 
     if (!grouped.has(cashierId)) {
       grouped.set(cashierId, {
         cashierId,
         cashierName,
-        addedFundsTotal: 0,
-        operationsCount: 0,
+        totalLeads: 0,
+        contactedLeads: 0,
+        convertedLeads: 0,
+        expiredLeads: 0,
+        convertedValue: 0,
         activeMinutes: 0,
-        totalClients: new Set<string>(),
-        adsClients: new Set<string>(),
       });
     }
 
@@ -179,11 +270,20 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
       return;
     }
 
-    current.addedFundsTotal += toNumber(item.amount);
-    current.operationsCount += 1;
-    current.totalClients.add(item.userName);
-    if (item.chat.fromAds) {
-      current.adsClients.add(item.userName);
+    current.totalLeads += 1;
+    if (lead.status === 'CONTACTED') {
+      current.contactedLeads += 1;
+    }
+
+    if (lead.status === 'CONVERTED') {
+      current.convertedLeads += 1;
+      if (lead.amount !== null) {
+        current.convertedValue += toNumber(lead.amount);
+      }
+    }
+
+    if (lead.status === 'EXPIRED') {
+      current.expiredLeads += 1;
     }
   });
 
@@ -199,11 +299,12 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
       grouped.set(cashierId, {
         cashierId,
         cashierName,
-        addedFundsTotal: 0,
-        operationsCount: 0,
+        totalLeads: 0,
+        contactedLeads: 0,
+        convertedLeads: 0,
+        expiredLeads: 0,
+        convertedValue: 0,
         activeMinutes: 0,
-        totalClients: new Set<string>(),
-        adsClients: new Set<string>(),
       });
     }
 
@@ -219,32 +320,41 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
   return [...grouped.values()].map((entry) => ({
     cashierId: entry.cashierId,
     cashierName: entry.cashierName,
-    addedFundsTotal: entry.addedFundsTotal,
-    operationsCount: entry.operationsCount,
-    activeHours: entry.activeMinutes / 60,
-    adsClients: entry.adsClients.size,
-    totalClients: entry.totalClients.size,
-    adsClientsPercentage:
-      entry.totalClients.size === 0
+    totalLeads: entry.totalLeads,
+    contactedLeads: entry.contactedLeads,
+    convertedLeads: entry.convertedLeads,
+    expiredLeads: entry.expiredLeads,
+    conversionRate:
+      entry.contactedLeads === 0
         ? 0
-        : (entry.adsClients.size / entry.totalClients.size) * 100,
+        : (entry.convertedLeads / entry.contactedLeads) * 100,
+    convertedValue: entry.convertedValue,
+    activeHours: entry.activeMinutes / 60,
   }));
 };
 
 export const getFundsSeriesService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const addFunds = await getAddFundsByDateRange(range.from, range.to, query.cashierId);
+  const leads = await getLeadsByDateRange(range.from, range.to, query.cashierId);
 
   const grouped = new Map<string, number>();
 
-  addFunds.forEach((item) => {
-    const day = item.createdAt.toISOString().slice(0, 10);
-    grouped.set(day, (grouped.get(day) ?? 0) + toNumber(item.amount));
-  });
+  leads
+    .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
+    .forEach((lead) => {
+      const dateSource = lead.convertedAt ?? lead.createdAt;
+      const day = dateSource.toISOString().slice(0, 10);
+      grouped.set(day, (grouped.get(day) ?? 0) + toNumber(lead.amount));
+    });
 
   return [...grouped.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([date, totalAmount]) => ({ date, totalAmount }));
+    .map(([date, totalValue]) => ({ date, totalValue }));
+};
+
+export const listLeadsService = async (filters: LeadsFilterQuery) => {
+  const leads = await listLeads(filters);
+  return leads.map(toLeadDto);
 };
 
 export const listLandingsService = async () => {

@@ -55,8 +55,6 @@ export const ModelName = {
   Admin: 'Admin',
   Cashier: 'Cashier',
   SessionActivity: 'SessionActivity',
-  Chat: 'Chat',
-  AddFunds: 'AddFunds',
   Lead: 'Lead',
   Landing: 'Landing',
   CashierLanding: 'CashierLanding',
@@ -127,40 +125,19 @@ export const SessionActivityScalarFieldEnum = {
 export type SessionActivityScalarFieldEnum = (typeof SessionActivityScalarFieldEnum)[keyof typeof SessionActivityScalarFieldEnum]
 
 
-export const ChatScalarFieldEnum = {
-  id: 'id',
-  phone: 'phone',
-  fromAds: 'fromAds',
-  cashierId: 'cashierId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type ChatScalarFieldEnum = (typeof ChatScalarFieldEnum)[keyof typeof ChatScalarFieldEnum]
-
-
-export const AddFundsScalarFieldEnum = {
-  id: 'id',
-  userName: 'userName',
-  phoneNumber: 'phoneNumber',
-  amount: 'amount',
-  chatId: 'chatId',
-  createdAt: 'createdAt'
-} as const
-
-export type AddFundsScalarFieldEnum = (typeof AddFundsScalarFieldEnum)[keyof typeof AddFundsScalarFieldEnum]
-
-
 export const LeadScalarFieldEnum = {
   id: 'id',
   code: 'code',
   fbc: 'fbc',
   fbp: 'fbp',
+  metaPixelId: 'metaPixelId',
+  amount: 'amount',
   status: 'status',
   userAgent: 'userAgent',
   phone: 'phone',
+  cashierId: 'cashierId',
   expiresAt: 'expiresAt',
-  matchedAt: 'matchedAt',
+  contactedAt: 'contactedAt',
   convertedAt: 'convertedAt',
   createdAt: 'createdAt',
   updateAt: 'updateAt'

@@ -48,7 +48,7 @@ export const createCashier = async (input: {
 
 export const updateCashier = async (
   cashierId: string,
-  input: { name: string; username: string },
+  input: { name: string; username: string; password?: string },
 ) =>
   prisma.$transaction(async (tx) => {
     const cashier = await tx.cashier.findUnique({ where: { id: cashierId } });
@@ -61,6 +61,7 @@ export const updateCashier = async (
       data: {
         name: input.name,
         username: input.username,
+        ...(input.password ? { password: input.password } : {}),
       },
     });
 
@@ -82,6 +83,22 @@ export const disableCashier = (cashierId: string) =>
     where: { id: cashierId },
     data: {
       status: 'DISABLED',
+    },
+    include: {
+      user: true,
+      landings: {
+        include: {
+          landing: true,
+        },
+      },
+    },
+  });
+
+export const enableCashier = (cashierId: string) =>
+  prisma.cashier.update({
+    where: { id: cashierId },
+    data: {
+      status: 'ACTIVE',
     },
     include: {
       user: true,
@@ -118,44 +135,28 @@ export const getSessionActivitiesByDateRange = (
       cashier: {
         include: {
           user: true,
-          chat: {
-            include: {
-              addedFunds: true,
-            },
-          },
         },
       },
     },
   });
 
-export const getAddFundsByDateRange = (
+export const getLeadsByDateRange = (
   from: Date,
   to: Date,
   cashierId?: string,
 ) =>
-  prisma.addFunds.findMany({
+  prisma.lead.findMany({
     where: {
       createdAt: {
         gte: from,
         lte: to,
       },
-      chat: {
-        ...(cashierId ? { cashierId } : {}),
-      },
+      ...(cashierId ? { cashierId } : {}),
     },
     include: {
-      chat: {
+      cashier: {
         include: {
-          cashier: {
-            include: {
-              user: true,
-              landings: {
-                include: {
-                  landing: true,
-                },
-              },
-            },
-          },
+          user: true,
         },
       },
     },
@@ -194,6 +195,34 @@ export const updateLanding = (
       url: input.url,
       metaPixelId: input.metaPixelId,
       ...(input.metaAccessToken ? { metaAccessToken: input.metaAccessToken } : {}),
+    },
+  });
+
+export const getLandingByMetaPixelId = (metaPixelId: string) =>
+  prisma.landing.findUnique({
+    where: {
+      metaPixelId,
+    },
+  });
+
+export const listLeads = (filters: {
+  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  cashierId?: string;
+}) =>
+  prisma.lead.findMany({
+    where: {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
+    },
+    include: {
+      cashier: {
+        include: {
+          user: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
     },
   });
 

@@ -1,8 +1,6 @@
-import {
-  getLatestContactedLeadByPhone,
-  markLeadAsConvertedIfContacted,
-} from '../../persistence/repositories/leadsRepository.js';
+import { LeadStatus } from '../../generated/prisma/client.js';
 import { sendMetaConversion } from '../../integrations/leads/conversion.js';
+import { getLandingByMetaPixelId } from '../admin/admin.repository.js';
 import {
   createSessionIfNotExists,
   getSession,
@@ -11,20 +9,20 @@ import {
   startSession,
 } from '../../integrations/waha/client.js';
 import {
-  createAddFunds,
-  createChatInSession,
-  findChatByPhoneInSession,
+  convertLead,
+  findLeadByIdForCashier,
+  findQueueLeadForCashier,
   finishSessionActivity,
   getCashierSession,
   getCurrentSessionActivity,
-  listClientPhones,
-  listAddFundsByCashier,
+  listLeadsForCashier,
   listSessionActivities,
-  resolveFromAdsByPhone,
+  moveLeadToQueueTail,
   startSessionActivity,
+  updateCashierAccount,
   updateCashierWhatsappLink,
 } from './cashier.repository.js';
-import type { AddFundsPayload } from './cashier.types.js';
+import { hashPassword } from '../../utils/password.js';
 
 const WHATSAPP_LINK_MAX_REFRESH = 3;
 
@@ -45,6 +43,28 @@ const toSessionDto = (item: {
     activeMinutes,
   };
 };
+
+const toLeadDto = (lead: {
+  id: string;
+  code: string;
+  phone: string | null;
+  status: LeadStatus;
+  amount: unknown | null;
+  contactedAt: Date | null;
+  convertedAt: Date | null;
+  expiresAt: Date;
+  createdAt: Date;
+}) => ({
+  id: lead.id,
+  code: lead.code,
+  phone: lead.phone,
+  status: lead.status,
+  amount: lead.amount === null ? null : Number(lead.amount),
+  contactedAt: lead.contactedAt,
+  convertedAt: lead.convertedAt,
+  expiresAt: lead.expiresAt,
+  createdAt: lead.createdAt,
+});
 
 export const listSessionsService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
@@ -100,15 +120,6 @@ export const finishSessionService = async (cashierId: string) => {
     cashierId,
     cashierName: cashier.user.name,
   };
-};
-
-export const listClientPhonesService = async (cashierId: string) => {
-  await getCashierSession(cashierId);
-  const existing = await listClientPhones();
-  return existing.map((item) => ({
-    phoneId: item.phoneNumber,
-    phoneNumber: item.phoneNumber,
-  }));
 };
 
 const getSessionCandidateName = (cashierId: string) => `cashier-${cashierId}`;
@@ -254,83 +265,116 @@ export const completeWhatsappLinkService = async (
   };
 };
 
-const sendConversionIfApplicable = async (addFundsId: string, input: AddFundsPayload) => {
-  const lead = await getLatestContactedLeadByPhone(input.phoneNumber);
+export const getCurrentQueueLeadService = async (cashierId: string) => {
+  await getCashierSession(cashierId);
+  const lead = await findQueueLeadForCashier(cashierId);
+
   if (!lead) {
-    return;
+    return null;
   }
 
-  const converted = await markLeadAsConvertedIfContacted(lead.id);
-  if (converted !== 1) {
-    return;
+  return toLeadDto(lead);
+};
+
+export const skipQueueLeadService = async (cashierId: string, leadId: string) => {
+  const lead = await findLeadByIdForCashier(leadId, cashierId);
+  if (!lead) {
+    return 'NOT_FOUND' as const;
+  }
+
+  if (lead.status !== 'CONTACTED') {
+    return 'INVALID_STATUS' as const;
+  }
+
+  const now = new Date();
+  if (lead.expiresAt <= now) {
+    return 'EXPIRED' as const;
+  }
+
+  await moveLeadToQueueTail(lead.id, now);
+  return 'OK' as const;
+};
+
+export const convertQueueLeadService = async (
+  cashierId: string,
+  leadId: string,
+  amount: number,
+) => {
+  const lead = await findLeadByIdForCashier(leadId, cashierId);
+  if (!lead) {
+    return { kind: 'NOT_FOUND' as const };
+  }
+
+  if (lead.status !== 'CONTACTED') {
+    return { kind: 'INVALID_STATUS' as const };
+  }
+
+  const now = new Date();
+  if (lead.expiresAt <= now) {
+    return { kind: 'EXPIRED' as const };
+  }
+
+  if (!lead.phone) {
+    return { kind: 'PHONE_REQUIRED' as const };
+  }
+
+  const converted = await convertLead(lead.id, amount, now);
+  const landing = await getLandingByMetaPixelId(lead.metaPixelId);
+
+  if (!landing) {
+    console.error('meta_landing_not_found', {
+      leadId: lead.id,
+      metaPixelId: lead.metaPixelId,
+    });
+
+    return { kind: 'OK' as const, data: toLeadDto(converted) };
   }
 
   const sent = await sendMetaConversion({
-    phoneNumber: input.phoneNumber,
-    value: input.amount,
+    phone: lead.phone,
+    value: amount,
     fbc: lead.fbc,
     fbp: lead.fbp,
     userAgent: lead.userAgent,
-    eventId: addFundsId,
+    metaPixelId: lead.metaPixelId,
+    metaAccessToken: landing.metaAccessToken,
+    eventId: lead.id,
   });
 
   if (!sent) {
     console.error('meta_conversion_failed', {
       leadId: lead.id,
-      addFundsId,
+      metaPixelId: lead.metaPixelId,
     });
   }
+
+  return { kind: 'OK' as const, data: toLeadDto(converted) };
 };
 
-export const createAddFundsService = async (
+export const listCashierLeadsService = async (
   cashierId: string,
-  input: AddFundsPayload,
+  status?: LeadStatus,
 ) => {
-  const cashier = await getCashierSession(cashierId);
-  const current = await getCurrentSessionActivity(cashier.id);
-  if (!current) {
-    return null;
-  }
+  await getCashierSession(cashierId);
+  const leads = await listLeadsForCashier(cashierId, status);
+  return leads.map(toLeadDto);
+};
 
-  let chat = await findChatByPhoneInSession(cashier.id, input.phoneNumber);
-  if (!chat) {
-    const fromAds = await resolveFromAdsByPhone(input.phoneNumber);
-    chat = await createChatInSession(cashier.id, input.phoneNumber, fromAds);
-  }
-
-  const addFunds = await createAddFunds({
-    ...input,
-    chatId: chat.id,
+export const updateCashierAccountService = async (
+  cashierId: string,
+  input: {
+    username?: string;
+    password?: string;
+  },
+) => {
+  const updated = await updateCashierAccount(cashierId, {
+    ...(input.username ? { username: input.username } : {}),
+    ...(input.password ? { password: hashPassword(input.password) } : {}),
   });
 
-  await sendConversionIfApplicable(addFunds.id, input);
-
   return {
-    id: addFunds.id,
-    cashierId,
-    cashierName: addFunds.chat.cashier.user.name,
-    userName: addFunds.userName,
-    phoneId: addFunds.phoneNumber,
-    phoneNumber: addFunds.phoneNumber,
-    amount: Number(addFunds.amount),
-    fromAds: addFunds.chat.fromAds,
-    createdAt: addFunds.createdAt,
+    id: updated.id,
+    name: updated.name,
+    username: updated.username,
   };
-};
-
-export const listAddFundsHistoryService = async (cashierId: string) => {
-  const cashier = await getCashierSession(cashierId);
-  const addFunds = await listAddFundsByCashier(cashier.id);
-
-  return addFunds.map((item) => ({
-    id: item.id,
-    cashierId,
-    cashierName: cashier.user.name,
-    userName: item.userName,
-    phoneId: item.phoneNumber,
-    phoneNumber: item.phoneNumber,
-    amount: Number(item.amount),
-    fromAds: item.chat.fromAds,
-    createdAt: item.createdAt,
-  }));
 };

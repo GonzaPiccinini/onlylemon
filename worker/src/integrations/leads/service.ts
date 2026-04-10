@@ -4,11 +4,13 @@ import { Prisma } from '../../generated/prisma/client.js';
 import { config } from '../../config/env.js';
 import { getNumberByLid } from '../waha/client.js';
 import {
+  expireLeadIfStillOpen,
   getLeadByCode,
-  markLeadAsContactedIfPending,
+  markLeadAsContacted,
   saveLead,
   updateLead,
 } from '../../persistence/repositories/leadsRepository.js';
+import { getCashierBySessionName } from '../../modules/cashier/cashier.repository.js';
 
 const CODE_LENGTH = 8;
 const MAX_CODE_GENERATION_ATTEMPTS = 5;
@@ -21,6 +23,7 @@ export const CreateLeadPayloadSchema = z.object({
   fbc: z.string().trim().min(1).max(512),
   fbp: z.string().trim().min(1).max(512),
   userAgent: z.string().trim().min(1).max(2048),
+  metaPixelId: z.string().trim().min(1).max(128),
 });
 
 export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
@@ -36,6 +39,7 @@ export type LeadMatchResult =
   | 'NOT_FOUND'
   | 'EXPIRED'
   | 'ALREADY_USED'
+  | 'SESSION_NOT_MAPPED'
   | 'MATCHED'
   | 'PHONE_LOOKUP_FAILED';
 
@@ -47,13 +51,15 @@ function isUniqueConstraintError(error: unknown): boolean {
 }
 
 function getExpiresAt(now: Date): Date {
-  return new Date(now.getTime() + config.LEADS_CODE_TTL_HOURS * 60 * 60 * 1000);
+  const maxHours = 7 * 24;
+  const ttlHours = Math.min(config.LEADS_CODE_TTL_HOURS, maxHours);
+  return new Date(now.getTime() + ttlHours * 60 * 60 * 1000);
 }
 
 function extractLeadCode(body: string): string | null {
-  const match = body.match(/\bCODIGO\s*:\s*([a-z0-9]{6})\b/i);
+  const match = body.match(/\bCODIGO\s*:\s*([a-z0-9]{8})\b/i);
   if (!match?.[1]) return null;
-  return match[1].toLowerCase();
+  return match[1].toUpperCase();
 }
 
 export async function createLead(
@@ -101,14 +107,19 @@ export async function mapLeadCodeToPhone(
   const lead = await getLeadByCode(code);
   if (!lead) return 'NOT_FOUND';
 
-  if (lead.status !== 'PENDING' || lead.matchedAt) {
+  if (lead.status !== 'NOT_CONTACTED' || lead.contactedAt) {
     return 'ALREADY_USED';
   }
 
   const now = new Date();
   if (lead.expiresAt <= now) {
-    await updateLead(lead.id, { status: 'EXPIRED' });
+    await expireLeadIfStillOpen(lead.id);
     return 'EXPIRED';
+  }
+
+  const cashier = await getCashierBySessionName(session);
+  if (!cashier) {
+    return 'SESSION_NOT_MAPPED';
   }
 
   try {
@@ -119,7 +130,12 @@ export async function mapLeadCodeToPhone(
       return 'PHONE_LOOKUP_FAILED';
     }
 
-    const updatedRows = await markLeadAsContactedIfPending(lead.id, phone, now);
+    const updatedRows = await markLeadAsContacted(
+      lead.id,
+      phone,
+      cashier.id,
+      now,
+    );
     return updatedRows === 1 ? 'MATCHED' : 'ALREADY_USED';
   } catch {
     return 'PHONE_LOOKUP_FAILED';

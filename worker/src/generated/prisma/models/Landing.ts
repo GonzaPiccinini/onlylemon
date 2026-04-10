@@ -214,17 +214,17 @@ export type LandingOrderByWithRelationInput = {
 
 export type LandingWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  metaPixelId?: string
   AND?: Prisma.LandingWhereInput | Prisma.LandingWhereInput[]
   OR?: Prisma.LandingWhereInput[]
   NOT?: Prisma.LandingWhereInput | Prisma.LandingWhereInput[]
   url?: Prisma.StringFilter<"Landing"> | string
-  metaPixelId?: Prisma.StringFilter<"Landing"> | string
   metaAccessToken?: Prisma.StringFilter<"Landing"> | string
   status?: Prisma.EnumLandingStatusFilter<"Landing"> | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   cashiers?: Prisma.CashierLandingListRelationFilter
-}, "id">
+}, "id" | "metaPixelId">
 
 export type LandingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder

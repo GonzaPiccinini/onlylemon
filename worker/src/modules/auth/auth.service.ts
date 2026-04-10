@@ -46,6 +46,10 @@ export const login = async (payload: LoginPayload): Promise<LoginResult | null> 
     return null;
   }
 
+  if (user.role === 'CASHIER' && user.cashier?.status === 'DISABLED') {
+    return null;
+  }
+
   if (!isPasswordValid(payload.password, user.password)) {
     return null;
   }

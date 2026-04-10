@@ -62,16 +62,6 @@ export type Cashier = Prisma.CashierModel
  */
 export type SessionActivity = Prisma.SessionActivityModel
 /**
- * Model Chat
- * 
- */
-export type Chat = Prisma.ChatModel
-/**
- * Model AddFunds
- * 
- */
-export type AddFunds = Prisma.AddFundsModel
-/**
  * Model Lead
  * 
  */

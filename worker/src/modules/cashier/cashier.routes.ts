@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../security/auth.middleware.js';
 import {
-  addFundsHandler,
-  addFundsHistoryHandler,
-  clientPhonesHandler,
   currentSessionHandler,
   finishSessionHandler,
+  leadsListHandler,
   listSessionsHandler,
+  queueConvertLeadHandler,
+  queueCurrentLeadHandler,
+  queueSkipLeadHandler,
   startSessionHandler,
+  updateAccountHandler,
   whatsappLinkCompleteHandler,
   whatsappLinkRefreshHandler,
   whatsappLinkResetHandler,
@@ -25,9 +27,11 @@ cashierRouter.get('/sessions/current', currentSessionHandler);
 cashierRouter.post('/sessions/start', startSessionHandler);
 cashierRouter.post('/sessions/finish', finishSessionHandler);
 
-cashierRouter.get('/client-phones', clientPhonesHandler);
-cashierRouter.post('/add-funds', addFundsHandler);
-cashierRouter.get('/add-funds/history', addFundsHistoryHandler);
+cashierRouter.get('/leads/queue/current', queueCurrentLeadHandler);
+cashierRouter.post('/leads/:leadId/convert', queueConvertLeadHandler);
+cashierRouter.post('/leads/:leadId/skip', queueSkipLeadHandler);
+cashierRouter.get('/leads', leadsListHandler);
+cashierRouter.patch('/account', updateAccountHandler);
 
 cashierRouter.get('/whatsapp/link-state', whatsappLinkStateHandler);
 cashierRouter.post('/whatsapp/link/start', whatsappLinkStartHandler);

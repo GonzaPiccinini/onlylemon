@@ -3,6 +3,7 @@ import {
   createCashierSchema,
   createLandingSchema,
   dateRangeSchema,
+  leadsFilterSchema,
   replaceCashierLandingsSchema,
   updateCashierSchema,
   updateLandingSchema,
@@ -11,11 +12,13 @@ import {
   createCashierService,
   createLandingService,
   disableCashierService,
+  enableCashierService,
   getCashierStatsService,
   getFundsSeriesService,
   getSummaryService,
   listCashierLandingsService,
   listCashiersService,
+  listLeadsService,
   listLandingsService,
   replaceCashierLandingsService,
   setLandingStatusService,
@@ -54,17 +57,30 @@ export const updateCashierHandler = async (req: Request, res: Response) => {
     });
   }
 
-  const data = await updateCashierService(req.params.cashierId, parsed.data);
-  if (!data) {
-    return res.status(404).json({ error: 'Cashier not found' });
-  }
+  try {
+    const data = await updateCashierService(req.params.cashierId, parsed.data);
+    if (!data) {
+      return res.status(404).json({ error: 'Cashier not found' });
+    }
 
-  return res.status(200).json(data);
+    return res.status(200).json(data);
+  } catch {
+    return res.status(409).json({ error: 'Cashier could not be updated' });
+  }
 };
 
 export const disableCashierHandler = async (req: Request, res: Response) => {
   try {
     await disableCashierService(req.params.cashierId);
+    return res.status(204).send();
+  } catch {
+    return res.status(404).json({ error: 'Cashier not found' });
+  }
+};
+
+export const enableCashierHandler = async (req: Request, res: Response) => {
+  try {
+    await enableCashierService(req.params.cashierId);
     return res.status(204).send();
   } catch {
     return res.status(404).json({ error: 'Cashier not found' });
@@ -107,6 +123,19 @@ export const fundsSeriesHandler = async (req: Request, res: Response) => {
   }
 
   const data = await getFundsSeriesService(parsed.data);
+  return res.status(200).json(data);
+};
+
+export const listLeadsHandler = async (req: Request, res: Response) => {
+  const parsed = leadsFilterSchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid query',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  const data = await listLeadsService(parsed.data);
   return res.status(200).json(data);
 };
 

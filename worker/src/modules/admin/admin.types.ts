@@ -9,6 +9,7 @@ export const createCashierSchema = z.object({
 export const updateCashierSchema = z.object({
   name: z.string().trim().min(2),
   username: z.string().trim().min(3),
+  password: z.string().min(6).optional(),
 });
 
 export const createLandingSchema = z.object({
@@ -33,4 +34,10 @@ export const dateRangeSchema = z.object({
   cashierId: z.string().optional(),
 });
 
+export const leadsFilterSchema = z.object({
+  status: z.enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED', 'EXPIRED']).optional(),
+  cashierId: z.string().optional(),
+});
+
 export type DateRangeQuery = z.infer<typeof dateRangeSchema>;
+export type LeadsFilterQuery = z.infer<typeof leadsFilterSchema>;

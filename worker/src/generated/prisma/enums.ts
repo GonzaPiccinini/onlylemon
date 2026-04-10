@@ -33,11 +33,11 @@ export const LandingStatus = {
 export type LandingStatus = (typeof LandingStatus)[keyof typeof LandingStatus]
 
 
-export const LEADS_STATUS = {
-  PENDING: 'PENDING',
+export const LeadStatus = {
+  NOT_CONTACTED: 'NOT_CONTACTED',
   CONTACTED: 'CONTACTED',
   CONVERTED: 'CONVERTED',
   EXPIRED: 'EXPIRED'
 } as const
 
-export type LEADS_STATUS = (typeof LEADS_STATUS)[keyof typeof LEADS_STATUS]
+export type LeadStatus = (typeof LeadStatus)[keyof typeof LeadStatus]

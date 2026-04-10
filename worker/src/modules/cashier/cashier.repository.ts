@@ -1,4 +1,4 @@
-import { getLatestTrackedLeadByPhone } from '../../persistence/repositories/leadsRepository.js';
+import { LeadStatus } from '../../generated/prisma/client.js';
 import { prisma } from '../../persistence/prisma/client.js';
 
 export const getCashierSession = (cashierId: string) =>
@@ -6,6 +6,17 @@ export const getCashierSession = (cashierId: string) =>
     where: { id: cashierId },
     include: {
       user: true,
+    },
+  });
+
+export const getCashierBySessionName = (sessionName: string) =>
+  prisma.cashier.findFirst({
+    where: {
+      sessionName,
+    },
+    select: {
+      id: true,
+      sessionName: true,
     },
   });
 
@@ -56,125 +67,124 @@ export const finishSessionActivity = (activityId: string, endedAt: Date) =>
     data: { endedAt },
   });
 
-export const findChatByPhoneInSession = (cashierId: string, phoneNumber: string) =>
-  prisma.chat.findFirst({
+export const findQueueLeadForCashier = async (cashierId: string) => {
+  const now = new Date();
+
+  await prisma.lead.updateMany({
     where: {
       cashierId,
-      phone: phoneNumber,
+      status: 'CONTACTED',
+      expiresAt: {
+        lte: now,
+      },
     },
-  });
-
-export const createChatInSession = (
-  cashierId: string,
-  phoneNumber: string,
-  fromAds: boolean,
-) =>
-  prisma.chat.create({
     data: {
-      phone: phoneNumber,
-      cashierId,
-      fromAds,
+      status: 'EXPIRED',
     },
   });
 
-export const resolveFromAdsByPhone = async (phoneNumber: string): Promise<boolean> => {
-  const lead = await getLatestTrackedLeadByPhone(phoneNumber);
-  return Boolean(lead);
+  return prisma.lead.findFirst({
+    where: {
+      cashierId,
+      status: 'CONTACTED',
+      expiresAt: {
+        gt: now,
+      },
+    },
+    orderBy: [
+      {
+        contactedAt: 'asc',
+      },
+      {
+        createdAt: 'asc',
+      },
+    ],
+  });
 };
 
-export const createAddFunds = (input: {
-  userName: string;
-  phoneNumber: string;
-  amount: number;
-  chatId: string;
-}) =>
-  prisma.addFunds.create({
-    data: {
-      userName: input.userName,
-      phoneNumber: input.phoneNumber,
-      amount: input.amount,
-      chatId: input.chatId,
-    },
-    include: {
-      chat: {
-        include: {
-          cashier: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
+export const findLeadByIdForCashier = (leadId: string, cashierId: string) =>
+  prisma.lead.findFirst({
+    where: {
+      id: leadId,
+      cashierId,
     },
   });
 
-export const listAddFundsByCashier = (cashierId: string) =>
-  prisma.addFunds.findMany({
+export const moveLeadToQueueTail = (leadId: string, now: Date) =>
+  prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      contactedAt: now,
+    },
+  });
+
+export const convertLead = (leadId: string, amount: number, convertedAt: Date) =>
+  prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      amount,
+      status: 'CONVERTED',
+      convertedAt,
+    },
+  });
+
+export const listLeadsForCashier = async (
+  cashierId: string,
+  status?: LeadStatus,
+) => {
+  const now = new Date();
+
+  await prisma.lead.updateMany({
     where: {
-      chat: {
-        cashierId,
+      cashierId,
+      status: {
+        in: ['NOT_CONTACTED', 'CONTACTED'],
+      },
+      expiresAt: {
+        lte: now,
       },
     },
-    include: {
-      chat: true,
+    data: {
+      status: 'EXPIRED',
+    },
+  });
+
+  return prisma.lead.findMany({
+    where: {
+      cashierId,
+      ...(status ? { status } : {}),
     },
     orderBy: {
       createdAt: 'desc',
     },
   });
+};
 
-export const listClientPhones = async () => {
-  const leads = await prisma.lead.findMany({
+export const updateCashierAccount = async (
+  cashierId: string,
+  input: {
+    username?: string;
+    password?: string;
+  },
+) => {
+  const cashier = await prisma.cashier.findUniqueOrThrow({
     where: {
-      phone: {
-        not: null,
-      },
-      status: {
-        in: ['CONTACTED', 'CONVERTED'],
-      },
+      id: cashierId,
     },
-    orderBy: {
-      matchedAt: 'desc',
+  });
+
+  return prisma.user.update({
+    where: {
+      id: cashier.userId,
+    },
+    data: {
+      ...(input.username ? { username: input.username } : {}),
+      ...(input.password ? { password: input.password } : {}),
     },
     select: {
       id: true,
-      phone: true,
+      username: true,
+      name: true,
     },
   });
-
-  const addFundsPhones = await prisma.addFunds.findMany({
-    select: {
-      phoneNumber: true,
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-
-  const unique = new Map<string, { phoneId: string; phoneNumber: string }>();
-
-  leads.forEach((item) => {
-    if (!item.phone) {
-      return;
-    }
-
-    if (!unique.has(item.phone)) {
-      unique.set(item.phone, {
-        phoneId: item.id,
-        phoneNumber: item.phone,
-      });
-    }
-  });
-
-  addFundsPhones.forEach((item) => {
-    if (!unique.has(item.phoneNumber)) {
-      unique.set(item.phoneNumber, {
-        phoneId: item.phoneNumber,
-        phoneNumber: item.phoneNumber,
-      });
-    }
-  });
-
-  return [...unique.values()];
 };

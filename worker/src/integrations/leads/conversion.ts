@@ -1,11 +1,13 @@
 import { config } from '../../config/env.js';
 
 interface ConversionPayload {
-  phoneNumber: string;
+  phone: string;
   value: number;
   fbc: string;
   fbp: string;
   userAgent: string;
+  metaPixelId: string;
+  metaAccessToken: string;
   eventId: string;
 }
 
@@ -22,14 +24,10 @@ const sha256 = async (input: string): Promise<string> => {
 export const sendMetaConversion = async (
   payload: ConversionPayload,
 ): Promise<boolean> => {
-  if (!config.META_PIXEL_ID || !config.META_ACCESS_TOKEN) {
-    return false;
-  }
-
-  const hashedPhone = await sha256(normalizePhone(payload.phoneNumber));
+  const hashedPhone = await sha256(normalizePhone(payload.phone));
 
   const response = await fetch(
-    `https://graph.facebook.com/${config.META_API_VERSION}/${config.META_PIXEL_ID}/events?access_token=${config.META_ACCESS_TOKEN}`,
+    `https://graph.facebook.com/${config.META_API_VERSION}/${payload.metaPixelId}/events?access_token=${payload.metaAccessToken}`,
     {
       method: 'POST',
       headers: {

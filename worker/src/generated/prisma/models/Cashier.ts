@@ -250,7 +250,7 @@ export type CashierWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Cashier"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   activity?: Prisma.SessionActivityListRelationFilter
-  chat?: Prisma.ChatListRelationFilter
+  leads?: Prisma.LeadListRelationFilter
   landings?: Prisma.CashierLandingListRelationFilter
 }
 
@@ -266,7 +266,7 @@ export type CashierOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   activity?: Prisma.SessionActivityOrderByRelationAggregateInput
-  chat?: Prisma.ChatOrderByRelationAggregateInput
+  leads?: Prisma.LeadOrderByRelationAggregateInput
   landings?: Prisma.CashierLandingOrderByRelationAggregateInput
 }
 
@@ -285,7 +285,7 @@ export type CashierWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Cashier"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   activity?: Prisma.SessionActivityListRelationFilter
-  chat?: Prisma.ChatListRelationFilter
+  leads?: Prisma.LeadListRelationFilter
   landings?: Prisma.CashierLandingListRelationFilter
 }, "id" | "userId" | "sessionName">
 
@@ -332,7 +332,7 @@ export type CashierCreateInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCashierInput
   activity?: Prisma.SessionActivityCreateNestedManyWithoutCashierInput
-  chat?: Prisma.ChatCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
   landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
 }
 
@@ -347,7 +347,7 @@ export type CashierUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutCashierInput
-  chat?: Prisma.ChatUncheckedCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
   landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
 }
 
@@ -362,7 +362,7 @@ export type CashierUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCashierNestedInput
   activity?: Prisma.SessionActivityUpdateManyWithoutCashierNestedInput
-  chat?: Prisma.ChatUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
   landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
 }
 
@@ -377,7 +377,7 @@ export type CashierUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutCashierNestedInput
-  chat?: Prisma.ChatUncheckedUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutCashierNestedInput
   landings?: Prisma.CashierLandingUncheckedUpdateManyWithoutCashierNestedInput
 }
 
@@ -536,18 +536,20 @@ export type CashierUpdateOneRequiredWithoutActivityNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CashierUpdateToOneWithWhereWithoutActivityInput, Prisma.CashierUpdateWithoutActivityInput>, Prisma.CashierUncheckedUpdateWithoutActivityInput>
 }
 
-export type CashierCreateNestedOneWithoutChatInput = {
-  create?: Prisma.XOR<Prisma.CashierCreateWithoutChatInput, Prisma.CashierUncheckedCreateWithoutChatInput>
-  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutChatInput
+export type CashierCreateNestedOneWithoutLeadsInput = {
+  create?: Prisma.XOR<Prisma.CashierCreateWithoutLeadsInput, Prisma.CashierUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutLeadsInput
   connect?: Prisma.CashierWhereUniqueInput
 }
 
-export type CashierUpdateOneRequiredWithoutChatNestedInput = {
-  create?: Prisma.XOR<Prisma.CashierCreateWithoutChatInput, Prisma.CashierUncheckedCreateWithoutChatInput>
-  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutChatInput
-  upsert?: Prisma.CashierUpsertWithoutChatInput
+export type CashierUpdateOneWithoutLeadsNestedInput = {
+  create?: Prisma.XOR<Prisma.CashierCreateWithoutLeadsInput, Prisma.CashierUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutLeadsInput
+  upsert?: Prisma.CashierUpsertWithoutLeadsInput
+  disconnect?: Prisma.CashierWhereInput | boolean
+  delete?: Prisma.CashierWhereInput | boolean
   connect?: Prisma.CashierWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.CashierUpdateToOneWithWhereWithoutChatInput, Prisma.CashierUpdateWithoutChatInput>, Prisma.CashierUncheckedUpdateWithoutChatInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CashierUpdateToOneWithWhereWithoutLeadsInput, Prisma.CashierUpdateWithoutLeadsInput>, Prisma.CashierUncheckedUpdateWithoutLeadsInput>
 }
 
 export type CashierCreateNestedOneWithoutLandingsInput = {
@@ -574,7 +576,7 @@ export type CashierCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityCreateNestedManyWithoutCashierInput
-  chat?: Prisma.ChatCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
   landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
 }
 
@@ -588,7 +590,7 @@ export type CashierUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutCashierInput
-  chat?: Prisma.ChatUncheckedCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
   landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
 }
 
@@ -618,7 +620,7 @@ export type CashierUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUpdateManyWithoutCashierNestedInput
-  chat?: Prisma.ChatUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
   landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
 }
 
@@ -632,7 +634,7 @@ export type CashierUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutCashierNestedInput
-  chat?: Prisma.ChatUncheckedUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutCashierNestedInput
   landings?: Prisma.CashierLandingUncheckedUpdateManyWithoutCashierNestedInput
 }
 
@@ -646,7 +648,7 @@ export type CashierCreateWithoutActivityInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCashierInput
-  chat?: Prisma.ChatCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
   landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
 }
 
@@ -660,7 +662,7 @@ export type CashierUncheckedCreateWithoutActivityInput = {
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
-  chat?: Prisma.ChatUncheckedCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
   landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
 }
 
@@ -690,7 +692,7 @@ export type CashierUpdateWithoutActivityInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCashierNestedInput
-  chat?: Prisma.ChatUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
   landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
 }
 
@@ -704,11 +706,11 @@ export type CashierUncheckedUpdateWithoutActivityInput = {
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  chat?: Prisma.ChatUncheckedUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutCashierNestedInput
   landings?: Prisma.CashierLandingUncheckedUpdateManyWithoutCashierNestedInput
 }
 
-export type CashierCreateWithoutChatInput = {
+export type CashierCreateWithoutLeadsInput = {
   id?: string
   sessionName?: string | null
   whatsappPhoneNumber?: string | null
@@ -722,7 +724,7 @@ export type CashierCreateWithoutChatInput = {
   landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
 }
 
-export type CashierUncheckedCreateWithoutChatInput = {
+export type CashierUncheckedCreateWithoutLeadsInput = {
   id?: string
   userId: string
   sessionName?: string | null
@@ -736,23 +738,23 @@ export type CashierUncheckedCreateWithoutChatInput = {
   landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
 }
 
-export type CashierCreateOrConnectWithoutChatInput = {
+export type CashierCreateOrConnectWithoutLeadsInput = {
   where: Prisma.CashierWhereUniqueInput
-  create: Prisma.XOR<Prisma.CashierCreateWithoutChatInput, Prisma.CashierUncheckedCreateWithoutChatInput>
+  create: Prisma.XOR<Prisma.CashierCreateWithoutLeadsInput, Prisma.CashierUncheckedCreateWithoutLeadsInput>
 }
 
-export type CashierUpsertWithoutChatInput = {
-  update: Prisma.XOR<Prisma.CashierUpdateWithoutChatInput, Prisma.CashierUncheckedUpdateWithoutChatInput>
-  create: Prisma.XOR<Prisma.CashierCreateWithoutChatInput, Prisma.CashierUncheckedCreateWithoutChatInput>
+export type CashierUpsertWithoutLeadsInput = {
+  update: Prisma.XOR<Prisma.CashierUpdateWithoutLeadsInput, Prisma.CashierUncheckedUpdateWithoutLeadsInput>
+  create: Prisma.XOR<Prisma.CashierCreateWithoutLeadsInput, Prisma.CashierUncheckedCreateWithoutLeadsInput>
   where?: Prisma.CashierWhereInput
 }
 
-export type CashierUpdateToOneWithWhereWithoutChatInput = {
+export type CashierUpdateToOneWithWhereWithoutLeadsInput = {
   where?: Prisma.CashierWhereInput
-  data: Prisma.XOR<Prisma.CashierUpdateWithoutChatInput, Prisma.CashierUncheckedUpdateWithoutChatInput>
+  data: Prisma.XOR<Prisma.CashierUpdateWithoutLeadsInput, Prisma.CashierUncheckedUpdateWithoutLeadsInput>
 }
 
-export type CashierUpdateWithoutChatInput = {
+export type CashierUpdateWithoutLeadsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -766,7 +768,7 @@ export type CashierUpdateWithoutChatInput = {
   landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
 }
 
-export type CashierUncheckedUpdateWithoutChatInput = {
+export type CashierUncheckedUpdateWithoutLeadsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -791,7 +793,7 @@ export type CashierCreateWithoutLandingsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCashierInput
   activity?: Prisma.SessionActivityCreateNestedManyWithoutCashierInput
-  chat?: Prisma.ChatCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
 }
 
 export type CashierUncheckedCreateWithoutLandingsInput = {
@@ -805,7 +807,7 @@ export type CashierUncheckedCreateWithoutLandingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutCashierInput
-  chat?: Prisma.ChatUncheckedCreateNestedManyWithoutCashierInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
 }
 
 export type CashierCreateOrConnectWithoutLandingsInput = {
@@ -835,7 +837,7 @@ export type CashierUpdateWithoutLandingsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCashierNestedInput
   activity?: Prisma.SessionActivityUpdateManyWithoutCashierNestedInput
-  chat?: Prisma.ChatUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierUncheckedUpdateWithoutLandingsInput = {
@@ -849,7 +851,7 @@ export type CashierUncheckedUpdateWithoutLandingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutCashierNestedInput
-  chat?: Prisma.ChatUncheckedUpdateManyWithoutCashierNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutCashierNestedInput
 }
 
 
@@ -859,13 +861,13 @@ export type CashierUncheckedUpdateWithoutLandingsInput = {
 
 export type CashierCountOutputType = {
   activity: number
-  chat: number
+  leads: number
   landings: number
 }
 
 export type CashierCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   activity?: boolean | CashierCountOutputTypeCountActivityArgs
-  chat?: boolean | CashierCountOutputTypeCountChatArgs
+  leads?: boolean | CashierCountOutputTypeCountLeadsArgs
   landings?: boolean | CashierCountOutputTypeCountLandingsArgs
 }
 
@@ -889,8 +891,8 @@ export type CashierCountOutputTypeCountActivityArgs<ExtArgs extends runtime.Type
 /**
  * CashierCountOutputType without action
  */
-export type CashierCountOutputTypeCountChatArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ChatWhereInput
+export type CashierCountOutputTypeCountLeadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LeadWhereInput
 }
 
 /**
@@ -913,7 +915,7 @@ export type CashierSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   activity?: boolean | Prisma.Cashier$activityArgs<ExtArgs>
-  chat?: boolean | Prisma.Cashier$chatArgs<ExtArgs>
+  leads?: boolean | Prisma.Cashier$leadsArgs<ExtArgs>
   landings?: boolean | Prisma.Cashier$landingsArgs<ExtArgs>
   _count?: boolean | Prisma.CashierCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["cashier"]>
@@ -960,7 +962,7 @@ export type CashierOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type CashierInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   activity?: boolean | Prisma.Cashier$activityArgs<ExtArgs>
-  chat?: boolean | Prisma.Cashier$chatArgs<ExtArgs>
+  leads?: boolean | Prisma.Cashier$leadsArgs<ExtArgs>
   landings?: boolean | Prisma.Cashier$landingsArgs<ExtArgs>
   _count?: boolean | Prisma.CashierCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -976,7 +978,7 @@ export type $CashierPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     activity: Prisma.$SessionActivityPayload<ExtArgs>[]
-    chat: Prisma.$ChatPayload<ExtArgs>[]
+    leads: Prisma.$LeadPayload<ExtArgs>[]
     landings: Prisma.$CashierLandingPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1385,7 +1387,7 @@ export interface Prisma__CashierClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   activity<T extends Prisma.Cashier$activityArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$activityArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  chat<T extends Prisma.Cashier$chatArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$chatArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  leads<T extends Prisma.Cashier$leadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$leadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   landings<T extends Prisma.Cashier$landingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$landingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CashierLandingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1850,27 +1852,27 @@ export type Cashier$activityArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
- * Cashier.chat
+ * Cashier.leads
  */
-export type Cashier$chatArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Cashier$leadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Chat
+   * Select specific fields to fetch from the Lead
    */
-  select?: Prisma.ChatSelect<ExtArgs> | null
+  select?: Prisma.LeadSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Chat
+   * Omit specific fields from the Lead
    */
-  omit?: Prisma.ChatOmit<ExtArgs> | null
+  omit?: Prisma.LeadOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.ChatInclude<ExtArgs> | null
-  where?: Prisma.ChatWhereInput
-  orderBy?: Prisma.ChatOrderByWithRelationInput | Prisma.ChatOrderByWithRelationInput[]
-  cursor?: Prisma.ChatWhereUniqueInput
+  include?: Prisma.LeadInclude<ExtArgs> | null
+  where?: Prisma.LeadWhereInput
+  orderBy?: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[]
+  cursor?: Prisma.LeadWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.ChatScalarFieldEnum | Prisma.ChatScalarFieldEnum[]
+  distinct?: Prisma.LeadScalarFieldEnum | Prisma.LeadScalarFieldEnum[]
 }
 
 /**

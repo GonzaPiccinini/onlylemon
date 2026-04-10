@@ -1,23 +1,27 @@
 import type { Request, Response } from 'express';
 import {
-  addFundsSchema,
   completeWhatsappLinkSchema,
+  convertLeadSchema,
+  leadStatusSchema,
   startWhatsappLinkSchema,
+  updateAccountSchema,
 } from './cashier.types.js';
 import {
   completeWhatsappLinkService,
-  createAddFundsService,
+  convertQueueLeadService,
   finishSessionService,
+  getCurrentQueueLeadService,
   getWhatsappLinkStateService,
   getWhatsappLinkStatusService,
   getCurrentSessionService,
-  listAddFundsHistoryService,
-  listClientPhonesService,
+  listCashierLeadsService,
   refreshWhatsappLinkService,
   resetWhatsappLinkService,
   listSessionsService,
+  skipQueueLeadService,
   startWhatsappLinkService,
   startSessionService,
+  updateCashierAccountService,
 } from './cashier.service.js';
 
 const getCashierId = (req: Request): string | null => req.authUser?.cashierId ?? null;
@@ -70,23 +74,23 @@ export const finishSessionHandler = async (req: Request, res: Response) => {
   return res.status(200).json(data);
 };
 
-export const clientPhonesHandler = async (req: Request, res: Response) => {
+export const queueCurrentLeadHandler = async (req: Request, res: Response) => {
   const cashierId = getCashierId(req);
   if (!cashierId) {
     return res.status(400).json({ error: 'Cashier profile not linked' });
   }
 
-  const data = await listClientPhonesService(cashierId);
+  const data = await getCurrentQueueLeadService(cashierId);
   return res.status(200).json(data);
 };
 
-export const addFundsHandler = async (req: Request, res: Response) => {
+export const queueConvertLeadHandler = async (req: Request, res: Response) => {
   const cashierId = getCashierId(req);
   if (!cashierId) {
     return res.status(400).json({ error: 'Cashier profile not linked' });
   }
 
-  const parsed = addFundsSchema.safeParse(req.body);
+  const parsed = convertLeadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error: 'Invalid payload',
@@ -94,22 +98,91 @@ export const addFundsHandler = async (req: Request, res: Response) => {
     });
   }
 
-  const data = await createAddFundsService(cashierId, parsed.data);
-  if (!data) {
-    return res.status(409).json({ error: 'Cannot register funds without active session' });
+  const result = await convertQueueLeadService(
+    cashierId,
+    req.params.leadId,
+    parsed.data.amount,
+  );
+
+  if (result.kind === 'NOT_FOUND') {
+    return res.status(404).json({ error: 'Lead not found' });
   }
 
-  return res.status(201).json(data);
+  if (result.kind === 'INVALID_STATUS') {
+    return res.status(409).json({ error: 'Lead is not in CONTACTED status' });
+  }
+
+  if (result.kind === 'EXPIRED') {
+    return res.status(409).json({ error: 'Lead expired' });
+  }
+
+  if (result.kind === 'PHONE_REQUIRED') {
+    return res.status(409).json({ error: 'Lead phone is required' });
+  }
+
+  return res.status(200).json(result.data);
 };
 
-export const addFundsHistoryHandler = async (req: Request, res: Response) => {
+export const queueSkipLeadHandler = async (req: Request, res: Response) => {
   const cashierId = getCashierId(req);
   if (!cashierId) {
     return res.status(400).json({ error: 'Cashier profile not linked' });
   }
 
-  const data = await listAddFundsHistoryService(cashierId);
+  const result = await skipQueueLeadService(cashierId, req.params.leadId);
+  if (result === 'NOT_FOUND') {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+
+  if (result === 'INVALID_STATUS') {
+    return res.status(409).json({ error: 'Lead is not in CONTACTED status' });
+  }
+
+  if (result === 'EXPIRED') {
+    return res.status(409).json({ error: 'Lead expired' });
+  }
+
+  return res.status(204).send();
+};
+
+export const leadsListHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const parsed = leadStatusSchema.safeParse(req.query.status);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid status',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  const data = await listCashierLeadsService(cashierId, parsed.data);
   return res.status(200).json(data);
+};
+
+export const updateAccountHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const parsed = updateAccountSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const data = await updateCashierAccountService(cashierId, parsed.data);
+    return res.status(200).json(data);
+  } catch {
+    return res.status(409).json({ error: 'Could not update account' });
+  }
 };
 
 export const whatsappLinkStateHandler = async (req: Request, res: Response) => {

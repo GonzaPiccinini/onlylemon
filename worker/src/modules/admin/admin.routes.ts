@@ -4,9 +4,11 @@ import {
   createCashierHandler,
   createLandingHandler,
   disableCashierHandler,
+  enableCashierHandler,
   disableLandingHandler,
   enableLandingHandler,
   fundsSeriesHandler,
+  listLeadsHandler,
   listCashierLandingsHandler,
   listCashiersHandler,
   listLandingsHandler,
@@ -25,6 +27,7 @@ adminRouter.get('/cashiers', listCashiersHandler);
 adminRouter.post('/cashiers', createCashierHandler);
 adminRouter.put('/cashiers/:cashierId', updateCashierHandler);
 adminRouter.patch('/cashiers/:cashierId/disable', disableCashierHandler);
+adminRouter.patch('/cashiers/:cashierId/enable', enableCashierHandler);
 adminRouter.get('/cashiers/:cashierId/landings', listCashierLandingsHandler);
 adminRouter.put('/cashiers/:cashierId/landings', replaceCashierLandingsHandler);
 
@@ -37,3 +40,4 @@ adminRouter.patch('/landings/:landingId/enable', enableLandingHandler);
 adminRouter.get('/stats/summary', summaryHandler);
 adminRouter.get('/stats/cashiers', cashierStatsHandler);
 adminRouter.get('/stats/funds-series', fundsSeriesHandler);
+adminRouter.get('/leads', listLeadsHandler);
