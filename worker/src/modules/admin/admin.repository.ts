@@ -118,6 +118,15 @@ export const getCashierByUserId = (userId: string) =>
     },
   });
 
+export const getCashierById = (cashierId: string) =>
+  prisma.cashier.findUnique({
+    where: { id: cashierId },
+    select: {
+      id: true,
+      sessionName: true,
+    },
+  });
+
 export const getSessionActivitiesByDateRange = (
   from: Date,
   to: Date,

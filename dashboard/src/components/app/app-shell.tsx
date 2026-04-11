@@ -54,6 +54,11 @@ export const AppShell = () => {
       return;
     }
 
+    if (runtimeState?.cashierStatus === "DISABLED") {
+      void logout();
+      return;
+    }
+
     if (!runtimeState || runtimeState.canOperateLeads) {
       return;
     }
@@ -61,7 +66,7 @@ export const AppShell = () => {
     if (location.pathname !== "/cashier") {
       navigate("/cashier", { replace: true });
     }
-  }, [location.pathname, navigate, runtimeState, user?.role]);
+  }, [location.pathname, navigate, logout, runtimeState, user?.role]);
 
   if (!user) {
     return null;

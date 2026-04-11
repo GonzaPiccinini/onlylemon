@@ -17,3 +17,14 @@ export const findUserById = async (id: string) =>
       admin: true,
     },
   });
+
+export const findCashierStatusByUserId = async (userId: string) => {
+  const cashier = await prisma.cashier.findUnique({
+    where: { userId },
+    select: {
+      status: true,
+    },
+  });
+
+  return cashier?.status ?? null;
+};

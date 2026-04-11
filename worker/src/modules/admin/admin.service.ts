@@ -1,4 +1,8 @@
 import { hashPassword } from '../../utils/password.js';
+import { deleteSession } from '../../integrations/waha/client.js';
+import {
+  emitCashierRuntimeStateChanged,
+} from '../cashier/runtime-events.js';
 import {
   createCashier,
   createLanding,
@@ -8,6 +12,7 @@ import {
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
   listCashiers,
+  getCashierById,
   listLandings,
   listLeads,
   replaceCashierLandings,
@@ -15,6 +20,10 @@ import {
   updateCashier,
   updateLanding,
 } from './admin.repository.js';
+import {
+  finishCurrentSessionActivity,
+  updateCashierWhatsappLink,
+} from '../cashier/cashier.repository.js';
 import type { DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
 
 const toRange = (query: DateRangeQuery) => ({
@@ -136,7 +145,30 @@ export const updateCashierService = async (
 };
 
 export const disableCashierService = async (cashierId: string) => {
+  const now = new Date();
+  const cashier = await getCashierById(cashierId);
+
+  if (cashier?.sessionName) {
+    try {
+      await deleteSession(cashier.sessionName);
+    } catch {
+      // best effort cleanup on WAHA side
+    }
+  }
+
+  await Promise.all([
+    finishCurrentSessionActivity(cashierId, now),
+    updateCashierWhatsappLink(cashierId, {
+      sessionName: null,
+      whatsappPhoneNumber: null,
+      whatsappLinkRefreshCount: 0,
+      whatsappLinkUpdatedAt: now,
+    }),
+  ]);
+
   const disabled = await disableCashier(cashierId);
+  emitCashierRuntimeStateChanged(cashierId);
+
   return {
     id: disabled.id,
     name: disabled.user.name,
