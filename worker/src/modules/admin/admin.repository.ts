@@ -172,6 +172,16 @@ export const listLandings = () =>
     },
   });
 
+export const listActiveLandingUrls = () =>
+  prisma.landing.findMany({
+    where: {
+      status: 'ACTIVE',
+    },
+    select: {
+      url: true,
+    },
+  });
+
 export const createLanding = (input: {
   url: string;
   metaPixelId: string;

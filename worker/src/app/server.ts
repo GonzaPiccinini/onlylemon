@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import type { CorsOptions } from 'cors';
 
 import { config } from '../config/env.js';
 import { worker } from './worker.js';
@@ -9,34 +10,26 @@ import { adminRouter } from '../modules/admin/admin.routes.js';
 import { cashierRouter } from '../modules/cashier/cashier.routes.js';
 import { wahaRouter } from '../modules/waha/waha.routes.js';
 import { realtimeRouter } from '../modules/realtime/realtime.routes.js';
+import { isCorsOriginAllowed } from '../modules/security/cors-origins.service.js';
 
 const app = express();
 const port = config.PORT; // NO TOCAR PORQUE ROMPE EL CODIGO DE OPENAI
 
-const parseCorsOrigin = () => {
-  if (config.CORS_ORIGIN === '*') {
-    return true;
-  }
-
-  const origins = config.CORS_ORIGIN.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  if (origins.length === 0 || origins.includes('*')) {
-    return true;
-  }
-
-  return origins;
+const corsOptions: CorsOptions = {
+  origin: async (origin, callback) => {
+    try {
+      const allowed = await isCorsOriginAllowed(origin);
+      callback(allowed ? null : new Error('Not allowed by CORS'), allowed);
+    } catch {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
 };
 
 app.use(express.json());
 
-app.use(
-  cors({
-    origin: parseCorsOrigin(),
-    credentials: true,
-  }),
-);
+app.use(cors(corsOptions));
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ ok: true });
