@@ -11,6 +11,7 @@
     "prisma:generate": "prisma generate",
     "seed:e2e": "tsx scripts/seed-e2e.ts",
     "seed:cashiers": "tsx scripts/seed-cashiers.ts",
+    "seed:high-volume": "tsx scripts/seed-high-volume.ts",
     "e2e:leads": "tsx scripts/e2e-leads.ts"
   },
   "dependencies": {
