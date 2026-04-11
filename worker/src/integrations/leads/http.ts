@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { getSessions } from '../waha/client.js';
 import {
   CreateLeadPayloadSchema,
   createLead,
@@ -16,16 +15,27 @@ export async function leadsPost(req: Request, res: Response) {
   }
 
   try {
-    const sessions = await getSessions();
-    const numbers = sessions.map((session) => session.me.id.split('@')[0]);
     const lead = await createLead(parseResult.data);
 
     return res.status(201).json({
       code: lead.code,
-      expiresAt: lead.expiresAt.toISOString(),
-      numbers,
+      number: lead.number,
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'LANDING_NOT_FOUND') {
+        return res.status(404).json({
+          message: 'Landing not found or disabled',
+        });
+      }
+
+      if (error.message === 'NO_AVAILABLE_CASHIER') {
+        return res.status(409).json({
+          message: 'No available cashier number for this landing',
+        });
+      }
+    }
+
     console.error(`Error saving leads: ${error}`);
     res.status(500).json({
       message: 'Internal server error',

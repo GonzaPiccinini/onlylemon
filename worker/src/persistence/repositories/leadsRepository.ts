@@ -1,6 +1,11 @@
 import { LeadStatus } from '../../generated/prisma/client.js';
 import { prisma } from '../prisma/client.js';
 
+export type LandingCashierCandidate = {
+  cashierId: string;
+  sessionName: string;
+};
+
 type CreateLeadData = {
   code: string;
   fbc: string;
@@ -21,6 +26,96 @@ export async function saveLead(data: CreateLeadData) {
   return prisma.lead.create({
     data,
   });
+}
+
+export async function getActiveLandingCashierCandidatesByMetaPixelId(
+  metaPixelId: string,
+): Promise<LandingCashierCandidate[] | null> {
+  const landing = await prisma.landing.findFirst({
+    where: {
+      metaPixelId,
+      status: 'ACTIVE',
+    },
+    select: {
+      cashiers: {
+        where: {
+          cashier: {
+            status: 'ACTIVE',
+            sessionName: {
+              not: null,
+            },
+            activity: {
+              some: {
+                endedAt: null,
+              },
+            },
+          },
+        },
+        select: {
+          cashier: {
+            select: {
+              id: true,
+              sessionName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!landing) {
+    return null;
+  }
+
+  return landing.cashiers
+    .map((item) => ({
+      cashierId: item.cashier.id,
+      sessionName: item.cashier.sessionName,
+    }))
+    .filter(
+      (
+        item,
+      ): item is {
+        cashierId: string;
+        sessionName: string;
+      } => Boolean(item.sessionName),
+    );
+}
+
+export async function getContactedLeadCountByCashierForLanding(
+  metaPixelId: string,
+  cashierIds: string[],
+): Promise<Map<string, number>> {
+  if (cashierIds.length === 0) {
+    return new Map();
+  }
+
+  const grouped = await prisma.lead.groupBy({
+    by: ['cashierId'],
+    where: {
+      metaPixelId,
+      contactedAt: {
+        not: null,
+      },
+      cashierId: {
+        in: cashierIds,
+      },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  const counts = new Map<string, number>();
+  for (const row of grouped) {
+    if (!row.cashierId) {
+      continue;
+    }
+
+    counts.set(row.cashierId, row._count._all);
+  }
+
+  return counts;
 }
 
 export async function getLeadByCode(code: string) {

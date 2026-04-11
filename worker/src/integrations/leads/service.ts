@@ -5,12 +5,14 @@ import { config } from '../../config/env.js';
 import { getNumberByLid } from '../waha/client.js';
 import {
   expireLeadIfStillOpen,
+  getActiveLandingCashierCandidatesByMetaPixelId,
+  getContactedLeadCountByCashierForLanding,
   getLeadByCode,
   markLeadAsContacted,
   saveLead,
-  updateLead,
 } from '../../persistence/repositories/leadsRepository.js';
 import { getCashierBySessionName } from '../../modules/cashier/cashier.repository.js';
+import { getSessions } from '../waha/client.js';
 
 const CODE_LENGTH = 8;
 const MAX_CODE_GENERATION_ATTEMPTS = 5;
@@ -30,8 +32,18 @@ export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
 
 export type CreateLeadResult = {
   code: string;
-  expiresAt: Date;
+  number: string;
 };
+
+type SelectNumberResult =
+  | {
+      ok: true;
+      number: string;
+    }
+  | {
+      ok: false;
+      reason: 'LANDING_NOT_FOUND' | 'NO_AVAILABLE_CASHIER';
+    };
 
 export type LeadMatchResult =
   | 'NO_CODE'
@@ -62,9 +74,95 @@ function extractLeadCode(body: string): string | null {
   return match[1].toUpperCase();
 }
 
+async function selectCashierNumberForLanding(
+  metaPixelId: string,
+): Promise<SelectNumberResult> {
+  const candidates = await getActiveLandingCashierCandidatesByMetaPixelId(metaPixelId);
+  if (!candidates) {
+    return {
+      ok: false,
+      reason: 'LANDING_NOT_FOUND',
+    };
+  }
+
+  if (candidates.length === 0) {
+    return {
+      ok: false,
+      reason: 'NO_AVAILABLE_CASHIER',
+    };
+  }
+
+  const sessions = await getSessions();
+  const workingSessionNumbers = new Map<string, string>();
+
+  for (const session of sessions) {
+    if (session.status !== 'WORKING') {
+      continue;
+    }
+
+    const number = session.me.id.split('@')[0] ?? '';
+    if (!number) {
+      continue;
+    }
+
+    workingSessionNumbers.set(session.name, number);
+  }
+
+  const eligible = candidates
+    .map((candidate) => ({
+      cashierId: candidate.cashierId,
+      number: workingSessionNumbers.get(candidate.sessionName) ?? null,
+    }))
+    .filter(
+      (
+        item,
+      ): item is {
+        cashierId: string;
+        number: string;
+      } => Boolean(item.number),
+    );
+
+  if (eligible.length === 0) {
+    return {
+      ok: false,
+      reason: 'NO_AVAILABLE_CASHIER',
+    };
+  }
+
+  const countsByCashier = await getContactedLeadCountByCashierForLanding(
+    metaPixelId,
+    eligible.map((item) => item.cashierId),
+  );
+
+  let minCount = Number.POSITIVE_INFINITY;
+  for (const item of eligible) {
+    const count = countsByCashier.get(item.cashierId) ?? 0;
+    if (count < minCount) {
+      minCount = count;
+    }
+  }
+
+  const leastUsed = eligible.filter(
+    (item) => (countsByCashier.get(item.cashierId) ?? 0) === minCount,
+  );
+
+  const selected = leastUsed[Math.floor(Math.random() * leastUsed.length)];
+
+  return {
+    ok: true,
+    number: selected.number,
+  };
+}
+
 export async function createLead(
   payload: CreateLeadPayload,
 ): Promise<CreateLeadResult> {
+  const selectedNumber = await selectCashierNumberForLanding(payload.metaPixelId);
+
+  if (!selectedNumber.ok) {
+    throw new Error(selectedNumber.reason);
+  }
+
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
     const code = generateCode();
     const expiresAt = getExpiresAt(new Date());
@@ -78,7 +176,7 @@ export async function createLead(
 
       return {
         code: lead.code,
-        expiresAt: lead.expiresAt,
+        number: selectedNumber.number,
       };
     } catch (error) {
       if (isUniqueConstraintError(error)) {
