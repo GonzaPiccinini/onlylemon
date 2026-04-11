@@ -593,7 +593,7 @@ export const convertQueueLeadService = async (
     return { kind: 'OK' as const, data: toLeadDto(converted) };
   }
 
-  const sent = await sendMetaConversion({
+  const conversionResult = await sendMetaConversion({
     phone: lead.phone,
     value: amount,
     fbc: lead.fbc,
@@ -604,10 +604,22 @@ export const convertQueueLeadService = async (
     eventId: lead.id,
   });
 
-  if (!sent) {
+  if (!conversionResult.purchaseSent) {
     console.error('meta_conversion_failed', {
       leadId: lead.id,
       metaPixelId: lead.metaPixelId,
+      eventName: 'Purchase',
+    });
+  }
+
+  if (
+    conversionResult.highValueRequired &&
+    !conversionResult.highValueSent
+  ) {
+    console.error('meta_conversion_failed', {
+      leadId: lead.id,
+      metaPixelId: lead.metaPixelId,
+      eventName: 'HighValueCustomer',
     });
   }
 

@@ -12,7 +12,8 @@
     "seed:e2e": "tsx scripts/seed-e2e.ts",
     "seed:cashiers": "tsx scripts/seed-cashiers.ts",
     "seed:high-volume": "tsx scripts/seed-high-volume.ts",
-    "e2e:leads": "tsx scripts/e2e-leads.ts"
+    "e2e:leads": "tsx scripts/e2e-leads.ts",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",
