@@ -1,5 +1,7 @@
 import type { ComponentType } from "react";
+import { useEffect } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   CircleUserRoundIcon,
   BarChart3Icon,
@@ -15,6 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/auth-context";
+import {
+  useCashierRuntimeState,
+  useCashierRuntimeStateStream,
+} from "@/features/cashier/cashier-hooks";
 
 interface ShellLink {
   to: string;
@@ -37,13 +43,40 @@ const cashierLinks: ShellLink[] = [
 ];
 
 export const AppShell = () => {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
+  const { data: runtimeState } = useCashierRuntimeState(user?.role === "CASHIER");
+  useCashierRuntimeStateStream(token, user?.role === "CASHIER");
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.role !== "CASHIER") {
+      return;
+    }
+
+    if (!runtimeState || runtimeState.canOperateLeads) {
+      return;
+    }
+
+    if (location.pathname !== "/cashier") {
+      navigate("/cashier", { replace: true });
+    }
+  }, [location.pathname, navigate, runtimeState, user?.role]);
 
   if (!user) {
     return null;
   }
 
-  const links = user.role === "ADMIN" ? adminLinks : cashierLinks;
+  const links =
+    user.role === "ADMIN"
+      ? adminLinks
+      : cashierLinks.filter((link) => {
+          if (link.to !== "/cashier/add-funds") {
+            return true;
+          }
+
+          return runtimeState?.canOperateLeads ?? true;
+        });
 
   return (
     <div className="relative mx-auto flex min-h-svh w-full max-w-[1360px] gap-4 px-3 py-3 md:gap-6 md:px-6 md:py-6">
@@ -86,6 +119,11 @@ export const AppShell = () => {
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{user.name}</p>
               <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
+              {user.role === "CASHIER" ? (
+                <p className="truncate text-xs text-muted-foreground">
+                  WAHA: {runtimeState?.wahaStatus ?? "-"}
+                </p>
+              ) : null}
             </div>
             <Badge variant="secondary">{user.role === "ADMIN" ? "Admin" : "Cajero"}</Badge>
           </div>

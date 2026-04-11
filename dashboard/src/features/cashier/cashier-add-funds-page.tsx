@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/format';
 import {
   useConvertQueueLead,
+  useCashierRuntimeState,
   useQueueCurrentLead,
   useSkipQueueLead,
 } from '@/features/cashier/cashier-hooks';
@@ -38,9 +41,20 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export const CashierAddFundsPage = () => {
-  const { data: currentLead, isLoading } = useQueueCurrentLead();
+  const navigate = useNavigate();
+  const { data: runtimeState } = useCashierRuntimeState();
+  const { data: currentLead, isLoading } = useQueueCurrentLead(runtimeState?.canOperateLeads ?? true);
   const convertLead = useConvertQueueLead();
   const skipLead = useSkipQueueLead();
+
+  useEffect(() => {
+    if (runtimeState && !runtimeState.canOperateLeads) {
+      toast.error(
+        `No puedes operar leads. Estado WAHA: ${runtimeState.wahaStatus}`,
+      );
+      navigate('/cashier', { replace: true });
+    }
+  }, [navigate, runtimeState]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),

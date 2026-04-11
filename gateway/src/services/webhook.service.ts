@@ -17,8 +17,15 @@ export const handleWebhook = async (req: Request, res: Response) => {
       return;
     }
 
-    const name = 'message';
-    const job = await queue.add(name, webhookData, {
+    const eventName =
+      typeof webhookData === 'object' &&
+      webhookData !== null &&
+      'event' in webhookData &&
+      typeof (webhookData as { event?: unknown }).event === 'string'
+        ? (webhookData as { event: string }).event
+        : 'message';
+
+    const job = await queue.add(eventName, webhookData, {
       removeOnComplete: 1000, // Keep the most recent 1000 completed jobs for monitoring
       removeOnFail: 5000, // Keep the most recent 5000 failed jobs for monitoring
       attempts: 3, // Retry up to 3 times on failure

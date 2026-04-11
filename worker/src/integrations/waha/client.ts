@@ -90,6 +90,17 @@ export async function wahaCall(path: string, payload: Record<string, unknown>) {
   return response.ok;
 }
 
+async function wahaPostRaw(path: string, payload: Record<string, unknown>) {
+  return fetch(`${config.WAHA_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 async function wahaCallJson<T>(path: string, payload: Record<string, unknown>) {
   const response = await fetch(`${config.WAHA_BASE_URL}${path}`, {
     method: 'POST',
@@ -135,6 +146,19 @@ async function wahaGetRaw(path: string): Promise<Response> {
   });
 }
 
+async function wahaDelete(path: string): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}${path}`, {
+    method: 'DELETE',
+    headers: {
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+  });
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`WAHA request failed with status ${response.status}`);
+  }
+}
+
 export async function getChatMessages(
   session: string,
   chatId: string,
@@ -165,7 +189,14 @@ export async function createSessionIfNotExists(
   if (existing) {
     return;
   }
-  console.log('llego');
+
+  const configuredEvents = config.WAHA_WEBHOOK_EVENTS.split(',')
+    .map((event) => event.trim())
+    .filter(Boolean);
+  const events = Array.from(
+    new Set([...configuredEvents, 'message', 'session.status']),
+  );
+
   await wahaCallJson('/api/sessions', {
     name: sessionName,
     config: {
@@ -187,9 +218,7 @@ export async function createSessionIfNotExists(
       webhooks: [
         {
           url: config.WAHA_WEBHOOK_URL,
-          events: config.WAHA_WEBHOOK_EVENTS.split(',').map((event) =>
-            event.trim(),
-          ),
+          events,
           hmac: null,
           customHeaders: [
             {
@@ -209,7 +238,24 @@ export async function createSessionIfNotExists(
 }
 
 export async function startSession(sessionName: string): Promise<void> {
-  await wahaCall(`/api/sessions/${sessionName}/start`, {});
+  const response = await wahaPostRaw(`/api/sessions/${sessionName}/start`, {});
+  if (response.ok) {
+    return;
+  }
+
+  const body = await response.text();
+  const bodyText = body.toLowerCase();
+  if (
+    response.status === 409 ||
+    response.status === 422 ||
+    bodyText.includes('already') ||
+    bodyText.includes('starting') ||
+    bodyText.includes('working')
+  ) {
+    return;
+  }
+
+  throw new Error(`WAHA_START_FAILED:${response.status}`);
 }
 
 export async function requestSessionCode(
@@ -274,4 +320,8 @@ export async function getSessionQr(
 
 export async function getNumberByLid(session: string, chatId: string) {
   return wahaGet<NumberLidMap>(`/api/${session}/lids/${chatId}`, {});
+}
+
+export async function deleteSession(sessionName: string): Promise<void> {
+  await wahaDelete(`/api/sessions/${sessionName}`);
 }

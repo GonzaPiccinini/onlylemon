@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../security/auth.middleware.js';
 import {
+  cashierRuntimeStateHandler,
   currentSessionHandler,
   finishSessionHandler,
   leadsListHandler,
@@ -31,6 +32,7 @@ cashierRouter.get('/leads/queue/current', queueCurrentLeadHandler);
 cashierRouter.post('/leads/:leadId/convert', queueConvertLeadHandler);
 cashierRouter.post('/leads/:leadId/skip', queueSkipLeadHandler);
 cashierRouter.get('/leads', leadsListHandler);
+cashierRouter.get('/runtime-state', cashierRuntimeStateHandler);
 cashierRouter.patch('/account', updateAccountHandler);
 
 cashierRouter.get('/whatsapp/link-state', whatsappLinkStateHandler);

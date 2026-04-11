@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { PlayIcon, QrCodeIcon, RefreshCcwIcon, SquareIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/common/page-header';
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
 import {
+  useCashierRuntimeState,
   useCompleteWhatsappLink,
   useCashierSessions,
   useCurrentSession,
@@ -38,6 +40,7 @@ import { PaginationControls } from '@/components/common/pagination-controls';
 const REFRESH_INTERVAL_SECONDS = 45;
 
 export const CashierSessionPage = () => {
+  const { data: runtimeState, isLoading: runtimeLoading } = useCashierRuntimeState();
   const { data: linkState, isLoading: linkStateLoading } = useWhatsappLinkState();
   const { data: linkStatus } = useWhatsappLinkStatus();
 
@@ -53,6 +56,9 @@ export const CashierSessionPage = () => {
   const resetWhatsappLink = useResetWhatsappLink();
   const completeWhatsappLink = useCompleteWhatsappLink();
 
+  const requiresWhatsappSetup =
+    runtimeState?.wahaStatus !== 'WORKING' || Boolean(linkState?.needsLink);
+
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [qrValue, setQrValue] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -62,6 +68,7 @@ export const CashierSessionPage = () => {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const timerRef = useRef<number | null>(null);
+  const lastCompletedSessionRef = useRef<string | null>(null);
 
   const stopRefreshTimer = () => {
     if (timerRef.current) {
@@ -81,8 +88,8 @@ export const CashierSessionPage = () => {
         ? `data:image/png;base64,${artifacts.qr}`
         : artifacts.qr;
 
-    setPairingCode(artifacts.pairingCode);
-    setQrValue(normalizedQr);
+    setPairingCode((current) => artifacts.pairingCode ?? current);
+    setQrValue((current) => normalizedQr ?? current);
     setRefreshCount(artifacts.refreshCount);
     setMaxRefresh(artifacts.maxRefresh);
     setCountdown(REFRESH_INTERVAL_SECONDS);
@@ -108,8 +115,17 @@ export const CashierSessionPage = () => {
         });
       }, 1000);
       toast.success('QR y codigo cargados');
-    } catch {
-      toast.error('No se pudieron solicitar credenciales de WhatsApp');
+    } catch (error) {
+      const apiMessage =
+        isAxiosError<{ message?: string; error?: string }>(error)
+          ? (error.response?.data?.message ?? error.response?.data?.error)
+          : null;
+
+      if (apiMessage) {
+        toast.error(apiMessage);
+      } else {
+        toast.error('No se pudieron solicitar credenciales de WhatsApp');
+      }
     }
   };
 
@@ -134,7 +150,7 @@ export const CashierSessionPage = () => {
   };
 
   useEffect(() => {
-    if (!linkState?.needsLink) {
+    if (!requiresWhatsappSetup) {
       stopRefreshTimer();
       return;
     }
@@ -142,23 +158,69 @@ export const CashierSessionPage = () => {
     return () => {
       stopRefreshTimer();
     };
-  }, [linkState?.needsLink]);
+  }, [requiresWhatsappSetup]);
+
+  const previousSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!linkState?.needsLink || !linkStatus?.linked) {
+    if (!requiresWhatsappSetup) {
+      previousSessionRef.current = runtimeState?.sessionName ?? null;
+      return;
+    }
+
+    const currentSession = runtimeState?.sessionName ?? null;
+    const previousSession = previousSessionRef.current;
+    const enteredFreshReconnect = previousSession !== currentSession;
+
+    if (!enteredFreshReconnect) {
+      return;
+    }
+
+    previousSessionRef.current = currentSession;
+    const shouldClearArtifacts = !currentSession && !(linkState?.sessionName ?? '').trim();
+    if (shouldClearArtifacts) {
+      setPairingCode(null);
+      setQrValue(null);
+      setRefreshCount(0);
+      setMaxRefresh(3);
+      setCountdown(REFRESH_INTERVAL_SECONDS);
+      setPhoneNumber('');
+    }
+  }, [requiresWhatsappSetup, runtimeState?.sessionName, linkState?.sessionName]);
+
+  useEffect(() => {
+    if (!linkState?.needsLink || !linkStatus?.linked || !linkStatus.sessionName) {
+      if (!linkStatus?.linked) {
+        lastCompletedSessionRef.current = null;
+      }
+      return;
+    }
+
+    if (completeWhatsappLink.isPending) {
+      return;
+    }
+
+    if (lastCompletedSessionRef.current === linkStatus.sessionName) {
       return;
     }
 
     stopRefreshTimer();
     void completeWhatsappLink.mutateAsync(linkStatus.sessionName).then(
       () => {
+        lastCompletedSessionRef.current = linkStatus.sessionName;
         toast.success('WhatsApp vinculado correctamente');
       },
       () => {
         toast.error('No se pudo completar la vinculacion en backend');
       },
     );
-  }, [completeWhatsappLink, linkState?.needsLink, linkStatus?.linked, linkStatus?.sessionName]);
+  }, [
+    completeWhatsappLink,
+    completeWhatsappLink.isPending,
+    linkState?.needsLink,
+    linkStatus?.linked,
+    linkStatus?.sessionName,
+  ]);
 
   const reachedAutoLimit = useMemo(
     () => refreshCount >= maxRefresh,
@@ -189,7 +251,7 @@ export const CashierSessionPage = () => {
     }
   };
 
-  if (linkStateLoading) {
+  if (linkStateLoading || runtimeLoading) {
     return (
       <section className='flex flex-col gap-4'>
         <PageHeader
@@ -205,7 +267,7 @@ export const CashierSessionPage = () => {
     );
   }
 
-  if (linkState?.needsLink) {
+  if (requiresWhatsappSetup) {
     return (
       <section className='flex flex-col gap-4'>
         <PageHeader
@@ -222,9 +284,9 @@ export const CashierSessionPage = () => {
           </CardHeader>
           <CardContent className='flex flex-col gap-4'>
             <div className='flex flex-wrap items-center gap-2'>
-              <Badge variant='outline'>Sesion: {linkState.sessionName}</Badge>
+              <Badge variant='outline'>Sesion: {linkState?.sessionName ?? runtimeState?.sessionName ?? '-'}</Badge>
               <Badge variant='outline'>Intentos: {refreshCount}/{maxRefresh}</Badge>
-              <Badge variant='outline'>Estado WAHA: {linkStatus?.status ?? linkState.status}</Badge>
+              <Badge variant='outline'>Estado WAHA: {linkStatus?.status ?? linkState?.status ?? runtimeState?.wahaStatus ?? 'UNLINKED'}</Badge>
             </div>
 
             <div className='flex flex-col gap-2 rounded-lg border p-3'>
@@ -268,14 +330,28 @@ export const CashierSessionPage = () => {
             )}
 
             <div className='flex flex-wrap gap-2'>
-              <Button onClick={handleStartLink} disabled={startWhatsappLink.isPending}>
+              <Button
+                onClick={handleStartLink}
+                disabled={
+                  startWhatsappLink.isPending ||
+                  refreshWhatsappLink.isPending ||
+                  completeWhatsappLink.isPending
+                }
+              >
                 <QrCodeIcon data-icon='inline-start' />
                 {startWhatsappLink.isPending ? 'Solicitando...' : 'Generar QR y codigo'}
               </Button>
               <Button
                 variant='outline'
                 onClick={handleManualReset}
-                disabled={resetWhatsappLink.isPending || startWhatsappLink.isPending || !reachedAutoLimit}
+                disabled={
+                  resetWhatsappLink.isPending ||
+                  startWhatsappLink.isPending ||
+                  refreshWhatsappLink.isPending ||
+                  completeWhatsappLink.isPending ||
+                  !reachedAutoLimit ||
+                  !phoneNumber.trim()
+                }
               >
                 <RefreshCcwIcon data-icon='inline-start' />
                 Volver a cargar

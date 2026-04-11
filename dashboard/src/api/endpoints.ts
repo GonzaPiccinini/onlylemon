@@ -28,6 +28,7 @@ export const endpoints = {
     queueConvertLead: (leadId: string) => `/cashier/leads/${leadId}/convert`,
     queueSkipLead: (leadId: string) => `/cashier/leads/${leadId}/skip`,
     leads: "/cashier/leads",
+    runtimeState: "/cashier/runtime-state",
     account: "/cashier/account",
     whatsappLinkState: "/cashier/whatsapp/link-state",
     whatsappLinkStart: "/cashier/whatsapp/link/start",

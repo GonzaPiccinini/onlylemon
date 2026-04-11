@@ -41,4 +41,16 @@ export const env = {
   apiBaseUrl: normalizeForRemoteDevice(
     normalizeSlash(import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl()),
   ),
+  realtimeBaseUrl: normalizeForRemoteDevice(
+    normalizeSlash(
+      import.meta.env.VITE_REALTIME_BASE_URL ??
+        (() => {
+          if (typeof window === "undefined") {
+            return "http://localhost:3002/api/realtime";
+          }
+
+          return `${window.location.protocol}//${window.location.hostname}:3002/api/realtime`;
+        })(),
+    ),
+  ),
 };

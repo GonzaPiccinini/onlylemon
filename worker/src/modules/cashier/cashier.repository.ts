@@ -20,6 +20,21 @@ export const getCashierBySessionName = (sessionName: string) =>
     },
   });
 
+export const getCashierById = (cashierId: string) =>
+  prisma.cashier.findUnique({
+    where: { id: cashierId },
+    select: {
+      id: true,
+      sessionName: true,
+      status: true,
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
 export const updateCashierWhatsappLink = (
   cashierId: string,
   input: {
@@ -65,6 +80,17 @@ export const finishSessionActivity = (activityId: string, endedAt: Date) =>
   prisma.sessionActivity.update({
     where: { id: activityId },
     data: { endedAt },
+  });
+
+export const finishCurrentSessionActivity = (cashierId: string, endedAt: Date) =>
+  prisma.sessionActivity.updateMany({
+    where: {
+      cashierId,
+      endedAt: null,
+    },
+    data: {
+      endedAt,
+    },
   });
 
 export const findQueueLeadForCashier = async (cashierId: string) => {

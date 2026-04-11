@@ -7,6 +7,8 @@ import { leadsPost } from '../integrations/leads/http.js';
 import { authRouter } from '../modules/auth/auth.routes.js';
 import { adminRouter } from '../modules/admin/admin.routes.js';
 import { cashierRouter } from '../modules/cashier/cashier.routes.js';
+import { wahaRouter } from '../modules/waha/waha.routes.js';
+import { realtimeRouter } from '../modules/realtime/realtime.routes.js';
 
 const app = express();
 const port = config.PORT; // NO TOCAR PORQUE ROMPE EL CODIGO DE OPENAI
@@ -48,6 +50,8 @@ app.post('/api/leads', leadsPost);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/cashier', cashierRouter);
+app.use('/api/waha', wahaRouter);
+app.use('/api/realtime', realtimeRouter);
 
 const server = app.listen(port, () => {
   console.log(`server listening on ${port}`);

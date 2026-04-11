@@ -1,11 +1,14 @@
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cashierService } from "@/api/cashier.service";
-import type { ConvertLeadInput, LeadStatus } from "@/types/domain";
+import { env } from "@/config/env";
+import type { CashierRuntimeState, ConvertLeadInput, LeadStatus } from "@/types/domain";
 
 const cashierKeys = {
   sessions: ["cashier", "sessions"] as const,
   currentSession: ["cashier", "current-session"] as const,
   queueCurrentLead: ["cashier", "queue-current-lead"] as const,
+  runtimeState: ["cashier", "runtime-state"] as const,
   leads: (status?: LeadStatus) => ["cashier", "leads", status ?? "ALL"] as const,
   whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
   whatsappLinkStatus: ["cashier", "whatsapp-link-status"] as const,
@@ -32,6 +35,7 @@ export const useStartSession = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: cashierKeys.currentSession }),
         queryClient.invalidateQueries({ queryKey: cashierKeys.sessions }),
+        queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
       ]);
     },
   });
@@ -46,16 +50,73 @@ export const useFinishSession = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: cashierKeys.currentSession }),
         queryClient.invalidateQueries({ queryKey: cashierKeys.sessions }),
+        queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
       ]);
     },
   });
 };
 
-export const useQueueCurrentLead = () =>
+export const useQueueCurrentLead = (enabled = true) =>
   useQuery({
     queryKey: cashierKeys.queueCurrentLead,
     queryFn: cashierService.getQueueCurrentLead,
+    enabled,
   });
+
+export const useCashierRuntimeState = (enabled = true) =>
+  useQuery({
+    queryKey: cashierKeys.runtimeState,
+    queryFn: cashierService.getRuntimeState,
+    enabled,
+    refetchInterval: 5_000,
+  });
+
+export const useCashierRuntimeStateStream = (
+  token: string | null,
+  enabled = true,
+) => {
+  const queryClient = useQueryClient();
+  const previousRuntimeRef = useRef<CashierRuntimeState | null>(null);
+
+  useEffect(() => {
+    if (!enabled || !token) {
+      return;
+    }
+
+    const url = `${env.realtimeBaseUrl}/cashier/runtime-state/stream?token=${encodeURIComponent(token)}`;
+    const source = new EventSource(url);
+
+    source.addEventListener("runtime-state", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent<string>).data) as CashierRuntimeState;
+        const previous = previousRuntimeRef.current;
+        previousRuntimeRef.current = payload;
+
+        queryClient.setQueryData(cashierKeys.runtimeState, payload);
+        queryClient.setQueryData(cashierKeys.whatsappLinkStatus, {
+          sessionName: payload.sessionName,
+          status: payload.wahaStatus,
+          linked: payload.wahaStatus === "WORKING",
+        });
+
+        const sessionChanged = previous?.sessionName !== payload.sessionName;
+        if (sessionChanged) {
+          void queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkState });
+        }
+      } catch {
+        void queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState });
+      }
+    });
+
+    source.onerror = () => {
+      void queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState });
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [enabled, queryClient, token]);
+};
 
 export const useConvertQueueLead = () => {
   const queryClient = useQueryClient();
@@ -67,6 +128,7 @@ export const useConvertQueueLead = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: cashierKeys.queueCurrentLead }),
         queryClient.invalidateQueries({ queryKey: ["cashier", "leads"] }),
+        queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
       ]);
     },
   });
@@ -78,7 +140,10 @@ export const useSkipQueueLead = () => {
   return useMutation({
     mutationFn: (leadId: string) => cashierService.skipQueueLead(leadId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: cashierKeys.queueCurrentLead });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: cashierKeys.queueCurrentLead }),
+        queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
+      ]);
     },
   });
 };
@@ -88,6 +153,8 @@ export const useCashierLeads = (status?: LeadStatus) =>
     queryKey: cashierKeys.leads(status),
     queryFn: () => cashierService.listLeads(status),
   });
+
+export { cashierKeys };
 
 export const useUpdateCashierAccount = () =>
   useMutation<void, unknown, { username?: string; password?: string }>({

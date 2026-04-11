@@ -70,6 +70,23 @@ export interface WhatsappLinkStatus {
   linked: boolean;
 }
 
+export type WahaStatus =
+  | 'UNLINKED'
+  | 'STOPPED'
+  | 'STARTING'
+  | 'SCAN_QR_CODE'
+  | 'WORKING'
+  | 'FAILED';
+
+export interface CashierRuntimeState {
+  cashierId: string;
+  cashierStatus: CashierStatus;
+  sessionName: string;
+  wahaStatus: WahaStatus;
+  canOperateLeads: boolean;
+  hasActiveWorkSession: boolean;
+}
+
 export interface Lead {
   id: string;
   code: string;

@@ -3,6 +3,7 @@ import { sendMetaConversion } from '../../integrations/leads/conversion.js';
 import { getLandingByMetaPixelId } from '../admin/admin.repository.js';
 import {
   createSessionIfNotExists,
+  deleteSession,
   getSession,
   getSessionQr,
   requestSessionCode,
@@ -10,9 +11,12 @@ import {
 } from '../../integrations/waha/client.js';
 import {
   convertLead,
+  finishCurrentSessionActivity,
   findLeadByIdForCashier,
   findQueueLeadForCashier,
   finishSessionActivity,
+  getCashierById,
+  getCashierBySessionName,
   getCashierSession,
   getCurrentSessionActivity,
   listLeadsForCashier,
@@ -23,8 +27,21 @@ import {
   updateCashierWhatsappLink,
 } from './cashier.repository.js';
 import { hashPassword } from '../../utils/password.js';
+import { emitCashierRuntimeStateChanged } from './runtime-events.js';
 
 const WHATSAPP_LINK_MAX_REFRESH = 3;
+const rotatingCashiers = new Set<string>();
+const WAHA_SESSION_READY_TIMEOUT_MS = 20000;
+const WAHA_SESSION_READY_POLL_MS = 750;
+const WAHA_MAX_SESSION_NAME_LENGTH = 54;
+
+const NON_OPERATIONAL_WAHA_STATUSES = new Set([
+  'UNLINKED',
+  'STOPPED',
+  'STARTING',
+  'SCAN_QR_CODE',
+  'FAILED',
+]);
 
 const toSessionDto = (item: {
   id: string;
@@ -92,6 +109,123 @@ export const getCurrentSessionService = async (cashierId: string) => {
   };
 };
 
+export const getCashierRuntimeStateService = async (cashierId: string) => {
+  const cashier = await getCashierById(cashierId);
+  if (!cashier) {
+    throw new Error('CASHIER_NOT_FOUND');
+  }
+
+  const current = await getCurrentSessionActivity(cashier.id);
+
+  const sessionName = cashier.sessionName ?? '';
+  let wahaStatus = 'UNLINKED';
+  if (cashier.sessionName) {
+    try {
+      const session = await getSession(cashier.sessionName);
+      wahaStatus = session?.status ?? 'UNLINKED';
+    } catch {
+      wahaStatus = 'UNLINKED';
+    }
+  }
+
+  const canOperateLeads =
+    cashier.status === 'ACTIVE' && Boolean(cashier.sessionName) && wahaStatus === 'WORKING';
+
+  return {
+    cashierId: cashier.id,
+    cashierStatus: cashier.status,
+    sessionName,
+    wahaStatus,
+    canOperateLeads,
+    hasActiveWorkSession: Boolean(current),
+  };
+};
+
+export const enforceCashierCanOperateLeadsService = async (cashierId: string) => {
+  const runtime = await getCashierRuntimeStateService(cashierId);
+  if (!runtime.canOperateLeads) {
+    return {
+      allowed: false as const,
+      reason:
+        runtime.cashierStatus !== 'ACTIVE'
+          ? 'CASHIER_DISABLED'
+          : runtime.wahaStatus === 'UNLINKED'
+            ? 'WHATSAPP_NOT_LINKED'
+            : 'WHATSAPP_NOT_WORKING',
+      runtime,
+    };
+  }
+
+  return {
+    allowed: true as const,
+    runtime,
+  };
+};
+
+export const processWhatsappSessionStatusService = async (
+  sessionName: string,
+  status: string,
+  occurredAt: Date,
+) => {
+  const cashier = await getCashierBySessionName(sessionName);
+  if (!cashier) {
+    return {
+      matched: false as const,
+    };
+  }
+
+  const nonOperational = NON_OPERATIONAL_WAHA_STATUSES.has(status);
+  if (nonOperational) {
+    await finishCurrentSessionActivity(cashier.id, occurredAt);
+  }
+
+  const shouldRotate = status === 'FAILED' || status === 'STOPPED';
+  let rotated = false;
+  let nextSessionName: string | null = null;
+
+  if (shouldRotate && !rotatingCashiers.has(cashier.id)) {
+    rotatingCashiers.add(cashier.id);
+
+    try {
+      const previousSessionName = cashier.sessionName;
+
+      await deleteSession(previousSessionName ?? sessionName);
+      await updateCashierWhatsappLink(cashier.id, {
+        sessionName: null,
+        whatsappPhoneNumber: null,
+        whatsappLinkRefreshCount: 0,
+        whatsappLinkUpdatedAt: occurredAt,
+      });
+
+      rotated = true;
+      nextSessionName = null;
+    } catch (error) {
+      console.error('waha_rotation_failed', {
+        cashierId: cashier.id,
+        sessionName,
+        status,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      rotatingCashiers.delete(cashier.id);
+    }
+  }
+
+  const currentState = await getCashierById(cashier.id);
+  if (!currentState?.sessionName || currentState.sessionName === sessionName) {
+    emitCashierRuntimeStateChanged(cashier.id);
+  }
+
+  return {
+    matched: true as const,
+    cashierId: cashier.id,
+    status,
+    nonOperational,
+    rotated,
+    nextSessionName,
+  };
+};
+
 export const startSessionService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
   const current = await getCurrentSessionActivity(cashier.id);
@@ -100,6 +234,7 @@ export const startSessionService = async (cashierId: string) => {
   }
 
   const activity = await startSessionActivity(cashier.id);
+  emitCashierRuntimeStateChanged(cashier.id);
   return {
     ...toSessionDto(activity),
     cashierId,
@@ -115,6 +250,7 @@ export const finishSessionService = async (cashierId: string) => {
   }
 
   const finished = await finishSessionActivity(current.id, new Date());
+  emitCashierRuntimeStateChanged(cashier.id);
   return {
     ...toSessionDto(finished),
     cashierId,
@@ -124,17 +260,100 @@ export const finishSessionService = async (cashierId: string) => {
 
 const getSessionCandidateName = (cashierId: string) => `cashier-${cashierId}`;
 
+const buildWhatsappSessionName = (cashierId: string) => {
+  const compactCashierId = cashierId.replace(/-/g, '');
+  const suffix = Date.now().toString(36);
+  return `cashier-${compactCashierId}-${suffix}`;
+};
+
+const assertValidSessionName = (sessionName: string) => {
+  if (sessionName.length > WAHA_MAX_SESSION_NAME_LENGTH) {
+    throw new Error('WAHA_SESSION_NAME_TOO_LONG');
+  }
+};
+
+const normalizePhoneNumber = (phoneNumber: string) =>
+  phoneNumber.trim().replace(/^\+/, '');
+
+const waitForSessionReadyForAuth = async (sessionName: string) => {
+  const deadline = Date.now() + WAHA_SESSION_READY_TIMEOUT_MS;
+  let restartAttempts = 0;
+
+  while (Date.now() < deadline) {
+    const session = await getSession(sessionName);
+    const status = session?.status ?? 'UNLINKED';
+
+    if (status === 'SCAN_QR_CODE' || status === 'WORKING') {
+      return;
+    }
+
+    if (status === 'FAILED') {
+      throw new Error('WAHA_SESSION_FAILED');
+    }
+
+    if (status === 'STOPPED' && restartAttempts < 2) {
+      restartAttempts += 1;
+      await startSession(sessionName);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, WAHA_SESSION_READY_POLL_MS));
+  }
+
+  throw new Error('WAHA_SESSION_NOT_READY');
+};
+
+const requestPairingCodeWithRetry = async (
+  sessionName: string,
+  phoneNumber: string,
+  attempts = 3,
+) => {
+  let currentAttempt = 0;
+
+  while (currentAttempt < attempts) {
+    currentAttempt += 1;
+    try {
+      const pairingCode = await requestSessionCode(sessionName, phoneNumber);
+      if (pairingCode) {
+        return pairingCode;
+      }
+    } catch {
+      // keep trying until attempts exhausted
+    }
+
+    if (currentAttempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    }
+  }
+
+  return null;
+};
+
+const ensureSessionIsRunningForAuth = async (sessionName: string) => {
+  await createSessionIfNotExists(sessionName);
+  await startSession(sessionName);
+};
+
 const requestWhatsappAuthArtifacts = async (
   sessionName: string,
   phoneNumber: string,
 ) => {
-  await createSessionIfNotExists(sessionName);
-  await startSession(sessionName);
+  await ensureSessionIsRunningForAuth(sessionName);
+  await waitForSessionReadyForAuth(sessionName);
 
-  const [pairingCode, qr] = await Promise.all([
-    requestSessionCode(sessionName, phoneNumber),
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+  const [pairingCodeResult, qrResult] = await Promise.allSettled([
+    requestPairingCodeWithRetry(sessionName, normalizedPhone),
     getSessionQr(sessionName),
   ]);
+
+  const pairingCode =
+    pairingCodeResult.status === 'fulfilled' ? pairingCodeResult.value : null;
+  const qr = qrResult.status === 'fulfilled' ? qrResult.value : null;
+
+  if (!pairingCode && !qr) {
+    throw new Error('WAHA_AUTH_ARTIFACTS_UNAVAILABLE');
+  }
 
   return {
     sessionName,
@@ -145,18 +364,20 @@ const requestWhatsappAuthArtifacts = async (
 
 export const getWhatsappLinkStateService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
-  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
+  const sessionName = cashier.sessionName ?? '';
 
   let wahaStatus: string | null = null;
-  try {
-    const session = await getSession(sessionName);
-    wahaStatus = session?.status ?? null;
-  } catch {
-    wahaStatus = null;
+  if (sessionName) {
+    try {
+      const session = await getSession(sessionName);
+      wahaStatus = session?.status ?? null;
+    } catch {
+      wahaStatus = null;
+    }
   }
 
   return {
-    needsLink: !cashier.sessionName,
+    needsLink: !cashier.sessionName || !cashier.whatsappPhoneNumber,
     sessionName,
     refreshCount: cashier.whatsappLinkRefreshCount,
     maxRefresh: WHATSAPP_LINK_MAX_REFRESH,
@@ -168,25 +389,55 @@ export const startWhatsappLinkService = async (
   cashierId: string,
   phoneNumber: string,
 ) => {
-  const cashier = await updateCashierWhatsappLink(cashierId, {
-    whatsappPhoneNumber: phoneNumber,
-    whatsappLinkRefreshCount: 0,
-    whatsappLinkUpdatedAt: new Date(),
-  });
+  const cashier = await getCashierSession(cashierId);
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+  const sessionName = buildWhatsappSessionName(cashier.id);
+  assertValidSessionName(sessionName);
 
-  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
-  const artifacts = await requestWhatsappAuthArtifacts(sessionName, phoneNumber);
+  try {
+    if (cashier.sessionName) {
+      await deleteSession(cashier.sessionName);
+    }
 
-  return {
-    ...artifacts,
-    refreshCount: 0,
-    maxRefresh: WHATSAPP_LINK_MAX_REFRESH,
-    nextRefreshInSeconds: 45,
-  };
+    const artifacts = await requestWhatsappAuthArtifacts(sessionName, normalizedPhone);
+    await updateCashierWhatsappLink(cashier.id, {
+      sessionName,
+      whatsappPhoneNumber: normalizedPhone,
+      whatsappLinkRefreshCount: 0,
+      whatsappLinkUpdatedAt: new Date(),
+    });
+    emitCashierRuntimeStateChanged(cashier.id);
+
+    return {
+      ...artifacts,
+      refreshCount: 0,
+      maxRefresh: WHATSAPP_LINK_MAX_REFRESH,
+      nextRefreshInSeconds: 45,
+    };
+  } catch (error) {
+    try {
+      await deleteSession(sessionName);
+    } catch {
+      // best effort cleanup
+    }
+
+    await updateCashierWhatsappLink(cashier.id, {
+      sessionName: null,
+      whatsappPhoneNumber: null,
+      whatsappLinkRefreshCount: 0,
+      whatsappLinkUpdatedAt: new Date(),
+    });
+    emitCashierRuntimeStateChanged(cashier.id);
+    throw error;
+  }
 };
 
 export const refreshWhatsappLinkService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
+  if (!cashier.sessionName) {
+    throw new Error('SESSION_NAME_REQUIRED');
+  }
+
   if (!cashier.whatsappPhoneNumber) {
     throw new Error('PHONE_NUMBER_REQUIRED');
   }
@@ -201,11 +452,12 @@ export const refreshWhatsappLinkService = async (cashierId: string) => {
     whatsappLinkUpdatedAt: new Date(),
   });
 
-  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
+  const sessionName = cashier.sessionName;
   const artifacts = await requestWhatsappAuthArtifacts(
     sessionName,
     cashier.whatsappPhoneNumber,
   );
+  emitCashierRuntimeStateChanged(cashier.id);
 
   return {
     ...artifacts,
@@ -220,11 +472,20 @@ export const resetWhatsappLinkService = async (cashierId: string) => {
     whatsappLinkRefreshCount: 0,
     whatsappLinkUpdatedAt: new Date(),
   });
+  emitCashierRuntimeStateChanged(cashierId);
 };
 
 export const getWhatsappLinkStatusService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
-  const sessionName = cashier.sessionName ?? getSessionCandidateName(cashier.id);
+  const sessionName = cashier.sessionName ?? '';
+  if (!sessionName) {
+    return {
+      sessionName,
+      status: 'UNLINKED',
+      linked: false,
+    };
+  }
+
   const session = await getSession(sessionName);
   const status = session?.status ?? 'UNLINKED';
 
@@ -234,6 +495,7 @@ export const getWhatsappLinkStatusService = async (cashierId: string) => {
       whatsappLinkRefreshCount: 0,
       whatsappLinkUpdatedAt: new Date(),
     });
+    emitCashierRuntimeStateChanged(cashierId);
   }
 
   return {
@@ -257,6 +519,7 @@ export const completeWhatsappLinkService = async (
     whatsappLinkRefreshCount: 0,
     whatsappLinkUpdatedAt: new Date(),
   });
+  emitCashierRuntimeStateChanged(cashierId);
 
   return {
     linked: true,

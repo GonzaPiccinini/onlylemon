@@ -1,6 +1,7 @@
 import { endpoints } from "@/api/endpoints";
 import { http } from "@/api/http";
 import type {
+  CashierRuntimeState,
   ConvertLeadInput,
   Lead,
   LeadStatus,
@@ -50,6 +51,11 @@ export const cashierService = {
     const { data } = await http.get<Lead[]>(endpoints.cashier.leads, {
       params: status ? { status } : undefined,
     });
+    return data;
+  },
+
+  async getRuntimeState(): Promise<CashierRuntimeState> {
+    const { data } = await http.get<CashierRuntimeState>(endpoints.cashier.runtimeState);
     return data;
   },
 

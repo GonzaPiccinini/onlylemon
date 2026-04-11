@@ -26,6 +26,7 @@ interface AuthContextValue {
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
   isLoggingIn: boolean;
+  refreshMe: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -76,6 +77,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   };
 
+  const refreshMe = async () => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const me = await authService.me();
+      setUser(me);
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, user: me }));
+    } catch {
+      await logout();
+    }
+  };
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -91,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       },
       logout,
       isLoggingIn: loginMutation.isPending,
+      refreshMe,
     }),
     [loginMutation, token, user],
   );
