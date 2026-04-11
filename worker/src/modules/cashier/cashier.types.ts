@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const convertLeadSchema = z.object({
-  amount: z.coerce.number().positive(),
+  amount: z.coerce.number().min(2000),
 });
 
 export type ConvertLeadPayload = z.infer<typeof convertLeadSchema>;

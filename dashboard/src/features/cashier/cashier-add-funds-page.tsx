@@ -27,14 +27,15 @@ import {
   useSkipQueueLead,
 } from '@/features/cashier/cashier-hooks';
 import { leadStatusLabel } from '@/lib/lead-status';
+import { toApiError } from '@/api/http';
 
 const schema = z.object({
   amount: z
     .string()
     .trim()
     .min(1, 'El monto es obligatorio')
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
-      message: 'El monto debe ser mayor a 0',
+    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 2000, {
+      message: 'El monto minimo es 2000',
     }),
 });
 
@@ -83,8 +84,9 @@ export const CashierAddFundsPage = () => {
       });
       toast.success('Conversion registrada');
       form.reset({ amount: '' });
-    } catch {
-      toast.error('No se pudo registrar la conversion');
+    } catch (error) {
+      const apiError = toApiError(error);
+      toast.error(apiError.message || 'No se pudo registrar la conversion');
     }
   };
 
@@ -154,14 +156,14 @@ export const CashierAddFundsPage = () => {
                       <Input
                         id='amount'
                         type='number'
-                        min={1}
+                        min={2000}
                         step={1}
                         placeholder='Ingresa el monto'
                         aria-invalid={Boolean(form.formState.errors.amount)}
                         {...form.register('amount')}
                       />
                       <FieldDescription>
-                        Valor reportado de conversion.
+                        Valor reportado de conversion. Minimo 2000.
                       </FieldDescription>
                       <FieldError errors={[form.formState.errors.amount]} />
                     </FieldContent>
