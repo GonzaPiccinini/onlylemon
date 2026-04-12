@@ -33,7 +33,6 @@ import { PaginationControls } from '@/components/common/pagination-controls';
 
 const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
   { label: 'Todos', value: 'ALL' },
-  { label: 'No contactado', value: 'NOT_CONTACTED' },
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
   { label: 'Expirado', value: 'EXPIRED' },
@@ -81,7 +80,11 @@ export const CashierHistoryPage = () => {
                 <SelectContent>
                   <SelectGroup>
                     {STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                      >
                         {option.label}
                       </SelectItem>
                     ))}
