@@ -1,0 +1,28 @@
+api.onlylemon.app {
+    encode zstd gzip
+
+    reverse_proxy gateway:3000
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+}
+
+waha.onlylemon.app {
+    encode zstd gzip
+
+    basicauth {
+        admin {env.WAHA_BASIC_AUTH_HASH}
+    }
+
+    reverse_proxy waha:3000
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        -Server
+    }
+}
