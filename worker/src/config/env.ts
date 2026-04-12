@@ -19,6 +19,9 @@ const envSchema = z.object({
   META_PIXEL_ID: z.string().optional(),
   META_ACCESS_TOKEN: z.string().optional(),
   META_API_VERSION: z.string().default('v21.0'),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+    .default('info'),
 });
 
 export const validateSchema = envSchema.safeParse(process.env);

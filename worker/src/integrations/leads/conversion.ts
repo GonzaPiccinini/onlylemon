@@ -1,4 +1,8 @@
 import { config } from '../../config/env.js';
+import {
+  metaConversionEventsTotal,
+  metaConversionDurationSeconds,
+} from '../../lib/metrics.js';
 
 interface ConversionPayload {
   phone: string;
@@ -33,37 +37,53 @@ const postMetaEvent = async (input: {
   eventId: string;
   payload: ConversionPayload;
 }): Promise<boolean> => {
-  const response = await fetch(
-    `https://graph.facebook.com/${config.META_API_VERSION}/${input.payload.metaPixelId}/events?access_token=${input.payload.metaAccessToken}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        data: [
-          {
-            event_name: input.eventName,
-            event_time: Math.floor(Date.now() / 1000),
-            action_source: 'system_generated',
-            event_id: input.eventId,
-            user_data: {
-              ph: [input.hashedPhone],
-              fbc: input.payload.fbc,
-              fbp: input.payload.fbp,
-              client_user_agent: input.payload.userAgent,
-            },
-            custom_data: {
-              currency: 'ARS',
-              value: input.payload.value,
-            },
-          },
-        ],
-      }),
-    },
-  );
+  const startedAt = process.hrtime.bigint();
 
-  return response.ok;
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/${config.META_API_VERSION}/${input.payload.metaPixelId}/events?access_token=${input.payload.metaAccessToken}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: [
+            {
+              event_name: input.eventName,
+              event_time: Math.floor(Date.now() / 1000),
+              action_source: 'system_generated',
+              event_id: input.eventId,
+              user_data: {
+                ph: [input.hashedPhone],
+                fbc: input.payload.fbc,
+                fbp: input.payload.fbp,
+                client_user_agent: input.payload.userAgent,
+              },
+              custom_data: {
+                currency: 'ARS',
+                value: input.payload.value,
+              },
+            },
+          ],
+        }),
+      },
+    );
+
+    const result = response.ok ? 'success' : 'failure';
+    metaConversionEventsTotal.labels(input.eventName, result).inc();
+    metaConversionDurationSeconds
+      .labels(input.eventName)
+      .observe(Number(process.hrtime.bigint() - startedAt) / 1_000_000_000);
+
+    return response.ok;
+  } catch (error) {
+    metaConversionEventsTotal.labels(input.eventName, 'error').inc();
+    metaConversionDurationSeconds
+      .labels(input.eventName)
+      .observe(Number(process.hrtime.bigint() - startedAt) / 1_000_000_000);
+    throw error;
+  }
 };
 
 export const sendMetaConversion = async (

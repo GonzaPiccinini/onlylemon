@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireWhatsappWebhookToken } from '../security/webhook.middleware.js';
 import { processWhatsappSessionStatusService } from '../cashier/cashier.service.js';
 import { z } from 'zod';
+import { logger } from '../../lib/logger.js';
 
 const whatsappSessionStatusWebhookSchema = z.object({
   event: z.literal('session.status'),
@@ -45,7 +46,7 @@ wahaRouter.post(
         details: parsed.error.flatten(),
       });
     }
-    console.log(parsed);
+    logger.debug({ event: 'waha_session_status_received', session: parsed.data.session, status: parsed.data.payload.status });
     const latestTimestamp =
       parsed.data.payload.statuses?.at(-1)?.timestamp ??
       parsed.data.timestamp ??

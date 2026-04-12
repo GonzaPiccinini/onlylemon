@@ -13,6 +13,9 @@ const envSchema = z.object({
   QUEUE_MAX_BACKLOG: z.coerce.number(),
   QUEUE_DEGRADED_BACKLOG: z.coerce.number(),
   CORS_ALLOWED_ORIGINS: z.string(),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+    .default('info'),
 });
 
 const validatedEnv = envSchema.parse(process.env);
@@ -33,4 +36,5 @@ export const env = {
   queueMaxBacklog: validatedEnv.QUEUE_MAX_BACKLOG,
   queueDegradedBacklog: validatedEnv.QUEUE_DEGRADED_BACKLOG,
   corsAllowedOrigins: parseCsv(validatedEnv.CORS_ALLOWED_ORIGINS),
+  logLevel: validatedEnv.LOG_LEVEL,
 };

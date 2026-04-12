@@ -2,6 +2,7 @@ import { customAlphabet } from 'nanoid';
 import { z } from 'zod';
 import { Prisma } from '../../generated/prisma/client.js';
 import { config } from '../../config/env.js';
+import { leadCodeCollisionsTotal } from '../../lib/metrics.js';
 import { getNumberByLid } from '../waha/client.js';
 import {
   expireLeadIfStillOpen,
@@ -180,6 +181,7 @@ export async function createLead(
       };
     } catch (error) {
       if (isUniqueConstraintError(error)) {
+        leadCodeCollisionsTotal.inc();
         continue;
       }
 

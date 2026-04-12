@@ -28,6 +28,11 @@ import {
 } from './cashier.repository.js';
 import { hashPassword } from '../../utils/password.js';
 import { emitCashierRuntimeStateChanged } from './runtime-events.js';
+import { logger } from '../../lib/logger.js';
+import {
+  leadsConvertedTotal,
+  leadConversionAmountArs,
+} from '../../lib/metrics.js';
 
 const WHATSAPP_LINK_MAX_REFRESH = 3;
 const rotatingCashiers = new Set<string>();
@@ -200,11 +205,12 @@ export const processWhatsappSessionStatusService = async (
       rotated = true;
       nextSessionName = null;
     } catch (error) {
-      console.error('waha_rotation_failed', {
+      logger.error({
+        event: 'waha_rotation_failed',
         cashierId: cashier.id,
         sessionName,
         status,
-        error: error instanceof Error ? error.message : String(error),
+        err: error,
       });
     } finally {
       rotatingCashiers.delete(cashier.id);
@@ -582,10 +588,22 @@ export const convertQueueLeadService = async (
   }
 
   const converted = await convertLead(lead.id, amount, now);
+
+  leadsConvertedTotal.labels(lead.metaPixelId).inc();
+  leadConversionAmountArs.labels(lead.metaPixelId).observe(amount);
+  logger.info({
+    event: 'lead_converted',
+    leadId: lead.id,
+    cashierId,
+    metaPixelId: lead.metaPixelId,
+    amount,
+  });
+
   const landing = await getLandingByMetaPixelId(lead.metaPixelId);
 
   if (!landing) {
-    console.error('meta_landing_not_found', {
+    logger.error({
+      event: 'meta_landing_not_found',
       leadId: lead.id,
       metaPixelId: lead.metaPixelId,
     });
@@ -605,18 +623,17 @@ export const convertQueueLeadService = async (
   });
 
   if (!conversionResult.purchaseSent) {
-    console.error('meta_conversion_failed', {
+    logger.error({
+      event: 'meta_conversion_failed',
       leadId: lead.id,
       metaPixelId: lead.metaPixelId,
       eventName: 'Purchase',
     });
   }
 
-  if (
-    conversionResult.highValueRequired &&
-    !conversionResult.highValueSent
-  ) {
-    console.error('meta_conversion_failed', {
+  if (conversionResult.highValueRequired && !conversionResult.highValueSent) {
+    logger.error({
+      event: 'meta_conversion_failed',
       leadId: lead.id,
       metaPixelId: lead.metaPixelId,
       eventName: 'HighValueCustomer',

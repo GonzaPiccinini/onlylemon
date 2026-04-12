@@ -4,6 +4,8 @@ import {
   createLead,
   mapLeadCodeToPhone,
 } from './service.js';
+import { logger } from '../../lib/logger.js';
+import { leadsCreatedTotal, leadsMatchedTotal } from '../../lib/metrics.js';
 
 export async function leadsPost(req: Request, res: Response) {
   const parseResult = CreateLeadPayloadSchema.safeParse(req.body);
@@ -16,6 +18,11 @@ export async function leadsPost(req: Request, res: Response) {
 
   try {
     const lead = await createLead(parseResult.data);
+
+    leadsCreatedTotal.labels(parseResult.data.metaPixelId).inc();
+    logger.info(
+      { event: 'lead_created', metaPixelId: parseResult.data.metaPixelId },
+    );
 
     return res.status(201).json({
       code: lead.code,
@@ -36,7 +43,7 @@ export async function leadsPost(req: Request, res: Response) {
       }
     }
 
-    console.error(`Error saving leads: ${error}`);
+    logger.error({ err: error }, 'lead_create_error');
     res.status(500).json({
       message: 'Internal server error',
     });
@@ -50,14 +57,16 @@ export async function mapLeadsToPhone(
 ) {
   try {
     const result = await mapLeadCodeToPhone(session, chatId, body);
-    if (result !== 'MATCHED' && result !== 'NO_CODE') {
-      console.error('Lead mapping not completed', {
-        result,
-        session,
-        chatId,
-      });
+
+    leadsMatchedTotal.labels(result).inc();
+
+    if (result === 'MATCHED') {
+      logger.info({ event: 'lead_matched', session, result });
+    } else if (result !== 'NO_CODE') {
+      logger.warn({ event: 'lead_match_failed', session, chatId, result });
     }
   } catch (error) {
-    console.error(`Error updating leads: ${error}`);
+    leadsMatchedTotal.labels('error').inc();
+    logger.error({ err: error, session, chatId }, 'lead_match_error');
   }
 }

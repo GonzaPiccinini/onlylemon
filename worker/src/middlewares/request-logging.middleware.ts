@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { logger } from '../lib/logger.js';
 import { httpRequestDurationSeconds } from '../lib/metrics.js';
 
@@ -18,7 +18,7 @@ export const requestLoggingMiddleware = (
   res.on('finish', () => {
     const durationMs =
       Number(process.hrtime.bigint() - startedAt) / 1_000_000;
-    const route = req.path;
+    const route = (req.route?.path as string | undefined) ?? req.path;
     const statusCode = String(res.statusCode);
 
     httpRequestDurationSeconds
@@ -30,9 +30,9 @@ export const requestLoggingMiddleware = (
       requestId,
       method: req.method,
       path: req.originalUrl,
+      route,
       statusCode: res.statusCode,
       durationMs: Number(durationMs.toFixed(2)),
-      userAgent: req.get('user-agent') ?? null,
     });
   });
 

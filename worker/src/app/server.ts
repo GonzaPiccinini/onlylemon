@@ -11,6 +11,11 @@ import { cashierRouter } from '../modules/cashier/cashier.routes.js';
 import { wahaRouter } from '../modules/waha/waha.routes.js';
 import { realtimeRouter } from '../modules/realtime/realtime.routes.js';
 import { isCorsOriginAllowed } from '../modules/security/cors-origins.service.js';
+import { requestLoggingMiddleware } from '../middlewares/request-logging.middleware.js';
+import { errorMiddleware } from '../middlewares/error.middleware.js';
+import { logger } from '../lib/logger.js';
+import { register } from '../lib/metrics.js';
+import { prisma } from '../persistence/prisma/client.js';
 
 const app = express();
 const port = config.PORT; // NO TOCAR PORQUE ROMPE EL CODIGO DE OPENAI
@@ -28,11 +33,21 @@ const corsOptions: CorsOptions = {
 };
 
 app.use(express.json());
-
 app.use(cors(corsOptions));
+app.use(requestLoggingMiddleware);
 
-app.get('/health', (_req, res) => {
-  res.status(200).json({ ok: true });
+app.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ ok: true, db: 'connected' });
+  } catch {
+    res.status(503).json({ ok: false, db: 'error' });
+  }
+});
+
+app.get('/metrics', async (_req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 app.post('/receive', (_req, res) => {
@@ -46,12 +61,14 @@ app.use('/api/cashier', cashierRouter);
 app.use('/api/waha', wahaRouter);
 app.use('/api/realtime', realtimeRouter);
 
+app.use(errorMiddleware);
+
 const server = app.listen(port, () => {
-  console.log(`server listening on ${port}`);
+  logger.info({ port }, 'server listening');
 });
 
 async function shutdown(signal: string) {
-  console.log(`shutdown signal: ${signal}`);
+  logger.info({ signal }, 'shutdown signal received');
   await worker.close();
   server.close(() => {
     process.exit(0);

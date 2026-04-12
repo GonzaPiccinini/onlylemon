@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { mapLeadsToPhone } from '../../integrations/leads/http.js';
 import { validateJobIdempotency } from '../../modules/idempotency/idempotency.service.js';
 import { processWhatsappSessionStatusService } from '../../modules/cashier/cashier.service.js';
+import { logger } from '../../lib/logger.js';
+import { bullmqJobDurationSeconds, bullmqJobsTotal } from '../../lib/metrics.js';
 
 const InboundMessageSchema = z.object({
   id: z.string().min(1).optional(),
@@ -51,10 +53,17 @@ const InboundJobSchema = z.union([
 ]);
 
 export async function processInboundJob(job: Job) {
+  const startedAt = process.hrtime.bigint();
+  const eventType = job.name;
+
   try {
     const parsedData = InboundJobSchema.safeParse(job.data);
     if (parsedData.error) {
-      console.error(`Error parsing job data: ${parsedData.error.message}`);
+      logger.error(
+        { jobId: job.id, eventType, err: parsedData.error.message },
+        'job_parse_error',
+      );
+      bullmqJobsTotal.labels('parse_error', eventType).inc();
       return;
     }
 
@@ -70,10 +79,8 @@ export async function processInboundJob(job: Job) {
     );
 
     if (!isFirstProcessing) {
-      console.info('Skipping duplicated job', {
-        jobId: job.id,
-        jobKey,
-      });
+      logger.info({ jobId: job.id, jobKey, eventType }, 'job_duplicate_skipped');
+      bullmqJobsTotal.labels('duplicate', eventType).inc();
       return;
     }
 
@@ -88,12 +95,19 @@ export async function processInboundJob(job: Job) {
         data.payload.status,
         new Date(latestTimestamp),
       );
-      return;
+    } else {
+      await mapLeadsToPhone(data.session, data.payload.from, data.payload.body);
     }
 
-    await mapLeadsToPhone(data.session, data.payload.from, data.payload.body);
+    const durationSeconds =
+      Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+    bullmqJobDurationSeconds.labels(eventType).observe(durationSeconds);
   } catch (error) {
-    console.error(`Error processing inbound job ${job.id}: ${error}`);
+    const durationSeconds =
+      Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+    bullmqJobDurationSeconds.labels(eventType).observe(durationSeconds);
+
+    logger.error({ jobId: job.id, eventType, err: error }, 'job_processing_error');
     throw error;
   }
 }

@@ -6,4 +6,7 @@ const adapter = new PrismaPg({
   connectionString: config.DATABASE_URL,
 });
 
-export const prisma = new PrismaClient({ adapter });
+export const prisma = new PrismaClient({
+  adapter,
+  log: ['warn', 'error'],
+});

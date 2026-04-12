@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import { env } from './env.js';
+import { logger } from '../lib/logger.js';
 
 let queue: Queue | null = null;
 
@@ -31,7 +32,7 @@ export const getWebhookQueue = (): Queue => {
     });
 
     queue.on('error', (error) => {
-      console.error('BullMQ queue error:', error);
+      logger.error({ err: error }, 'BullMQ queue error');
     });
   }
 
@@ -41,7 +42,7 @@ export const getWebhookQueue = (): Queue => {
 export const connectBullMQ = async (): Promise<void> => {
   const webhookQueue = getWebhookQueue();
   await webhookQueue.waitUntilReady();
-  console.info('BullMQ connected');
+  logger.info('BullMQ connected');
 };
 
 export const disconnectBullMQ = async (): Promise<void> => {
@@ -51,7 +52,7 @@ export const disconnectBullMQ = async (): Promise<void> => {
 
   await queue.close();
   queue = null;
-  console.info('BullMQ disconnected');
+  logger.info('BullMQ disconnected');
 };
 
 export const getWebhookQueueStats = async (): Promise<QueueStats> => {

@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
 import { env } from '../config/env.js';
 import { getWebhookQueue, getWebhookQueueStats } from '../config/bullmq.js';
+import { logger } from '../lib/logger.js';
+import {
+  webhooksEnqueuedTotal,
+  webhooksRejectedTotal,
+} from '../lib/metrics.js';
 
 export const handleWebhook = async (req: Request, res: Response) => {
   try {
@@ -10,6 +15,8 @@ export const handleWebhook = async (req: Request, res: Response) => {
     const stats = await getWebhookQueueStats();
 
     if (stats.backlog >= env.queueMaxBacklog) {
+      webhooksRejectedTotal.labels('queue_saturated').inc();
+      logger.warn({ backlog: stats.backlog }, 'webhook_rejected: queue saturated');
       res.status(429).json({
         error: 'Queue is saturated, retry later',
         backlog: stats.backlog,
@@ -35,27 +42,24 @@ export const handleWebhook = async (req: Request, res: Response) => {
       },
     });
 
-    console.info(
-      JSON.stringify({
-        level: 'info',
-        event: 'webhook_enqueued',
-        requestId: res.getHeader('x-request-id') ?? null,
-        queue: env.bullmqQueueName,
-        jobId: job.id,
-        backlog: stats.backlog,
-      }),
-    );
+    webhooksEnqueuedTotal.labels(eventName).inc();
+    logger.info({
+      event: 'webhook_enqueued',
+      requestId: res.getHeader('x-request-id') ?? null,
+      queue: env.bullmqQueueName,
+      jobId: job.id,
+      eventType: eventName,
+      backlog: stats.backlog,
+    });
 
     res.status(200).json({ message: 'Webhook data stored successfully' });
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        level: 'error',
-        event: 'webhook_enqueue_failed',
-        requestId: res.getHeader('x-request-id') ?? null,
-        error: error instanceof Error ? error.message : String(error),
-      }),
-    );
+    webhooksRejectedTotal.labels('enqueue_error').inc();
+    logger.error({
+      event: 'webhook_enqueue_failed',
+      requestId: res.getHeader('x-request-id') ?? null,
+      err: error,
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
