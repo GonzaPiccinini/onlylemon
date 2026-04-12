@@ -60,10 +60,10 @@ export const AdminLeadsPage = () => {
   const paginatedLeads = leads.slice(start, start + pageSize);
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className="flex flex-col gap-4">
       <PageHeader
-        title='Leads'
-        description='Tabla global de leads con filtros por estado y cajero.'
+        title="Leads"
+        description="Tabla global de leads con filtros por estado y cajero."
       />
 
       <Card>
@@ -73,9 +73,9 @@ export const AdminLeadsPage = () => {
             Visualiza estados de conversion y asignacion por cajero.
           </CardDescription>
         </CardHeader>
-        <CardContent className='flex flex-col gap-4'>
-          <div className='grid gap-3 md:grid-cols-2'>
-            <div className='flex flex-col gap-2'>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
               <FieldLabel>Filtrar por estado</FieldLabel>
               <Select
                 value={status}
@@ -85,12 +85,16 @@ export const AdminLeadsPage = () => {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder='Filtrar por estado' />
+                  <SelectValue placeholder="Filtrar por estado" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     {STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                      >
                         {option.label}
                       </SelectItem>
                     ))}
@@ -99,7 +103,7 @@ export const AdminLeadsPage = () => {
               </Select>
             </div>
 
-            <div className='flex flex-col gap-2'>
+            <div className="flex flex-col gap-2">
               <FieldLabel>Filtrar por cajero</FieldLabel>
               <Select
                 value={cashierId}
@@ -109,13 +113,19 @@ export const AdminLeadsPage = () => {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder='Filtrar por cajero' />
+                  <SelectValue placeholder="Filtrar por cajero" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value='ALL'>Todos</SelectItem>
+                    <SelectItem value="ALL" label="Todos">
+                      Todos
+                    </SelectItem>
                     {cashiers.map((cashier) => (
-                      <SelectItem key={cashier.id} value={cashier.id}>
+                      <SelectItem
+                        key={cashier.id}
+                        value={cashier.id}
+                        label={cashier.name}
+                      >
                         {cashier.name}
                       </SelectItem>
                     ))}
