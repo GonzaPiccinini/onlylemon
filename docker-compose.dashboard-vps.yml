@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: onlylemon
+      POSTGRES_USER: onlylemon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5432:5432'
+    networks: [backend]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U onlylemon']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ./worker
+    restart: always
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://onlylemon:${POSTGRES_PASSWORD}@postgres:5432/onlylemon
+      BULLMQ_REDIS_URL: redis://:${REDIS_PASSWORD}@${WAHA_VPS_TS_IP}:6379
+      BULLMQ_QUEUE_NAME: ${BULLMQ_QUEUE_NAME}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+      LEADS_CODE_TTL_HOURS: ${LEADS_CODE_TTL_HOURS:-48}
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WAHA_BASE_URL: ${WAHA_BASE_URL}
+      WAHA_WEBHOOK_URL: ${WAHA_WEBHOOK_URL}
+      WAHA_WEBHOOK_EVENTS: session.status
+      WAHA_WEBHOOK_TOKEN_HEADER: ${WAHA_WEBHOOK_TOKEN_HEADER}
+      WAHA_WEBHOOK_TOKEN_VALUE: ${WAHA_WEBHOOK_TOKEN_VALUE}
+      META_PIXEL_ID: ${META_PIXEL_ID:-}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
+  dashboard:
+    build:
+      context: ./dashboard
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    restart: always
+    networks: [backend]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./infra/dashboard-vps/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [worker, dashboard]
+    networks: [backend]
+
+  alloy:
+    image: grafana/alloy:latest
+    restart: always
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    volumes:
+      - ./infra/dashboard-vps/alloy.config:/etc/alloy/config.alloy:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GRAFANA_PROM_USER: ${GRAFANA_PROM_USER}
+      GRAFANA_PROM_TOKEN: ${GRAFANA_PROM_TOKEN}
+      GRAFANA_LOKI_USER: ${GRAFANA_LOKI_USER}
+      GRAFANA_LOKI_TOKEN: ${GRAFANA_LOKI_TOKEN}
+      GRAFANA_PROM_URL: ${GRAFANA_PROM_URL}
+      GRAFANA_LOKI_URL: ${GRAFANA_LOKI_URL}
+    networks: [backend]
+
+volumes:
+  pg_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  backend:
+    driver: bridge

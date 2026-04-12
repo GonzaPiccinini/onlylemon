@@ -1,0 +1,98 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --bind 0.0.0.0
+      --protected-mode yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - '${WAHA_VPS_TS_IP}:6379:6379'
+    networks: [backend]
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  waha:
+    image: devlikeapro/waha:latest
+    restart: always
+    environment:
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WAHA_PRINT_QR: 'false'
+      WHATSAPP_HOOK_URL: ${WAHA_WEBHOOK_TARGET_URL}
+      WHATSAPP_HOOK_EVENTS: message,session.status
+      WHATSAPP_HOOK_RETRIES_POLICY: linear
+    volumes:
+      - waha_data:/app/.sessions
+    networks: [backend]
+
+  gateway:
+    build:
+      context: ./gateway
+    restart: always
+    environment:
+      PORT: 3000
+      WEBHOOK_TOKEN_HEADER: ${WEBHOOK_TOKEN_HEADER}
+      WEBHOOK_TOKEN_VALUE: ${WEBHOOK_TOKEN_VALUE}
+      BULLMQ_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      BULLMQ_QUEUE_NAME: ${BULLMQ_QUEUE_NAME}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      MAX_PAYLOAD_BYTES: ${MAX_PAYLOAD_BYTES:-1048576}
+      QUEUE_MAX_BACKLOG: ${QUEUE_MAX_BACKLOG:-10000}
+      QUEUE_DEGRADED_BACKLOG: ${QUEUE_DEGRADED_BACKLOG:-5000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [backend]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./infra/waha-vps/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      WAHA_BASIC_AUTH_HASH: ${WAHA_BASIC_AUTH_HASH}
+    depends_on: [gateway, waha]
+    networks: [backend]
+
+  alloy:
+    image: grafana/alloy:latest
+    restart: always
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    volumes:
+      - ./infra/waha-vps/alloy.config:/etc/alloy/config.alloy:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GRAFANA_PROM_USER: ${GRAFANA_PROM_USER}
+      GRAFANA_PROM_TOKEN: ${GRAFANA_PROM_TOKEN}
+      GRAFANA_LOKI_USER: ${GRAFANA_LOKI_USER}
+      GRAFANA_LOKI_TOKEN: ${GRAFANA_LOKI_TOKEN}
+      GRAFANA_PROM_URL: ${GRAFANA_PROM_URL}
+      GRAFANA_LOKI_URL: ${GRAFANA_LOKI_URL}
+    networks: [backend]
+
+volumes:
+  redis_data:
+  waha_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  backend:
+    driver: bridge
