@@ -1,15 +1,8 @@
 app.onlylemon.app {
     encode zstd gzip
 
-    # API del worker
-    handle /api/* {
-        uri strip_prefix /api
-        reverse_proxy worker:4000
-    }
-
     # SSE: deshabilitar buffering para Server-Sent Events
     handle /api/realtime* {
-        uri strip_prefix /api
         reverse_proxy worker:4000 {
             flush_interval -1
         }
@@ -18,6 +11,11 @@ app.onlylemon.app {
     # SPA del dashboard
     handle {
         reverse_proxy dashboard:80
+    }
+
+    # API del worker
+    handle /api/* {
+        reverse_proxy worker:4000
     }
 
     header {

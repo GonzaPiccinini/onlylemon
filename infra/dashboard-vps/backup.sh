@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Backup diario de Postgres a Cloudflare R2
-# Crontab: 0 5 * * * /home/deploy/casino-ai/infra/vps2/backup.sh >> /var/log/casino-backup.log 2>&1
+# Crontab: 0 5 * * * /home/deploy/onlylemon/backup.sh >> /var/log/onlylemon-backup.log 2>&1
 set -euo pipefail
 
-COMPOSE_FILE="/home/deploy/casino-ai/docker-compose.dashboard-vps.yml"
+COMPOSE_FILE="/home/deploy/onlylemon/docker-compose.dashboard-vps.yml"
 TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
 BACKUP_FILE="/tmp/onlylemon_backup_${TIMESTAMP}.sql.gz"
 R2_BUCKET="onlylemon-backup"
@@ -25,6 +25,6 @@ echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] upload_completed bucket=$R2_BUCKET"
 find /tmp -name 'onlylemon_*.sql.gz' -mtime +"$RETENTION_LOCAL_DAYS" -delete
 
 # Limpiar backups remotos viejos
-rclone delete "r2:${R2_BUCKET}/" --min-age "${RETENTION_REMOTE_DAYS}d"
+rclone delete "r2:${R2_BUCKET}/" --min-age "${RETENTION_REMOTE_DAYS}d" --s3-no-check-bucket
 
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] backup_completed"

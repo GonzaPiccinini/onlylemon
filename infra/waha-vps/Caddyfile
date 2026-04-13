@@ -14,10 +14,6 @@ api.onlylemon.app {
 waha.onlylemon.app {
     encode zstd gzip
 
-    basicauth {
-        admin {env.WAHA_BASIC_AUTH_HASH}
-    }
-
     reverse_proxy waha:3000
 
     header {

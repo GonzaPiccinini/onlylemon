@@ -22,14 +22,28 @@ services:
       retries: 5
 
   waha:
-    image: devlikeapro/waha:latest
+    image: devlikeapro/waha-plus:gows
     restart: always
     environment:
       WAHA_API_KEY: ${WAHA_API_KEY}
-      WAHA_PRINT_QR: 'false'
-      WHATSAPP_HOOK_URL: ${WAHA_WEBHOOK_TARGET_URL}
-      WHATSAPP_HOOK_EVENTS: message,session.status
-      WHATSAPP_HOOK_RETRIES_POLICY: linear
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
+      WHATSAPP_SWAGGER_USERNAME: ${WHATSAPP_SWAGGER_USERNAME}
+      WHATSAPP_SWAGGER_PASSWORD: ${WHATSAPP_SWAGGER_PASSWORD}
+
+      WAHA_DASHBOARD_ENABLED: ${WAHA_DASHBOARD_ENABLED}
+      WHATSAPP_SWAGGER_ENABLED: ${WHATSAPP_SWAGGER_ENABLED}
+
+      WHATSAPP_DEFAULT_ENGINE: ${WHATSAPP_DEFAULT_ENGINE}
+      WAHA_NAMESPACE: ${WAHA_NAMESPACE}
+
+      WAHA_BASE_URL: ${WAHA_BASE_URL}
+
+      WAHA_LOG_FORMAT: ${WAHA_LOG_FORMAT}
+
+      WAHA_LOG_LEVEL: ${WAHA_LOG_LEVEL}
+
+      WAHA_PRINT_QR: ${WAHA_PRINT_QR}
     volumes:
       - waha_data:/app/.sessions
     networks: [backend]
@@ -65,8 +79,6 @@ services:
       - ./infra/waha-vps/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    environment:
-      WAHA_BASIC_AUTH_HASH: ${WAHA_BASIC_AUTH_HASH}
     depends_on: [gateway, waha]
     networks: [backend]
 
