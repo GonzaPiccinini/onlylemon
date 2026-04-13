@@ -4,16 +4,30 @@ import {
   metaConversionDurationSeconds,
 } from '../../lib/metrics.js';
 
-interface ConversionPayload {
-  phone: string;
-  value: number;
+type MetaEventName = 'Purchase' | 'HighValueCustomer' | 'Lead' | 'Contact';
+
+interface MetaEventBase {
   fbc: string;
   fbp: string;
   userAgent: string;
   metaPixelId: string;
   metaAccessToken: string;
-  eventId: string;
   eventSourceUrl: string;
+}
+
+interface ConversionPayload extends MetaEventBase {
+  phone: string;
+  value: number;
+  eventId: string;
+}
+
+interface LeadEventPayload extends MetaEventBase {
+  eventId: string;
+}
+
+interface ContactEventPayload extends MetaEventBase {
+  eventId: string;
+  phone: string;
 }
 
 interface MetaConversionResult {
@@ -33,41 +47,45 @@ const sha256 = async (input: string): Promise<string> => {
 };
 
 const postMetaEvent = async (input: {
-  hashedPhone: string;
-  eventName: 'Purchase' | 'HighValueCustomer';
+  eventName: MetaEventName;
   eventId: string;
-  payload: ConversionPayload;
+  base: MetaEventBase;
+  hashedPhone?: string;
+  customData?: { currency: string; value: number };
 }): Promise<boolean> => {
   const startedAt = process.hrtime.bigint();
 
+  const userData: Record<string, unknown> = {
+    fbc: input.base.fbc,
+    fbp: input.base.fbp,
+    client_user_agent: input.base.userAgent,
+  };
+  if (input.hashedPhone) {
+    userData.ph = [input.hashedPhone];
+  }
+
+  const eventObject: Record<string, unknown> = {
+    event_name: input.eventName,
+    event_time: Math.floor(Date.now() / 1000),
+    action_source: 'website',
+    event_source_url: input.base.eventSourceUrl,
+    event_id: input.eventId,
+    user_data: userData,
+  };
+  if (input.customData) {
+    eventObject.custom_data = input.customData;
+  }
+
   try {
     const response = await fetch(
-      `https://graph.facebook.com/${config.META_API_VERSION}/${input.payload.metaPixelId}/events?access_token=${input.payload.metaAccessToken}`,
+      `https://graph.facebook.com/${config.META_API_VERSION}/${input.base.metaPixelId}/events?access_token=${input.base.metaAccessToken}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          data: [
-            {
-              event_name: input.eventName,
-              event_time: Math.floor(Date.now() / 1000),
-              action_source: 'website',
-              event_source_url: input.payload.eventSourceUrl,
-              event_id: input.eventId,
-              user_data: {
-                ph: [input.hashedPhone],
-                fbc: input.payload.fbc,
-                fbp: input.payload.fbp,
-                client_user_agent: input.payload.userAgent,
-              },
-              custom_data: {
-                currency: 'ARS',
-                value: input.payload.value,
-              },
-            },
-          ],
+          data: [eventObject],
         }),
       },
     );
@@ -88,15 +106,28 @@ const postMetaEvent = async (input: {
   }
 };
 
+const toBase = (payload: MetaEventBase): MetaEventBase => ({
+  fbc: payload.fbc,
+  fbp: payload.fbp,
+  userAgent: payload.userAgent,
+  metaPixelId: payload.metaPixelId,
+  metaAccessToken: payload.metaAccessToken,
+  eventSourceUrl: payload.eventSourceUrl,
+});
+
 export const sendMetaConversion = async (
   payload: ConversionPayload,
 ): Promise<MetaConversionResult> => {
   const hashedPhone = await sha256(normalizePhone(payload.phone));
+  const base = toBase(payload);
+  const customData = { currency: 'ARS', value: payload.value };
+
   const purchaseSent = await postMetaEvent({
-    hashedPhone,
     eventName: 'Purchase',
     eventId: payload.eventId,
-    payload,
+    base,
+    hashedPhone,
+    customData,
   });
 
   const highValueRequired = payload.value > 10_000;
@@ -104,10 +135,11 @@ export const sendMetaConversion = async (
 
   if (highValueRequired) {
     highValueSent = await postMetaEvent({
-      hashedPhone,
       eventName: 'HighValueCustomer',
       eventId: `${payload.eventId}-hvc`,
-      payload,
+      base,
+      hashedPhone,
+      customData,
     });
   }
 
@@ -116,4 +148,25 @@ export const sendMetaConversion = async (
     highValueRequired,
     highValueSent,
   };
+};
+
+export const sendLeadEvent = async (
+  payload: LeadEventPayload,
+): Promise<boolean> =>
+  postMetaEvent({
+    eventName: 'Lead',
+    eventId: payload.eventId,
+    base: toBase(payload),
+  });
+
+export const sendContactEvent = async (
+  payload: ContactEventPayload,
+): Promise<boolean> => {
+  const hashedPhone = await sha256(normalizePhone(payload.phone));
+  return postMetaEvent({
+    eventName: 'Contact',
+    eventId: payload.eventId,
+    base: toBase(payload),
+    hashedPhone,
+  });
 };

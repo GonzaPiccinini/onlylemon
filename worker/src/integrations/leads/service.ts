@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Prisma } from '../../generated/prisma/client.js';
 import { config } from '../../config/env.js';
 import { leadCodeCollisionsTotal } from '../../lib/metrics.js';
+import { logger } from '../../lib/logger.js';
 import { getNumberByLid } from '../waha/client.js';
 import {
   expireLeadIfStillOpen,
@@ -13,7 +14,9 @@ import {
   saveLead,
 } from '../../persistence/repositories/leadsRepository.js';
 import { getCashierBySessionName } from '../../modules/cashier/cashier.repository.js';
+import { getLandingByMetaPixelId } from '../../modules/admin/admin.repository.js';
 import { getSessions } from '../waha/client.js';
+import { sendContactEvent, sendLeadEvent } from './conversion.js';
 
 const CODE_LENGTH = 8;
 const MAX_CODE_GENERATION_ATTEMPTS = 5;
@@ -155,6 +158,80 @@ async function selectCashierNumberForLanding(
   };
 }
 
+async function dispatchLeadCreatedEvent(lead: {
+  id: string;
+  metaPixelId: string;
+  fbc: string;
+  fbp: string;
+  userAgent: string;
+}): Promise<void> {
+  const landing = await getLandingByMetaPixelId(lead.metaPixelId);
+  if (!landing) {
+    logger.error({
+      event: 'meta_landing_not_found',
+      leadId: lead.id,
+      metaPixelId: lead.metaPixelId,
+    });
+    return;
+  }
+
+  const sent = await sendLeadEvent({
+    eventId: `lead-${lead.id}`,
+    fbc: lead.fbc,
+    fbp: lead.fbp,
+    userAgent: lead.userAgent,
+    metaPixelId: lead.metaPixelId,
+    metaAccessToken: landing.metaAccessToken,
+    eventSourceUrl: landing.url,
+  });
+
+  if (!sent) {
+    logger.error({
+      event: 'meta_conversion_failed',
+      leadId: lead.id,
+      eventName: 'Lead',
+    });
+  }
+}
+
+async function dispatchLeadContactedEvent(lead: {
+  id: string;
+  metaPixelId: string;
+  fbc: string;
+  fbp: string;
+  userAgent: string;
+  phone: string;
+}): Promise<void> {
+  const landing = await getLandingByMetaPixelId(lead.metaPixelId);
+  if (!landing) {
+    logger.error({
+      event: 'meta_landing_not_found',
+      leadId: lead.id,
+      metaPixelId: lead.metaPixelId,
+    });
+    return;
+  }
+
+  const sent = await sendContactEvent({
+    eventId: `contact-${lead.id}`,
+    phone: lead.phone,
+    fbc: lead.fbc,
+    fbp: lead.fbp,
+    userAgent: lead.userAgent,
+    metaPixelId: lead.metaPixelId,
+    metaAccessToken: landing.metaAccessToken,
+    eventSourceUrl: landing.url,
+  });
+
+  if (!sent) {
+    logger.error({
+      event: 'meta_conversion_failed',
+      leadId: lead.id,
+      eventName: 'Contact',
+    });
+  }
+}
+
 export async function createLead(
   payload: CreateLeadPayload,
 ): Promise<CreateLeadResult> {
@@ -173,6 +250,13 @@ export async function createLead(
         ...payload,
         code,
         expiresAt,
+      });
+
+      void dispatchLeadCreatedEvent(lead).catch((err) => {
+        logger.error(
+          { err, leadId: lead.id },
+          'meta_lead_event_dispatch_error',
+        );
       });
 
       return {
@@ -236,7 +320,26 @@ export async function mapLeadCodeToPhone(
       cashier.id,
       now,
     );
-    return updatedRows === 1 ? 'MATCHED' : 'ALREADY_USED';
+
+    if (updatedRows !== 1) {
+      return 'ALREADY_USED';
+    }
+
+    void dispatchLeadContactedEvent({
+      id: lead.id,
+      metaPixelId: lead.metaPixelId,
+      fbc: lead.fbc,
+      fbp: lead.fbp,
+      userAgent: lead.userAgent,
+      phone,
+    }).catch((err) => {
+      logger.error(
+        { err, leadId: lead.id },
+        'meta_contact_event_dispatch_error',
+      );
+    });
+
+    return 'MATCHED';
   } catch {
     return 'PHONE_LOOKUP_FAILED';
   }
