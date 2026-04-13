@@ -8,7 +8,6 @@ import { leadsPost } from '../integrations/leads/http.js';
 import { authRouter } from '../modules/auth/auth.routes.js';
 import { adminRouter } from '../modules/admin/admin.routes.js';
 import { cashierRouter } from '../modules/cashier/cashier.routes.js';
-import { wahaRouter } from '../modules/waha/waha.routes.js';
 import { realtimeRouter } from '../modules/realtime/realtime.routes.js';
 import { isCorsOriginAllowed } from '../modules/security/cors-origins.service.js';
 import { requestLoggingMiddleware } from '../middlewares/request-logging.middleware.js';
@@ -58,7 +57,6 @@ app.post('/api/leads', leadsPost);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/cashier', cashierRouter);
-app.use('/api/waha', wahaRouter);
 app.use('/api/realtime', realtimeRouter);
 
 app.use(errorMiddleware);
