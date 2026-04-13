@@ -49,6 +49,7 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
       metaPixelId: 'pixel-1',
       metaAccessToken: 'token-1',
       eventId: 'lead-abc',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
     };
 
     const result = await sendMetaConversion(payload);
@@ -73,6 +74,7 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
         event_name: string;
         event_id: string;
         action_source: string;
+        event_source_url: string;
         custom_data: { currency: string; value: number };
         user_data: {
           ph: string[];
@@ -86,7 +88,8 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
     assert.equal(body.data.length, 1);
     assert.equal(body.data[0].event_name, 'Purchase');
     assert.equal(body.data[0].event_id, 'lead-abc');
-    assert.equal(body.data[0].action_source, 'system_generated');
+    assert.equal(body.data[0].action_source, 'website');
+    assert.equal(body.data[0].event_source_url, 'https://cajero1.onlylemon.app');
     assert.deepEqual(body.data[0].custom_data, { currency: 'ARS', value: 10000 });
     assert.equal(body.data[0].user_data.fbc, 'fb.1.111');
     assert.equal(body.data[0].user_data.fbp, 'fb.1.222');
@@ -122,6 +125,7 @@ test('sendMetaConversion sends Purchase and HighValueCustomer when value is abov
       metaPixelId: 'pixel-2',
       metaAccessToken: 'token-2',
       eventId: 'lead-high',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
     };
 
     const result = await sendMetaConversion(payload);
@@ -187,6 +191,7 @@ test('sendMetaConversion reports partial success when high value event fails', a
       metaPixelId: 'pixel-3',
       metaAccessToken: 'token-3',
       eventId: 'lead-partial',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
     });
 
     assert.deepEqual(result, {

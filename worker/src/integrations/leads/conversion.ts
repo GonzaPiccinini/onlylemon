@@ -13,6 +13,7 @@ interface ConversionPayload {
   metaPixelId: string;
   metaAccessToken: string;
   eventId: string;
+  eventSourceUrl: string;
 }
 
 interface MetaConversionResult {
@@ -52,7 +53,8 @@ const postMetaEvent = async (input: {
             {
               event_name: input.eventName,
               event_time: Math.floor(Date.now() / 1000),
-              action_source: 'system_generated',
+              action_source: 'website',
+              event_source_url: input.payload.eventSourceUrl,
               event_id: input.eventId,
               user_data: {
                 ph: [input.hashedPhone],

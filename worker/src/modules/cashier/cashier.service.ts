@@ -620,6 +620,7 @@ export const convertQueueLeadService = async (
     metaPixelId: lead.metaPixelId,
     metaAccessToken: landing.metaAccessToken,
     eventId: lead.id,
+    eventSourceUrl: landing.url,
   });
 
   if (!conversionResult.purchaseSent) {
