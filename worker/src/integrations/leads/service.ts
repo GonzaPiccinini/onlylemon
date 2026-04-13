@@ -26,10 +26,10 @@ const generateCode = customAlphabet(
 );
 
 export const CreateLeadPayloadSchema = z.object({
-  fbc: z.string().trim().min(1).max(512),
-  fbp: z.string().trim().min(1).max(512),
+  fbc: z.string().trim().min(1).max(1024),
+  fbp: z.string().trim().min(1).max(1024),
   userAgent: z.string().trim().min(1).max(2048),
-  metaPixelId: z.string().trim().min(1).max(128),
+  metaPixelId: z.string().trim().min(1).max(256),
 });
 
 export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;
@@ -81,7 +81,8 @@ function extractLeadCode(body: string): string | null {
 async function selectCashierNumberForLanding(
   metaPixelId: string,
 ): Promise<SelectNumberResult> {
-  const candidates = await getActiveLandingCashierCandidatesByMetaPixelId(metaPixelId);
+  const candidates =
+    await getActiveLandingCashierCandidatesByMetaPixelId(metaPixelId);
   if (!candidates) {
     return {
       ok: false,
@@ -235,7 +236,9 @@ async function dispatchLeadContactedEvent(lead: {
 export async function createLead(
   payload: CreateLeadPayload,
 ): Promise<CreateLeadResult> {
-  const selectedNumber = await selectCashierNumberForLanding(payload.metaPixelId);
+  const selectedNumber = await selectCashierNumberForLanding(
+    payload.metaPixelId,
+  );
 
   if (!selectedNumber.ok) {
     throw new Error(selectedNumber.reason);
