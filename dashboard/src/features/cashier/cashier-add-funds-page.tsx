@@ -34,8 +34,8 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, 'El monto es obligatorio')
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 2000, {
-      message: 'El monto minimo es 2000',
+    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 3000, {
+      message: 'El monto minimo es 3000',
     }),
 });
 
@@ -44,7 +44,9 @@ type FormValues = z.infer<typeof schema>;
 export const CashierAddFundsPage = () => {
   const navigate = useNavigate();
   const { data: runtimeState } = useCashierRuntimeState();
-  const { data: currentLead, isLoading } = useQueueCurrentLead(runtimeState?.canOperateLeads ?? true);
+  const { data: currentLead, isLoading } = useQueueCurrentLead(
+    runtimeState?.canOperateLeads ?? true,
+  );
   const convertLead = useConvertQueueLead();
   const skipLead = useSkipQueueLead();
 
@@ -127,7 +129,9 @@ export const CashierAddFundsPage = () => {
             <>
               <div className='flex flex-wrap gap-2'>
                 <Badge variant='outline'>Codigo: {currentLead.code}</Badge>
-                <Badge variant='outline'>Estado: {leadStatusLabel(currentLead.status)}</Badge>
+                <Badge variant='outline'>
+                  Estado: {leadStatusLabel(currentLead.status)}
+                </Badge>
               </div>
 
               <div className='grid gap-2 rounded-lg border p-3 text-sm'>
@@ -156,14 +160,14 @@ export const CashierAddFundsPage = () => {
                       <Input
                         id='amount'
                         type='number'
-                        min={2000}
+                        min={3000}
                         step={1}
                         placeholder='Ingresa el monto'
                         aria-invalid={Boolean(form.formState.errors.amount)}
                         {...form.register('amount')}
                       />
                       <FieldDescription>
-                        Valor reportado de conversion. Minimo 2000.
+                        Valor reportado de conversion. Minimo 3000.
                       </FieldDescription>
                       <FieldError errors={[form.formState.errors.amount]} />
                     </FieldContent>
