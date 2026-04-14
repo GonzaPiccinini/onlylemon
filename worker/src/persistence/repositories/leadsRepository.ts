@@ -85,6 +85,8 @@ export async function getActiveLandingCashierCandidatesByMetaPixelId(
 export async function getContactedLeadCountByCashierForLanding(
   metaPixelId: string,
   cashierIds: string[],
+  since: Date,
+  until: Date,
 ): Promise<Map<string, number>> {
   if (cashierIds.length === 0) {
     return new Map();
@@ -95,7 +97,8 @@ export async function getContactedLeadCountByCashierForLanding(
     where: {
       metaPixelId,
       contactedAt: {
-        not: null,
+        gte: since,
+        lt: until,
       },
       cashierId: {
         in: cashierIds,

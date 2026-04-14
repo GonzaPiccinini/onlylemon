@@ -78,6 +78,22 @@ function extractLeadCode(body: string): string | null {
   return match[1].toUpperCase();
 }
 
+const ARGENTINA_UTC_OFFSET_HOURS = -3;
+const MS_PER_HOUR = 60 * 60 * 1000;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+
+function getStartOfTodayInArgentina(): Date {
+  const offsetMs = ARGENTINA_UTC_OFFSET_HOURS * MS_PER_HOUR;
+  const nowAsArgentina = new Date(Date.now() + offsetMs);
+  return new Date(
+    Date.UTC(
+      nowAsArgentina.getUTCFullYear(),
+      nowAsArgentina.getUTCMonth(),
+      nowAsArgentina.getUTCDate(),
+    ) - offsetMs,
+  );
+}
+
 async function selectCashierNumberForLanding(
   metaPixelId: string,
 ): Promise<SelectNumberResult> {
@@ -134,9 +150,14 @@ async function selectCashierNumberForLanding(
     };
   }
 
+  const startOfDay = getStartOfTodayInArgentina();
+  const startOfNextDay = new Date(startOfDay.getTime() + MS_PER_DAY);
+
   const countsByCashier = await getContactedLeadCountByCashierForLanding(
     metaPixelId,
     eligible.map((item) => item.cashierId),
+    startOfDay,
+    startOfNextDay,
   );
 
   let minCount = Number.POSITIVE_INFINITY;
