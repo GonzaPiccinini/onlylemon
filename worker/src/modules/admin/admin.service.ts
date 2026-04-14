@@ -1,8 +1,6 @@
 import { hashPassword } from '../../utils/password.js';
 import { deleteSession } from '../../integrations/waha/client.js';
-import {
-  emitCashierRuntimeStateChanged,
-} from '../cashier/runtime-events.js';
+import { emitCashierRuntimeStateChanged } from '../cashier/runtime-events.js';
 import {
   createCashier,
   createLanding,
@@ -193,7 +191,11 @@ export const enableCashierService = async (cashierId: string) => {
 
 export const getSummaryService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const leads = await getLeadsByDateRange(range.from, range.to, query.cashierId);
+  const leads = await getLeadsByDateRange(
+    range.from,
+    range.to,
+    query.cashierId,
+  );
   const activities = await getSessionActivitiesByDateRange(
     range.from,
     range.to,
@@ -208,11 +210,13 @@ export const getSummaryService = async (query: DateRangeQuery) => {
     .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
     .reduce((acc, lead) => acc + toNumber(lead.amount), 0);
 
-  const averageConvertedValue = converted === 0 ? 0 : totalConvertedValue / converted;
+  const averageConvertedValue =
+    converted === 0 ? 0 : totalConvertedValue / converted;
 
   const averageConversionHours = (() => {
     const convertedWithContact = leads.filter(
-      (lead) => lead.status === 'CONVERTED' && lead.contactedAt && lead.convertedAt,
+      (lead) =>
+        lead.status === 'CONVERTED' && lead.contactedAt && lead.convertedAt,
     );
 
     if (convertedWithContact.length === 0) {
@@ -226,7 +230,9 @@ export const getSummaryService = async (query: DateRangeQuery) => {
         return acc;
       }
 
-      return acc + (convertedAt.getTime() - contactedAt.getTime()) / 1000 / 60 / 60;
+      return (
+        acc + (convertedAt.getTime() - contactedAt.getTime()) / 1000 / 60 / 60
+      );
     }, 0);
 
     return totalHours / convertedWithContact.length;
@@ -237,15 +243,20 @@ export const getSummaryService = async (query: DateRangeQuery) => {
       return acc;
     }
 
-    return acc + (item.endedAt.getTime() - item.createdAt.getTime()) / 1000 / 60;
+    return (
+      acc + (item.endedAt.getTime() - item.createdAt.getTime()) / 1000 / 60
+    );
   }, 0);
 
   return {
-    totalLeads: leads.length,
+    totalLeads: contacted + converted,
     contactedLeads: contacted,
     convertedLeads: converted,
     expiredLeads: expired,
-    conversionRate: contacted === 0 ? 0 : (converted / contacted) * 100,
+    conversionRate:
+      contacted + converted === 0
+        ? 0
+        : (converted / (contacted + converted)) * 100,
     totalConvertedValue,
     averageConvertedValue,
     averageConversionHours,
@@ -255,7 +266,11 @@ export const getSummaryService = async (query: DateRangeQuery) => {
 
 export const getCashierStatsService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const leads = await getLeadsByDateRange(range.from, range.to, query.cashierId);
+  const leads = await getLeadsByDateRange(
+    range.from,
+    range.to,
+    query.cashierId,
+  );
   const activities = await getSessionActivitiesByDateRange(
     range.from,
     range.to,
@@ -357,9 +372,9 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
     convertedLeads: entry.convertedLeads,
     expiredLeads: entry.expiredLeads,
     conversionRate:
-      entry.contactedLeads === 0
+      entry.totalLeads === 0
         ? 0
-        : (entry.convertedLeads / entry.contactedLeads) * 100,
+        : (entry.convertedLeads / entry.totalLeads) * 100,
     convertedValue: entry.convertedValue,
     activeHours: entry.activeMinutes / 60,
   }));
@@ -367,7 +382,11 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
 
 export const getFundsSeriesService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const leads = await getLeadsByDateRange(range.from, range.to, query.cashierId);
+  const leads = await getLeadsByDateRange(
+    range.from,
+    range.to,
+    query.cashierId,
+  );
 
   const grouped = new Map<string, number>();
 
