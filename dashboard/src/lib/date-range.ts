@@ -1,12 +1,9 @@
-import { addDays, format } from "date-fns";
 import type { DateRangeFilters } from "@/types/domain";
+import { getArgentinaTodayString, shiftArgentinaDay } from "./timezone";
 
 export const getDefaultDateRange = (): DateRangeFilters => {
-  const to = new Date();
-  const from = addDays(to, -7);
+  const to = getArgentinaTodayString();
+  const from = shiftArgentinaDay(to, -7);
 
-  return {
-    from: format(from, "yyyy-MM-dd"),
-    to: format(to, "yyyy-MM-dd"),
-  };
+  return { from, to };
 };

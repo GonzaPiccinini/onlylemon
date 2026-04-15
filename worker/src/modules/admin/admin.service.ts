@@ -23,10 +23,15 @@ import {
   updateCashierWhatsappLink,
 } from '../cashier/cashier.repository.js';
 import type { DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
+import {
+  argentinaDayEndUtcExclusive,
+  argentinaDayStartUtc,
+  formatArgentinaDayKey,
+} from '../../utils/timezone.js';
 
 const toRange = (query: DateRangeQuery) => ({
-  from: new Date(`${query.from}T00:00:00.000Z`),
-  to: new Date(`${query.to}T23:59:59.999Z`),
+  from: argentinaDayStartUtc(query.from),
+  to: argentinaDayEndUtcExclusive(query.to),
 });
 
 const toNumber = (value: unknown): number => Number(value);
@@ -394,7 +399,7 @@ export const getFundsSeriesService = async (query: DateRangeQuery) => {
     .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
     .forEach((lead) => {
       const dateSource = lead.convertedAt ?? lead.createdAt;
-      const day = dateSource.toISOString().slice(0, 10);
+      const day = formatArgentinaDayKey(dateSource);
       grouped.set(day, (grouped.get(day) ?? 0) + toNumber(lead.amount));
     });
 

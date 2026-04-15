@@ -136,7 +136,7 @@ export const getSessionActivitiesByDateRange = (
     where: {
       createdAt: {
         gte: from,
-        lte: to,
+        lt: to,
       },
       ...(cashierId ? { cashierId } : {}),
     },
@@ -158,7 +158,7 @@ export const getLeadsByDateRange = (
     where: {
       createdAt: {
         gte: from,
-        lte: to,
+        lt: to,
       },
       ...(cashierId ? { cashierId } : {}),
     },

@@ -1,3 +1,5 @@
+import { ARGENTINA_TZ } from "./timezone";
+
 export const formatCurrency = (amount: number): string =>
   new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -12,6 +14,7 @@ export const formatDateTime = (value: string): string =>
   new Intl.DateTimeFormat("es-AR", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: ARGENTINA_TZ,
   }).format(new Date(value));
 
 export const formatHours = (value: number): string => `${value.toFixed(2)} h`;
