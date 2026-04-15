@@ -264,6 +264,19 @@ export const getCashierLandings = (cashierId: string) =>
     },
   });
 
+export const updateAdminAccount = (
+  userId: string,
+  input: { username?: string; password?: string },
+) =>
+  prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(input.username ? { username: input.username } : {}),
+      ...(input.password ? { password: input.password } : {}),
+    },
+    select: { id: true, username: true, name: true },
+  });
+
 export const replaceCashierLandings = async (
   cashierId: string,
   landingIds: string[],

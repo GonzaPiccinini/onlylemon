@@ -175,3 +175,8 @@ export interface UpdateCashierAccountInput {
   username?: string;
   password?: string;
 }
+
+export interface UpdateAdminAccountInput {
+  username?: string;
+  password?: string;
+}

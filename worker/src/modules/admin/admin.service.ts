@@ -1,4 +1,5 @@
 import { hashPassword } from '../../utils/password.js';
+import type { UpdateAdminAccountInput } from './admin.types.js';
 import { deleteSession } from '../../integrations/waha/client.js';
 import { emitCashierRuntimeStateChanged } from '../cashier/runtime-events.js';
 import {
@@ -15,6 +16,7 @@ import {
   listLeads,
   replaceCashierLandings,
   setLandingStatus,
+  updateAdminAccount,
   updateCashier,
   updateLanding,
 } from './admin.repository.js';
@@ -450,6 +452,17 @@ export const setLandingStatusService = async (
 export const listCashierLandingsService = async (cashierId: string) => {
   const items = await getCashierLandings(cashierId);
   return items.map((item) => toLandingDto(item.landing));
+};
+
+export const updateAdminAccountService = async (
+  userId: string,
+  input: UpdateAdminAccountInput,
+) => {
+  const updated = await updateAdminAccount(userId, {
+    ...(input.username ? { username: input.username } : {}),
+    ...(input.password ? { password: hashPassword(input.password) } : {}),
+  });
+  return { id: updated.id, name: updated.name, username: updated.username };
 };
 
 export const replaceCashierLandingsService = async (

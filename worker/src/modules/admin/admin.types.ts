@@ -28,6 +28,17 @@ export const replaceCashierLandingsSchema = z.object({
   landingIds: z.array(z.string().trim().min(1)),
 });
 
+export const updateAdminAccountSchema = z
+  .object({
+    username: z.string().trim().min(3).optional(),
+    password: z.string().min(6).optional(),
+  })
+  .refine((value) => Boolean(value.username || value.password), {
+    message: 'At least one field is required',
+  });
+
+export type UpdateAdminAccountInput = z.infer<typeof updateAdminAccountSchema>;
+
 export const dateRangeSchema = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

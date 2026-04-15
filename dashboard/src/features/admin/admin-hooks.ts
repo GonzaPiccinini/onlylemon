@@ -5,6 +5,7 @@ import type {
   CreateLandingInput,
   DateRangeFilters,
   LeadsFilters,
+  UpdateAdminAccountInput,
   UpdateCashierInput,
   UpdateLandingInput,
 } from "@/types/domain";
@@ -149,4 +150,10 @@ export const useAdminLeads = (filters: LeadsFilters) =>
   useQuery({
     queryKey: adminKeys.leads(filters),
     queryFn: () => adminService.listLeads(filters),
+  });
+
+export const useUpdateAdminAccount = () =>
+  useMutation({
+    mutationFn: (input: UpdateAdminAccountInput) =>
+      adminService.updateAdminAccount(input),
   });

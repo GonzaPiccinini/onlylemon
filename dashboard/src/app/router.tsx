@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { AuthRedirect } from "@/components/app/auth-redirect";
 import { RoleGuard } from "@/components/app/role-guard";
 import { LoginPage } from "@/features/auth/login-page";
+import { AdminAccountPage } from "@/features/admin/admin-account-page";
 import { AdminCashiersPage } from "@/features/admin/admin-cashiers-page";
 import { AdminStatsPage } from "@/features/admin/admin-stats-page";
 import { AdminLandingsPage } from "@/features/admin/admin-landings-page";
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
               {
                 path: "/admin/leads",
                 element: <AdminLeadsPage />,
+              },
+              {
+                path: "/admin/account",
+                element: <AdminAccountPage />,
               },
             ],
           },

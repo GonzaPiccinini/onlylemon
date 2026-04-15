@@ -11,6 +11,7 @@ import type {
   Lead,
   LeadsFilters,
   StatsSummary,
+  UpdateAdminAccountInput,
   UpdateLandingInput,
   UpdateCashierInput,
 } from "@/types/domain";
@@ -113,5 +114,9 @@ export const adminService = {
     });
 
     return data;
+  },
+
+  async updateAdminAccount(input: UpdateAdminAccountInput): Promise<void> {
+    await http.patch(endpoints.admin.account, input);
   },
 };

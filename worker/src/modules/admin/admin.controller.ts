@@ -5,6 +5,7 @@ import {
   dateRangeSchema,
   leadsFilterSchema,
   replaceCashierLandingsSchema,
+  updateAdminAccountSchema,
   updateCashierSchema,
   updateLandingSchema,
 } from './admin.types.js';
@@ -22,9 +23,27 @@ import {
   listLandingsService,
   replaceCashierLandingsService,
   setLandingStatusService,
+  updateAdminAccountService,
   updateCashierService,
   updateLandingService,
 } from './admin.service.js';
+
+export const updateAdminAccountHandler = async (req: Request, res: Response) => {
+  const parsed = updateAdminAccountSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const data = await updateAdminAccountService(req.authUser!.userId, parsed.data);
+    return res.status(200).json(data);
+  } catch {
+    return res.status(409).json({ error: 'Could not update account' });
+  }
+};
 
 export const listCashiersHandler = async (_req: Request, res: Response) => {
   const data = await listCashiersService();

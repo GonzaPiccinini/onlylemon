@@ -14,6 +14,7 @@ import {
   listLandingsHandler,
   replaceCashierLandingsHandler,
   summaryHandler,
+  updateAdminAccountHandler,
   updateLandingHandler,
   updateCashierHandler,
 } from './admin.controller.js';
@@ -22,6 +23,8 @@ import { requireAuth, requireRole } from '../security/auth.middleware.js';
 export const adminRouter = Router();
 
 adminRouter.use(requireAuth, requireRole('ADMIN'));
+
+adminRouter.patch('/account', updateAdminAccountHandler);
 
 adminRouter.get('/cashiers', listCashiersHandler);
 adminRouter.post('/cashiers', createCashierHandler);

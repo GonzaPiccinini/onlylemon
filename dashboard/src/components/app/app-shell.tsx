@@ -33,6 +33,7 @@ const adminLinks: ShellLink[] = [
   { to: "/admin/stats", label: "Estadisticas", icon: BarChart3Icon },
   { to: "/admin/leads", label: "Leads", icon: ListChecksIcon },
   { to: "/admin/landings", label: "Landings", icon: TagsIcon },
+  { to: "/admin/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
 ];
 
 const cashierLinks: ShellLink[] = [

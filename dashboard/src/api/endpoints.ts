@@ -5,6 +5,7 @@ export const endpoints = {
     logout: "/auth/logout",
   },
   admin: {
+    account: "/admin/account",
     cashiers: "/admin/cashiers",
     cashierById: (cashierId: string) => `/admin/cashiers/${cashierId}`,
     cashierDisable: (cashierId: string) => `/admin/cashiers/${cashierId}/disable`,
