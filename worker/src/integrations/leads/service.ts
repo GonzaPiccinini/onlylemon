@@ -160,19 +160,29 @@ async function selectCashierNumberForLanding(
     startOfNextDay,
   );
 
-  let minCount = Number.POSITIVE_INFINITY;
+  let maxCount = 0;
   for (const item of eligible) {
     const count = countsByCashier.get(item.cashierId) ?? 0;
-    if (count < minCount) {
-      minCount = count;
+    if (count > maxCount) {
+      maxCount = count;
     }
   }
 
-  const leastUsed = eligible.filter(
-    (item) => (countsByCashier.get(item.cashierId) ?? 0) === minCount,
-  );
+  const weighted = eligible.map((item) => ({
+    ...item,
+    weight: maxCount - (countsByCashier.get(item.cashierId) ?? 0) + 1,
+  }));
 
-  const selected = leastUsed[Math.floor(Math.random() * leastUsed.length)];
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+  let rng = Math.random() * totalWeight;
+  let selected = weighted[weighted.length - 1];
+  for (const item of weighted) {
+    rng -= item.weight;
+    if (rng <= 0) {
+      selected = item;
+      break;
+    }
+  }
 
   return {
     ok: true,
