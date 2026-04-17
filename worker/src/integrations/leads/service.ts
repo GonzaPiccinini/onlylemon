@@ -192,6 +192,7 @@ async function selectCashierNumberForLanding(
 
 async function dispatchLeadCreatedEvent(lead: {
   id: string;
+  code: string;
   metaPixelId: string;
   fbc: string;
   fbp: string;
@@ -209,6 +210,7 @@ async function dispatchLeadCreatedEvent(lead: {
 
   const sent = await sendLeadEvent({
     eventId: `lead-${lead.id}`,
+    leadCode: lead.code,
     fbc: lead.fbc,
     fbp: lead.fbp,
     userAgent: lead.userAgent,
@@ -228,6 +230,7 @@ async function dispatchLeadCreatedEvent(lead: {
 
 async function dispatchLeadContactedEvent(lead: {
   id: string;
+  code: string;
   metaPixelId: string;
   fbc: string;
   fbp: string;
@@ -246,6 +249,7 @@ async function dispatchLeadContactedEvent(lead: {
 
   const sent = await sendContactEvent({
     eventId: `contact-${lead.id}`,
+    leadCode: lead.code,
     phone: lead.phone,
     fbc: lead.fbc,
     fbp: lead.fbp,
@@ -361,6 +365,7 @@ export async function mapLeadCodeToPhone(
 
     void dispatchLeadContactedEvent({
       id: lead.id,
+      code: lead.code,
       metaPixelId: lead.metaPixelId,
       fbc: lead.fbc,
       fbp: lead.fbp,

@@ -50,6 +50,7 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
       metaAccessToken: 'token-1',
       eventId: 'lead-abc',
       eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'AB12CD34',
     };
 
     const result = await sendMetaConversion(payload);
@@ -78,6 +79,7 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
         custom_data: { currency: string; value: number };
         user_data: {
           ph: string[];
+          external_id: string[];
           fbc: string;
           fbp: string;
           client_user_agent: string;
@@ -95,6 +97,7 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
     assert.equal(body.data[0].user_data.fbp, 'fb.1.222');
     assert.equal(body.data[0].user_data.client_user_agent, 'Mozilla/5.0');
     assert.deepEqual(body.data[0].user_data.ph, [await sha256(normalizePhone(payload.phone))]);
+    assert.deepEqual(body.data[0].user_data.external_id, [await sha256(payload.leadCode.toLowerCase())]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -126,6 +129,7 @@ test('sendMetaConversion sends Purchase and HighValueCustomer when value is abov
       metaAccessToken: 'token-2',
       eventId: 'lead-high',
       eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'XY78ZQ90',
     };
 
     const result = await sendMetaConversion(payload);
@@ -146,10 +150,10 @@ test('sendMetaConversion sends Purchase and HighValueCustomer when value is abov
     }
 
     const firstBody = JSON.parse(String(calls[0].init?.body)) as {
-      data: Array<{ event_name: string; event_id: string; user_data: { ph: string[] } }>;
+      data: Array<{ event_name: string; event_id: string; user_data: { ph: string[]; external_id: string[] } }>;
     };
     const secondBody = JSON.parse(String(calls[1].init?.body)) as {
-      data: Array<{ event_name: string; event_id: string; user_data: { ph: string[] } }>;
+      data: Array<{ event_name: string; event_id: string; user_data: { ph: string[]; external_id: string[] } }>;
     };
 
     assert.equal(firstBody.data[0].event_name, 'Purchase');
@@ -159,8 +163,11 @@ test('sendMetaConversion sends Purchase and HighValueCustomer when value is abov
     assert.equal(secondBody.data[0].event_id, 'lead-high-hvc');
 
     const expectedHash = await sha256(normalizePhone(payload.phone));
+    const expectedExternalId = await sha256(payload.leadCode.toLowerCase());
     assert.deepEqual(firstBody.data[0].user_data.ph, [expectedHash]);
     assert.deepEqual(secondBody.data[0].user_data.ph, [expectedHash]);
+    assert.deepEqual(firstBody.data[0].user_data.external_id, [expectedExternalId]);
+    assert.deepEqual(secondBody.data[0].user_data.external_id, [expectedExternalId]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -192,6 +199,7 @@ test('sendMetaConversion reports partial success when high value event fails', a
       metaAccessToken: 'token-3',
       eventId: 'lead-partial',
       eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'MN56OP78',
     });
 
     assert.deepEqual(result, {

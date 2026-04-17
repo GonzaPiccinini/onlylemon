@@ -13,6 +13,7 @@ interface MetaEventBase {
   metaPixelId: string;
   metaAccessToken: string;
   eventSourceUrl: string;
+  leadCode: string;
 }
 
 interface ConversionPayload extends MetaEventBase {
@@ -51,6 +52,7 @@ const postMetaEvent = async (input: {
   eventId: string;
   base: MetaEventBase;
   hashedPhone?: string;
+  hashedExternalId: string;
   customData?: { currency: string; value: number };
 }): Promise<boolean> => {
   const startedAt = process.hrtime.bigint();
@@ -59,6 +61,7 @@ const postMetaEvent = async (input: {
     fbc: input.base.fbc,
     fbp: input.base.fbp,
     client_user_agent: input.base.userAgent,
+    external_id: [input.hashedExternalId],
   };
   if (input.hashedPhone) {
     userData.ph = [input.hashedPhone];
@@ -113,12 +116,14 @@ const toBase = (payload: MetaEventBase): MetaEventBase => ({
   metaPixelId: payload.metaPixelId,
   metaAccessToken: payload.metaAccessToken,
   eventSourceUrl: payload.eventSourceUrl,
+  leadCode: payload.leadCode,
 });
 
 export const sendMetaConversion = async (
   payload: ConversionPayload,
 ): Promise<MetaConversionResult> => {
   const hashedPhone = await sha256(normalizePhone(payload.phone));
+  const hashedExternalId = await sha256(payload.leadCode.trim().toLowerCase());
   const base = toBase(payload);
   const customData = { currency: 'ARS', value: payload.value };
 
@@ -127,6 +132,7 @@ export const sendMetaConversion = async (
     eventId: payload.eventId,
     base,
     hashedPhone,
+    hashedExternalId,
     customData,
   });
 
@@ -139,6 +145,7 @@ export const sendMetaConversion = async (
       eventId: `${payload.eventId}-hvc`,
       base,
       hashedPhone,
+      hashedExternalId,
       customData,
     });
   }
@@ -152,21 +159,26 @@ export const sendMetaConversion = async (
 
 export const sendLeadEvent = async (
   payload: LeadEventPayload,
-): Promise<boolean> =>
-  postMetaEvent({
+): Promise<boolean> => {
+  const hashedExternalId = await sha256(payload.leadCode.trim().toLowerCase());
+  return postMetaEvent({
     eventName: 'Lead',
     eventId: payload.eventId,
     base: toBase(payload),
+    hashedExternalId,
   });
+};
 
 export const sendContactEvent = async (
   payload: ContactEventPayload,
 ): Promise<boolean> => {
   const hashedPhone = await sha256(normalizePhone(payload.phone));
+  const hashedExternalId = await sha256(payload.leadCode.trim().toLowerCase());
   return postMetaEvent({
     eventName: 'Contact',
     eventId: payload.eventId,
     base: toBase(payload),
     hashedPhone,
+    hashedExternalId,
   });
 };
