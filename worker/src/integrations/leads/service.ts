@@ -1,6 +1,5 @@
 import { customAlphabet } from 'nanoid';
 import { z } from 'zod';
-import { Prisma } from '../../generated/prisma/client.js';
 import { config } from '../../config/env.js';
 import { leadCodeCollisionsTotal } from '../../lib/metrics.js';
 import { logger } from '../../lib/logger.js';
@@ -10,6 +9,7 @@ import {
   getActiveLandingCashierCandidatesByMetaPixelId,
   getContactedLeadCountByCashierForLanding,
   getLeadByCode,
+  getLeadByFbc,
   markLeadAsContacted,
   saveLead,
 } from '../../persistence/repositories/leadsRepository.js';
@@ -59,12 +59,70 @@ export type LeadMatchResult =
   | 'MATCHED'
   | 'PHONE_LOOKUP_FAILED';
 
-function isUniqueConstraintError(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2002'
-  );
+export class LeadFbcConflictError extends Error {
+  constructor() {
+    super('LEAD_FBC_CONFLICT');
+    this.name = 'LeadFbcConflictError';
+  }
 }
+
+type UniqueConstraintKind = 'code' | 'unknown' | null;
+
+function getUniqueConstraintKind(error: unknown): UniqueConstraintKind {
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+
+  const maybeError = error as {
+    code?: unknown;
+    meta?: {
+      target?: unknown;
+    };
+  };
+
+  if (maybeError.code !== 'P2002') {
+    return null;
+  }
+
+  const target = maybeError.meta?.target;
+  const targets = Array.isArray(target)
+    ? target
+    : typeof target === 'string'
+      ? [target]
+      : [];
+
+  if (targets.includes('code')) {
+    return 'code';
+  }
+
+  return 'unknown';
+}
+
+type LeadForCreateFlow = {
+  id: string;
+  code: string;
+  metaPixelId: string;
+  fbc: string;
+  fbp: string;
+  userAgent: string;
+};
+
+type LeadToCreate = CreateLeadPayload & {
+  code: string;
+  expiresAt: Date;
+};
+
+export type CreateLeadDependencies = {
+  selectCashierNumberForLanding: (
+    metaPixelId: string,
+  ) => Promise<SelectNumberResult>;
+  getLeadByFbc: (fbc: string) => Promise<{ id: string } | null>;
+  saveLead: (data: LeadToCreate) => Promise<LeadForCreateFlow>;
+  dispatchLeadCreatedEvent: (lead: LeadForCreateFlow) => Promise<void>;
+  generateCode: () => string;
+  getNow: () => Date;
+  onCodeCollision: () => void;
+};
 
 function getExpiresAt(now: Date): Date {
   const maxHours = 7 * 24;
@@ -268,10 +326,23 @@ async function dispatchLeadContactedEvent(lead: {
   }
 }
 
-export async function createLead(
+const defaultCreateLeadDependencies: CreateLeadDependencies = {
+  selectCashierNumberForLanding,
+  getLeadByFbc,
+  saveLead,
+  dispatchLeadCreatedEvent,
+  generateCode,
+  getNow: () => new Date(),
+  onCodeCollision: () => {
+    leadCodeCollisionsTotal.inc();
+  },
+};
+
+export async function createLeadWithDependencies(
   payload: CreateLeadPayload,
+  dependencies: CreateLeadDependencies,
 ): Promise<CreateLeadResult> {
-  const selectedNumber = await selectCashierNumberForLanding(
+  const selectedNumber = await dependencies.selectCashierNumberForLanding(
     payload.metaPixelId,
   );
 
@@ -279,18 +350,23 @@ export async function createLead(
     throw new Error(selectedNumber.reason);
   }
 
+  const existingLeadByFbc = await dependencies.getLeadByFbc(payload.fbc);
+  if (existingLeadByFbc) {
+    throw new LeadFbcConflictError();
+  }
+
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
-    const code = generateCode();
-    const expiresAt = getExpiresAt(new Date());
+    const code = dependencies.generateCode();
+    const expiresAt = getExpiresAt(dependencies.getNow());
 
     try {
-      const lead = await saveLead({
+      const lead = await dependencies.saveLead({
         ...payload,
         code,
         expiresAt,
       });
 
-      void dispatchLeadCreatedEvent(lead).catch((err) => {
+      void dependencies.dispatchLeadCreatedEvent(lead).catch((err) => {
         logger.error(
           { err, leadId: lead.id },
           'meta_lead_event_dispatch_error',
@@ -302,8 +378,10 @@ export async function createLead(
         number: selectedNumber.number,
       };
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        leadCodeCollisionsTotal.inc();
+      const uniqueConstraintKind = getUniqueConstraintKind(error);
+
+      if (uniqueConstraintKind === 'code') {
+        dependencies.onCodeCollision();
         continue;
       }
 
@@ -312,6 +390,12 @@ export async function createLead(
   }
 
   throw new Error('Could not generate unique lead code');
+}
+
+export async function createLead(
+  payload: CreateLeadPayload,
+): Promise<CreateLeadResult> {
+  return createLeadWithDependencies(payload, defaultCreateLeadDependencies);
 }
 
 export async function mapLeadCodeToPhone(

@@ -1,11 +1,56 @@
 import { Request, Response } from 'express';
 import {
   CreateLeadPayloadSchema,
+  LeadFbcConflictError,
   createLead,
   mapLeadCodeToPhone,
 } from './service.js';
 import { logger } from '../../lib/logger.js';
 import { leadsCreatedTotal, leadsMatchedTotal } from '../../lib/metrics.js';
+
+type HttpErrorResponse = {
+  status: number;
+  body: {
+    message: string;
+  };
+};
+
+export function resolveCreateLeadHttpError(
+  error: unknown,
+): HttpErrorResponse | null {
+  if (error instanceof LeadFbcConflictError) {
+    return {
+      status: 409,
+      body: {
+        message: 'Lead already exists for this fbc',
+      },
+    };
+  }
+
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (error.message === 'LANDING_NOT_FOUND') {
+    return {
+      status: 404,
+      body: {
+        message: 'Landing not found or disabled',
+      },
+    };
+  }
+
+  if (error.message === 'NO_AVAILABLE_CASHIER') {
+    return {
+      status: 409,
+      body: {
+        message: 'No available cashier number for this landing',
+      },
+    };
+  }
+
+  return null;
+}
 
 export async function leadsPost(req: Request, res: Response) {
   const parseResult = CreateLeadPayloadSchema.safeParse(req.body);
@@ -29,18 +74,9 @@ export async function leadsPost(req: Request, res: Response) {
       number: lead.number,
     });
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message === 'LANDING_NOT_FOUND') {
-        return res.status(404).json({
-          message: 'Landing not found or disabled',
-        });
-      }
-
-      if (error.message === 'NO_AVAILABLE_CASHIER') {
-        return res.status(409).json({
-          message: 'No available cashier number for this landing',
-        });
-      }
+    const httpError = resolveCreateLeadHttpError(error);
+    if (httpError) {
+      return res.status(httpError.status).json(httpError.body);
     }
 
     logger.error({ err: error }, 'lead_create_error');

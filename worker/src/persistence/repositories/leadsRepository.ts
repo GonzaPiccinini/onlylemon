@@ -127,6 +127,13 @@ export async function getLeadByCode(code: string) {
   });
 }
 
+export async function getLeadByFbc(fbc: string) {
+  return prisma.lead.findFirst({
+    where: { fbc },
+    select: { id: true },
+  });
+}
+
 export async function updateLead(id: string, data: UpdateLeadData) {
   return prisma.lead.update({
     where: { id },
