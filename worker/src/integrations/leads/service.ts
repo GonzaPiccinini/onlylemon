@@ -347,8 +347,12 @@ export async function createLeadWithDependencies(
   );
 
   if (!selectedNumber.ok) {
-    throw new Error(selectedNumber.reason);
+    if (selectedNumber.reason === 'LANDING_NOT_FOUND') {
+      throw new Error(selectedNumber.reason);
+    }
   }
+
+  const resolvedNumber = selectedNumber.ok ? selectedNumber.number : '';
 
   const existingLeadByFbc = await dependencies.getLeadByFbc(payload.fbc);
   if (existingLeadByFbc) {
@@ -375,7 +379,7 @@ export async function createLeadWithDependencies(
 
       return {
         code: lead.code,
-        number: selectedNumber.number,
+        number: resolvedNumber,
       };
     } catch (error) {
       const uniqueConstraintKind = getUniqueConstraintKind(error);

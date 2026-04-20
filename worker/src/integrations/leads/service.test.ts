@@ -162,6 +162,38 @@ test('createLeadWithDependencies retries when unique collision happens on lead c
   assert.equal(collisions, 1);
 });
 
+test('createLeadWithDependencies creates the lead without cashier and returns empty number for landing fallback', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  let saveCalls = 0;
+  const deps = buildDependencies({
+    selectCashierNumberForLanding: async () => ({
+      ok: false,
+      reason: 'NO_AVAILABLE_CASHIER',
+    }),
+    saveLead: async ({ code, expiresAt }) => {
+      saveCalls += 1;
+      return {
+        id: 'lead-fallback',
+        code,
+        fbc: payload.fbc,
+        fbp: payload.fbp,
+        userAgent: payload.userAgent,
+        metaPixelId: payload.metaPixelId,
+        expiresAt,
+      };
+    },
+  });
+
+  const result = await createLeadWithDependencies(payload, deps);
+
+  assert.deepEqual(result, {
+    code: 'ABCD1234',
+    number: '',
+  });
+  assert.equal(saveCalls, 1);
+});
+
 test('createLeadWithDependencies does not treat fbc save errors as duplicate-check conflicts', async () => {
   const { createLeadWithDependencies, LeadFbcConflictError } = await import(
     './service.js'
