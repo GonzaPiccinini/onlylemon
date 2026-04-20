@@ -8,6 +8,14 @@
       "sessions": 3,
       "memories": 5,
       "prompts": 0
+    },
+    {
+      "id": "e0c644e6",
+      "created_by": "natalio",
+      "created_at": "2026-04-20T03:52:19Z",
+      "sessions": 2,
+      "memories": 12,
+      "prompts": 12
     }
   ]
 }
