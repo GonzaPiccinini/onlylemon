@@ -1,4 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -64,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
   });
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authService.logout();
     } catch {
@@ -75,9 +77,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setAccessToken(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
-  };
+  }, []);
 
-  const refreshMe = async () => {
+  const refreshMe = useCallback(async () => {
     if (!token) {
       return;
     }
@@ -89,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       await logout();
     }
-  };
+  }, [logout, token]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -108,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isLoggingIn: loginMutation.isPending,
       refreshMe,
     }),
-    [loginMutation, token, user],
+    [loginMutation, logout, refreshMe, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

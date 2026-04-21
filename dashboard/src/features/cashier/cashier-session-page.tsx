@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { PlayIcon, QrCodeIcon, RefreshCcwIcon, SquareIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -95,6 +95,15 @@ export const CashierSessionPage = () => {
     setCountdown(REFRESH_INTERVAL_SECONDS);
   };
 
+  const resetWhatsappArtifacts = useCallback(() => {
+    setPairingCode(null);
+    setQrValue(null);
+    setRefreshCount(0);
+    setMaxRefresh(3);
+    setCountdown(REFRESH_INTERVAL_SECONDS);
+    setPhoneNumber('');
+  }, []);
+
   const handleStartLink = async () => {
     if (!phoneNumber.trim()) {
       toast.error('Ingresa un numero de telefono para solicitar codigo');
@@ -179,14 +188,15 @@ export const CashierSessionPage = () => {
     previousSessionRef.current = currentSession;
     const shouldClearArtifacts = !currentSession && !(linkState?.sessionName ?? '').trim();
     if (shouldClearArtifacts) {
-      setPairingCode(null);
-      setQrValue(null);
-      setRefreshCount(0);
-      setMaxRefresh(3);
-      setCountdown(REFRESH_INTERVAL_SECONDS);
-      setPhoneNumber('');
+      const timeoutId = window.setTimeout(() => {
+        resetWhatsappArtifacts();
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
     }
-  }, [requiresWhatsappSetup, runtimeState?.sessionName, linkState?.sessionName]);
+  }, [requiresWhatsappSetup, runtimeState?.sessionName, linkState?.sessionName, resetWhatsappArtifacts]);
 
   useEffect(() => {
     if (!linkState?.needsLink || !linkStatus?.linked || !linkStatus.sessionName) {
