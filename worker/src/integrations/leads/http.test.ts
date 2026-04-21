@@ -31,3 +31,15 @@ test('resolveCreateLeadHttpError maps duplicate fbc errors to 409', async () => 
     },
   });
 });
+
+test('extractAdCodeFromQueryParam resolves utm_content values safely', async () => {
+  const { extractAdCodeFromQueryParam } = await import('./http.js');
+
+  assert.equal(extractAdCodeFromQueryParam('  ad-123  '), 'ad-123');
+  assert.equal(
+    extractAdCodeFromQueryParam(['', '  ', ' ad-xyz ']),
+    'ad-xyz',
+  );
+  assert.equal(extractAdCodeFromQueryParam(undefined), undefined);
+  assert.equal(extractAdCodeFromQueryParam('   '), undefined);
+});

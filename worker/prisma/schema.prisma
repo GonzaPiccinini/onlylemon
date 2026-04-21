@@ -60,6 +60,7 @@ model SessionActivity {
 model Lead {
   id          String     @id @default(uuid())
   code        String     @unique
+  adCode      String?
   fbc         String
   fbp         String
   metaPixelId String

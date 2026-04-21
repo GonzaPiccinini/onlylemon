@@ -1093,6 +1093,7 @@ export type SessionActivityScalarFieldEnum = (typeof SessionActivityScalarFieldE
 export const LeadScalarFieldEnum = {
   id: 'id',
   code: 'code',
+  adCode: 'adCode',
   fbc: 'fbc',
   fbp: 'fbp',
   metaPixelId: 'metaPixelId',

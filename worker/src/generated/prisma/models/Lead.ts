@@ -37,6 +37,7 @@ export type LeadSumAggregateOutputType = {
 export type LeadMinAggregateOutputType = {
   id: string | null
   code: string | null
+  adCode: string | null
   fbc: string | null
   fbp: string | null
   metaPixelId: string | null
@@ -55,6 +56,7 @@ export type LeadMinAggregateOutputType = {
 export type LeadMaxAggregateOutputType = {
   id: string | null
   code: string | null
+  adCode: string | null
   fbc: string | null
   fbp: string | null
   metaPixelId: string | null
@@ -73,6 +75,7 @@ export type LeadMaxAggregateOutputType = {
 export type LeadCountAggregateOutputType = {
   id: number
   code: number
+  adCode: number
   fbc: number
   fbp: number
   metaPixelId: number
@@ -101,6 +104,7 @@ export type LeadSumAggregateInputType = {
 export type LeadMinAggregateInputType = {
   id?: true
   code?: true
+  adCode?: true
   fbc?: true
   fbp?: true
   metaPixelId?: true
@@ -119,6 +123,7 @@ export type LeadMinAggregateInputType = {
 export type LeadMaxAggregateInputType = {
   id?: true
   code?: true
+  adCode?: true
   fbc?: true
   fbp?: true
   metaPixelId?: true
@@ -137,6 +142,7 @@ export type LeadMaxAggregateInputType = {
 export type LeadCountAggregateInputType = {
   id?: true
   code?: true
+  adCode?: true
   fbc?: true
   fbp?: true
   metaPixelId?: true
@@ -242,6 +248,7 @@ export type LeadGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type LeadGroupByOutputType = {
   id: string
   code: string
+  adCode: string | null
   fbc: string
   fbp: string
   metaPixelId: string
@@ -283,6 +290,7 @@ export type LeadWhereInput = {
   NOT?: Prisma.LeadWhereInput | Prisma.LeadWhereInput[]
   id?: Prisma.StringFilter<"Lead"> | string
   code?: Prisma.StringFilter<"Lead"> | string
+  adCode?: Prisma.StringNullableFilter<"Lead"> | string | null
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
@@ -302,6 +310,7 @@ export type LeadWhereInput = {
 export type LeadOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  adCode?: Prisma.SortOrderInput | Prisma.SortOrder
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
@@ -324,6 +333,7 @@ export type LeadWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.LeadWhereInput | Prisma.LeadWhereInput[]
   OR?: Prisma.LeadWhereInput[]
   NOT?: Prisma.LeadWhereInput | Prisma.LeadWhereInput[]
+  adCode?: Prisma.StringNullableFilter<"Lead"> | string | null
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
@@ -343,6 +353,7 @@ export type LeadWhereUniqueInput = Prisma.AtLeast<{
 export type LeadOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  adCode?: Prisma.SortOrderInput | Prisma.SortOrder
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
@@ -369,6 +380,7 @@ export type LeadScalarWhereWithAggregatesInput = {
   NOT?: Prisma.LeadScalarWhereWithAggregatesInput | Prisma.LeadScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   code?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  adCode?: Prisma.StringNullableWithAggregatesFilter<"Lead"> | string | null
   fbc?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   fbp?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   metaPixelId?: Prisma.StringWithAggregatesFilter<"Lead"> | string
@@ -387,6 +399,7 @@ export type LeadScalarWhereWithAggregatesInput = {
 export type LeadCreateInput = {
   id?: string
   code: string
+  adCode?: string | null
   fbc: string
   fbp: string
   metaPixelId: string
@@ -405,6 +418,7 @@ export type LeadCreateInput = {
 export type LeadUncheckedCreateInput = {
   id?: string
   code: string
+  adCode?: string | null
   fbc: string
   fbp: string
   metaPixelId: string
@@ -423,6 +437,7 @@ export type LeadUncheckedCreateInput = {
 export type LeadUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -441,6 +456,7 @@ export type LeadUpdateInput = {
 export type LeadUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -459,6 +475,7 @@ export type LeadUncheckedUpdateInput = {
 export type LeadCreateManyInput = {
   id?: string
   code: string
+  adCode?: string | null
   fbc: string
   fbp: string
   metaPixelId: string
@@ -477,6 +494,7 @@ export type LeadCreateManyInput = {
 export type LeadUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -494,6 +512,7 @@ export type LeadUpdateManyMutationInput = {
 export type LeadUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -522,6 +541,7 @@ export type LeadOrderByRelationAggregateInput = {
 export type LeadCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  adCode?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
@@ -544,6 +564,7 @@ export type LeadAvgOrderByAggregateInput = {
 export type LeadMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  adCode?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
@@ -562,6 +583,7 @@ export type LeadMaxOrderByAggregateInput = {
 export type LeadMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  adCode?: Prisma.SortOrder
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
@@ -638,6 +660,7 @@ export type EnumLeadStatusFieldUpdateOperationsInput = {
 export type LeadCreateWithoutCashierInput = {
   id?: string
   code: string
+  adCode?: string | null
   fbc: string
   fbp: string
   metaPixelId: string
@@ -655,6 +678,7 @@ export type LeadCreateWithoutCashierInput = {
 export type LeadUncheckedCreateWithoutCashierInput = {
   id?: string
   code: string
+  adCode?: string | null
   fbc: string
   fbp: string
   metaPixelId: string
@@ -701,6 +725,7 @@ export type LeadScalarWhereInput = {
   NOT?: Prisma.LeadScalarWhereInput | Prisma.LeadScalarWhereInput[]
   id?: Prisma.StringFilter<"Lead"> | string
   code?: Prisma.StringFilter<"Lead"> | string
+  adCode?: Prisma.StringNullableFilter<"Lead"> | string | null
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
@@ -719,6 +744,7 @@ export type LeadScalarWhereInput = {
 export type LeadCreateManyCashierInput = {
   id?: string
   code: string
+  adCode?: string | null
   fbc: string
   fbp: string
   metaPixelId: string
@@ -736,6 +762,7 @@ export type LeadCreateManyCashierInput = {
 export type LeadUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -753,6 +780,7 @@ export type LeadUpdateWithoutCashierInput = {
 export type LeadUncheckedUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -770,6 +798,7 @@ export type LeadUncheckedUpdateWithoutCashierInput = {
 export type LeadUncheckedUpdateManyWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -789,6 +818,7 @@ export type LeadUncheckedUpdateManyWithoutCashierInput = {
 export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
+  adCode?: boolean
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
@@ -808,6 +838,7 @@ export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
+  adCode?: boolean
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
@@ -827,6 +858,7 @@ export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 export type LeadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
+  adCode?: boolean
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
@@ -846,6 +878,7 @@ export type LeadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 export type LeadSelectScalar = {
   id?: boolean
   code?: boolean
+  adCode?: boolean
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
@@ -861,7 +894,7 @@ export type LeadSelectScalar = {
   updateAt?: boolean
 }
 
-export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "fbc" | "fbp" | "metaPixelId" | "amount" | "status" | "userAgent" | "phone" | "cashierId" | "expiresAt" | "contactedAt" | "convertedAt" | "createdAt" | "updateAt", ExtArgs["result"]["lead"]>
+export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "adCode" | "fbc" | "fbp" | "metaPixelId" | "amount" | "status" | "userAgent" | "phone" | "cashierId" | "expiresAt" | "contactedAt" | "convertedAt" | "createdAt" | "updateAt", ExtArgs["result"]["lead"]>
 export type LeadInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
 }
@@ -880,6 +913,7 @@ export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     code: string
+    adCode: string | null
     fbc: string
     fbp: string
     metaPixelId: string
@@ -1319,6 +1353,7 @@ export interface Prisma__LeadClient<T, Null = never, ExtArgs extends runtime.Typ
 export interface LeadFieldRefs {
   readonly id: Prisma.FieldRef<"Lead", 'String'>
   readonly code: Prisma.FieldRef<"Lead", 'String'>
+  readonly adCode: Prisma.FieldRef<"Lead", 'String'>
   readonly fbc: Prisma.FieldRef<"Lead", 'String'>
   readonly fbp: Prisma.FieldRef<"Lead", 'String'>
   readonly metaPixelId: Prisma.FieldRef<"Lead", 'String'>
