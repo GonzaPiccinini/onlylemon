@@ -61,7 +61,7 @@ const toLandingDto = (landing: {
   updatedAt: landing.updatedAt,
 });
 
-const toLeadDto = (lead: {
+export const toLeadDto = (lead: {
   id: string;
   code: string;
   status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
@@ -72,7 +72,8 @@ const toLeadDto = (lead: {
   convertedAt: Date | null;
   expiresAt: Date;
   createdAt: Date;
-  cashier: {
+  updateAt: Date;
+  cashier?: {
     id: string;
     user: {
       name: string;
@@ -90,6 +91,7 @@ const toLeadDto = (lead: {
   convertedAt: lead.convertedAt,
   expiresAt: lead.expiresAt,
   createdAt: lead.createdAt,
+  activityAt: lead.updateAt,
   cashierId: lead.cashier?.id ?? null,
   cashierName: lead.cashier?.user.name ?? null,
   cashierUsername: lead.cashier?.user.username ?? null,

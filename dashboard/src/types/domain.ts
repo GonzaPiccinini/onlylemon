@@ -98,6 +98,7 @@ export interface Lead {
   convertedAt: string | null;
   expiresAt: string;
   createdAt: string;
+  activityAt?: string;
   cashierId?: string | null;
   cashierName?: string | null;
   cashierUsername?: string | null;
