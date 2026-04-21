@@ -1,4 +1,5 @@
 import { prisma } from '../../persistence/prisma/client.js';
+import type { Prisma } from '../../generated/prisma/client.js';
 
 export const listCashiers = () =>
   prisma.cashier.findMany({
@@ -228,7 +229,13 @@ export const listLeads = (filters: {
   status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
   cashierId?: string;
 }) =>
-  prisma.lead.findMany({
+  prisma.lead.findMany(buildListLeadsQuery(filters));
+
+export const buildListLeadsQuery = (filters: {
+  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  cashierId?: string;
+}) =>
+  ({
     where: {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
@@ -241,9 +248,9 @@ export const listLeads = (filters: {
       },
     },
     orderBy: {
-      createdAt: 'desc',
+      updateAt: 'desc' as const,
     },
-  });
+  }) satisfies Prisma.LeadFindManyArgs;
 
 export const setLandingStatus = (
   landingId: string,

@@ -150,6 +150,8 @@ export const useAdminLeads = (filters: LeadsFilters) =>
   useQuery({
     queryKey: adminKeys.leads(filters),
     queryFn: () => adminService.listLeads(filters),
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   });
 
 export const useUpdateAdminAccount = () =>

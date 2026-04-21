@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatDateTime } from '@/lib/format';
 import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
 import { PaginationControls } from '@/components/common/pagination-controls';
@@ -143,16 +143,17 @@ export const AdminLeadsPage = () => {
                 <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
                 <TableHead>Monto</TableHead>
+                <TableHead>Actividad</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5}>Cargando leads...</TableCell>
+                  <TableCell colSpan={6}>Cargando leads...</TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={6}>
                     No hay leads para el filtro seleccionado.
                   </TableCell>
                 </TableRow>
@@ -174,6 +175,7 @@ export const AdminLeadsPage = () => {
                     <TableCell>
                       {lead.amount === null ? '-' : formatCurrency(lead.amount)}
                     </TableCell>
+                    <TableCell>{formatDateTime(lead.activityAt ?? lead.createdAt)}</TableCell>
                   </TableRow>
                 ))
               )}
