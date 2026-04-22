@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import type { SessionsList } from '../waha/client.js';
 
 process.env.PORT = process.env.PORT ?? '3002';
 process.env.LEADS_CODE_TTL_HOURS = process.env.LEADS_CODE_TTL_HOURS ?? '24';
@@ -98,6 +99,27 @@ function buildDependencies(
     onCodeCollision: () => {},
     ...overrides,
   };
+}
+
+function buildWorkingSessions(
+  ...sessions: Array<{ name: string; number: string }>
+): SessionsList {
+  return sessions.map(({ name, number }) => ({
+    name,
+    status: 'WORKING',
+    config: {
+      proxy: null,
+      webhooks: [],
+      debug: false,
+    },
+    me: {
+      id: `${number}@s.whatsapp.net`,
+      pushname: name,
+    },
+    engine: {
+      engine: 'WEBJS',
+    },
+  }));
 }
 
 test('createLeadWithDependencies rejects duplicate fbc before persisting', async () => {
@@ -252,4 +274,304 @@ test('createLeadWithDependencies persists adCode when provided', async () => {
     number: '5491111111111',
   });
   assert.equal(receivedAdCode, 'ad-123');
+});
+
+test('selectCashierNumberForLandingWithDependencies queries only the current Argentina day window', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import(
+    './service.js'
+  );
+
+  let receivedSince: Date | null = null;
+  let receivedUntil: Date | null = null;
+  let receivedCashierIds: string[] = [];
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      {
+        cashierId: 'cashier-1',
+        sessionName: 'session-1',
+        activeSince: new Date('2026-04-22T12:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-2',
+        sessionName: 'session-2',
+        activeSince: new Date('2026-04-22T12:00:00.000Z'),
+      },
+    ],
+    getSessions: async () =>
+      buildWorkingSessions(
+        { name: 'session-1', number: '5491111111111' },
+        { name: 'session-2', number: '5492222222222' },
+      ),
+    getContactedLeadCountByCashierForLanding: async (_metaPixelId, cashierIds, since, until) => {
+      receivedCashierIds = cashierIds;
+      receivedSince = since;
+      receivedUntil = until;
+      return new Map();
+    },
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    number: '5491111111111',
+  });
+  assert.deepEqual(receivedCashierIds, ['cashier-1', 'cashier-2']);
+  assert.ok(receivedSince);
+  assert.ok(receivedUntil);
+  assert.equal(
+    (receivedSince as Date).toISOString(),
+    '2026-04-22T03:00:00.000Z',
+  );
+  assert.equal(
+    (receivedUntil as Date).toISOString(),
+    '2026-04-23T03:00:00.000Z',
+  );
+});
+
+test('selectCashierNumberForLandingWithDependencies excludes disconnected cashiers from daily balancing', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import(
+    './service.js'
+  );
+
+  let receivedCashierIds: string[] = [];
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      {
+        cashierId: 'cashier-1',
+        sessionName: 'session-1',
+        activeSince: new Date('2026-04-22T12:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-2',
+        sessionName: 'session-2',
+        activeSince: new Date('2026-04-22T12:00:00.000Z'),
+      },
+    ],
+    getSessions: async () =>
+      buildWorkingSessions({ name: 'session-2', number: '5492222222222' }),
+    getContactedLeadCountByCashierForLanding: async (_metaPixelId, cashierIds) => {
+      receivedCashierIds = cashierIds;
+      return new Map([['cashier-2', 0]]);
+    },
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(receivedCashierIds, ['cashier-2']);
+  assert.deepEqual(result, {
+    ok: true,
+    number: '5492222222222',
+  });
+});
+
+test('selectCashierNumberForLandingWithDependencies prioritizes the highest fair-share deficit', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import(
+    './service.js'
+  );
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      {
+        cashierId: 'cashier-1',
+        sessionName: 'session-1',
+        activeSince: new Date('2026-04-22T08:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-2',
+        sessionName: 'session-2',
+        activeSince: new Date('2026-04-22T11:30:00.000Z'),
+      },
+    ],
+    getSessions: async () =>
+      buildWorkingSessions(
+        { name: 'session-1', number: '5491111111111' },
+        { name: 'session-2', number: '5492222222222' },
+      ),
+    getContactedLeadCountByCashierForLanding: async () =>
+      new Map([
+        ['cashier-1', 8],
+        ['cashier-2', 0],
+      ]),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    number: '5492222222222',
+  });
+});
+
+test('selectCashierNumberForLandingWithDependencies does not over-prioritize late cashier after reaching proportional share', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import(
+    './service.js'
+  );
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      {
+        cashierId: 'cashier-1',
+        sessionName: 'session-1',
+        activeSince: new Date('2026-04-22T08:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-2',
+        sessionName: 'session-2',
+        activeSince: new Date('2026-04-22T11:30:00.000Z'),
+      },
+    ],
+    getSessions: async () =>
+      buildWorkingSessions(
+        { name: 'session-1', number: '5491111111111' },
+        { name: 'session-2', number: '5492222222222' },
+      ),
+    getContactedLeadCountByCashierForLanding: async () =>
+      new Map([
+        ['cashier-1', 8],
+        ['cashier-2', 4],
+      ]),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    number: '5491111111111',
+  });
+});
+
+test('selectCashierNumberForLandingWithDependencies distributes by active-time proportion for the day', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import(
+    './service.js'
+  );
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      {
+        cashierId: 'cashier-1',
+        sessionName: 'session-1',
+        activeSince: new Date('2026-04-22T09:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-2',
+        sessionName: 'session-2',
+        activeSince: new Date('2026-04-22T12:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-3',
+        sessionName: 'session-3',
+        activeSince: new Date('2026-04-22T14:00:00.000Z'),
+      },
+    ],
+    getSessions: async () =>
+      buildWorkingSessions(
+        { name: 'session-1', number: '5491111111111' },
+        { name: 'session-2', number: '5492222222222' },
+        { name: 'session-3', number: '5493333333333' },
+      ),
+    getContactedLeadCountByCashierForLanding: async () =>
+      new Map([
+        ['cashier-1', 6],
+        ['cashier-2', 3],
+        ['cashier-3', 0],
+      ]),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    number: '5493333333333',
+  });
+});
+
+test('selectCashierNumberForLandingWithDependencies randomizes selection among top deficits', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import(
+    './service.js'
+  );
+
+  const baseDependencies = {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      {
+        cashierId: 'cashier-1',
+        sessionName: 'session-1',
+        activeSince: new Date('2026-04-22T12:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-2',
+        sessionName: 'session-2',
+        activeSince: new Date('2026-04-22T12:00:00.000Z'),
+      },
+    ],
+    getSessions: async () =>
+      buildWorkingSessions(
+        { name: 'session-1', number: '5491111111111' },
+        { name: 'session-2', number: '5492222222222' },
+      ),
+    getContactedLeadCountByCashierForLanding: async () =>
+      new Map([
+        ['cashier-1', 0],
+        ['cashier-2', 0],
+      ]),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+  };
+
+  const first = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    ...baseDependencies,
+    getRandom: () => 0,
+  });
+  const second = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    ...baseDependencies,
+    getRandom: () => 0.99,
+  });
+
+  assert.deepEqual(first, {
+    ok: true,
+    number: '5491111111111',
+  });
+  assert.deepEqual(second, {
+    ok: true,
+    number: '5492222222222',
+  });
+});
+
+test('selectCashierNumberForLandingWithDependencies clamps activity started before day boundary', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import(
+    './service.js'
+  );
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      {
+        cashierId: 'cashier-1',
+        sessionName: 'session-1',
+        activeSince: new Date('2026-04-21T20:00:00.000Z'),
+      },
+      {
+        cashierId: 'cashier-2',
+        sessionName: 'session-2',
+        activeSince: new Date('2026-04-22T04:00:00.000Z'),
+      },
+    ],
+    getSessions: async () =>
+      buildWorkingSessions(
+        { name: 'session-1', number: '5491111111111' },
+        { name: 'session-2', number: '5492222222222' },
+      ),
+    getContactedLeadCountByCashierForLanding: async () =>
+      new Map([
+        ['cashier-1', 3],
+        ['cashier-2', 0],
+      ]),
+    getNow: () => new Date('2026-04-22T05:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    number: '5492222222222',
+  });
 });

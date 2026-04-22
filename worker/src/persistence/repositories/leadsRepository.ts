@@ -4,6 +4,7 @@ import { prisma } from '../prisma/client.js';
 export type LandingCashierCandidate = {
   cashierId: string;
   sessionName: string;
+  activeSince: Date | null;
 };
 
 type CreateLeadData = {
@@ -57,6 +58,18 @@ export async function getActiveLandingCashierCandidatesByMetaPixelId(
             select: {
               id: true,
               sessionName: true,
+              activity: {
+                where: {
+                  endedAt: null,
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+                take: 1,
+                select: {
+                  createdAt: true,
+                },
+              },
             },
           },
         },
@@ -68,19 +81,20 @@ export async function getActiveLandingCashierCandidatesByMetaPixelId(
     return null;
   }
 
-  return landing.cashiers
-    .map((item) => ({
-      cashierId: item.cashier.id,
-      sessionName: item.cashier.sessionName,
-    }))
-    .filter(
-      (
-        item,
-      ): item is {
-        cashierId: string;
-        sessionName: string;
-      } => Boolean(item.sessionName),
-    );
+  return landing.cashiers.flatMap((item) => {
+    const sessionName = item.cashier.sessionName;
+    if (!sessionName) {
+      return [];
+    }
+
+    return [
+      {
+        cashierId: item.cashier.id,
+        sessionName,
+        activeSince: item.cashier.activity[0]?.createdAt ?? null,
+      },
+    ];
+  });
 }
 
 export async function getContactedLeadCountByCashierForLanding(

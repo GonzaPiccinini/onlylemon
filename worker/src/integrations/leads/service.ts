@@ -140,10 +140,20 @@ function extractLeadCode(body: string): string | null {
 const ARGENTINA_UTC_OFFSET_HOURS = -3;
 const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
+const MIN_ACTIVE_MS = 1;
+const DEFICIT_TIE_EPSILON = 0.25;
 
-function getStartOfTodayInArgentina(): Date {
+type SelectCashierDependencies = {
+  getActiveLandingCashierCandidatesByMetaPixelId: typeof getActiveLandingCashierCandidatesByMetaPixelId;
+  getSessions: typeof getSessions;
+  getContactedLeadCountByCashierForLanding: typeof getContactedLeadCountByCashierForLanding;
+  getNow: () => Date;
+  getRandom: () => number;
+};
+
+export function getStartOfTodayInArgentina(now: Date = new Date()): Date {
   const offsetMs = ARGENTINA_UTC_OFFSET_HOURS * MS_PER_HOUR;
-  const nowAsArgentina = new Date(Date.now() + offsetMs);
+  const nowAsArgentina = new Date(now.getTime() + offsetMs);
   return new Date(
     Date.UTC(
       nowAsArgentina.getUTCFullYear(),
@@ -153,11 +163,20 @@ function getStartOfTodayInArgentina(): Date {
   );
 }
 
-async function selectCashierNumberForLanding(
+const defaultSelectCashierDependencies: SelectCashierDependencies = {
+  getActiveLandingCashierCandidatesByMetaPixelId,
+  getSessions,
+  getContactedLeadCountByCashierForLanding,
+  getNow: () => new Date(),
+  getRandom: () => Math.random(),
+};
+
+export async function selectCashierNumberForLandingWithDependencies(
   metaPixelId: string,
+  dependencies: SelectCashierDependencies,
 ): Promise<SelectNumberResult> {
   const candidates =
-    await getActiveLandingCashierCandidatesByMetaPixelId(metaPixelId);
+    await dependencies.getActiveLandingCashierCandidatesByMetaPixelId(metaPixelId);
   if (!candidates) {
     return {
       ok: false,
@@ -172,7 +191,7 @@ async function selectCashierNumberForLanding(
     };
   }
 
-  const sessions = await getSessions();
+  const sessions = await dependencies.getSessions();
   const workingSessionNumbers = new Map<string, string>();
 
   for (const session of sessions) {
@@ -191,6 +210,7 @@ async function selectCashierNumberForLanding(
   const eligible = candidates
     .map((candidate) => ({
       cashierId: candidate.cashierId,
+      activeSince: candidate.activeSince,
       number: workingSessionNumbers.get(candidate.sessionName) ?? null,
     }))
     .filter(
@@ -198,6 +218,7 @@ async function selectCashierNumberForLanding(
         item,
       ): item is {
         cashierId: string;
+        activeSince: Date | null;
         number: string;
       } => Boolean(item.number),
     );
@@ -209,44 +230,80 @@ async function selectCashierNumberForLanding(
     };
   }
 
-  const startOfDay = getStartOfTodayInArgentina();
+  const now = dependencies.getNow();
+  const startOfDay = getStartOfTodayInArgentina(now);
   const startOfNextDay = new Date(startOfDay.getTime() + MS_PER_DAY);
 
-  const countsByCashier = await getContactedLeadCountByCashierForLanding(
+  const countsByCashier = await dependencies.getContactedLeadCountByCashierForLanding(
     metaPixelId,
     eligible.map((item) => item.cashierId),
     startOfDay,
     startOfNextDay,
   );
 
-  let maxCount = 0;
-  for (const item of eligible) {
-    const count = countsByCashier.get(item.cashierId) ?? 0;
-    if (count > maxCount) {
-      maxCount = count;
-    }
-  }
+  const eligibleWithStats = eligible.map((item) => {
+    const activeStart = item.activeSince
+      ? new Date(Math.max(item.activeSince.getTime(), startOfDay.getTime()))
+      : startOfDay;
+    const activeMs = Math.max(now.getTime() - activeStart.getTime(), MIN_ACTIVE_MS);
 
-  const weighted = eligible.map((item) => ({
-    ...item,
-    weight: maxCount - (countsByCashier.get(item.cashierId) ?? 0) + 1,
-  }));
+    return {
+      ...item,
+      activeMs,
+      countToday: countsByCashier.get(item.cashierId) ?? 0,
+    };
+  });
 
-  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
-  let rng = Math.random() * totalWeight;
-  let selected = weighted[weighted.length - 1];
-  for (const item of weighted) {
-    rng -= item.weight;
-    if (rng <= 0) {
-      selected = item;
-      break;
-    }
-  }
+  const totalActiveMs = eligibleWithStats.reduce(
+    (sum, item) => sum + item.activeMs,
+    0,
+  );
+  const totalLeadsToday = eligibleWithStats.reduce(
+    (sum, item) => sum + item.countToday,
+    0,
+  );
+  const totalLeadsAfterNext = totalLeadsToday + 1;
+
+  const scored = eligibleWithStats.map((item) => {
+    const timeShare = item.activeMs / totalActiveMs;
+    const expectedLeadsAfterNext = timeShare * totalLeadsAfterNext;
+
+    return {
+      ...item,
+      deficit: expectedLeadsAfterNext - item.countToday,
+    };
+  });
+
+  const highestDeficit = scored.reduce(
+    (max, item) => Math.max(max, item.deficit),
+    Number.NEGATIVE_INFINITY,
+  );
+
+  const topCandidates = scored.filter(
+    (item) => item.deficit >= highestDeficit - DEFICIT_TIE_EPSILON,
+  );
+
+  const selected =
+    topCandidates[
+      Math.min(
+        Math.floor(dependencies.getRandom() * topCandidates.length),
+        topCandidates.length - 1,
+      )
+    ];
 
   return {
     ok: true,
     number: selected.number,
   };
+}
+
+async function selectCashierNumberForLanding(
+  metaPixelId: string,
+): Promise<SelectNumberResult> {
+  return selectCashierNumberForLandingWithDependencies(
+    metaPixelId,
+    defaultSelectCashierDependencies,
+  );
 }
 
 async function dispatchLeadCreatedEvent(lead: {
