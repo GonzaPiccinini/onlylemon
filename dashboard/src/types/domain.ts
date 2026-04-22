@@ -90,6 +90,7 @@ export interface CashierRuntimeState {
 export interface Lead {
   id: string;
   code: string;
+  adCode?: string | null;
   status: LeadStatus;
   phone: string | null;
   amount: number | null;

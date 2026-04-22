@@ -25,6 +25,11 @@ const payload = {
   metaPixelId: 'pixel-1',
 };
 
+const payloadWithAdCode = {
+  ...payload,
+  adCode: 'ad-123',
+};
+
 type CreateLeadDependencies = {
   selectCashierNumberForLanding: (
     metaPixelId: string,
@@ -44,6 +49,7 @@ type CreateLeadDependencies = {
     fbp: string;
     userAgent: string;
     metaPixelId: string;
+    adCode?: string;
     code: string;
     expiresAt: Date;
   }) => Promise<{
@@ -218,4 +224,32 @@ test('createLeadWithDependencies does not treat fbc save errors as duplicate-che
       return true;
     },
   );
+});
+
+test('createLeadWithDependencies persists adCode when provided', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  let receivedAdCode: string | undefined;
+  const deps = buildDependencies({
+    saveLead: async ({ code, expiresAt, adCode }) => {
+      receivedAdCode = adCode;
+      return {
+        id: 'lead-adcode',
+        code,
+        fbc: payload.fbc,
+        fbp: payload.fbp,
+        userAgent: payload.userAgent,
+        metaPixelId: payload.metaPixelId,
+        expiresAt,
+      };
+    },
+  });
+
+  const result = await createLeadWithDependencies(payloadWithAdCode, deps);
+
+  assert.deepEqual(result, {
+    code: 'ABCD1234',
+    number: '5491111111111',
+  });
+  assert.equal(receivedAdCode, 'ad-123');
 });

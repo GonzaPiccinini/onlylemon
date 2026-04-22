@@ -15,6 +15,24 @@ type HttpErrorResponse = {
   };
 };
 
+export function extractAdCodeFromQueryParam(
+  utmContent: Request['query']['utm_content'],
+): string | undefined {
+  if (Array.isArray(utmContent)) {
+    const firstNonEmpty = utmContent.find(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    );
+    return firstNonEmpty?.trim();
+  }
+
+  if (typeof utmContent !== 'string') {
+    return undefined;
+  }
+
+  const normalized = utmContent.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 export function resolveCreateLeadHttpError(
   error: unknown,
 ): HttpErrorResponse | null {
@@ -53,7 +71,11 @@ export function resolveCreateLeadHttpError(
 }
 
 export async function leadsPost(req: Request, res: Response) {
-  const parseResult = CreateLeadPayloadSchema.safeParse(req.body);
+  const adCode = extractAdCodeFromQueryParam(req.query.utm_content);
+  const parseResult = CreateLeadPayloadSchema.safeParse({
+    ...req.body,
+    ...(adCode ? { adCode } : {}),
+  });
   if (!parseResult.success) {
     return res.status(400).json({
       message: 'Invalid body data',

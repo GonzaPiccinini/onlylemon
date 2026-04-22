@@ -30,6 +30,7 @@ export const CreateLeadPayloadSchema = z.object({
   fbp: z.string().trim().min(1).max(1024),
   userAgent: z.string().trim().min(1).max(2048),
   metaPixelId: z.string().trim().min(1).max(256),
+  adCode: z.string().trim().min(1).max(256).optional(),
 });
 
 export type CreateLeadPayload = z.infer<typeof CreateLeadPayloadSchema>;

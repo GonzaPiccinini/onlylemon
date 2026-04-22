@@ -64,6 +64,7 @@ const toLandingDto = (landing: {
 export const toLeadDto = (lead: {
   id: string;
   code: string;
+  adCode: string | null;
   status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
   phone: string | null;
   amount: unknown | null;
@@ -83,6 +84,7 @@ export const toLeadDto = (lead: {
 }) => ({
   id: lead.id,
   code: lead.code,
+  adCode: lead.adCode,
   status: lead.status,
   phone: lead.phone,
   amount: lead.amount === null ? null : Number(lead.amount),

@@ -139,6 +139,7 @@ export const AdminLeadsPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Codigo</TableHead>
+                <TableHead>Publicidad</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
@@ -149,11 +150,11 @@ export const AdminLeadsPage = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6}>Cargando leads...</TableCell>
+                  <TableCell colSpan={7}>Cargando leads...</TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     No hay leads para el filtro seleccionado.
                   </TableCell>
                 </TableRow>
@@ -161,6 +162,7 @@ export const AdminLeadsPage = () => {
                 paginatedLeads.map((lead) => (
                   <TableRow key={lead.id}>
                     <TableCell>{lead.code}</TableCell>
+                    <TableCell>{lead.adCode ?? '-'}</TableCell>
                     <TableCell>
                       <Badge
                         variant={

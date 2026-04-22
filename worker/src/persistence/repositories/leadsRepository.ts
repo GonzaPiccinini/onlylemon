@@ -8,6 +8,7 @@ export type LandingCashierCandidate = {
 
 type CreateLeadData = {
   code: string;
+  adCode?: string;
   fbc: string;
   fbp: string;
   userAgent: string;

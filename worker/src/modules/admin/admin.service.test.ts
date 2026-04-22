@@ -28,6 +28,7 @@ test('toLeadDto exposes activityAt using lead updateAt', async () => {
   const dto = toLeadDto({
     id: 'lead-1',
     code: 'ABCD1234',
+    adCode: 'ad-001',
     status: 'CONTACTED',
     phone: '5491111111111',
     amount: 5000,
@@ -42,6 +43,7 @@ test('toLeadDto exposes activityAt using lead updateAt', async () => {
 
   assert.equal(dto.activityAt.toISOString(), updateAt.toISOString());
   assert.equal(dto.createdAt.toISOString(), createdAt.toISOString());
+  assert.equal(dto.adCode, 'ad-001');
 });
 
 test('toLeadDto keeps activityAt when lead has cashier and null amount', async () => {
@@ -51,6 +53,7 @@ test('toLeadDto keeps activityAt when lead has cashier and null amount', async (
   const dto = toLeadDto({
     id: 'lead-2',
     code: 'WXYZ9876',
+    adCode: null,
     status: 'NOT_CONTACTED',
     phone: null,
     amount: null,
@@ -72,4 +75,5 @@ test('toLeadDto keeps activityAt when lead has cashier and null amount', async (
   assert.equal(dto.activityAt.toISOString(), updateAt.toISOString());
   assert.equal(dto.amount, null);
   assert.equal(dto.cashierName, 'Juan');
+  assert.equal(dto.adCode, null);
 });
