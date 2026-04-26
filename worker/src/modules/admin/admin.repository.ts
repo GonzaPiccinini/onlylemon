@@ -228,17 +228,27 @@ export const getLandingByMetaPixelId = (metaPixelId: string) =>
 export const listLeads = (filters: {
   status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
   cashierId?: string;
+  adCode?: string;
 }) =>
   prisma.lead.findMany(buildListLeadsQuery(filters));
 
 export const buildListLeadsQuery = (filters: {
   status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
   cashierId?: string;
+  adCode?: string;
 }) =>
   ({
     where: {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
+      ...(filters.adCode
+        ? {
+            adCode: {
+              contains: filters.adCode,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
     },
     include: {
       cashier: {

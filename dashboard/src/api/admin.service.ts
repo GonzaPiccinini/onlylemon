@@ -110,6 +110,7 @@ export const adminService = {
       params: {
         ...(filters.status ? { status: filters.status } : {}),
         ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
+        ...(filters.adCode ? { adCode: filters.adCode } : {}),
       },
     });
 
