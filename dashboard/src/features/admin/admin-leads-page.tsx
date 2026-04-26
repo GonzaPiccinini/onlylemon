@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
 export const AdminLeadsPage = () => {
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
   const [cashierId, setCashierId] = useState<string>('ALL');
+  const [adCode, setAdCode] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -50,8 +52,9 @@ export const AdminLeadsPage = () => {
     () => ({
       status: status === 'ALL' ? undefined : status,
       cashierId: cashierId === 'ALL' ? undefined : cashierId,
+      adCode: adCode.trim() || undefined,
     }),
-    [cashierId, status],
+    [adCode, cashierId, status],
   );
   const { data: leads = [], isLoading } = useAdminLeads(filters);
   const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
@@ -74,7 +77,7 @@ export const AdminLeadsPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-3">
             <div className="flex flex-col gap-2">
               <FieldLabel>Filtrar por estado</FieldLabel>
               <Select
@@ -132,6 +135,18 @@ export const AdminLeadsPage = () => {
                   </SelectGroup>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <FieldLabel>Filtrar por publicidad</FieldLabel>
+              <Input
+                value={adCode}
+                placeholder="Ej. utm_content"
+                onChange={(event) => {
+                  setAdCode(event.target.value);
+                  setPage(1);
+                }}
+              />
             </div>
           </div>
 

@@ -30,16 +30,21 @@ test('buildListLeadsQuery orders leads by updateAt desc', async () => {
   });
 });
 
-test('buildListLeadsQuery keeps optional status and cashier filters', async () => {
+test('buildListLeadsQuery keeps optional status, cashier and adCode filters', async () => {
   const { buildListLeadsQuery } = await import('./admin.repository.js');
 
   const query = buildListLeadsQuery({
     status: 'CONTACTED',
     cashierId: 'cashier-123',
+    adCode: 'camp-2026',
   });
 
   assert.deepEqual(query.where, {
     status: 'CONTACTED',
     cashierId: 'cashier-123',
+    adCode: {
+      contains: 'camp-2026',
+      mode: 'insensitive',
+    },
   });
 });

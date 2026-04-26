@@ -48,6 +48,7 @@ export const dateRangeSchema = z.object({
 export const leadsFilterSchema = z.object({
   status: z.enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED', 'EXPIRED']).optional(),
   cashierId: z.string().optional(),
+  adCode: z.string().trim().min(1).optional(),
 });
 
 export type DateRangeQuery = z.infer<typeof dateRangeSchema>;

@@ -143,6 +143,7 @@ export interface DateRangeFilters {
 export interface LeadsFilters {
   status?: LeadStatus;
   cashierId?: string;
+  adCode?: string;
 }
 
 export interface CreateCashierInput {
