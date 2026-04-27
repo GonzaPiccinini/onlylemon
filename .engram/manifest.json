@@ -32,6 +32,14 @@
       "sessions": 2,
       "memories": 2,
       "prompts": 0
+    },
+    {
+      "id": "79fd09cc",
+      "created_by": "sk4d",
+      "created_at": "2026-04-27T19:19:13Z",
+      "sessions": 1,
+      "memories": 3,
+      "prompts": 0
     }
   ]
 }
