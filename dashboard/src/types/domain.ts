@@ -35,6 +35,10 @@ export interface Cashier {
   status: CashierStatus;
   createdAt: string;
   landings: Landing[];
+  hasActiveWorkSession?: boolean;
+  sessionStartedAt?: string | null;
+  wahaStatus?: WahaStatus;
+  canOperateLeads?: boolean;
 }
 
 export interface Session {

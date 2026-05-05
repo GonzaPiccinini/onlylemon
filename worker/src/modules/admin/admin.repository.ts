@@ -10,6 +10,11 @@ export const listCashiers = () =>
           landing: true,
         },
       },
+      activity: {
+        where: { endedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
     },
     orderBy: {
       createdAt: 'desc',

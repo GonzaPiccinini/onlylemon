@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Cashier } from '@/types/domain';
+import type { Cashier, WahaStatus } from '@/types/domain';
 import { formatDateTime } from '@/lib/format';
 import {
   useAdminCashiers,
@@ -71,6 +71,30 @@ const updateSchema = z.object({
 
 type CreateValues = z.infer<typeof createSchema>;
 type UpdateValues = z.infer<typeof updateSchema>;
+
+const WAHA_STATUS_LABELS: Record<WahaStatus, string> = {
+  WORKING: 'Conectado',
+  SCAN_QR_CODE: 'Escaneando QR',
+  STARTING: 'Iniciando',
+  STOPPED: 'Detenido',
+  FAILED: 'Error',
+  UNLINKED: 'Sin vincular',
+};
+
+const wahaStatusLabel = (status: WahaStatus | undefined): string =>
+  status ? WAHA_STATUS_LABELS[status] : WAHA_STATUS_LABELS.UNLINKED;
+
+const operationalState = (
+  cashier: Cashier,
+): { label: string; variant: 'default' | 'secondary' | 'outline' } => {
+  if (cashier.canOperateLeads) {
+    return { label: 'Operativo', variant: 'default' };
+  }
+  if (cashier.hasActiveWorkSession) {
+    return { label: 'En turno', variant: 'secondary' };
+  }
+  return { label: 'Sin turno', variant: 'outline' };
+};
 
 export const AdminCashiersPage = () => {
   const { data: cashiers = [], isLoading } = useAdminCashiers();
@@ -299,6 +323,7 @@ export const AdminCashiersPage = () => {
               <TableHead>Nombre</TableHead>
               <TableHead>Usuario</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Operativo</TableHead>
               <TableHead>Landings</TableHead>
               <TableHead>Creado</TableHead>
               <TableHead className='text-right'>Acciones</TableHead>
@@ -307,11 +332,11 @@ export const AdminCashiersPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6}>Cargando cajeros...</TableCell>
+                <TableCell colSpan={7}>Cargando cajeros...</TableCell>
               </TableRow>
             ) : cashiers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6}>No hay cajeros registrados.</TableCell>
+                <TableCell colSpan={7}>No hay cajeros registrados.</TableCell>
               </TableRow>
              ) : (
                paginatedCashiers.map((cashier) => (
@@ -326,6 +351,21 @@ export const AdminCashiersPage = () => {
                     >
                       {cashier.status === 'ACTIVE' ? 'Activo' : 'Deshabilitado'}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const state = operationalState(cashier);
+                      return (
+                        <div className='flex flex-col gap-0.5'>
+                          <Badge variant={state.variant} className='w-fit'>
+                            {state.label}
+                          </Badge>
+                          <span className='text-xs text-muted-foreground'>
+                            WhatsApp: {wahaStatusLabel(cashier.wahaStatus)}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className='flex flex-wrap gap-1'>

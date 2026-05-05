@@ -1,6 +1,6 @@
 import { hashPassword } from '../../utils/password.js';
 import type { UpdateAdminAccountInput } from './admin.types.js';
-import { deleteSession } from '../../integrations/waha/client.js';
+import { deleteSession, getSessions } from '../../integrations/waha/client.js';
 import { emitCashierRuntimeStateChanged } from '../cashier/runtime-events.js';
 import {
   createCashier,
@@ -100,16 +100,43 @@ export const toLeadDto = (lead: {
   cashierUsername: lead.cashier?.user.username ?? null,
 });
 
+const buildWahaStatusByName = async (): Promise<Map<string, string>> => {
+  try {
+    const sessions = await getSessions();
+    return new Map(sessions.map((session) => [session.name, session.status]));
+  } catch {
+    return new Map();
+  }
+};
+
 export const listCashiersService = async () => {
   const cashiers = await listCashiers();
-  return cashiers.map((cashier) => ({
-    id: cashier.id,
-    name: cashier.user.name,
-    username: cashier.user.username,
-    status: cashier.status,
-    createdAt: cashier.createdAt,
-    landings: cashier.landings.map((entry) => toLandingDto(entry.landing)),
-  }));
+  const wahaStatusByName = await buildWahaStatusByName();
+
+  return cashiers.map((cashier) => {
+    const activeActivity = cashier.activity[0] ?? null;
+    const hasActiveWorkSession = activeActivity !== null;
+    const wahaStatus = cashier.sessionName
+      ? wahaStatusByName.get(cashier.sessionName) ?? 'UNLINKED'
+      : 'UNLINKED';
+    const canOperateLeads =
+      cashier.status === 'ACTIVE' &&
+      Boolean(cashier.sessionName) &&
+      wahaStatus === 'WORKING';
+
+    return {
+      id: cashier.id,
+      name: cashier.user.name,
+      username: cashier.user.username,
+      status: cashier.status,
+      createdAt: cashier.createdAt,
+      landings: cashier.landings.map((entry) => toLandingDto(entry.landing)),
+      hasActiveWorkSession,
+      sessionStartedAt: activeActivity?.createdAt ?? null,
+      wahaStatus,
+      canOperateLeads,
+    };
+  });
 };
 
 export const createCashierService = async (input: {
