@@ -23,6 +23,8 @@ export const useAdminCashiers = () =>
   useQuery({
     queryKey: adminKeys.cashiers,
     queryFn: adminService.listCashiers,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
   });
 
 export const useCreateCashier = () => {
