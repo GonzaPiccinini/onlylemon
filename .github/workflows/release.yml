@@ -119,8 +119,10 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             export IMAGE_TAG="sha-$GITHUB_SHA"
-            echo "[deploy] pulling images for tag $IMAGE_TAG"
-            docker compose -f docker-compose.dashboard-vps.yml pull
+            echo "[deploy] pulling our images for tag $IMAGE_TAG"
+            # Only pull services we own. Third-party images (postgres, caddy,
+            # alloy) stay on whatever the VPS already has.
+            docker compose -f docker-compose.dashboard-vps.yml pull worker dashboard
 
             echo "[deploy] applying compose"
             docker compose -f docker-compose.dashboard-vps.yml up -d --remove-orphans
@@ -165,8 +167,11 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             export IMAGE_TAG="sha-$GITHUB_SHA"
-            echo "[deploy] pulling images for tag $IMAGE_TAG"
-            docker compose -f docker-compose.waha-vps.yml pull
+            echo "[deploy] pulling our images for tag $IMAGE_TAG"
+            # Only pull services we own. Third-party images (waha, redis,
+            # caddy, alloy) stay on whatever the VPS already has — WAHA Plus
+            # in particular requires docker.io creds that live only on the VPS.
+            docker compose -f docker-compose.waha-vps.yml pull gateway
 
             echo "[deploy] applying compose"
             docker compose -f docker-compose.waha-vps.yml up -d --remove-orphans
