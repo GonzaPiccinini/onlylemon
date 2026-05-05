@@ -7,6 +7,17 @@
 - `worker/` is the business backend: Express API, BullMQ consumer, Prisma/Postgres, WAHA client, Meta Conversion events.
 - Production is split across two compose files: `docker-compose.waha-vps.yml` owns Redis/WAHA/gateway; `docker-compose.dashboard-vps.yml` owns Postgres/worker/dashboard.
 
+## CI/CD and deploy
+- Three workflows in `.github/workflows/`:
+  - `ci.yml` — runs on PRs and push to `main`: parallel `worker` (typecheck + test + build), `gateway` (lint + format:check + typecheck + build), `dashboard` (lint + build), plus a `ci-pass` summary job used as the required branch-protection check.
+  - `release.yml` — on push to `main`: builds the 3 images with buildx (GHA cache), pushes to `ghcr.io/gonzapiccinini/onlylemon-{worker,gateway,dashboard}` tagged `:sha-<git-sha>` and `:latest`. Then SSHes into each VPS and runs `docker compose pull <service> && up -d` — gated by repo VAR `AUTO_DEPLOY=true`.
+  - `rollback.yml` — manual `workflow_dispatch` with VPS + image tag inputs.
+- Compose files reference `image: ghcr.io/...:${IMAGE_TAG:-latest}` alongside `build:`, so the VPS pulls images from GHCR and local `docker compose build` still works for development.
+- Deploy script fetches `main` from GitHub via HTTPS using `GITHUB_TOKEN` embedded in the URL (`x-access-token`), then scrubs `.git/FETCH_HEAD` so the token does not persist on disk.
+- Deploy `pull` only targets services we own (`worker`, `dashboard`, `gateway`); third-party images (postgres, redis, caddy, alloy, waha-plus) stay on whatever the VPS already has — particularly important for `devlikeapro/waha-plus:gows` which needs docker.io creds that live only on the VPS.
+- For migrations, `worker/Dockerfile` runs `prisma migrate deploy` at container start; CI passes a dummy `DATABASE_URL` so `prisma generate` does not fail (matches the Dockerfile build stage).
+- `worker/package.json` test script uses `find ... -print0 | xargs -0 tsx --test` (not the previous globstar pattern) so it works under `/bin/sh` (dash) on Ubuntu CI runners.
+
 ## Commands agents usually guess wrong
 - Dashboard: `npm --prefix dashboard run dev`, `npm --prefix dashboard run build`, `npm --prefix dashboard run lint`.
 - Gateway: `npm --prefix gateway run dev`, `npm --prefix gateway run typecheck`, `npm --prefix gateway run lint`, `npm --prefix gateway run format:check`, `npm --prefix gateway run build`. `npm --prefix gateway test` is a placeholder and does not run tests.

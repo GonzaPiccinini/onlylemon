@@ -1,4 +1,4 @@
-# Plan de despliegue a producción — casino-ai
+# Plan de despliegue a producción — onlylemon
 
 ## Arquitectura objetivo
 
@@ -20,12 +20,12 @@ VPS1 ↔ VPS2: Tailscale (100.x.x.x) — Worker consume Redis vía IP Tailscale
 
 ## Fase 0 — Prerrequisitos (antes de tocar los VPS)
 
-1. **Dominios**: registrar 3 subdominios (ej. `api.tudominio.com` → VPS1, `app.tudominio.com` → VPS2, `waha.tudominio.com` → VPS1). Apuntar registros A a las IPs públicas.
+1. **Dominios**: registrar 3 subdominios (ej. `api.onlylemon.app` → VPS1, `app.onlylemon.app` → VPS2, `waha.onlylemon.app` → VPS1). Apuntar registros A a las IPs públicas.
 2. **Grafana Cloud**: crear cuenta free tier → obtener:
    - Prometheus remote write URL + user + API token
    - Loki push URL + user + API token
 3. **Tailscale**: crear cuenta, generar **2 auth keys** (uno por VPS, reutilizable, ephemeral=false).
-4. **Cloudflare R2**: crear bucket `casino-ai-backups`, generar Access Key ID + Secret (con permiso solo a ese bucket).
+4. **Cloudflare R2**: crear bucket `onlylemon-backups`, generar Access Key ID + Secret (con permiso solo a ese bucket).
 5. **Secrets a generar localmente** (guardar en un password manager):
    - `JWT_SECRET` (openssl rand -hex 64)
    - `WEBHOOK_TOKEN_VALUE` (openssl rand -hex 32)
@@ -177,7 +177,7 @@ dist
 
 ## Fase 4 — Docker Compose
 
-### VPS1 — `~/casino-ai/docker-compose.yml`
+### VPS1 — `~/onlylemon/docker-compose.yml`
 
 ```yaml
 services:
@@ -204,7 +204,7 @@ services:
     environment:
       WAHA_API_KEY: ${WAHA_API_KEY}
       WAHA_PRINT_QR: "false"
-      WHATSAPP_HOOK_URL: https://api.tudominio.com/webhook
+      WHATSAPP_HOOK_URL: https://api.onlylemon.app/webhook
       WHATSAPP_HOOK_EVENTS: message,session.status
     volumes:
       - waha_data:/app/.sessions
@@ -219,7 +219,7 @@ services:
       WEBHOOK_TOKEN_VALUE: ${WEBHOOK_TOKEN_VALUE}
       BULLMQ_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       BULLMQ_QUEUE_NAME: inbound
-      CORS_ALLOWED_ORIGINS: https://app.tudominio.com
+      CORS_ALLOWED_ORIGINS: https://app.onlylemon.app
       MAX_PAYLOAD_BYTES: 1048576
       QUEUE_MAX_BACKLOG: 10000
       QUEUE_DEGRADED_BACKLOG: 5000
@@ -261,10 +261,10 @@ networks:
     driver: bridge
 ```
 
-### VPS1 — `~/casino-ai/Caddyfile`
+### VPS1 — `~/onlylemon/Caddyfile`
 
 ```caddy
-api.tudominio.com {
+api.onlylemon.app {
     encode zstd gzip
     reverse_proxy gateway:3000
     header {
@@ -274,7 +274,7 @@ api.tudominio.com {
     }
 }
 
-waha.tudominio.com {
+waha.onlylemon.app {
     encode zstd gzip
     basicauth {
         admin {env.WAHA_BASIC_AUTH_HASH}
@@ -283,7 +283,7 @@ waha.tudominio.com {
 }
 ```
 
-### VPS2 — `~/casino-ai/docker-compose.yml`
+### VPS2 — `~/onlylemon/docker-compose.yml`
 
 ```yaml
 services:
@@ -291,15 +291,15 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_DB: casino_ai
-      POSTGRES_USER: casino_ai
+      POSTGRES_DB: onlylemon
+      POSTGRES_USER: onlylemon
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5432:5432"   # SOLO localhost
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U casino_ai"]
+      test: ["CMD-SHELL", "pg_isready -U onlylemon"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -310,21 +310,21 @@ services:
     restart: always
     environment:
       PORT: 4000
-      DATABASE_URL: postgresql://casino_ai:${POSTGRES_PASSWORD}@postgres:5432/casino_ai
+      DATABASE_URL: postgresql://onlylemon:${POSTGRES_PASSWORD}@postgres:5432/onlylemon
       BULLMQ_REDIS_URL: redis://:${REDIS_PASSWORD}@${VPS1_TS_IP}:6379
       BULLMQ_QUEUE_NAME: inbound
       WORKER_CONCURRENCY: 5
       LEADS_CODE_TTL_HOURS: 48
       WAHA_API_KEY: ${WAHA_API_KEY}
-      WAHA_BASE_URL: https://waha.tudominio.com
-      WAHA_WEBHOOK_URL: https://app.tudominio.com/api/whatsapp/events/session-status
+      WAHA_BASE_URL: https://waha.onlylemon.app
+      WAHA_WEBHOOK_URL: https://app.onlylemon.app/api/whatsapp/events/session-status
       WAHA_WEBHOOK_EVENTS: session.status
       WAHA_WEBHOOK_TOKEN_HEADER: X-Webhook-Token
       WAHA_WEBHOOK_TOKEN_VALUE: ${WAHA_WEBHOOK_TOKEN_VALUE}
       META_PIXEL_ID: ${META_PIXEL_ID}
       META_ACCESS_TOKEN: ${META_ACCESS_TOKEN}
       JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGIN: https://app.tudominio.com
+      CORS_ORIGIN: https://app.onlylemon.app
       LOG_LEVEL: info
     depends_on:
       postgres:
@@ -335,7 +335,7 @@ services:
     build:
       context: ./dashboard
       args:
-        VITE_API_BASE_URL: https://app.tudominio.com/api
+        VITE_API_BASE_URL: https://app.onlylemon.app/api
     restart: always
     networks: [backend]
 
@@ -372,10 +372,10 @@ networks:
     driver: bridge
 ```
 
-### VPS2 — `~/casino-ai/Caddyfile`
+### VPS2 — `~/onlylemon/Caddyfile`
 
 ```caddy
-app.tudominio.com {
+app.onlylemon.app {
     encode zstd gzip
 
     # API → worker
@@ -394,7 +394,7 @@ app.tudominio.com {
         X-Frame-Options DENY
         X-Content-Type-Options nosniff
         Referrer-Policy strict-origin-when-cross-origin
-        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://app.tudominio.com"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://app.onlylemon.app"
     }
 }
 ```
@@ -403,10 +403,10 @@ app.tudominio.com {
 
 ## Fase 5 — Variables de entorno
 
-En **cada VPS**, crear `~/casino-ai/.env` con permisos restringidos:
+En **cada VPS**, crear `~/onlylemon/.env` con permisos restringidos:
 
 ```bash
-chmod 600 ~/casino-ai/.env
+chmod 600 ~/onlylemon/.env
 ```
 
 **Contenido VPS1:**
@@ -497,25 +497,25 @@ Reemplazar `GRAFANA_*` con los valores de la cuenta Grafana Cloud.
 
 ## Fase 7 — Backup diario a Cloudflare R2
 
-### `/home/deploy/casino-ai/backup.sh` (solo VPS2)
+### `/home/deploy/onlylemon/backup.sh` (solo VPS2)
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
 TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
-BACKUP_FILE="/tmp/casino_ai_${TIMESTAMP}.sql.gz"
+BACKUP_FILE="/tmp/onlylemon_${TIMESTAMP}.sql.gz"
 
-docker compose -f /home/deploy/casino-ai/docker-compose.yml exec -T postgres \
-  pg_dump -U casino_ai casino_ai | gzip > "$BACKUP_FILE"
+docker compose -f /home/deploy/onlylemon/docker-compose.yml exec -T postgres \
+  pg_dump -U onlylemon onlylemon | gzip > "$BACKUP_FILE"
 
-rclone copy "$BACKUP_FILE" r2:casino-ai-backups/ --s3-no-check-bucket
+rclone copy "$BACKUP_FILE" r2:onlylemon-backups/ --s3-no-check-bucket
 
 # Retención: borrar locales > 3 días, remotos > 30 días
-find /tmp -name 'casino_ai_*.sql.gz' -mtime +3 -delete
-rclone delete r2:casino-ai-backups/ --min-age 30d
+find /tmp -name 'onlylemon_*.sql.gz' -mtime +3 -delete
+rclone delete r2:onlylemon-backups/ --min-age 30d
 
-logger -t casino-backup "backup_completed file=$BACKUP_FILE"
+logger -t onlylemon-backup "backup_completed file=$BACKUP_FILE"
 ```
 
 ### Instalar rclone + configurar R2
@@ -524,22 +524,22 @@ logger -t casino-backup "backup_completed file=$BACKUP_FILE"
 curl https://rclone.org/install.sh | sudo bash
 rclone config   # crear remote "r2" tipo s3, provider Cloudflare, endpoint https://<accountid>.r2.cloudflarestorage.com
 chmod 600 ~/.config/rclone/rclone.conf
-chmod +x /home/deploy/casino-ai/backup.sh
+chmod +x /home/deploy/onlylemon/backup.sh
 ```
 
 ### Crontab (usuario `deploy`)
 
 ```cron
-0 5 * * * /home/deploy/casino-ai/backup.sh >> /var/log/casino-backup.log 2>&1
+0 5 * * * /home/deploy/onlylemon/backup.sh >> /var/log/onlylemon-backup.log 2>&1
 ```
 
 Probar backup + restore antes de dar por listo:
 
 ```bash
 # Bajar dump de R2
-rclone copy r2:casino-ai-backups/casino_ai_TIMESTAMP.sql.gz /tmp/
+rclone copy r2:onlylemon-backups/onlylemon_TIMESTAMP.sql.gz /tmp/
 # Restaurar en DB vacía de prueba
-gunzip -c /tmp/casino_ai_TIMESTAMP.sql.gz | psql -U casino_ai -d casino_ai_test
+gunzip -c /tmp/onlylemon_TIMESTAMP.sql.gz | psql -U onlylemon -d onlylemon_test
 ```
 
 ---
@@ -549,13 +549,21 @@ gunzip -c /tmp/casino_ai_TIMESTAMP.sql.gz | psql -U casino_ai -d casino_ai_test
 En **ambos VPS** como `deploy`:
 
 ```bash
-git clone git@github.com:tu-org/casino-ai.git
-cd casino-ai
+git clone git@github.com:GonzaPiccinini/onlylemon.git
+cd onlylemon
 # copiar .env (generado en Fase 5)
-docker compose build
-docker compose up -d
-docker compose logs -f
+
+# Loguear en GHCR para poder pullear imágenes privadas (PAT con scope read:packages)
+echo "<GHCR_PAT>" | docker login ghcr.io -u GonzaPiccinini --password-stdin
+
+# Bootstrap inicial: pulear imágenes pre-construidas + levantar
+docker compose -f docker-compose.<vps>.yml pull
+docker compose -f docker-compose.<vps>.yml up -d
+docker compose -f docker-compose.<vps>.yml logs -f
 ```
+
+> Reemplazar `<vps>` por `dashboard-vps` o `waha-vps` según corresponda.
+> Si por algún motivo no se quiere depender de GHCR para el bootstrap, se puede hacer el primer build local con `docker compose -f docker-compose.<vps>.yml build` y después `up -d`. Para deploys subsiguientes, el pipeline CI/CD se encarga (Fase 11).
 
 **Orden recomendado**: primero VPS2 (Postgres + migraciones + Worker), luego VPS1 (Redis + Gateway + WAHA).
 
@@ -614,16 +622,16 @@ docker compose exec worker sh
 
 ```bash
 # 1. HTTPS responde
-curl -I https://api.tudominio.com/health
-curl -I https://app.tudominio.com/
+curl -I https://api.onlylemon.app/health
+curl -I https://app.onlylemon.app/
 
 # 2. Gateway rechaza sin token
-curl -X POST https://api.tudominio.com/webhook \
+curl -X POST https://api.onlylemon.app/webhook \
   -d '{}' -H 'Content-Type: application/json'
 # esperado: 401
 
 # 3. Gateway acepta con token
-curl -X POST https://api.tudominio.com/webhook \
+curl -X POST https://api.onlylemon.app/webhook \
   -H "X-Webhook-Token: $WEBHOOK_TOKEN_VALUE" \
   -H 'Content-Type: application/json' \
   -d '{"event":"message","session":"default","payload":{"from":"5491100000000@c.us","body":"test CODE123"}}'
@@ -648,6 +656,35 @@ docker compose exec worker wget -qO- localhost:4000/metrics | head
 
 ---
 
+## Fase 11 — Handoff a CI/CD (GitHub Actions)
+
+Después del bootstrap manual de Fase 8, todos los deploys subsiguientes los maneja el pipeline en `.github/workflows/`:
+
+- **`ci.yml`** — push a `main` o PR: lint/typecheck/test/build de los 3 servicios.
+- **`release.yml`** — push a `main`: buildea y pushea las 3 imágenes a `ghcr.io/gonzapiccinini/onlylemon-{worker,gateway,dashboard}:sha-<git-sha>` y `:latest`. Si la repo VAR `AUTO_DEPLOY=true`, hace SSH a cada VPS y corre `docker compose pull <servicio> && up -d`.
+- **`rollback.yml`** — `workflow_dispatch` manual. Recibe VPS + image tag (puede ser un SHA viejo o `rollback-pre-cicd`).
+
+### Setup del pipeline (una vez)
+
+1. **Crear SSH key de CI** local (`ssh-keygen -t ed25519 -f ~/.ssh/onlylemon_ci -N ""`) e instalar la pública en `/home/deploy/.ssh/authorized_keys` de **ambos VPS** (vía la clave que ya tengas o usando password auth la primera vez). Asegurarse que `authorized_keys` quede `chown deploy:deploy`.
+2. **Cargar secrets en GitHub** (Settings → Secrets and variables → Actions → Secrets):
+   - `DASHBOARD_VPS_HOST`, `DASHBOARD_VPS_USER=deploy`, `DASHBOARD_VPS_SSH_KEY` (privada de `~/.ssh/onlylemon_ci`)
+   - `WAHA_VPS_HOST`, `WAHA_VPS_USER=deploy`, `WAHA_VPS_SSH_KEY`
+3. **Workflow permissions** (Settings → Actions → General): Read and write permissions.
+4. **Snapshot de rollback**: en cada VPS, antes del primer deploy automático, taggear las imágenes en uso como `rollback-pre-cicd`:
+   ```bash
+   for svc in worker dashboard; do  # gateway en waha-vps
+     IMG=$(docker inspect $(docker compose -f docker-compose.<vps>.yml ps -q $svc) --format='{{.Image}}')
+     docker tag "$IMG" "ghcr.io/gonzapiccinini/onlylemon-$svc:rollback-pre-cicd"
+   done
+   ```
+5. **Habilitar deploys** (Settings → Variables → Actions): crear repo VAR `AUTO_DEPLOY=true`.
+6. **Branch protection** (recomendado): Settings → Branches → require status check `CI passed` antes de mergear a `main`.
+
+A partir de ese punto, cada PR mergeado a `main` dispara CI → build → deploy automático.
+
+---
+
 ## Cronograma sugerido
 
 | Día | Tareas |
@@ -656,7 +693,7 @@ docker compose exec worker wget -qO- localhost:4000/metrics | head
 | 2 | Fase 2 (Tailscale) + Fase 3 (Dockerfiles en el repo, PR, merge) |
 | 3 | Fase 4 + 5 (compose + envs) + Fase 6 (Alloy) |
 | 4 | Fase 7 (backup + restore probado) + Fase 8 (deploy real) |
-| 5 | Fase 9 (auditar checklist) + Fase 10 (smoke tests) + dashboards en Grafana Cloud |
+| 5 | Fase 9 (auditar checklist) + Fase 10 (smoke tests) + Fase 11 (CI/CD) + dashboards en Grafana Cloud |
 
 ---
 
@@ -664,8 +701,10 @@ docker compose exec worker wget -qO- localhost:4000/metrics | head
 
 | Operación | Comando |
 |---|---|
-| Ver logs en vivo | `docker compose logs -f <service>` |
-| Rollback | `git checkout <tag>` → `docker compose up -d --build` |
-| Restore DB | `gunzip -c dump.sql.gz \| docker compose exec -T postgres psql -U casino_ai casino_ai` |
-| Rotar secrets | Editar `.env` → `docker compose up -d` |
+| Deploy a producción | Mergear PR a `main` → `release.yml` corre solo. Manual: Actions → Release → Run workflow → branch `main`. |
+| Pausar deploys automáticos | Settings → Variables → Actions: cambiar `AUTO_DEPLOY` a `false`. |
+| Rollback | Actions → Rollback → Run workflow → elegir VPS + image tag (un SHA previo o `rollback-pre-cicd`). |
+| Ver logs en vivo | `docker compose -f docker-compose.<vps>.yml logs -f <service>` |
+| Restore DB | `gunzip -c dump.sql.gz \| docker compose -f docker-compose.dashboard-vps.yml exec -T postgres psql -U onlylemon onlylemon` |
+| Rotar secrets | Editar `.env` del VPS afectado → `docker compose -f docker-compose.<vps>.yml up -d` |
 | Backlog de Redis alto | Revisar métrica `bullmq_jobs_total{status="failed"}` y logs del worker |

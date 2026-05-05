@@ -66,6 +66,7 @@ npm run build        # tsc → dist/
 npm run start        # node dist/server.js
 npm run lint         # eslint src/**/*.ts
 npm run format       # prettier --write
+npm run format:check # prettier --check (usado por CI; falla si hay archivos sin formatear)
 ```
 
 ## Desarrollo local
@@ -176,10 +177,16 @@ El gateway vive en `docker-compose.waha-vps.yml` junto con `redis`, `waha` y `ca
 
 Orden de dependencias: `redis` debe estar `healthy` antes de levantar el gateway.
 
+### Deploy a producción
+
+El deploy es automático vía GitHub Actions (`.github/workflows/release.yml`): push a `main` → CI → build y push de la imagen a `ghcr.io/gonzapiccinini/onlylemon-gateway:sha-<git-sha>` → SSH al `waha-vps` → `docker compose pull gateway && up -d`. El compose usa `image: ghcr.io/...:${IMAGE_TAG:-latest}` para pulear la imagen pre-construida.
+
+Para forzar un deploy manual sin pushear, usar **Run workflow** en `Release (build, push, deploy)` (Actions del repo).
+
 ```bash
-# En waha-vps
-docker compose -f docker-compose.waha-vps.yml up -d --build gateway
+# Inspección/troubleshooting en waha-vps:
 docker compose -f docker-compose.waha-vps.yml logs -f gateway
+docker compose -f docker-compose.waha-vps.yml ps gateway
 ```
 
 ### Seguridad

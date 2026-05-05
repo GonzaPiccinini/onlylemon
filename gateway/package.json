@@ -1,5 +1,5 @@
 {
-  "name": "casino-ai",
+  "name": "gateway",
   "version": "1.0.0",
   "description": "Node.js backend with TypeScript, Express and BullMQ",
   "main": "dist/server.js",
@@ -16,16 +16,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GonzaPiccinini/casino-ai.git"
+    "url": "git+https://github.com/GonzaPiccinini/onlylemon.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/GonzaPiccinini/casino-ai/issues"
+    "url": "https://github.com/GonzaPiccinini/onlylemon/issues"
   },
-  "homepage": "https://github.com/GonzaPiccinini/casino-ai#readme",
+  "homepage": "https://github.com/GonzaPiccinini/onlylemon#readme",
   "dependencies": {
     "bullmq": "^5.71.1",
     "cors": "^2.8.6",

@@ -134,18 +134,25 @@ docker run --rm -p 8080:80 onlylemon-dashboard
 
 ### Compose (dashboard-vps)
 
-En `docker-compose.dashboard-vps.yml` el servicio `dashboard` se construye con:
+En `docker-compose.dashboard-vps.yml` el servicio `dashboard` declara tanto `image:` (lo que se pullea en prod) como `build:` (fallback para build local):
 
 ```yaml
+image: ghcr.io/gonzapiccinini/onlylemon-dashboard:${IMAGE_TAG:-latest}
 build:
   context: ./dashboard
   args:
     VITE_API_BASE_URL: ${VITE_API_BASE_URL}
 ```
 
-En producción `VITE_API_BASE_URL=https://app.onlylemon.app/api`. Caddy del VPS (no el embebido) es el que termina TLS en `app.onlylemon.app` y hace `reverse_proxy dashboard:80` para las rutas de la SPA, y `reverse_proxy worker:4000` para `/api/*` y `/api/realtime/*` (con `flush_interval -1` para el SSE). Ver [`../infra/dashboard-vps/Caddyfile`](../infra/dashboard-vps/Caddyfile).
+Caddy del VPS (no el embebido) termina TLS en `app.onlylemon.app` y hace `reverse_proxy dashboard:80` para las rutas de la SPA, y `reverse_proxy worker:4000` para `/api/*` y `/api/realtime/*` (con `flush_interval -1` para el SSE). Ver [`../infra/dashboard-vps/Caddyfile`](../infra/dashboard-vps/Caddyfile).
 
 El Caddyfile del VPS setea `Content-Security-Policy` estricto que permite `connect-src` a `https://app.onlylemon.app` y `wss://app.onlylemon.app`.
+
+### Deploy a producción
+
+El deploy es automático vía GitHub Actions (`.github/workflows/release.yml`). El build de la imagen se hace en CI con `VITE_API_BASE_URL=https://app.onlylemon.app/api` cableado en el workflow (no leído de un `.env`); la URL queda inlineada en los bundles JavaScript. Si cambia el dominio del API, hay que actualizarlo en `.github/workflows/release.yml`.
+
+El VPS solo hace `docker compose pull dashboard && up -d`; no buildea localmente en producción.
 
 ### Headers de seguridad (provistos por Caddy del VPS)
 
