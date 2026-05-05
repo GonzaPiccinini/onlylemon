@@ -326,20 +326,22 @@ export const AdminCashiersPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7}>Cargando cajeros...</TableCell>
+                <TableCell colSpan={6}>Cargando cajeros...</TableCell>
               </TableRow>
             ) : cashiers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7}>No hay cajeros registrados.</TableCell>
+                <TableCell colSpan={6}>No hay cajeros registrados.</TableCell>
               </TableRow>
              ) : (
                paginatedCashiers.map((cashier) => (
                 <TableRow key={cashier.id}>
                   <TableCell>
-                    {cashier.name}
-                    <span className='text-xs text-muted-foreground'>
-                      Usuario: {cashier.username}
-                    </span>
+                    <div className='flex flex-col gap-0.5'>
+                      <span>{cashier.name}</span>
+                      <span className='text-xs text-muted-foreground'>
+                        Usuario: {cashier.username}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge
