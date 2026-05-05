@@ -64,6 +64,7 @@ services:
       QUEUE_MAX_BACKLOG: ${QUEUE_MAX_BACKLOG:-10000}
       QUEUE_DEGRADED_BACKLOG: ${QUEUE_DEGRADED_BACKLOG:-5000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      TZ: America/Argentina/Buenos_Aires
     depends_on:
       redis:
         condition: service_healthy

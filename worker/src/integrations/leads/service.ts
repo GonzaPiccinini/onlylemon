@@ -17,6 +17,11 @@ import { getCashierBySessionName } from '../../modules/cashier/cashier.repositor
 import { getLandingByMetaPixelId } from '../../modules/admin/admin.repository.js';
 import { getSessions } from '../waha/client.js';
 import { sendContactEvent, sendLeadEvent } from './conversion.js';
+import {
+  argentinaDayEndUtcExclusive,
+  argentinaDayStartUtc,
+  formatArgentinaDayKey,
+} from '../../utils/timezone.js';
 
 const CODE_LENGTH = 8;
 const MAX_CODE_GENERATION_ATTEMPTS = 5;
@@ -137,9 +142,6 @@ function extractLeadCode(body: string): string | null {
   return match[1].toUpperCase();
 }
 
-const ARGENTINA_UTC_OFFSET_HOURS = -3;
-const MS_PER_HOUR = 60 * 60 * 1000;
-const MS_PER_DAY = 24 * MS_PER_HOUR;
 const MIN_ACTIVE_MS = 1;
 const DEFICIT_TIE_EPSILON = 0.25;
 
@@ -150,18 +152,6 @@ type SelectCashierDependencies = {
   getNow: () => Date;
   getRandom: () => number;
 };
-
-export function getStartOfTodayInArgentina(now: Date = new Date()): Date {
-  const offsetMs = ARGENTINA_UTC_OFFSET_HOURS * MS_PER_HOUR;
-  const nowAsArgentina = new Date(now.getTime() + offsetMs);
-  return new Date(
-    Date.UTC(
-      nowAsArgentina.getUTCFullYear(),
-      nowAsArgentina.getUTCMonth(),
-      nowAsArgentina.getUTCDate(),
-    ) - offsetMs,
-  );
-}
 
 const defaultSelectCashierDependencies: SelectCashierDependencies = {
   getActiveLandingCashierCandidatesByMetaPixelId,
@@ -231,8 +221,9 @@ export async function selectCashierNumberForLandingWithDependencies(
   }
 
   const now = dependencies.getNow();
-  const startOfDay = getStartOfTodayInArgentina(now);
-  const startOfNextDay = new Date(startOfDay.getTime() + MS_PER_DAY);
+  const todayKey = formatArgentinaDayKey(now);
+  const startOfDay = argentinaDayStartUtc(todayKey);
+  const startOfNextDay = argentinaDayEndUtcExclusive(todayKey);
 
   const countsByCashier = await dependencies.getContactedLeadCountByCashierForLanding(
     metaPixelId,

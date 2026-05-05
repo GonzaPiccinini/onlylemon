@@ -6,6 +6,7 @@ services:
       POSTGRES_DB: onlylemon
       POSTGRES_USER: onlylemon
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Postgres stays in UTC: setting TZ here would shift timestamp(3) writes by -3h via timestamptz->timestamp coercion
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -38,6 +39,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      TZ: America/Argentina/Buenos_Aires
     depends_on:
       postgres:
         condition: service_healthy
