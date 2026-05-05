@@ -102,13 +102,14 @@ jobs:
           host: ${{ secrets.DASHBOARD_VPS_HOST }}
           username: ${{ secrets.DASHBOARD_VPS_USER }}
           key: ${{ secrets.DASHBOARD_VPS_SSH_KEY }}
-          envs: GITHUB_SHA,GHCR_TOKEN,GHCR_USER
+          envs: GITHUB_SHA,GHCR_TOKEN,GHCR_USER,REPO
           script: |
             set -euo pipefail
             cd ~/onlylemon
 
-            echo "[deploy] fetching latest main"
-            git fetch origin main
+            echo "[deploy] fetching latest main via HTTPS + token"
+            git remote set-url origin "https://github.com/${REPO}.git"
+            git -c http.extraheader="Authorization: Bearer ${GHCR_TOKEN}" fetch origin main
             git reset --hard origin/main
 
             echo "[deploy] logging into ghcr.io"
@@ -130,6 +131,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
+          REPO: ${{ github.repository }}
 
   deploy-waha-vps:
     name: Deploy to waha VPS
@@ -143,13 +145,14 @@ jobs:
           host: ${{ secrets.WAHA_VPS_HOST }}
           username: ${{ secrets.WAHA_VPS_USER }}
           key: ${{ secrets.WAHA_VPS_SSH_KEY }}
-          envs: GITHUB_SHA,GHCR_TOKEN,GHCR_USER
+          envs: GITHUB_SHA,GHCR_TOKEN,GHCR_USER,REPO
           script: |
             set -euo pipefail
             cd ~/onlylemon
 
-            echo "[deploy] fetching latest main"
-            git fetch origin main
+            echo "[deploy] fetching latest main via HTTPS + token"
+            git remote set-url origin "https://github.com/${REPO}.git"
+            git -c http.extraheader="Authorization: Bearer ${GHCR_TOKEN}" fetch origin main
             git reset --hard origin/main
 
             echo "[deploy] logging into ghcr.io"
@@ -171,3 +174,4 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
+          REPO: ${{ github.repository }}
