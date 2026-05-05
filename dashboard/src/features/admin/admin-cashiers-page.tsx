@@ -86,15 +86,10 @@ const wahaStatusLabel = (status: WahaStatus | undefined): string =>
 
 const operationalState = (
   cashier: Cashier,
-): { label: string; variant: 'default' | 'secondary' | 'outline' } => {
-  if (cashier.canOperateLeads) {
-    return { label: 'Operativo', variant: 'default' };
-  }
-  if (cashier.hasActiveWorkSession) {
-    return { label: 'En turno', variant: 'secondary' };
-  }
-  return { label: 'Sin turno', variant: 'outline' };
-};
+): { label: string; variant: 'default' | 'outline' } =>
+  cashier.hasActiveWorkSession
+    ? { label: 'En turno', variant: 'default' }
+    : { label: 'Fuera de turno', variant: 'outline' };
 
 export const AdminCashiersPage = () => {
   const { data: cashiers = [], isLoading } = useAdminCashiers();
