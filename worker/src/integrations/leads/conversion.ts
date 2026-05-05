@@ -4,7 +4,26 @@ import {
   metaConversionDurationSeconds,
 } from '../../lib/metrics.js';
 
-type MetaEventName = 'Purchase' | 'HighValueCustomer' | 'Lead' | 'Contact';
+type MetaEventName =
+  | 'Purchase'
+  | 'HighValueCustomer'
+  | 'HighValueTier1'
+  | 'HighValueTier2'
+  | 'HighValueTier3'
+  | 'Lead'
+  | 'Contact';
+
+type HighValueTierName = 'HighValueTier1' | 'HighValueTier2' | 'HighValueTier3';
+
+const HIGH_VALUE_TIERS: ReadonlyArray<{
+  threshold: number;
+  eventName: HighValueTierName;
+  idSuffix: string;
+}> = [
+  { threshold: 25_000, eventName: 'HighValueTier1', idSuffix: 'hvt1' },
+  { threshold: 50_000, eventName: 'HighValueTier2', idSuffix: 'hvt2' },
+  { threshold: 100_000, eventName: 'HighValueTier3', idSuffix: 'hvt3' },
+];
 
 interface MetaEventBase {
   fbc: string;
@@ -31,10 +50,17 @@ interface ContactEventPayload extends MetaEventBase {
   phone: string;
 }
 
+interface HighValueTierResult {
+  eventName: HighValueTierName;
+  required: boolean;
+  sent: boolean;
+}
+
 interface MetaConversionResult {
   purchaseSent: boolean;
   highValueRequired: boolean;
   highValueSent: boolean;
+  tiers: HighValueTierResult[];
 }
 
 const normalizePhone = (phone: string): string => phone.replace(/\D/g, '');
@@ -150,10 +176,28 @@ export const sendMetaConversion = async (
     });
   }
 
+  const tiers: HighValueTierResult[] = [];
+  for (const tier of HIGH_VALUE_TIERS) {
+    const required = payload.value >= tier.threshold;
+    let sent = false;
+    if (required) {
+      sent = await postMetaEvent({
+        eventName: tier.eventName,
+        eventId: `${payload.eventId}-${tier.idSuffix}`,
+        base,
+        hashedPhone,
+        hashedExternalId,
+        customData,
+      });
+    }
+    tiers.push({ eventName: tier.eventName, required, sent });
+  }
+
   return {
     purchaseSent,
     highValueRequired,
     highValueSent,
+    tiers,
   };
 };
 

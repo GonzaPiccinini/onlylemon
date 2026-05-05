@@ -59,6 +59,11 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
       purchaseSent: true,
       highValueRequired: false,
       highValueSent: false,
+      tiers: [
+        { eventName: 'HighValueTier1', required: false, sent: false },
+        { eventName: 'HighValueTier2', required: false, sent: false },
+        { eventName: 'HighValueTier3', required: false, sent: false },
+      ],
     });
     assert.equal(calls.length, 1);
 
@@ -138,6 +143,11 @@ test('sendMetaConversion sends Purchase and HighValueCustomer when value is abov
       purchaseSent: true,
       highValueRequired: true,
       highValueSent: true,
+      tiers: [
+        { eventName: 'HighValueTier1', required: false, sent: false },
+        { eventName: 'HighValueTier2', required: false, sent: false },
+        { eventName: 'HighValueTier3', required: false, sent: false },
+      ],
     });
     assert.equal(calls.length, 2);
 
@@ -206,7 +216,231 @@ test('sendMetaConversion reports partial success when high value event fails', a
       purchaseSent: true,
       highValueRequired: true,
       highValueSent: false,
+      tiers: [
+        { eventName: 'HighValueTier1', required: false, sent: false },
+        { eventName: 'HighValueTier2', required: false, sent: false },
+        { eventName: 'HighValueTier3', required: false, sent: false },
+      ],
     });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('sendMetaConversion sends Tier1 when value is exactly 25000', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => '',
+    } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendMetaConversion } = await import('./conversion.js');
+    const payload = {
+      phone: '+54 9 11 1111-1111',
+      value: 25000,
+      fbc: 'fb.1.t1',
+      fbp: 'fb.1.t1',
+      userAgent: 'Mozilla/5.0',
+      metaPixelId: 'pixel-t1',
+      metaAccessToken: 'token-t1',
+      eventId: 'lead-tier1',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'T1AA1111',
+    };
+
+    const result = await sendMetaConversion(payload);
+
+    assert.deepEqual(result, {
+      purchaseSent: true,
+      highValueRequired: true,
+      highValueSent: true,
+      tiers: [
+        { eventName: 'HighValueTier1', required: true, sent: true },
+        { eventName: 'HighValueTier2', required: false, sent: false },
+        { eventName: 'HighValueTier3', required: false, sent: false },
+      ],
+    });
+    assert.equal(calls.length, 3);
+
+    const eventNames = calls.map((c) => {
+      const body = JSON.parse(String(c.init?.body)) as {
+        data: Array<{ event_name: string; event_id: string }>;
+      };
+      return { name: body.data[0].event_name, id: body.data[0].event_id };
+    });
+
+    assert.deepEqual(eventNames, [
+      { name: 'Purchase', id: 'lead-tier1' },
+      { name: 'HighValueCustomer', id: 'lead-tier1-hvc' },
+      { name: 'HighValueTier1', id: 'lead-tier1-hvt1' },
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('sendMetaConversion sends Tier1 and Tier2 when value is 50000', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => '',
+    } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendMetaConversion } = await import('./conversion.js');
+    const result = await sendMetaConversion({
+      phone: '+54 9 11 2222-2222',
+      value: 50000,
+      fbc: 'fb.1.t2',
+      fbp: 'fb.1.t2',
+      userAgent: 'Mozilla/5.0',
+      metaPixelId: 'pixel-t2',
+      metaAccessToken: 'token-t2',
+      eventId: 'lead-tier2',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'T2BB2222',
+    });
+
+    assert.deepEqual(result, {
+      purchaseSent: true,
+      highValueRequired: true,
+      highValueSent: true,
+      tiers: [
+        { eventName: 'HighValueTier1', required: true, sent: true },
+        { eventName: 'HighValueTier2', required: true, sent: true },
+        { eventName: 'HighValueTier3', required: false, sent: false },
+      ],
+    });
+    assert.equal(calls.length, 4);
+
+    const eventNames = calls.map((c) => {
+      const body = JSON.parse(String(c.init?.body)) as {
+        data: Array<{ event_name: string }>;
+      };
+      return body.data[0].event_name;
+    });
+
+    assert.deepEqual(eventNames, [
+      'Purchase',
+      'HighValueCustomer',
+      'HighValueTier1',
+      'HighValueTier2',
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('sendMetaConversion sends all tiers when value is 100000', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => '',
+    } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendMetaConversion } = await import('./conversion.js');
+    const result = await sendMetaConversion({
+      phone: '+54 9 11 3333-3333',
+      value: 100000,
+      fbc: 'fb.1.t3',
+      fbp: 'fb.1.t3',
+      userAgent: 'Mozilla/5.0',
+      metaPixelId: 'pixel-t3',
+      metaAccessToken: 'token-t3',
+      eventId: 'lead-tier3',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'T3CC3333',
+    });
+
+    assert.deepEqual(result, {
+      purchaseSent: true,
+      highValueRequired: true,
+      highValueSent: true,
+      tiers: [
+        { eventName: 'HighValueTier1', required: true, sent: true },
+        { eventName: 'HighValueTier2', required: true, sent: true },
+        { eventName: 'HighValueTier3', required: true, sent: true },
+      ],
+    });
+    assert.equal(calls.length, 5);
+
+    const eventNames = calls.map((c) => {
+      const body = JSON.parse(String(c.init?.body)) as {
+        data: Array<{ event_name: string; event_id: string }>;
+      };
+      return { name: body.data[0].event_name, id: body.data[0].event_id };
+    });
+
+    assert.deepEqual(eventNames, [
+      { name: 'Purchase', id: 'lead-tier3' },
+      { name: 'HighValueCustomer', id: 'lead-tier3-hvc' },
+      { name: 'HighValueTier1', id: 'lead-tier3-hvt1' },
+      { name: 'HighValueTier2', id: 'lead-tier3-hvt2' },
+      { name: 'HighValueTier3', id: 'lead-tier3-hvt3' },
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('sendMetaConversion does not send Tier1 when value is just below threshold', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return { ok: true, status: 200, json: async () => ({}), text: async () => '' } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendMetaConversion } = await import('./conversion.js');
+    const result = await sendMetaConversion({
+      phone: '+54 9 11 4444-4444',
+      value: 24999,
+      fbc: 'fb.1.t0',
+      fbp: 'fb.1.t0',
+      userAgent: 'Mozilla/5.0',
+      metaPixelId: 'pixel-t0',
+      metaAccessToken: 'token-t0',
+      eventId: 'lead-below',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'T0DD4444',
+    });
+
+    assert.deepEqual(result, {
+      purchaseSent: true,
+      highValueRequired: true,
+      highValueSent: true,
+      tiers: [
+        { eventName: 'HighValueTier1', required: false, sent: false },
+        { eventName: 'HighValueTier2', required: false, sent: false },
+        { eventName: 'HighValueTier3', required: false, sent: false },
+      ],
+    });
+    assert.equal(calls.length, 2);
   } finally {
     globalThis.fetch = originalFetch;
   }

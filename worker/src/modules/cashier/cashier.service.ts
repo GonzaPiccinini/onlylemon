@@ -641,6 +641,17 @@ export const convertQueueLeadService = async (
     });
   }
 
+  for (const tier of conversionResult.tiers) {
+    if (tier.required && !tier.sent) {
+      logger.error({
+        event: 'meta_conversion_failed',
+        leadId: lead.id,
+        metaPixelId: lead.metaPixelId,
+        eventName: tier.eventName,
+      });
+    }
+  }
+
   return { kind: 'OK' as const, data: toLeadDto(converted) };
 };
 
