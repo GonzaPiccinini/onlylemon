@@ -109,8 +109,11 @@ jobs:
 
             echo "[deploy] fetching latest main via HTTPS + token"
             git remote set-url origin "https://github.com/${REPO}.git"
-            git -c http.extraheader="Authorization: Bearer ${GHCR_TOKEN}" fetch origin main
-            git reset --hard origin/main
+            git fetch "https://x-access-token:${GHCR_TOKEN}@github.com/${REPO}.git" main
+            git reset --hard FETCH_HEAD
+            # FETCH_HEAD records the URL we fetched from, which would leave
+            # the ephemeral token on disk. Scrub it.
+            rm -f .git/FETCH_HEAD
 
             echo "[deploy] logging into ghcr.io"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
@@ -152,8 +155,11 @@ jobs:
 
             echo "[deploy] fetching latest main via HTTPS + token"
             git remote set-url origin "https://github.com/${REPO}.git"
-            git -c http.extraheader="Authorization: Bearer ${GHCR_TOKEN}" fetch origin main
-            git reset --hard origin/main
+            git fetch "https://x-access-token:${GHCR_TOKEN}@github.com/${REPO}.git" main
+            git reset --hard FETCH_HEAD
+            # FETCH_HEAD records the URL we fetched from, which would leave
+            # the ephemeral token on disk. Scrub it.
+            rm -f .git/FETCH_HEAD
 
             echo "[deploy] logging into ghcr.io"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
