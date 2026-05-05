@@ -49,6 +49,7 @@ services:
     networks: [backend]
 
   gateway:
+    image: ghcr.io/gonzapiccinini/onlylemon-gateway:${IMAGE_TAG:-latest}
     build:
       context: ./gateway
     restart: always

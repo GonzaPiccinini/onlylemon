@@ -42,18 +42,18 @@ gateway/src
 
 Todas son validadas por zod al arrancar. Si falta alguna, el proceso sale.
 
-| Variable | Tipo | Descripción |
-|---|---|---|
-| `PORT` | number | Puerto HTTP del servidor. Prod: `3000`. |
-| `BULLMQ_REDIS_URL` | string | URL de Redis (ej: `redis://:password@redis:6379`). |
-| `BULLMQ_QUEUE_NAME` | string | Nombre de la cola. Debe coincidir con la del worker (`inbound`). |
-| `WEBHOOK_TOKEN_HEADER` | string | Nombre del header esperado (ej: `x-webhook-token`). |
-| `WEBHOOK_TOKEN_VALUE` | string | Valor del token compartido con WAHA. |
-| `MAX_PAYLOAD_BYTES` | number | Límite de body JSON. Prod sugerido: `1048576`. |
-| `QUEUE_MAX_BACKLOG` | number | Backlog máximo (waiting+delayed+active) antes de devolver `429`. |
-| `QUEUE_DEGRADED_BACKLOG` | number | Umbral para marcar `availability=degraded` en `/api/health`. |
-| `CORS_ALLOWED_ORIGINS` | csv string | Orígenes permitidos para navegadores, separados por coma. Requests sin `Origin` (server-to-server) pasan siempre. |
-| `LOG_LEVEL` | enum | `fatal \| error \| warn \| info \| debug \| trace`. Default: `info`. |
+| Variable                 | Tipo       | Descripción                                                                                                       |
+| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| `PORT`                   | number     | Puerto HTTP del servidor. Prod: `3000`.                                                                           |
+| `BULLMQ_REDIS_URL`       | string     | URL de Redis (ej: `redis://:password@redis:6379`).                                                                |
+| `BULLMQ_QUEUE_NAME`      | string     | Nombre de la cola. Debe coincidir con la del worker (`inbound`).                                                  |
+| `WEBHOOK_TOKEN_HEADER`   | string     | Nombre del header esperado (ej: `x-webhook-token`).                                                               |
+| `WEBHOOK_TOKEN_VALUE`    | string     | Valor del token compartido con WAHA.                                                                              |
+| `MAX_PAYLOAD_BYTES`      | number     | Límite de body JSON. Prod sugerido: `1048576`.                                                                    |
+| `QUEUE_MAX_BACKLOG`      | number     | Backlog máximo (waiting+delayed+active) antes de devolver `429`.                                                  |
+| `QUEUE_DEGRADED_BACKLOG` | number     | Umbral para marcar `availability=degraded` en `/api/health`.                                                      |
+| `CORS_ALLOWED_ORIGINS`   | csv string | Orígenes permitidos para navegadores, separados por coma. Requests sin `Origin` (server-to-server) pasan siempre. |
+| `LOG_LEVEL`              | enum       | `fatal \| error \| warn \| info \| debug \| trace`. Default: `info`.                                              |
 
 Archivo de referencia: `.env.example`.
 
@@ -114,7 +114,13 @@ Respuesta:
   "status": "ok",
   "bullmq": "up",
   "availability": "ok",
-  "queue": { "waiting": 0, "delayed": 0, "active": 0, "failed": 0, "backlog": 0 }
+  "queue": {
+    "waiting": 0,
+    "delayed": 0,
+    "active": 0,
+    "failed": 0,
+    "backlog": 0
+  }
 }
 ```
 
@@ -134,15 +140,15 @@ Body: cualquier JSON. Si el objeto tiene `event: string`, ese valor se usa como 
 
 Respuestas:
 
-| Código | Condición |
-|---|---|
-| `200` | Evento encolado (`{ message: "Webhook data stored successfully" }`). |
-| `401` | Token inválido o ausente. Comparación con `timingSafeEqual`. |
-| `403` | CORS: origen no permitido. |
-| `413` | Payload > `MAX_PAYLOAD_BYTES`. |
-| `415` | `Content-Type` distinto de `application/json`. |
-| `429` | Backlog saturado (`>= QUEUE_MAX_BACKLOG`). |
-| `500` | Error al encolar. |
+| Código | Condición                                                            |
+| ------ | -------------------------------------------------------------------- |
+| `200`  | Evento encolado (`{ message: "Webhook data stored successfully" }`). |
+| `401`  | Token inválido o ausente. Comparación con `timingSafeEqual`.         |
+| `403`  | CORS: origen no permitido.                                           |
+| `413`  | Payload > `MAX_PAYLOAD_BYTES`.                                       |
+| `415`  | `Content-Type` distinto de `application/json`.                       |
+| `429`  | Backlog saturado (`>= QUEUE_MAX_BACKLOG`).                           |
+| `500`  | Error al encolar.                                                    |
 
 ### `GET /metrics`
 

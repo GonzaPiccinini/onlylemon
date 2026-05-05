@@ -1,0 +1,85 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      vps:
+        description: 'Which VPS to roll back'
+        required: true
+        type: choice
+        options:
+          - dashboard-vps
+          - waha-vps
+      image_tag:
+        description: 'Image tag to roll back to (e.g. "sha-<git-sha>", "latest", or "rollback-pre-cicd")'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  rollback-dashboard-vps:
+    if: ${{ inputs.vps == 'dashboard-vps' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and roll back
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DASHBOARD_VPS_HOST }}
+          username: ${{ secrets.DASHBOARD_VPS_USER }}
+          key: ${{ secrets.DASHBOARD_VPS_SSH_KEY }}
+          envs: ROLLBACK_TAG,GHCR_TOKEN,GHCR_USER
+          script: |
+            set -euo pipefail
+            cd ~/onlylemon
+
+            echo "[rollback] logging into ghcr.io"
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            export IMAGE_TAG="$ROLLBACK_TAG"
+            echo "[rollback] target tag: $IMAGE_TAG"
+
+            # `pull` may fail for local-only tags (e.g. rollback-pre-cicd).
+            # That's expected — we fall back to whatever's already on disk.
+            docker compose -f docker-compose.dashboard-vps.yml pull || \
+              echo "[rollback] pull failed, using local images for $IMAGE_TAG"
+
+            docker compose -f docker-compose.dashboard-vps.yml up -d --remove-orphans
+            docker compose -f docker-compose.dashboard-vps.yml restart caddy alloy
+        env:
+          ROLLBACK_TAG: ${{ inputs.image_tag }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+
+  rollback-waha-vps:
+    if: ${{ inputs.vps == 'waha-vps' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and roll back
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.WAHA_VPS_HOST }}
+          username: ${{ secrets.WAHA_VPS_USER }}
+          key: ${{ secrets.WAHA_VPS_SSH_KEY }}
+          envs: ROLLBACK_TAG,GHCR_TOKEN,GHCR_USER
+          script: |
+            set -euo pipefail
+            cd ~/onlylemon
+
+            echo "[rollback] logging into ghcr.io"
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            export IMAGE_TAG="$ROLLBACK_TAG"
+            echo "[rollback] target tag: $IMAGE_TAG"
+
+            docker compose -f docker-compose.waha-vps.yml pull || \
+              echo "[rollback] pull failed, using local images for $IMAGE_TAG"
+
+            docker compose -f docker-compose.waha-vps.yml up -d --remove-orphans
+            docker compose -f docker-compose.waha-vps.yml restart caddy alloy
+        env:
+          ROLLBACK_TAG: ${{ inputs.image_tag }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
