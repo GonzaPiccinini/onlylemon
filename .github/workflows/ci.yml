@@ -26,7 +26,14 @@ jobs:
           cache-dependency-path: worker/package-lock.json
 
       - run: npm ci
+
+      # prisma.config.ts reads DATABASE_URL via `env('DATABASE_URL')`, so it
+      # must be set even for `prisma generate`. Dummy value matches the
+      # Dockerfile build stage; no real DB is contacted.
       - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

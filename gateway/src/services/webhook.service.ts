@@ -16,7 +16,10 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
     if (stats.backlog >= env.queueMaxBacklog) {
       webhooksRejectedTotal.labels('queue_saturated').inc();
-      logger.warn({ backlog: stats.backlog }, 'webhook_rejected: queue saturated');
+      logger.warn(
+        { backlog: stats.backlog },
+        'webhook_rejected: queue saturated',
+      );
       res.status(429).json({
         error: 'Queue is saturated, retry later',
         backlog: stats.backlog,

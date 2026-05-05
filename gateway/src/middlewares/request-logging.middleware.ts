@@ -16,8 +16,7 @@ export const requestLoggingMiddleware = (
   res.setHeader(REQUEST_ID_HEADER, requestId);
 
   res.on('finish', () => {
-    const durationMs =
-      Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
     const route = req.path;
     const statusCode = String(res.statusCode);
 
