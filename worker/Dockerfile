@@ -12,6 +12,8 @@ RUN npm run build
 FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache tzdata
+ENV TZ=America/Argentina/Buenos_Aires
 # Copiar node_modules completo desde build: incluye prisma CLI para migrate deploy
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist

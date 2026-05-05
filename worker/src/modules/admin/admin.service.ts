@@ -8,6 +8,7 @@ import {
   disableCashier,
   enableCashier,
   getCashierLandings,
+  getConvertedLeadsByConvertedAtRange,
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
   listCashiers,
@@ -391,27 +392,32 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
   }));
 };
 
-export const getFundsSeriesService = async (query: DateRangeQuery) => {
-  const range = toRange(query);
-  const leads = await getLeadsByDateRange(
-    range.from,
-    range.to,
-    query.cashierId,
-  );
-
+export const groupConvertedLeadsByDay = (
+  leads: Array<{ convertedAt: Date | null; amount: unknown | null }>,
+): Array<{ date: string; totalValue: number }> => {
   const grouped = new Map<string, number>();
 
   leads
-    .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
+    .filter((lead) => lead.convertedAt !== null && lead.amount !== null)
     .forEach((lead) => {
-      const dateSource = lead.convertedAt ?? lead.createdAt;
-      const day = formatArgentinaDayKey(dateSource);
+      const day = formatArgentinaDayKey(lead.convertedAt as Date);
       grouped.set(day, (grouped.get(day) ?? 0) + toNumber(lead.amount));
     });
 
   return [...grouped.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([date, totalValue]) => ({ date, totalValue }));
+};
+
+export const getFundsSeriesService = async (query: DateRangeQuery) => {
+  const range = toRange(query);
+  const leads = await getConvertedLeadsByConvertedAtRange(
+    range.from,
+    range.to,
+    query.cashierId,
+  );
+
+  return groupConvertedLeadsByDay(leads);
 };
 
 export const listLeadsService = async (filters: LeadsFilterQuery) => {

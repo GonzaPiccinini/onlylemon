@@ -175,6 +175,29 @@ export const getLeadsByDateRange = (
     },
   });
 
+export const getConvertedLeadsByConvertedAtRange = (
+  from: Date,
+  to: Date,
+  cashierId?: string,
+) =>
+  prisma.lead.findMany({
+    where: {
+      convertedAt: {
+        gte: from,
+        lt: to,
+      },
+      ...(cashierId ? { cashierId } : {}),
+    },
+    select: {
+      id: true,
+      convertedAt: true,
+      amount: true,
+    },
+    orderBy: {
+      convertedAt: 'asc',
+    },
+  });
+
 export const listLandings = () =>
   prisma.landing.findMany({
     orderBy: {
