@@ -74,9 +74,11 @@ Puertos por defecto en dev:
 
 ## Producción
 
-- Imágenes y deploy: `docker-compose.waha-vps.yml` y `docker-compose.dashboard-vps.yml` en la raíz.
-- Infra por VPS: `infra/waha-vps/` y `infra/dashboard-vps/` (Caddyfile, alloy.config, backup.sh).
-- Guía completa paso a paso: [`docs/production-deployment.md`](./docs/production-deployment.md).
+- **Pipeline CI/CD** (GitHub Actions, ver `.github/workflows/`): push a `main` → `ci.yml` corre lint/typecheck/test/build en paralelo para los 3 servicios → `release.yml` buildea y pushea las imágenes a GHCR (`ghcr.io/gonzapiccinini/onlylemon-{worker,gateway,dashboard}` con tags `:sha-<git-sha>` y `:latest`) → si la repo VAR `AUTO_DEPLOY=true`, hace SSH a cada VPS y corre `docker compose pull <servicio> && up -d`.
+- **Rollback**: workflow manual `rollback.yml` (Actions → Run workflow), recibe el VPS y el image tag (puede ser un SHA previo o `rollback-pre-cicd`).
+- **Compose files**: `docker-compose.waha-vps.yml` (Redis + WAHA + gateway) y `docker-compose.dashboard-vps.yml` (Postgres + worker + dashboard) en la raíz. Cada servicio referencia tanto `image:` (lo que se pullea en prod) como `build:` (para builds locales con `docker compose build`).
+- **Infra por VPS**: `infra/waha-vps/` y `infra/dashboard-vps/` (Caddyfile, alloy.config, backup.sh).
+- **Setup inicial paso a paso** (provisioning, Tailscale, secretos, hardening): [`docs/production-deployment.md`](./docs/production-deployment.md).
 
 Secretos requeridos en producción (cada VPS carga su subset vía `.env` con `chmod 600`):
 
@@ -132,6 +134,11 @@ META_PIXEL_ID / META_ACCESS_TOKEN / META_API_VERSION
 
 ```
 onlylemon/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                    Lint/typecheck/test/build por servicio
+│       ├── release.yml               Build + push a GHCR + SSH deploy a ambos VPS
+│       └── rollback.yml              Rollback manual por VPS y tag
 ├── dashboard/                        SPA React
 ├── gateway/                          Webhook receiver
 ├── worker/                           API + Queue consumer + Prisma
@@ -142,5 +149,6 @@ onlylemon/
 │   └── production-deployment.md      Runbook completo de despliegue
 ├── docker-compose.waha-vps.yml
 ├── docker-compose.dashboard-vps.yml
+├── AGENTS.md                         Guía rápida para agentes IA
 └── README.md                         ← este archivo
 ```

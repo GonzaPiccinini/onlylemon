@@ -106,7 +106,7 @@ npm run build            # tsc → dist/
 npm run start            # node dist/app/server.js
 npm run typecheck        # tsc --noEmit
 npm run prisma:generate  # prisma generate → src/generated/prisma
-npm run test             # tsx --test src/**/*.test.ts
+npm run test             # find src -name '*.test.ts' -print0 | xargs -0 tsx --test
 ```
 
 ## Desarrollo local
@@ -264,10 +264,19 @@ El worker vive en `docker-compose.dashboard-vps.yml` junto con `postgres`, `dash
 - `BULLMQ_REDIS_URL` apunta a la IP Tailscale del `waha-vps` (`redis://:PASS@${WAHA_VPS_TS_IP}:6379`).
 - Caddy hace reverse-proxy de `/api/*` y `/api/realtime/*` a `worker:4000` (con `flush_interval -1` para SSE).
 
+### Deploy a producción
+
+El deploy es automático vía GitHub Actions (`.github/workflows/release.yml`): push a `main` → CI → build y push de la imagen a `ghcr.io/gonzapiccinini/onlylemon-worker:sha-<git-sha>` → SSH al `dashboard-vps` → `docker compose pull worker && up -d`. El compose usa `image: ghcr.io/...:${IMAGE_TAG:-latest}` para que el VPS pulee la imagen pre-construida en vez de buildearla.
+
+Para forzar un deploy manual sin pushear, usar el botón **Run workflow** del workflow `Release (build, push, deploy)` en la pestaña **Actions** del repo.
+
 ```bash
-# En dashboard-vps
-docker compose -f docker-compose.dashboard-vps.yml up -d --build worker
+# Inspección/troubleshooting en dashboard-vps:
 docker compose -f docker-compose.dashboard-vps.yml logs -f worker | grep migration
+docker compose -f docker-compose.dashboard-vps.yml ps worker
+
+# Build local (no se usa en producción, solo si necesitás reproducir el build):
+docker compose -f docker-compose.dashboard-vps.yml build worker
 ```
 
 ### Migraciones en producción
