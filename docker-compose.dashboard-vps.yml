@@ -18,6 +18,7 @@ services:
       retries: 5
 
   worker:
+    image: ghcr.io/gonzapiccinini/onlylemon-worker:${IMAGE_TAG:-latest}
     build:
       context: ./worker
     restart: always
@@ -43,6 +44,7 @@ services:
     networks: [backend]
 
   dashboard:
+    image: ghcr.io/gonzapiccinini/onlylemon-dashboard:${IMAGE_TAG:-latest}
     build:
       context: ./dashboard
       args:
