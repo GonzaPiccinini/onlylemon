@@ -86,15 +86,10 @@ const wahaStatusLabel = (status: WahaStatus | undefined): string =>
 
 const operationalState = (
   cashier: Cashier,
-): { label: string; variant: 'default' | 'secondary' | 'outline' } => {
-  if (cashier.canOperateLeads) {
-    return { label: 'Operativo', variant: 'default' };
-  }
-  if (cashier.hasActiveWorkSession) {
-    return { label: 'En turno', variant: 'secondary' };
-  }
-  return { label: 'Sin turno', variant: 'outline' };
-};
+): { label: string; variant: 'default' | 'outline' } =>
+  cashier.hasActiveWorkSession
+    ? { label: 'En turno', variant: 'default' }
+    : { label: 'Fuera de turno', variant: 'outline' };
 
 export const AdminCashiersPage = () => {
   const { data: cashiers = [], isLoading } = useAdminCashiers();
@@ -321,9 +316,8 @@ export const AdminCashiersPage = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
-              <TableHead>Usuario</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Operativo</TableHead>
+              <TableHead>Turno</TableHead>
               <TableHead>Landings</TableHead>
               <TableHead>Creado</TableHead>
               <TableHead className='text-right'>Acciones</TableHead>
@@ -341,8 +335,12 @@ export const AdminCashiersPage = () => {
              ) : (
                paginatedCashiers.map((cashier) => (
                 <TableRow key={cashier.id}>
-                  <TableCell>{cashier.name}</TableCell>
-                  <TableCell>{cashier.username}</TableCell>
+                  <TableCell>
+                    {cashier.name}
+                    <span className='text-xs text-muted-foreground'>
+                      Usuario: {cashier.username}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
