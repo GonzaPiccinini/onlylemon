@@ -8,6 +8,7 @@ import {
   disableLandingHandler,
   enableLandingHandler,
   fundsSeriesHandler,
+  listAdminConversionsHandler,
   listLeadsHandler,
   listCashierLandingsHandler,
   listCashiersHandler,
@@ -44,3 +45,4 @@ adminRouter.get('/stats/summary', summaryHandler);
 adminRouter.get('/stats/cashiers', cashierStatsHandler);
 adminRouter.get('/stats/funds-series', fundsSeriesHandler);
 adminRouter.get('/leads', listLeadsHandler);
+adminRouter.get('/conversions', listAdminConversionsHandler);

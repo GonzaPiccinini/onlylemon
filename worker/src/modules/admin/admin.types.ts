@@ -56,3 +56,23 @@ export const leadsFilterSchema = z.object({
 
 export type DateRangeQuery = z.infer<typeof dateRangeSchema>;
 export type LeadsFilterQuery = z.infer<typeof leadsFilterSchema>;
+
+export const conversionsFilterSchema = z.object({
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  phone: z.string().trim().min(1).optional(),
+  code: z.string().trim().min(1).optional(),
+  cashierIds: z.string().optional(), // comma-separated CSV; parsed in controller
+  amountMin: z.coerce.number().optional(),
+  amountMax: z.coerce.number().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+export type ConversionsFilterQuery = z.infer<typeof conversionsFilterSchema>;
