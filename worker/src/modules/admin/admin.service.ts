@@ -13,6 +13,7 @@ import {
   getSessionActivitiesByDateRange,
   listCashiers,
   getCashierById,
+  listConversionsAdmin,
   listLandings,
   listLeads,
   replaceCashierLandings,
@@ -79,20 +80,36 @@ export const toLeadDto = (lead: {
       username: string;
     };
   } | null;
-}) => ({
-  id: lead.id,
-  code: lead.code,
-  adCode: lead.adCode,
-  status: lead.status,
-  phone: lead.phone,
-  metaPixelId: lead.metaPixelId,
-  contactedAt: lead.contactedAt,
-  createdAt: lead.createdAt,
-  activityAt: lead.updateAt,
-  cashierId: lead.cashier?.id ?? null,
-  cashierName: lead.cashier?.user.name ?? null,
-  cashierUsername: lead.cashier?.user.username ?? null,
-});
+  conversions?: Array<{ createdAt: Date }>;
+}) => {
+  const timeline: Array<{ status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'; at: Date }> = [
+    { status: 'NOT_CONTACTED', at: lead.createdAt },
+  ];
+  if (lead.contactedAt) {
+    timeline.push({ status: 'CONTACTED', at: lead.contactedAt });
+  }
+  const firstConversion = lead.conversions?.[0];
+  if (firstConversion?.createdAt) {
+    timeline.push({ status: 'CONVERTED', at: firstConversion.createdAt });
+  }
+  timeline.sort((a, b) => a.at.getTime() - b.at.getTime());
+
+  return {
+    id: lead.id,
+    code: lead.code,
+    adCode: lead.adCode,
+    status: lead.status,
+    phone: lead.phone,
+    metaPixelId: lead.metaPixelId,
+    contactedAt: lead.contactedAt,
+    createdAt: lead.createdAt,
+    activityAt: lead.updateAt,
+    cashierId: lead.cashier?.id ?? null,
+    cashierName: lead.cashier?.user.name ?? null,
+    cashierUsername: lead.cashier?.user.username ?? null,
+    statusTimeline: timeline,
+  };
+};
 
 const buildWahaStatusByName = async (): Promise<Map<string, string>> => {
   try {
@@ -387,9 +404,9 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
   }));
 };
 
-// NOTE: groupConvertedLeadsByDay and getFundsSeriesService use Lead.convertedAt and
-// Lead.amount which were dropped in meta-conversions-refactor migration.
-// These functions are stubs until M2 reimplements them against Conversion rows.
+// NOTE: groupConvertedLeadsByDay is kept for backward compatibility (tests reference it).
+// It now maps { createdAt: Date }[] (no amount, no totalValue — always 0).
+// New callers should use groupConversionsByDay which handles the Conversion entity.
 export const groupConvertedLeadsByDay = (
   leads: Array<{ createdAt: Date }>,
 ): Array<{ date: string; totalValue: number }> => {
@@ -403,6 +420,29 @@ export const groupConvertedLeadsByDay = (
   return [...grouped.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([date, totalValue]) => ({ date, totalValue }));
+};
+
+/**
+ * M2.9 — groupConversionsByDay
+ * Groups Conversion rows by Argentina day bucket, summing amounts and counting rows.
+ */
+export const groupConversionsByDay = (
+  conversions: Array<{ createdAt: Date; amount: { toNumber: () => number } }>,
+): Array<{ date: string; count: number; sum: number }> => {
+  const grouped = new Map<string, { count: number; sum: number }>();
+
+  conversions.forEach((conv) => {
+    const day = formatArgentinaDayKey(conv.createdAt);
+    const existing = grouped.get(day) ?? { count: 0, sum: 0 };
+    grouped.set(day, {
+      count: existing.count + 1,
+      sum: existing.sum + conv.amount.toNumber(),
+    });
+  });
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, { count, sum }]) => ({ date, count, sum }));
 };
 
 export const getFundsSeriesService = async (query: DateRangeQuery) => {
@@ -477,4 +517,39 @@ export const replaceCashierLandingsService = async (
 ) => {
   const items = await replaceCashierLandings(cashierId, landingIds);
   return items.map((item) => toLandingDto(item.landing));
+};
+
+/**
+ * M2.5 — listAdminConversionsService
+ * Returns paginated admin conversions with all filters.
+ */
+type ConversionsAdminFilters = {
+  dateFrom?: Date;
+  dateTo?: Date;
+  amountMin?: number;
+  amountMax?: number;
+  phone?: string;
+  code?: string;
+  cashierIds?: string[];
+};
+
+export const listAdminConversionsService = async (
+  filters: ConversionsAdminFilters,
+  page = 1,
+  pageSize = 25,
+) => {
+  const [rows, total] = await listConversionsAdmin(filters, page, pageSize);
+
+  const items = rows.map((c) => ({
+    id: c.id,
+    leadId: c.leadId,
+    code: c.lead.code,
+    phone: c.lead.phone,
+    cashierId: c.lead.cashier?.id ?? null,
+    cashierName: c.lead.cashier?.user.name ?? null,
+    amount: c.amount,
+    createdAt: c.createdAt,
+  }));
+
+  return { items, total, page, pageSize };
 };
