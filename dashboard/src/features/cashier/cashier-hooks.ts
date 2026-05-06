@@ -128,9 +128,6 @@ export const useCreateConversion = () => {
   });
 };
 
-/** @deprecated Use useCreateConversion instead — remove in M6 */
-export const useConvertQueueLead = useCreateConversion;
-
 export const useSearchCashierLeads = (q: string, options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: cashierKeys.searchLeads(q),
