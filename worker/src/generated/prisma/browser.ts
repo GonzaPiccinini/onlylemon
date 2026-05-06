@@ -43,6 +43,11 @@ export type SessionActivity = Prisma.SessionActivityModel
  */
 export type Lead = Prisma.LeadModel
 /**
+ * Model Conversion
+ * 
+ */
+export type Conversion = Prisma.ConversionModel
+/**
  * Model Landing
  * 
  */

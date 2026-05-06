@@ -20,18 +20,8 @@ export type LeadModel = runtime.Types.Result.DefaultSelection<Prisma.$LeadPayloa
 
 export type AggregateLead = {
   _count: LeadCountAggregateOutputType | null
-  _avg: LeadAvgAggregateOutputType | null
-  _sum: LeadSumAggregateOutputType | null
   _min: LeadMinAggregateOutputType | null
   _max: LeadMaxAggregateOutputType | null
-}
-
-export type LeadAvgAggregateOutputType = {
-  amount: runtime.Decimal | null
-}
-
-export type LeadSumAggregateOutputType = {
-  amount: runtime.Decimal | null
 }
 
 export type LeadMinAggregateOutputType = {
@@ -41,14 +31,11 @@ export type LeadMinAggregateOutputType = {
   fbc: string | null
   fbp: string | null
   metaPixelId: string | null
-  amount: runtime.Decimal | null
   status: $Enums.LeadStatus | null
   userAgent: string | null
   phone: string | null
   cashierId: string | null
-  expiresAt: Date | null
   contactedAt: Date | null
-  convertedAt: Date | null
   createdAt: Date | null
   updateAt: Date | null
 }
@@ -60,14 +47,11 @@ export type LeadMaxAggregateOutputType = {
   fbc: string | null
   fbp: string | null
   metaPixelId: string | null
-  amount: runtime.Decimal | null
   status: $Enums.LeadStatus | null
   userAgent: string | null
   phone: string | null
   cashierId: string | null
-  expiresAt: Date | null
   contactedAt: Date | null
-  convertedAt: Date | null
   createdAt: Date | null
   updateAt: Date | null
 }
@@ -79,27 +63,16 @@ export type LeadCountAggregateOutputType = {
   fbc: number
   fbp: number
   metaPixelId: number
-  amount: number
   status: number
   userAgent: number
   phone: number
   cashierId: number
-  expiresAt: number
   contactedAt: number
-  convertedAt: number
   createdAt: number
   updateAt: number
   _all: number
 }
 
-
-export type LeadAvgAggregateInputType = {
-  amount?: true
-}
-
-export type LeadSumAggregateInputType = {
-  amount?: true
-}
 
 export type LeadMinAggregateInputType = {
   id?: true
@@ -108,14 +81,11 @@ export type LeadMinAggregateInputType = {
   fbc?: true
   fbp?: true
   metaPixelId?: true
-  amount?: true
   status?: true
   userAgent?: true
   phone?: true
   cashierId?: true
-  expiresAt?: true
   contactedAt?: true
-  convertedAt?: true
   createdAt?: true
   updateAt?: true
 }
@@ -127,14 +97,11 @@ export type LeadMaxAggregateInputType = {
   fbc?: true
   fbp?: true
   metaPixelId?: true
-  amount?: true
   status?: true
   userAgent?: true
   phone?: true
   cashierId?: true
-  expiresAt?: true
   contactedAt?: true
-  convertedAt?: true
   createdAt?: true
   updateAt?: true
 }
@@ -146,14 +113,11 @@ export type LeadCountAggregateInputType = {
   fbc?: true
   fbp?: true
   metaPixelId?: true
-  amount?: true
   status?: true
   userAgent?: true
   phone?: true
   cashierId?: true
-  expiresAt?: true
   contactedAt?: true
-  convertedAt?: true
   createdAt?: true
   updateAt?: true
   _all?: true
@@ -197,18 +161,6 @@ export type LeadAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
-   * Select which fields to average
-  **/
-  _avg?: LeadAvgAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
-   * Select which fields to sum
-  **/
-  _sum?: LeadSumAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
    * Select which fields to find the minimum value
   **/
   _min?: LeadMinAggregateInputType
@@ -239,8 +191,6 @@ export type LeadGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: LeadCountAggregateInputType | true
-  _avg?: LeadAvgAggregateInputType
-  _sum?: LeadSumAggregateInputType
   _min?: LeadMinAggregateInputType
   _max?: LeadMaxAggregateInputType
 }
@@ -252,19 +202,14 @@ export type LeadGroupByOutputType = {
   fbc: string
   fbp: string
   metaPixelId: string
-  amount: runtime.Decimal | null
   status: $Enums.LeadStatus
   userAgent: string
   phone: string | null
   cashierId: string | null
-  expiresAt: Date
   contactedAt: Date | null
-  convertedAt: Date | null
   createdAt: Date
   updateAt: Date
   _count: LeadCountAggregateOutputType | null
-  _avg: LeadAvgAggregateOutputType | null
-  _sum: LeadSumAggregateOutputType | null
   _min: LeadMinAggregateOutputType | null
   _max: LeadMaxAggregateOutputType | null
 }
@@ -294,17 +239,15 @@ export type LeadWhereInput = {
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
-  amount?: Prisma.DecimalNullableFilter<"Lead"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringFilter<"Lead"> | string
   phone?: Prisma.StringNullableFilter<"Lead"> | string | null
   cashierId?: Prisma.StringNullableFilter<"Lead"> | string | null
-  expiresAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   contactedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
-  convertedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updateAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   cashier?: Prisma.XOR<Prisma.CashierNullableScalarRelationFilter, Prisma.CashierWhereInput> | null
+  conversions?: Prisma.ConversionListRelationFilter
 }
 
 export type LeadOrderByWithRelationInput = {
@@ -314,17 +257,15 @@ export type LeadOrderByWithRelationInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  amount?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
   cashierId?: Prisma.SortOrderInput | Prisma.SortOrder
-  expiresAt?: Prisma.SortOrder
   contactedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  convertedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updateAt?: Prisma.SortOrder
   cashier?: Prisma.CashierOrderByWithRelationInput
+  conversions?: Prisma.ConversionOrderByRelationAggregateInput
 }
 
 export type LeadWhereUniqueInput = Prisma.AtLeast<{
@@ -337,17 +278,15 @@ export type LeadWhereUniqueInput = Prisma.AtLeast<{
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
-  amount?: Prisma.DecimalNullableFilter<"Lead"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringFilter<"Lead"> | string
   phone?: Prisma.StringNullableFilter<"Lead"> | string | null
   cashierId?: Prisma.StringNullableFilter<"Lead"> | string | null
-  expiresAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   contactedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
-  convertedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updateAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   cashier?: Prisma.XOR<Prisma.CashierNullableScalarRelationFilter, Prisma.CashierWhereInput> | null
+  conversions?: Prisma.ConversionListRelationFilter
 }, "id" | "code">
 
 export type LeadOrderByWithAggregationInput = {
@@ -357,21 +296,16 @@ export type LeadOrderByWithAggregationInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  amount?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
   cashierId?: Prisma.SortOrderInput | Prisma.SortOrder
-  expiresAt?: Prisma.SortOrder
   contactedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  convertedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updateAt?: Prisma.SortOrder
   _count?: Prisma.LeadCountOrderByAggregateInput
-  _avg?: Prisma.LeadAvgOrderByAggregateInput
   _max?: Prisma.LeadMaxOrderByAggregateInput
   _min?: Prisma.LeadMinOrderByAggregateInput
-  _sum?: Prisma.LeadSumOrderByAggregateInput
 }
 
 export type LeadScalarWhereWithAggregatesInput = {
@@ -384,14 +318,11 @@ export type LeadScalarWhereWithAggregatesInput = {
   fbc?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   fbp?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   metaPixelId?: Prisma.StringWithAggregatesFilter<"Lead"> | string
-  amount?: Prisma.DecimalNullableWithAggregatesFilter<"Lead"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusWithAggregatesFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   phone?: Prisma.StringNullableWithAggregatesFilter<"Lead"> | string | null
   cashierId?: Prisma.StringNullableWithAggregatesFilter<"Lead"> | string | null
-  expiresAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
   contactedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Lead"> | Date | string | null
-  convertedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Lead"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
   updateAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
 }
@@ -403,16 +334,14 @@ export type LeadCreateInput = {
   fbc: string
   fbp: string
   metaPixelId: string
-  amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
-  expiresAt: Date | string
   contactedAt?: Date | string | null
-  convertedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
   cashier?: Prisma.CashierCreateNestedOneWithoutLeadsInput
+  conversions?: Prisma.ConversionCreateNestedManyWithoutLeadInput
 }
 
 export type LeadUncheckedCreateInput = {
@@ -422,16 +351,14 @@ export type LeadUncheckedCreateInput = {
   fbc: string
   fbp: string
   metaPixelId: string
-  amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
   cashierId?: string | null
-  expiresAt: Date | string
   contactedAt?: Date | string | null
-  convertedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
+  conversions?: Prisma.ConversionUncheckedCreateNestedManyWithoutLeadInput
 }
 
 export type LeadUpdateInput = {
@@ -441,16 +368,14 @@ export type LeadUpdateInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cashier?: Prisma.CashierUpdateOneWithoutLeadsNestedInput
+  conversions?: Prisma.ConversionUpdateManyWithoutLeadNestedInput
 }
 
 export type LeadUncheckedUpdateInput = {
@@ -460,16 +385,14 @@ export type LeadUncheckedUpdateInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  conversions?: Prisma.ConversionUncheckedUpdateManyWithoutLeadNestedInput
 }
 
 export type LeadCreateManyInput = {
@@ -479,14 +402,11 @@ export type LeadCreateManyInput = {
   fbc: string
   fbp: string
   metaPixelId: string
-  amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
   cashierId?: string | null
-  expiresAt: Date | string
   contactedAt?: Date | string | null
-  convertedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
 }
@@ -498,13 +418,10 @@ export type LeadUpdateManyMutationInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -516,14 +433,11 @@ export type LeadUncheckedUpdateManyInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -545,20 +459,13 @@ export type LeadCountOrderByAggregateInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrder
   cashierId?: Prisma.SortOrder
-  expiresAt?: Prisma.SortOrder
   contactedAt?: Prisma.SortOrder
-  convertedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updateAt?: Prisma.SortOrder
-}
-
-export type LeadAvgOrderByAggregateInput = {
-  amount?: Prisma.SortOrder
 }
 
 export type LeadMaxOrderByAggregateInput = {
@@ -568,14 +475,11 @@ export type LeadMaxOrderByAggregateInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrder
   cashierId?: Prisma.SortOrder
-  expiresAt?: Prisma.SortOrder
   contactedAt?: Prisma.SortOrder
-  convertedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updateAt?: Prisma.SortOrder
 }
@@ -587,20 +491,18 @@ export type LeadMinOrderByAggregateInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrder
   cashierId?: Prisma.SortOrder
-  expiresAt?: Prisma.SortOrder
   contactedAt?: Prisma.SortOrder
-  convertedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updateAt?: Prisma.SortOrder
 }
 
-export type LeadSumOrderByAggregateInput = {
-  amount?: Prisma.SortOrder
+export type LeadScalarRelationFilter = {
+  is?: Prisma.LeadWhereInput
+  isNot?: Prisma.LeadWhereInput
 }
 
 export type LeadCreateNestedManyWithoutCashierInput = {
@@ -645,16 +547,22 @@ export type LeadUncheckedUpdateManyWithoutCashierNestedInput = {
   deleteMany?: Prisma.LeadScalarWhereInput | Prisma.LeadScalarWhereInput[]
 }
 
-export type NullableDecimalFieldUpdateOperationsInput = {
-  set?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
-}
-
 export type EnumLeadStatusFieldUpdateOperationsInput = {
   set?: $Enums.LeadStatus
+}
+
+export type LeadCreateNestedOneWithoutConversionsInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutConversionsInput, Prisma.LeadUncheckedCreateWithoutConversionsInput>
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutConversionsInput
+  connect?: Prisma.LeadWhereUniqueInput
+}
+
+export type LeadUpdateOneRequiredWithoutConversionsNestedInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutConversionsInput, Prisma.LeadUncheckedCreateWithoutConversionsInput>
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutConversionsInput
+  upsert?: Prisma.LeadUpsertWithoutConversionsInput
+  connect?: Prisma.LeadWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LeadUpdateToOneWithWhereWithoutConversionsInput, Prisma.LeadUpdateWithoutConversionsInput>, Prisma.LeadUncheckedUpdateWithoutConversionsInput>
 }
 
 export type LeadCreateWithoutCashierInput = {
@@ -664,15 +572,13 @@ export type LeadCreateWithoutCashierInput = {
   fbc: string
   fbp: string
   metaPixelId: string
-  amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
-  expiresAt: Date | string
   contactedAt?: Date | string | null
-  convertedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
+  conversions?: Prisma.ConversionCreateNestedManyWithoutLeadInput
 }
 
 export type LeadUncheckedCreateWithoutCashierInput = {
@@ -682,15 +588,13 @@ export type LeadUncheckedCreateWithoutCashierInput = {
   fbc: string
   fbp: string
   metaPixelId: string
-  amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
-  expiresAt: Date | string
   contactedAt?: Date | string | null
-  convertedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
+  conversions?: Prisma.ConversionUncheckedCreateNestedManyWithoutLeadInput
 }
 
 export type LeadCreateOrConnectWithoutCashierInput = {
@@ -729,16 +633,93 @@ export type LeadScalarWhereInput = {
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
-  amount?: Prisma.DecimalNullableFilter<"Lead"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringFilter<"Lead"> | string
   phone?: Prisma.StringNullableFilter<"Lead"> | string | null
   cashierId?: Prisma.StringNullableFilter<"Lead"> | string | null
-  expiresAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   contactedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
-  convertedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updateAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
+}
+
+export type LeadCreateWithoutConversionsInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  metaPixelId: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+  cashier?: Prisma.CashierCreateNestedOneWithoutLeadsInput
+}
+
+export type LeadUncheckedCreateWithoutConversionsInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  metaPixelId: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  cashierId?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+}
+
+export type LeadCreateOrConnectWithoutConversionsInput = {
+  where: Prisma.LeadWhereUniqueInput
+  create: Prisma.XOR<Prisma.LeadCreateWithoutConversionsInput, Prisma.LeadUncheckedCreateWithoutConversionsInput>
+}
+
+export type LeadUpsertWithoutConversionsInput = {
+  update: Prisma.XOR<Prisma.LeadUpdateWithoutConversionsInput, Prisma.LeadUncheckedUpdateWithoutConversionsInput>
+  create: Prisma.XOR<Prisma.LeadCreateWithoutConversionsInput, Prisma.LeadUncheckedCreateWithoutConversionsInput>
+  where?: Prisma.LeadWhereInput
+}
+
+export type LeadUpdateToOneWithWhereWithoutConversionsInput = {
+  where?: Prisma.LeadWhereInput
+  data: Prisma.XOR<Prisma.LeadUpdateWithoutConversionsInput, Prisma.LeadUncheckedUpdateWithoutConversionsInput>
+}
+
+export type LeadUpdateWithoutConversionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cashier?: Prisma.CashierUpdateOneWithoutLeadsNestedInput
+}
+
+export type LeadUncheckedUpdateWithoutConversionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type LeadCreateManyCashierInput = {
@@ -748,13 +729,10 @@ export type LeadCreateManyCashierInput = {
   fbc: string
   fbp: string
   metaPixelId: string
-  amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
-  expiresAt: Date | string
   contactedAt?: Date | string | null
-  convertedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
 }
@@ -766,15 +744,13 @@ export type LeadUpdateWithoutCashierInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  conversions?: Prisma.ConversionUpdateManyWithoutLeadNestedInput
 }
 
 export type LeadUncheckedUpdateWithoutCashierInput = {
@@ -784,15 +760,13 @@ export type LeadUncheckedUpdateWithoutCashierInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  conversions?: Prisma.ConversionUncheckedUpdateManyWithoutLeadNestedInput
 }
 
 export type LeadUncheckedUpdateManyWithoutCashierInput = {
@@ -802,17 +776,43 @@ export type LeadUncheckedUpdateManyWithoutCashierInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+
+/**
+ * Count Type LeadCountOutputType
+ */
+
+export type LeadCountOutputType = {
+  conversions: number
+}
+
+export type LeadCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  conversions?: boolean | LeadCountOutputTypeCountConversionsArgs
+}
+
+/**
+ * LeadCountOutputType without action
+ */
+export type LeadCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LeadCountOutputType
+   */
+  select?: Prisma.LeadCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * LeadCountOutputType without action
+ */
+export type LeadCountOutputTypeCountConversionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ConversionWhereInput
+}
 
 
 export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -822,17 +822,16 @@ export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
-  amount?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
   cashierId?: boolean
-  expiresAt?: boolean
   contactedAt?: boolean
-  convertedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
+  conversions?: boolean | Prisma.Lead$conversionsArgs<ExtArgs>
+  _count?: boolean | Prisma.LeadCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lead"]>
 
 export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -842,14 +841,11 @@ export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
-  amount?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
   cashierId?: boolean
-  expiresAt?: boolean
   contactedAt?: boolean
-  convertedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
@@ -862,14 +858,11 @@ export type LeadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
-  amount?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
   cashierId?: boolean
-  expiresAt?: boolean
   contactedAt?: boolean
-  convertedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
@@ -882,21 +875,20 @@ export type LeadSelectScalar = {
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
-  amount?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
   cashierId?: boolean
-  expiresAt?: boolean
   contactedAt?: boolean
-  convertedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
 }
 
-export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "adCode" | "fbc" | "fbp" | "metaPixelId" | "amount" | "status" | "userAgent" | "phone" | "cashierId" | "expiresAt" | "contactedAt" | "convertedAt" | "createdAt" | "updateAt", ExtArgs["result"]["lead"]>
+export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "adCode" | "fbc" | "fbp" | "metaPixelId" | "status" | "userAgent" | "phone" | "cashierId" | "contactedAt" | "createdAt" | "updateAt", ExtArgs["result"]["lead"]>
 export type LeadInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
+  conversions?: boolean | Prisma.Lead$conversionsArgs<ExtArgs>
+  _count?: boolean | Prisma.LeadCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type LeadIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
@@ -909,6 +901,7 @@ export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "Lead"
   objects: {
     cashier: Prisma.$CashierPayload<ExtArgs> | null
+    conversions: Prisma.$ConversionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -917,14 +910,11 @@ export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     fbc: string
     fbp: string
     metaPixelId: string
-    amount: runtime.Decimal | null
     status: $Enums.LeadStatus
     userAgent: string
     phone: string | null
     cashierId: string | null
-    expiresAt: Date
     contactedAt: Date | null
-    convertedAt: Date | null
     createdAt: Date
     updateAt: Date
   }, ExtArgs["result"]["lead"]>
@@ -1322,6 +1312,7 @@ readonly fields: LeadFieldRefs;
 export interface Prisma__LeadClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   cashier<T extends Prisma.Lead$cashierArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$cashierArgs<ExtArgs>>): Prisma.Prisma__CashierClient<runtime.Types.Result.GetResult<Prisma.$CashierPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  conversions<T extends Prisma.Lead$conversionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$conversionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConversionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1357,14 +1348,11 @@ export interface LeadFieldRefs {
   readonly fbc: Prisma.FieldRef<"Lead", 'String'>
   readonly fbp: Prisma.FieldRef<"Lead", 'String'>
   readonly metaPixelId: Prisma.FieldRef<"Lead", 'String'>
-  readonly amount: Prisma.FieldRef<"Lead", 'Decimal'>
   readonly status: Prisma.FieldRef<"Lead", 'LeadStatus'>
   readonly userAgent: Prisma.FieldRef<"Lead", 'String'>
   readonly phone: Prisma.FieldRef<"Lead", 'String'>
   readonly cashierId: Prisma.FieldRef<"Lead", 'String'>
-  readonly expiresAt: Prisma.FieldRef<"Lead", 'DateTime'>
   readonly contactedAt: Prisma.FieldRef<"Lead", 'DateTime'>
-  readonly convertedAt: Prisma.FieldRef<"Lead", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Lead", 'DateTime'>
   readonly updateAt: Prisma.FieldRef<"Lead", 'DateTime'>
 }
@@ -1784,6 +1772,30 @@ export type Lead$cashierArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   include?: Prisma.CashierInclude<ExtArgs> | null
   where?: Prisma.CashierWhereInput
+}
+
+/**
+ * Lead.conversions
+ */
+export type Lead$conversionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Conversion
+   */
+  select?: Prisma.ConversionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Conversion
+   */
+  omit?: Prisma.ConversionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConversionInclude<ExtArgs> | null
+  where?: Prisma.ConversionWhereInput
+  orderBy?: Prisma.ConversionOrderByWithRelationInput | Prisma.ConversionOrderByWithRelationInput[]
+  cursor?: Prisma.ConversionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ConversionScalarFieldEnum | Prisma.ConversionScalarFieldEnum[]
 }
 
 /**

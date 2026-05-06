@@ -389,6 +389,7 @@ export const ModelName = {
   Cashier: 'Cashier',
   SessionActivity: 'SessionActivity',
   Lead: 'Lead',
+  Conversion: 'Conversion',
   Landing: 'Landing',
   CashierLanding: 'CashierLanding',
   ProcessedJob: 'ProcessedJob'
@@ -407,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "admin" | "cashier" | "sessionActivity" | "lead" | "landing" | "cashierLanding" | "processedJob"
+    modelProps: "user" | "admin" | "cashier" | "sessionActivity" | "lead" | "conversion" | "landing" | "cashierLanding" | "processedJob"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -781,6 +782,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Conversion: {
+      payload: Prisma.$ConversionPayload<ExtArgs>
+      fields: Prisma.ConversionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ConversionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ConversionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>
+        }
+        findFirst: {
+          args: Prisma.ConversionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ConversionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>
+        }
+        findMany: {
+          args: Prisma.ConversionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>[]
+        }
+        create: {
+          args: Prisma.ConversionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>
+        }
+        createMany: {
+          args: Prisma.ConversionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ConversionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>[]
+        }
+        delete: {
+          args: Prisma.ConversionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>
+        }
+        update: {
+          args: Prisma.ConversionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>
+        }
+        deleteMany: {
+          args: Prisma.ConversionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ConversionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ConversionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>[]
+        }
+        upsert: {
+          args: Prisma.ConversionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversionPayload>
+        }
+        aggregate: {
+          args: Prisma.ConversionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateConversion>
+        }
+        groupBy: {
+          args: Prisma.ConversionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConversionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ConversionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConversionCountAggregateOutputType> | number
+        }
+      }
+    }
     Landing: {
       payload: Prisma.$LandingPayload<ExtArgs>
       fields: Prisma.LandingFieldRefs
@@ -1097,19 +1172,26 @@ export const LeadScalarFieldEnum = {
   fbc: 'fbc',
   fbp: 'fbp',
   metaPixelId: 'metaPixelId',
-  amount: 'amount',
   status: 'status',
   userAgent: 'userAgent',
   phone: 'phone',
   cashierId: 'cashierId',
-  expiresAt: 'expiresAt',
   contactedAt: 'contactedAt',
-  convertedAt: 'convertedAt',
   createdAt: 'createdAt',
   updateAt: 'updateAt'
 } as const
 
 export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const ConversionScalarFieldEnum = {
+  id: 'id',
+  leadId: 'leadId',
+  amount: 'amount',
+  createdAt: 'createdAt'
+} as const
+
+export type ConversionScalarFieldEnum = (typeof ConversionScalarFieldEnum)[keyof typeof ConversionScalarFieldEnum]
 
 
 export const LandingScalarFieldEnum = {
@@ -1244,20 +1326,6 @@ export type ListEnumCashierStatusFieldRefInput<$PrismaModel> = FieldRefInputType
 
 
 /**
- * Reference to a field of type 'Decimal'
- */
-export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
-    
-
-
-/**
- * Reference to a field of type 'Decimal[]'
- */
-export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
-    
-
-
-/**
  * Reference to a field of type 'LeadStatus'
  */
 export type EnumLeadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadStatus'>
@@ -1268,6 +1336,20 @@ export type EnumLeadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
  * Reference to a field of type 'LeadStatus[]'
  */
 export type ListEnumLeadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal'
+ */
+export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal[]'
+ */
+export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
     
 
 
@@ -1398,6 +1480,7 @@ export type GlobalOmitConfig = {
   cashier?: Prisma.CashierOmit
   sessionActivity?: Prisma.SessionActivityOmit
   lead?: Prisma.LeadOmit
+  conversion?: Prisma.ConversionOmit
   landing?: Prisma.LandingOmit
   cashierLanding?: Prisma.CashierLandingOmit
   processedJob?: Prisma.ProcessedJobOmit
