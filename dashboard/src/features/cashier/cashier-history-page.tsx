@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
+import { LeadStatusTimeline } from '@/components/common/lead-status-timeline';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -58,7 +59,7 @@ export const CashierHistoryPage = () => {
         <CardHeader>
           <CardTitle>Leads registrados</CardTitle>
           <CardDescription>
-            Visualiza estado, telefono, valor y fechas clave.
+            Visualiza estado, telefono y fechas clave.
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>
@@ -98,7 +99,7 @@ export const CashierHistoryPage = () => {
                 <TableHead>Codigo</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Telefono</TableHead>
-                {/* TODO M6: add Conversiones / timeline columns */}
+                <TableHead>Historico</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -126,7 +127,9 @@ export const CashierHistoryPage = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{lead.phone ?? '-'}</TableCell>
-                    {/* TODO M6: add statusTimeline column */}
+                    <TableCell>
+                      <LeadStatusTimeline timeline={lead.statusTimeline} />
+                    </TableCell>
                   </TableRow>
                 ))
               )}
