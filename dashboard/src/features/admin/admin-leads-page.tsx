@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
   TableBody,
@@ -42,7 +43,7 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
 
 export const AdminLeadsPage = () => {
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
-  const [cashierId, setCashierId] = useState<string>('ALL');
+  const [cashierIds, setCashierIds] = useState<string[]>([]);
   const [adCode, setAdCode] = useState('');
   const [code, setCode] = useState('');
   const [phone, setPhone] = useState('');
@@ -50,15 +51,19 @@ export const AdminLeadsPage = () => {
   const pageSize = 10;
 
   const { data: cashiers = [] } = useAdminCashiers();
+  const cashierOptions = useMemo(
+    () => cashiers.map((c) => ({ value: c.id, label: c.name })),
+    [cashiers],
+  );
   const filters = useMemo(
     () => ({
       status: status === 'ALL' ? undefined : status,
-      cashierId: cashierId === 'ALL' ? undefined : cashierId,
+      cashierIds: cashierIds.length > 0 ? cashierIds : undefined,
       adCode: adCode.trim() || undefined,
       code: code.trim() || undefined,
       phone: phone.trim() || undefined,
     }),
-    [adCode, cashierId, code, phone, status],
+    [adCode, cashierIds, code, phone, status],
   );
   const { data: leads = [], isLoading } = useAdminLeads(filters);
   const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
@@ -111,34 +116,20 @@ export const AdminLeadsPage = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel>Filtrar por cajero</FieldLabel>
-              <Select
-                value={cashierId}
-                onValueChange={(value) => {
-                  setCashierId(value ?? 'ALL');
+              <FieldLabel htmlFor="admin-leads-cashiers">
+                Filtrar por cajero
+              </FieldLabel>
+              <MultiSelect
+                id="admin-leads-cashiers"
+                options={cashierOptions}
+                value={cashierIds}
+                onChange={(next) => {
+                  setCashierIds(next);
                   setPage(1);
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por cajero" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="ALL" label="Todos">
-                      Todos
-                    </SelectItem>
-                    {cashiers.map((cashier) => (
-                      <SelectItem
-                        key={cashier.id}
-                        value={cashier.id}
-                        label={cashier.name}
-                      >
-                        {cashier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                placeholder="Todos los cajeros"
+                emptyText="Sin cajeros disponibles"
+              />
             </div>
 
             <div className="flex flex-col gap-2">

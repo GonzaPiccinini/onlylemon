@@ -11,14 +11,7 @@ import {
 } from '@/components/ui/card';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
   TableBody,
@@ -39,11 +32,15 @@ export const AdminConversionsPage = () => {
   const [dateTo, setDateTo] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [cashierId, setCashierId] = useState('ALL');
+  const [cashierIds, setCashierIds] = useState<string[]>([]);
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
 
   const { data: cashiers = [] } = useAdminCashiers();
+  const cashierOptions = useMemo(
+    () => cashiers.map((c) => ({ value: c.id, label: c.name })),
+    [cashiers],
+  );
 
   const filters = useMemo(
     () => ({
@@ -53,12 +50,11 @@ export const AdminConversionsPage = () => {
       dateTo: dateTo || undefined,
       phone: phone.trim() || undefined,
       code: code.trim() || undefined,
-      cashierIds:
-        cashierId !== 'ALL' ? [cashierId] : undefined,
+      cashierIds: cashierIds.length > 0 ? cashierIds : undefined,
       amountMin: amountMin !== '' ? Number(amountMin) : undefined,
       amountMax: amountMax !== '' ? Number(amountMax) : undefined,
     }),
-    [page, dateFrom, dateTo, phone, code, cashierId, amountMin, amountMax],
+    [page, dateFrom, dateTo, phone, code, cashierIds, amountMin, amountMax],
   );
 
   const { data, isLoading } = useAdminConversions(filters);
@@ -105,34 +101,20 @@ export const AdminConversionsPage = () => {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <FieldLabel>Cajero</FieldLabel>
-              <Select
-                value={cashierId}
-                onValueChange={(value) => {
-                  setCashierId(value ?? 'ALL');
+              <FieldLabel htmlFor="admin-conversions-cashiers">
+                Cajero
+              </FieldLabel>
+              <MultiSelect
+                id="admin-conversions-cashiers"
+                options={cashierOptions}
+                value={cashierIds}
+                onChange={(next) => {
+                  setCashierIds(next);
                   setPage(1);
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos los cajeros" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="ALL" label="Todos">
-                      Todos
-                    </SelectItem>
-                    {cashiers.map((cashier) => (
-                      <SelectItem
-                        key={cashier.id}
-                        value={cashier.id}
-                        label={cashier.name}
-                      >
-                        {cashier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                placeholder="Todos los cajeros"
+                emptyText="Sin cajeros disponibles"
+              />
             </div>
             <div className="flex flex-col gap-2">
               <FieldLabel>Codigo</FieldLabel>
