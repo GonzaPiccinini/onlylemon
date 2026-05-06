@@ -180,28 +180,14 @@ export const getLeadsByDateRange = (
     },
   });
 
+// NOTE: Lead.convertedAt and Lead.amount were removed in meta-conversions-refactor migration.
+// getConvertedLeadsByConvertedAtRange is now a stub returning empty array.
+// getFundsSeriesService (admin.service.ts) will be replaced in M2 with Conversion-based query.
 export const getConvertedLeadsByConvertedAtRange = (
-  from: Date,
-  to: Date,
-  cashierId?: string,
-) =>
-  prisma.lead.findMany({
-    where: {
-      convertedAt: {
-        gte: from,
-        lt: to,
-      },
-      ...(cashierId ? { cashierId } : {}),
-    },
-    select: {
-      id: true,
-      convertedAt: true,
-      amount: true,
-    },
-    orderBy: {
-      convertedAt: 'asc',
-    },
-  });
+  _from: Date,
+  _to: Date,
+  _cashierId?: string,
+): Promise<{ id: string; createdAt: Date }[]> => Promise.resolve([]);
 
 export const listLandings = () =>
   prisma.landing.findMany({
@@ -254,14 +240,14 @@ export const getLandingByMetaPixelId = (metaPixelId: string) =>
   });
 
 export const listLeads = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
   cashierId?: string;
   adCode?: string;
 }) =>
   prisma.lead.findMany(buildListLeadsQuery(filters));
 
 export const buildListLeadsQuery = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
   cashierId?: string;
   adCode?: string;
 }) =>

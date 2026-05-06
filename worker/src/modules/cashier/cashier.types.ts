@@ -7,7 +7,7 @@ export const convertLeadSchema = z.object({
 export type ConvertLeadPayload = z.infer<typeof convertLeadSchema>;
 
 export const leadStatusSchema = z
-  .enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED', 'EXPIRED'])
+  .enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED'])
   .optional();
 
 export const completeWhatsappLinkSchema = z.object({

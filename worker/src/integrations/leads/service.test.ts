@@ -52,7 +52,6 @@ type CreateLeadDependencies = {
     metaPixelId: string;
     adCode?: string;
     code: string;
-    expiresAt: Date;
   }) => Promise<{
     id: string;
     code: string;
@@ -60,7 +59,6 @@ type CreateLeadDependencies = {
     fbp: string;
     userAgent: string;
     metaPixelId: string;
-    expiresAt: Date;
   }>;
   dispatchLeadCreatedEvent: (lead: {
     id: string;
@@ -84,14 +82,13 @@ function buildDependencies(
       number: '5491111111111',
     }),
     getLeadByFbc: async () => null,
-    saveLead: async ({ code, expiresAt }) => ({
+    saveLead: async ({ code }) => ({
       id: 'lead-1',
       code,
       fbc: payload.fbc,
       fbp: payload.fbp,
       userAgent: payload.userAgent,
       metaPixelId: payload.metaPixelId,
-      expiresAt,
     }),
     dispatchLeadCreatedEvent: async () => {},
     generateCode: () => 'ABCD1234',
@@ -158,7 +155,7 @@ test('createLeadWithDependencies retries when unique collision happens on lead c
       attempt += 1;
       return attempt === 1 ? 'DUPL0001' : 'UNIQ0002';
     },
-    saveLead: async ({ code, expiresAt }) => {
+    saveLead: async ({ code }) => {
       if (code === 'DUPL0001') {
         throw Object.assign(new Error('code collision'), {
           code: 'P2002',
@@ -173,7 +170,6 @@ test('createLeadWithDependencies retries when unique collision happens on lead c
         fbp: payload.fbp,
         userAgent: payload.userAgent,
         metaPixelId: payload.metaPixelId,
-        expiresAt,
       };
     },
     onCodeCollision: () => {
@@ -199,7 +195,7 @@ test('createLeadWithDependencies creates the lead without cashier and returns em
       ok: false,
       reason: 'NO_AVAILABLE_CASHIER',
     }),
-    saveLead: async ({ code, expiresAt }) => {
+    saveLead: async ({ code }) => {
       saveCalls += 1;
       return {
         id: 'lead-fallback',
@@ -208,7 +204,6 @@ test('createLeadWithDependencies creates the lead without cashier and returns em
         fbp: payload.fbp,
         userAgent: payload.userAgent,
         metaPixelId: payload.metaPixelId,
-        expiresAt,
       };
     },
   });
@@ -253,7 +248,7 @@ test('createLeadWithDependencies persists adCode when provided', async () => {
 
   let receivedAdCode: string | undefined;
   const deps = buildDependencies({
-    saveLead: async ({ code, expiresAt, adCode }) => {
+    saveLead: async ({ code, adCode }) => {
       receivedAdCode = adCode;
       return {
         id: 'lead-adcode',
@@ -262,7 +257,6 @@ test('createLeadWithDependencies persists adCode when provided', async () => {
         fbp: payload.fbp,
         userAgent: payload.userAgent,
         metaPixelId: payload.metaPixelId,
-        expiresAt,
       };
     },
   });

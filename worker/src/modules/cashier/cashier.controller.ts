@@ -133,10 +133,7 @@ export const queueConvertLeadHandler = async (req: Request, res: Response) => {
     return res.status(409).json({ error: 'Lead is not in CONTACTED status' });
   }
 
-  if (result.kind === 'EXPIRED') {
-    return res.status(409).json({ error: 'Lead expired' });
-  }
-
+  // NOTE: EXPIRED kind removed in meta-conversions-refactor; dead branch kept for compat
   if (result.kind === 'PHONE_REQUIRED') {
     return res.status(409).json({ error: 'Lead phone is required' });
   }
@@ -159,9 +156,7 @@ export const queueSkipLeadHandler = async (req: Request, res: Response) => {
     return res.status(409).json({ error: 'Lead is not in CONTACTED status' });
   }
 
-  if (result === 'EXPIRED') {
-    return res.status(409).json({ error: 'Lead expired' });
-  }
+  // NOTE: EXPIRED return value removed in meta-conversions-refactor; dead branch kept for compat
 
   return res.status(204).send();
 };

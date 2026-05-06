@@ -14,7 +14,6 @@ type CreateLeadData = {
   fbp: string;
   userAgent: string;
   metaPixelId: string;
-  expiresAt: Date;
 };
 
 type UpdateLeadData = {
@@ -162,13 +161,11 @@ export async function markLeadAsContacted(
   cashierId: string,
   now: Date,
 ): Promise<number> {
+  // NOTE: expiresAt guard removed in meta-conversions-refactor (Lead.expiresAt was dropped)
   const result = await prisma.lead.updateMany({
     where: {
       id,
       status: 'NOT_CONTACTED',
-      expiresAt: {
-        gt: now,
-      },
       contactedAt: null,
     },
     data: {
@@ -182,18 +179,8 @@ export async function markLeadAsContacted(
   return result.count;
 }
 
-export async function expireLeadIfStillOpen(id: string): Promise<number> {
-  const result = await prisma.lead.updateMany({
-    where: {
-      id,
-      status: {
-        in: ['NOT_CONTACTED', 'CONTACTED'],
-      },
-    },
-    data: {
-      status: 'EXPIRED',
-    },
-  });
-
-  return result.count;
+// NOTE: expireLeadIfStillOpen is a no-op stub; EXPIRED status was removed in
+// meta-conversions-refactor. Callers will be removed in M3.
+export async function expireLeadIfStillOpen(_id: string): Promise<number> {
+  return 0;
 }

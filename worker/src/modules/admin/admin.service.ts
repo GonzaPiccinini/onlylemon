@@ -66,13 +66,10 @@ export const toLeadDto = (lead: {
   id: string;
   code: string;
   adCode: string | null;
-  status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
   phone: string | null;
-  amount: unknown | null;
   metaPixelId: string;
   contactedAt: Date | null;
-  convertedAt: Date | null;
-  expiresAt: Date;
   createdAt: Date;
   updateAt: Date;
   cashier?: {
@@ -88,11 +85,8 @@ export const toLeadDto = (lead: {
   adCode: lead.adCode,
   status: lead.status,
   phone: lead.phone,
-  amount: lead.amount === null ? null : Number(lead.amount),
   metaPixelId: lead.metaPixelId,
   contactedAt: lead.contactedAt,
-  convertedAt: lead.convertedAt,
-  expiresAt: lead.expiresAt,
   createdAt: lead.createdAt,
   activityAt: lead.updateAt,
   cashierId: lead.cashier?.id ?? null,
@@ -246,40 +240,15 @@ export const getSummaryService = async (query: DateRangeQuery) => {
   ).length;
   const contacted = leads.filter((lead) => lead.status === 'CONTACTED').length;
   const converted = leads.filter((lead) => lead.status === 'CONVERTED').length;
-  const expired = leads.filter((lead) => lead.status === 'EXPIRED').length;
-  const totalLeads = notContacted + contacted + converted + expired;
+  // EXPIRED was removed in meta-conversions-refactor migration; always 0 for compat shim
+  const expiredLeads = 0;
+  const totalLeads = notContacted + contacted + converted;
 
-  const totalConvertedValue = leads
-    .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
-    .reduce((acc, lead) => acc + toNumber(lead.amount), 0);
-
-  const averageConvertedValue =
-    converted === 0 ? 0 : totalConvertedValue / converted;
-
-  const averageConversionHours = (() => {
-    const convertedWithContact = leads.filter(
-      (lead) =>
-        lead.status === 'CONVERTED' && lead.contactedAt && lead.convertedAt,
-    );
-
-    if (convertedWithContact.length === 0) {
-      return 0;
-    }
-
-    const totalHours = convertedWithContact.reduce((acc, lead) => {
-      const contactedAt = lead.contactedAt;
-      const convertedAt = lead.convertedAt;
-      if (!contactedAt || !convertedAt) {
-        return acc;
-      }
-
-      return (
-        acc + (convertedAt.getTime() - contactedAt.getTime()) / 1000 / 60 / 60
-      );
-    }, 0);
-
-    return totalHours / convertedWithContact.length;
-  })();
+  // NOTE: totalConvertedValue and averageConversionHours now require Conversion rows
+  // (Lead.amount and Lead.convertedAt were dropped). These will be updated in M2.
+  const totalConvertedValue = 0;
+  const averageConvertedValue = 0;
+  const averageConversionHours = 0;
 
   const totalActiveMinutes = activities.reduce((acc, item) => {
     if (!item.endedAt) {
@@ -296,7 +265,7 @@ export const getSummaryService = async (query: DateRangeQuery) => {
     notContactedLeads: notContacted,
     contactedLeads: contacted,
     convertedLeads: converted,
-    expiredLeads: expired,
+    expiredLeads,
     conversionRate: totalLeads === 0 ? 0 : (converted / totalLeads) * 100,
     totalConvertedValue,
     averageConvertedValue,
@@ -365,14 +334,11 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
 
     if (lead.status === 'CONVERTED') {
       current.convertedLeads += 1;
-      if (lead.amount !== null) {
-        current.convertedValue += toNumber(lead.amount);
-      }
+      // NOTE: Lead.amount was dropped in meta-conversions-refactor. convertedValue will be
+      // updated in M2 to sum from Conversion rows.
     }
 
-    if (lead.status === 'EXPIRED') {
-      current.expiredLeads += 1;
-    }
+    // EXPIRED was removed in meta-conversions-refactor; expiredLeads stays at 0 (compat shim)
   });
 
   activities.forEach((item) => {
@@ -421,17 +387,18 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
   }));
 };
 
+// NOTE: groupConvertedLeadsByDay and getFundsSeriesService use Lead.convertedAt and
+// Lead.amount which were dropped in meta-conversions-refactor migration.
+// These functions are stubs until M2 reimplements them against Conversion rows.
 export const groupConvertedLeadsByDay = (
-  leads: Array<{ convertedAt: Date | null; amount: unknown | null }>,
+  leads: Array<{ createdAt: Date }>,
 ): Array<{ date: string; totalValue: number }> => {
   const grouped = new Map<string, number>();
 
-  leads
-    .filter((lead) => lead.convertedAt !== null && lead.amount !== null)
-    .forEach((lead) => {
-      const day = formatArgentinaDayKey(lead.convertedAt as Date);
-      grouped.set(day, (grouped.get(day) ?? 0) + toNumber(lead.amount));
-    });
+  leads.forEach((lead) => {
+    const day = formatArgentinaDayKey(lead.createdAt);
+    grouped.set(day, (grouped.get(day) ?? 0));
+  });
 
   return [...grouped.entries()]
     .sort(([left], [right]) => left.localeCompare(right))

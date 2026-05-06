@@ -5,7 +5,6 @@ import { leadCodeCollisionsTotal } from '../../lib/metrics.js';
 import { logger } from '../../lib/logger.js';
 import { getNumberByLid } from '../waha/client.js';
 import {
-  expireLeadIfStillOpen,
   getActiveLandingCashierCandidatesByMetaPixelId,
   getContactedLeadCountByCashierForLanding,
   getLeadByCode,
@@ -115,7 +114,6 @@ type LeadForCreateFlow = {
 
 type LeadToCreate = CreateLeadPayload & {
   code: string;
-  expiresAt: Date;
 };
 
 export type CreateLeadDependencies = {
@@ -410,13 +408,12 @@ export async function createLeadWithDependencies(
 
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
     const code = dependencies.generateCode();
-    const expiresAt = getExpiresAt(dependencies.getNow());
+    // NOTE: expiresAt removed in meta-conversions-refactor; getExpiresAt kept for config compatibility
 
     try {
       const lead = await dependencies.saveLead({
         ...payload,
         code,
-        expiresAt,
       });
 
       void dependencies.dispatchLeadCreatedEvent(lead).catch((err) => {
@@ -471,10 +468,7 @@ export async function mapLeadCodeToPhone(
   }
 
   const now = new Date();
-  if (lead.expiresAt <= now) {
-    await expireLeadIfStillOpen(lead.id);
-    return 'EXPIRED';
-  }
+  // NOTE: expiresAt guard removed in meta-conversions-refactor (Lead.expiresAt was dropped)
 
   const cashier = await getCashierBySessionName(session);
   if (!cashier) {

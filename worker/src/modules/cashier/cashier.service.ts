@@ -70,20 +70,14 @@ const toLeadDto = (lead: {
   code: string;
   phone: string | null;
   status: LeadStatus;
-  amount: unknown | null;
   contactedAt: Date | null;
-  convertedAt: Date | null;
-  expiresAt: Date;
   createdAt: Date;
 }) => ({
   id: lead.id,
   code: lead.code,
   phone: lead.phone,
   status: lead.status,
-  amount: lead.amount === null ? null : Number(lead.amount),
   contactedAt: lead.contactedAt,
-  convertedAt: lead.convertedAt,
-  expiresAt: lead.expiresAt,
   createdAt: lead.createdAt,
 });
 
@@ -554,12 +548,8 @@ export const skipQueueLeadService = async (cashierId: string, leadId: string) =>
     return 'INVALID_STATUS' as const;
   }
 
-  const now = new Date();
-  if (lead.expiresAt <= now) {
-    return 'EXPIRED' as const;
-  }
-
-  await moveLeadToQueueTail(lead.id, now);
+  // NOTE: expiresAt guard removed in meta-conversions-refactor (Lead.expiresAt was dropped)
+  await moveLeadToQueueTail(lead.id, new Date());
   return 'OK' as const;
 };
 
@@ -577,16 +567,12 @@ export const convertQueueLeadService = async (
     return { kind: 'INVALID_STATUS' as const };
   }
 
-  const now = new Date();
-  if (lead.expiresAt <= now) {
-    return { kind: 'EXPIRED' as const };
-  }
-
+  // NOTE: expiresAt guard removed in meta-conversions-refactor (Lead.expiresAt was dropped)
   if (!lead.phone) {
     return { kind: 'PHONE_REQUIRED' as const };
   }
 
-  const converted = await convertLead(lead.id, amount, now);
+  const converted = await convertLead(lead.id, amount, new Date());
 
   leadsConvertedTotal.labels(lead.metaPixelId).inc();
   leadConversionAmountArs.labels(lead.metaPixelId).observe(amount);
