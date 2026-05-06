@@ -45,9 +45,40 @@ export const dateRangeSchema = z.object({
   cashierId: z.string().optional(),
 });
 
+const leadStatusSchema = z.enum([
+  'NOT_CONTACTED',
+  'CONTACTED',
+  'CONVERTED',
+  'EXPIRED',
+]);
+
+const parseMultiQueryValue = (value: unknown): string[] | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((item) => String(item).split(','))
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 export const leadsFilterSchema = z.object({
-  status: z.enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED', 'EXPIRED']).optional(),
-  cashierId: z.string().optional(),
+  status: z.preprocess(
+    parseMultiQueryValue,
+    z.array(leadStatusSchema).min(1).optional(),
+  ),
+  cashierId: z.preprocess(
+    parseMultiQueryValue,
+    z.array(z.string().trim().min(1)).min(1).optional(),
+  ),
   adCode: z.string().trim().min(1).optional(),
 });
 

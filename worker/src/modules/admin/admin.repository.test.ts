@@ -34,17 +34,35 @@ test('buildListLeadsQuery keeps optional status, cashier and adCode filters', as
   const { buildListLeadsQuery } = await import('./admin.repository.js');
 
   const query = buildListLeadsQuery({
-    status: 'CONTACTED',
-    cashierId: 'cashier-123',
+    status: ['CONTACTED', 'EXPIRED'],
+    cashierId: ['cashier-123', 'cashier-456'],
     adCode: 'camp-2026',
+  });
+
+  assert.deepEqual(query.where, {
+    status: {
+      in: ['CONTACTED', 'EXPIRED'],
+    },
+    cashierId: {
+      in: ['cashier-123', 'cashier-456'],
+    },
+    adCode: {
+      contains: 'camp-2026',
+      mode: 'insensitive',
+    },
+  });
+});
+
+test('buildListLeadsQuery keeps scalar where clauses for one selected status/cashier', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+
+  const query = buildListLeadsQuery({
+    status: ['CONTACTED'],
+    cashierId: ['cashier-123'],
   });
 
   assert.deepEqual(query.where, {
     status: 'CONTACTED',
     cashierId: 'cashier-123',
-    adCode: {
-      contains: 'camp-2026',
-      mode: 'insensitive',
-    },
   });
 });

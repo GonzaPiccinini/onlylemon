@@ -145,8 +145,8 @@ export interface DateRangeFilters {
 }
 
 export interface LeadsFilters {
-  status?: LeadStatus;
-  cashierId?: string;
+  status?: LeadStatus[];
+  cashierId?: string[];
   adCode?: string;
 }
 

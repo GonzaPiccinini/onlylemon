@@ -108,8 +108,12 @@ export const adminService = {
   async listLeads(filters: LeadsFilters): Promise<Lead[]> {
     const { data } = await http.get<Lead[]>(endpoints.admin.leads, {
       params: {
-        ...(filters.status ? { status: filters.status } : {}),
-        ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
+        ...(filters.status && filters.status.length > 0
+          ? { status: filters.status.join(',') }
+          : {}),
+        ...(filters.cashierId && filters.cashierId.length > 0
+          ? { cashierId: filters.cashierId.join(',') }
+          : {}),
         ...(filters.adCode ? { adCode: filters.adCode } : {}),
       },
     });
