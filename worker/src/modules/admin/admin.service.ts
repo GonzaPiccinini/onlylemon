@@ -8,7 +8,7 @@ import {
   disableCashier,
   enableCashier,
   getCashierLandings,
-  getConvertedLeadsByConvertedAtRange,
+  getConversionsByDateRange,
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
   listCashiers,
@@ -404,23 +404,6 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
   }));
 };
 
-// NOTE: groupConvertedLeadsByDay is kept for backward compatibility (tests reference it).
-// It now maps { createdAt: Date }[] (no amount, no totalValue — always 0).
-// New callers should use groupConversionsByDay which handles the Conversion entity.
-export const groupConvertedLeadsByDay = (
-  leads: Array<{ createdAt: Date }>,
-): Array<{ date: string; totalValue: number }> => {
-  const grouped = new Map<string, number>();
-
-  leads.forEach((lead) => {
-    const day = formatArgentinaDayKey(lead.createdAt);
-    grouped.set(day, (grouped.get(day) ?? 0));
-  });
-
-  return [...grouped.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([date, totalValue]) => ({ date, totalValue }));
-};
 
 /**
  * M2.9 — groupConversionsByDay
@@ -447,13 +430,13 @@ export const groupConversionsByDay = (
 
 export const getFundsSeriesService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const leads = await getConvertedLeadsByConvertedAtRange(
+  const conversions = await getConversionsByDateRange(
     range.from,
     range.to,
     query.cashierId,
   );
 
-  return groupConvertedLeadsByDay(leads);
+  return groupConversionsByDay(conversions);
 };
 
 export const listLeadsService = async (filters: LeadsFilterQuery) => {

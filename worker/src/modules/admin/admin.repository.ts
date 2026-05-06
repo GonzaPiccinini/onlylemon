@@ -180,14 +180,27 @@ export const getLeadsByDateRange = (
     },
   });
 
-// NOTE: Lead.convertedAt and Lead.amount were removed in meta-conversions-refactor migration.
-// getConvertedLeadsByConvertedAtRange is now a stub returning empty array.
-// getFundsSeriesService (admin.service.ts) will be replaced in M2 with Conversion-based query.
-export const getConvertedLeadsByConvertedAtRange = (
-  _from: Date,
-  _to: Date,
-  _cashierId?: string,
-): Promise<{ id: string; createdAt: Date }[]> => Promise.resolve([]);
+/**
+ * M3.5 — getConversionsByDateRange
+ * Returns all Conversions in the date range (for getFundsSeriesService histogram).
+ * Optional cashierId scopes to a specific cashier's leads.
+ */
+export const getConversionsByDateRange = (
+  from: Date,
+  to: Date,
+  cashierId?: string,
+) =>
+  prisma.conversion.findMany({
+    where: {
+      createdAt: { gte: from, lt: to },
+      ...(cashierId ? { lead: { cashierId } } : {}),
+    },
+    select: {
+      createdAt: true,
+      amount: true,
+    },
+    orderBy: { createdAt: 'asc' },
+  });
 
 export const listLandings = () =>
   prisma.landing.findMany({
