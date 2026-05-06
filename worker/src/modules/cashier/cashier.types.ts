@@ -4,8 +4,6 @@ export const createConversionSchema = z.object({
   amount: z.coerce.number().min(3000),
 });
 
-/** @deprecated Use createConversionSchema instead */
-export const convertLeadSchema = createConversionSchema;
 
 export type ConvertLeadPayload = z.infer<typeof createConversionSchema>;
 

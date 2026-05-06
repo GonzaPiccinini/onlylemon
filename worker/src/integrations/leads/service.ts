@@ -1,6 +1,5 @@
 import { customAlphabet } from 'nanoid';
 import { z } from 'zod';
-import { config } from '../../config/env.js';
 import { leadCodeCollisionsTotal } from '../../lib/metrics.js';
 import { logger } from '../../lib/logger.js';
 import { getNumberByLid } from '../waha/client.js';
@@ -127,11 +126,6 @@ export type CreateLeadDependencies = {
   onCodeCollision: () => void;
 };
 
-function getExpiresAt(now: Date): Date {
-  const maxHours = 7 * 24;
-  const ttlHours = Math.min(config.LEADS_CODE_TTL_HOURS, maxHours);
-  return new Date(now.getTime() + ttlHours * 60 * 60 * 1000);
-}
 
 function extractLeadCode(body: string): string | null {
   const match = body.match(/\bCODIGO\s*:\s*([a-z0-9]{8})\b/i);
@@ -407,7 +401,6 @@ export async function createLeadWithDependencies(
 
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
     const code = dependencies.generateCode();
-    // NOTE: expiresAt removed in meta-conversions-refactor; getExpiresAt kept for config compatibility
 
     try {
       const lead = await dependencies.saveLead({
@@ -467,7 +460,6 @@ export async function mapLeadCodeToPhone(
   }
 
   const now = new Date();
-  // NOTE: expiresAt guard removed in meta-conversions-refactor (Lead.expiresAt was dropped)
 
   const cashier = await getCashierBySessionName(session);
   if (!cashier) {

@@ -174,8 +174,6 @@ export const listLeadsForCashier = async (
   cashierId: string,
   status?: LeadStatus,
 ) => {
-  // NOTE: expiresAt guard and EXPIRED status update removed in meta-conversions-refactor
-
   return prisma.lead.findMany({
     where: {
       cashierId,

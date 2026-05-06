@@ -261,8 +261,6 @@ export const getSummaryService = async (query: DateRangeQuery) => {
   const expiredLeads = 0;
   const totalLeads = notContacted + contacted + converted;
 
-  // NOTE: totalConvertedValue and averageConversionHours now require Conversion rows
-  // (Lead.amount and Lead.convertedAt were dropped). These will be updated in M2.
   const totalConvertedValue = 0;
   const averageConvertedValue = 0;
   const averageConversionHours = 0;
@@ -351,8 +349,6 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
 
     if (lead.status === 'CONVERTED') {
       current.convertedLeads += 1;
-      // NOTE: Lead.amount was dropped in meta-conversions-refactor. convertedValue will be
-      // updated in M2 to sum from Conversion rows.
     }
 
     // EXPIRED was removed in meta-conversions-refactor; expiredLeads stays at 0 (compat shim)
