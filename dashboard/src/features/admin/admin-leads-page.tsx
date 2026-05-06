@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
 import { PaginationControls } from '@/components/common/pagination-controls';
@@ -37,7 +37,6 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
   { label: 'No contactado', value: 'NOT_CONTACTED' },
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
-  { label: 'Expirado', value: 'EXPIRED' },
 ];
 
 export const AdminLeadsPage = () => {
@@ -158,7 +157,7 @@ export const AdminLeadsPage = () => {
                 <TableHead>Estado</TableHead>
                 <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
-                <TableHead>Monto</TableHead>
+                {/* TODO M7: add timeline column */}
                 <TableHead>Actividad</TableHead>
               </TableRow>
             </TableHeader>
@@ -189,9 +188,7 @@ export const AdminLeadsPage = () => {
                     </TableCell>
                     <TableCell>{lead.cashierName ?? 'Sin asignar'}</TableCell>
                     <TableCell>{lead.phone ?? '-'}</TableCell>
-                    <TableCell>
-                      {lead.amount === null ? '-' : formatCurrency(lead.amount)}
-                    </TableCell>
+                    {/* TODO M7: add statusTimeline column */}
                     <TableCell>{formatDateTime(lead.activityAt ?? lead.createdAt)}</TableCell>
                   </TableRow>
                 ))

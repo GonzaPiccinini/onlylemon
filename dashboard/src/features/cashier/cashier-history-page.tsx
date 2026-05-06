@@ -25,7 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency } from '@/lib/format';
 import { useCashierLeads } from '@/features/cashier/cashier-hooks';
 import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
@@ -35,7 +34,6 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
   { label: 'Todos', value: 'ALL' },
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
-  { label: 'Expirado', value: 'EXPIRED' },
 ];
 
 export const CashierHistoryPage = () => {
@@ -100,7 +98,7 @@ export const CashierHistoryPage = () => {
                 <TableHead>Codigo</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Telefono</TableHead>
-                <TableHead>Monto</TableHead>
+                {/* TODO M6: add Conversiones / timeline columns */}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -128,9 +126,7 @@ export const CashierHistoryPage = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{lead.phone ?? '-'}</TableCell>
-                    <TableCell>
-                      {lead.amount === null ? '-' : formatCurrency(lead.amount)}
-                    </TableCell>
+                    {/* TODO M6: add statusTimeline column */}
                   </TableRow>
                 ))
               )}
