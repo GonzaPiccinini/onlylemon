@@ -241,9 +241,13 @@ export const getSummaryService = async (query: DateRangeQuery) => {
     query.cashierId,
   );
 
+  const notContacted = leads.filter(
+    (lead) => lead.status === 'NOT_CONTACTED',
+  ).length;
   const contacted = leads.filter((lead) => lead.status === 'CONTACTED').length;
   const converted = leads.filter((lead) => lead.status === 'CONVERTED').length;
   const expired = leads.filter((lead) => lead.status === 'EXPIRED').length;
+  const totalLeads = notContacted + contacted + converted + expired;
 
   const totalConvertedValue = leads
     .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
@@ -288,14 +292,12 @@ export const getSummaryService = async (query: DateRangeQuery) => {
   }, 0);
 
   return {
-    totalLeads: contacted + converted,
+    totalLeads,
+    notContactedLeads: notContacted,
     contactedLeads: contacted,
     convertedLeads: converted,
     expiredLeads: expired,
-    conversionRate:
-      contacted + converted === 0
-        ? 0
-        : (converted / (contacted + converted)) * 100,
+    conversionRate: totalLeads === 0 ? 0 : (converted / totalLeads) * 100,
     totalConvertedValue,
     averageConvertedValue,
     averageConversionHours,
