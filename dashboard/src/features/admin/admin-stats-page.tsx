@@ -88,7 +88,6 @@ export const AdminStatsPage = () => {
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                {/* TODO M7: chart now uses {date, count, sum} shape — update chart config */}
                 <Bar dataKey="sum" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
