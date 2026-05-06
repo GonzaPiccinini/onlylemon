@@ -497,41 +497,103 @@ Reemplazar `GRAFANA_*` con los valores de la cuenta Grafana Cloud.
 
 ## Fase 7 — Backup diario a Cloudflare R2
 
-### `/home/deploy/onlylemon/backup.sh` (solo VPS2)
+### Script de backup (solo dashboard-vps)
 
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
+El script vive versionado en el repo: [`infra/dashboard-vps/backup.sh`](../infra/dashboard-vps/backup.sh). En el VPS queda automáticamente en `/home/deploy/onlylemon/infra/dashboard-vps/backup.sh` después de cualquier deploy (el workflow hace `git reset --hard` en `~/onlylemon`).
 
-TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
-BACKUP_FILE="/tmp/onlylemon_${TIMESTAMP}.sql.gz"
+Resumen de lo que hace:
 
-docker compose -f /home/deploy/onlylemon/docker-compose.yml exec -T postgres \
-  pg_dump -U onlylemon onlylemon | gzip > "$BACKUP_FILE"
+- Dump de Postgres con `pg_dump` dentro del container (`docker compose exec -T postgres`), comprimido con gzip.
+- Sube a Cloudflare R2 con `rclone copy` al bucket `onlylemon-backup`.
+- Limpia backups locales > 3 días y remotos > 30 días.
+- Loguea cada paso con timestamp ISO-8601 UTC al stdout (capturado por el cron en `/var/log/onlylemon-backup.log`).
 
-rclone copy "$BACKUP_FILE" r2:onlylemon-backups/ --s3-no-check-bucket
-
-# Retención: borrar locales > 3 días, remotos > 30 días
-find /tmp -name 'onlylemon_*.sql.gz' -mtime +3 -delete
-rclone delete r2:onlylemon-backups/ --min-age 30d
-
-logger -t onlylemon-backup "backup_completed file=$BACKUP_FILE"
-```
+Si hay que cambiar retención, nombre del bucket, o el archivo de compose, editar el script en el repo y mergear — no editar la copia del VPS.
 
 ### Instalar rclone + configurar R2
 
 ```bash
 curl https://rclone.org/install.sh | sudo bash
-rclone config   # crear remote "r2" tipo s3, provider Cloudflare, endpoint https://<accountid>.r2.cloudflarestorage.com
-chmod 600 ~/.config/rclone/rclone.conf
-chmod +x /home/deploy/onlylemon/backup.sh
+sudo -u deploy rclone config   # crear remote "r2" tipo s3, provider Cloudflare, endpoint https://<accountid>.r2.cloudflarestorage.com
+sudo -u deploy chmod 600 /home/deploy/.config/rclone/rclone.conf
+chmod +x /home/deploy/onlylemon/infra/dashboard-vps/backup.sh
 ```
+
+> Importante: configurar rclone como el usuario `deploy` (el mismo que va a correr el cron). Si se configura como root, el cron de `deploy` no encuentra el remote.
 
 ### Crontab (usuario `deploy`)
 
 ```cron
-0 5 * * * /home/deploy/onlylemon/backup.sh >> /var/log/onlylemon-backup.log 2>&1
+0 8 * * * /home/deploy/onlylemon/infra/dashboard-vps/backup.sh >> /var/log/onlylemon-backup.log 2>&1
 ```
+
+> El cron se interpreta en la TZ del sistema. Si el VPS está en UTC, `0 8 * * *` corresponde a 05:00 ART. Si el VPS está en `America/Argentina/Buenos_Aires`, usar `0 5 * * *`. Verificar con `timedatectl`.
+
+### Verificar que el cron está bien instalado y va a ejecutarse
+
+Ejecutar como usuario `deploy`:
+
+```bash
+# 1. La entrada está registrada
+crontab -l | grep backup.sh
+
+# 2. El script es ejecutable
+ls -l /home/deploy/onlylemon/infra/dashboard-vps/backup.sh
+chmod +x /home/deploy/onlylemon/infra/dashboard-vps/backup.sh   # si falta +x
+
+# 3. El log existe y deploy puede escribirlo
+sudo touch /var/log/onlylemon-backup.log
+sudo chown deploy:deploy /var/log/onlylemon-backup.log
+
+# 4. deploy puede usar docker sin sudo
+groups deploy | grep -q docker && echo "ok docker group" || echo "FALTA: usermod -aG docker deploy"
+
+# 5. rclone tiene el remote r2 para deploy (no para root)
+sudo -u deploy rclone listremotes | grep -q '^r2:' && echo "ok rclone" || echo "FALTA configurar rclone como deploy"
+```
+
+### Simular el entorno del cron (pre-flight)
+
+El entorno del cron es minimalista (sin tu `$PATH` interactivo). Para emularlo y descartar problemas de variables:
+
+```bash
+sudo -u deploy env -i HOME=/home/deploy PATH=/usr/bin:/bin /home/deploy/onlylemon/infra/dashboard-vps/backup.sh
+```
+
+Si pasa acá, el cron real va a pasar. Si falla pero corre con `bash backup.sh`, el problema es alguna variable de entorno.
+
+### Ver los logs del cron después del disparo
+
+Hay dos cosas distintas: el daemon de cron y el output del script.
+
+```bash
+# (a) Daemon de cron — confirma que disparó (o que hubo error de sintaxis)
+sudo journalctl -u cron -n 50 --no-pager
+sudo journalctl -u cron --since today | grep backup.sh
+
+# (b) Output del script
+tail -n 100 /var/log/onlylemon-backup.log
+tail -f /var/log/onlylemon-backup.log    # en vivo
+
+# (c) Confirmar que el dump llegó a R2
+sudo -u deploy rclone ls r2:onlylemon-backup/ | tail
+```
+
+Diagnóstico rápido por escenario:
+
+- Sin entradas en journald a la hora pactada → el cron nunca disparó (sintaxis del crontab mal, daemon caído, o crontab del usuario equivocado).
+- En journald sí, pero el log del script vacío → arrancó pero no pudo escribir el log (permisos del archivo) o murió antes del primer `echo`.
+- En ambos pero el script falla → el error está en `/var/log/onlylemon-backup.log`.
+
+### Forzar una ejecución de prueba sin esperar
+
+Editar temporalmente el crontab para disparar en 2 minutos, por ejemplo si son las 14:30:
+
+```cron
+32 14 * * * /home/deploy/onlylemon/infra/dashboard-vps/backup.sh >> /var/log/onlylemon-backup.log 2>&1
+```
+
+Esperar 2-3 minutos, mirar `tail -f /var/log/onlylemon-backup.log` y `rclone ls r2:onlylemon-backup/` para confirmar que subió. Después restaurar la entrada original.
 
 Probar backup + restore antes de dar por listo:
 
