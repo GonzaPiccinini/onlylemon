@@ -44,7 +44,8 @@ test('createConversion calls tx.conversion.create with leadId and amount and ret
   const result = await createConversion(txMock, { leadId: 'lead-1', amount: 5000 });
 
   assert.equal(txMock.conversion.create.mock.callCount(), 1);
-  const callArg = txMock.conversion.create.mock.calls[0].arguments[0];
+  const calls = txMock.conversion.create.mock.calls as Array<{ arguments: unknown[] }>;
+  const callArg = calls[0].arguments[0];
   assert.deepEqual(callArg, {
     data: { leadId: 'lead-1', amount: 5000 },
   });
@@ -55,7 +56,7 @@ test('createConversion calls tx.conversion.create with leadId and amount and ret
 // M2.3 — searchLeadsForCashier repository
 // ---------------------------------------------------------------------------
 
-test('searchLeadsForCashier returns empty array when q is empty without querying', async (t) => {
+test('searchLeadsForCashier returns empty array when q is empty without querying', async () => {
   const { searchLeadsForCashier } = await import('./cashier.repository.js');
   // With empty q the function should return [] without calling prisma
   // We can't easily intercept prisma here, but since q='' the branch guard returns [] immediately

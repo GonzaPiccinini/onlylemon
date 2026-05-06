@@ -58,7 +58,6 @@ export type LeadMatchResult =
   | 'NO_CODE'
   | 'INVALID_CODE'
   | 'NOT_FOUND'
-  | 'EXPIRED'
   | 'ALREADY_USED'
   | 'SESSION_NOT_MAPPED'
   | 'MATCHED'

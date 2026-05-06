@@ -199,9 +199,10 @@ test('cashier toLeadDto: statusTimeline includes only NOT_CONTACTED when no cont
     { status: 'NOT_CONTACTED', at: createdAt },
   ]);
   // Dropped fields must not appear
-  assert.equal(result.amount, undefined);
-  assert.equal(result.expiresAt, undefined);
-  assert.equal(result.convertedAt, undefined);
+  const resultAny = result as unknown as Record<string, unknown>;
+  assert.equal(resultAny.amount, undefined);
+  assert.equal(resultAny.expiresAt, undefined);
+  assert.equal(resultAny.convertedAt, undefined);
 });
 
 test('cashier toLeadDto: statusTimeline includes NOT_CONTACTED and CONTACTED when contactedAt is set', async () => {
