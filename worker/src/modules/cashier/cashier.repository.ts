@@ -1,6 +1,8 @@
 import { LeadStatus, type Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../persistence/prisma/client.js';
 
+export const SEARCH_RESULTS_LIMIT = 10;
+
 export const getCashierSession = (cashierId: string) =>
   prisma.cashier.findUniqueOrThrow({
     where: { id: cashierId },
@@ -133,7 +135,7 @@ export const searchLeadsForCashier = (cashierId: string, q: string) => {
       status: { in: ['CONTACTED', 'CONVERTED'] },
       OR: [{ code: { contains: q } }, { phone: { contains: q } }],
     },
-    take: 10,
+    take: SEARCH_RESULTS_LIMIT,
     orderBy: { contactedAt: 'desc' },
     include: {
       conversions: {
