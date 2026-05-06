@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
+import { LeadStatusTimeline } from '@/components/common/lead-status-timeline';
 import { useAdminCashiers, useAdminLeads } from '@/features/admin/admin-hooks';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -43,6 +44,8 @@ export const AdminLeadsPage = () => {
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
   const [cashierId, setCashierId] = useState<string>('ALL');
   const [adCode, setAdCode] = useState('');
+  const [code, setCode] = useState('');
+  const [phone, setPhone] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -52,8 +55,10 @@ export const AdminLeadsPage = () => {
       status: status === 'ALL' ? undefined : status,
       cashierId: cashierId === 'ALL' ? undefined : cashierId,
       adCode: adCode.trim() || undefined,
+      code: code.trim() || undefined,
+      phone: phone.trim() || undefined,
     }),
-    [adCode, cashierId, status],
+    [adCode, cashierId, code, phone, status],
   );
   const { data: leads = [], isLoading } = useAdminLeads(filters);
   const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
@@ -147,6 +152,30 @@ export const AdminLeadsPage = () => {
                 }}
               />
             </div>
+
+            <div className="flex flex-col gap-2">
+              <FieldLabel>Filtrar por codigo</FieldLabel>
+              <Input
+                value={code}
+                placeholder="Ej. ABC123"
+                onChange={(event) => {
+                  setCode(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <FieldLabel>Filtrar por telefono</FieldLabel>
+              <Input
+                value={phone}
+                placeholder="Ej. +54911..."
+                onChange={(event) => {
+                  setPhone(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
           </div>
 
           <Table>
@@ -157,7 +186,7 @@ export const AdminLeadsPage = () => {
                 <TableHead>Estado</TableHead>
                 <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
-                {/* TODO M7: add timeline column */}
+                <TableHead>Historico</TableHead>
                 <TableHead>Actividad</TableHead>
               </TableRow>
             </TableHeader>
@@ -188,7 +217,9 @@ export const AdminLeadsPage = () => {
                     </TableCell>
                     <TableCell>{lead.cashierName ?? 'Sin asignar'}</TableCell>
                     <TableCell>{lead.phone ?? '-'}</TableCell>
-                    {/* TODO M7: add statusTimeline column */}
+                    <TableCell>
+                      <LeadStatusTimeline timeline={lead.statusTimeline} />
+                    </TableCell>
                     <TableCell>{formatDateTime(lead.activityAt ?? lead.createdAt)}</TableCell>
                   </TableRow>
                 ))
