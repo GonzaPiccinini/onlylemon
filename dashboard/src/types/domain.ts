@@ -111,6 +111,7 @@ export interface Lead {
 
 export interface StatsSummary {
   totalLeads: number;
+  notContactedLeads: number;
   contactedLeads: number;
   convertedLeads: number;
   expiredLeads: number;
