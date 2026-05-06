@@ -6,6 +6,7 @@
 - `gateway/` is only the WAHA webhook ingress: validates `POST /api/webhook`, then enqueues BullMQ jobs in Redis.
 - `worker/` is the business backend: Express API, BullMQ consumer, Prisma/Postgres, WAHA client, Meta Conversion events.
 - Production is split across two compose files: `docker-compose.waha-vps.yml` owns Redis/WAHA/gateway; `docker-compose.dashboard-vps.yml` owns Postgres/worker/dashboard.
+- Local dev has its own self-contained compose: `docker-compose.local.yml` (postgres + redis + gateway + worker + dashboard, with WAHA behind the `waha` profile). It mirrors prod images/config but uses no-password redis and bakes `VITE_API_BASE_URL=http://localhost:4000/api` into the dashboard build.
 
 ## CI/CD and deploy
 - Three workflows in `.github/workflows/`:
@@ -26,8 +27,12 @@
 - After touching `worker/prisma/schema.prisma`, run `npm --prefix worker run prisma:generate`; migrations live in `worker/prisma/migrations/` and prod runs `prisma migrate deploy` at container start.
 
 ## Local setup gotchas
-- Local external services are Redis 7 on `localhost:6379` and Postgres 16 on `localhost:5432`; the README has docker one-liners.
-- `worker/` intentionally has no `.env.example`; copy required vars from `worker/README.md` or `docker-compose.dashboard-vps.yml`.
+- Two ways to run locally: `docker-compose.local.yml` (full stack, recommended) or per-service `npm run dev` against standalone redis/postgres containers (README has the one-liners).
+- Compose container naming is `onlylemon-{service}-local`; postgres breaks the pattern as `onlylemon-postgres-stack-local` to avoid clashing with any pre-existing `onlylemon-postgres-local` legacy container.
+- Compose worker port is `4000` (matches prod); standalone `npm run dev` worker port is `3002` (Vite dashboard's default). Don't mix the two: a dashboard built with `VITE_API_BASE_URL=...:4000/api` won't talk to a `npm run dev` worker on `3002`.
+- WAHA is behind a Compose profile (`--profile waha`) and uses the prod image `devlikeapro/waha-plus:gows`; `docker login` to docker.io with access to that private repo is required to pull it. Worker boots without WAHA — only WhatsApp calls fail at runtime.
+- Worker zod schema requires all `WAHA_*` envs; the local compose passes dummy values so the worker boots even without the WAHA profile active.
+- `worker/` intentionally has no `.env.example`; copy required vars from `worker/README.md`, `docker-compose.local.yml`, or `docker-compose.dashboard-vps.yml`.
 - `gateway/` and `dashboard/` do have `.env.example` files.
 - Dashboard `VITE_*` envs are build-time values, but `dashboard/src/config/env.ts` rewrites `localhost` API URLs to the browser host when testing from another device.
 
