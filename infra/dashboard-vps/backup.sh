@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Backup diario de Postgres a Cloudflare R2
-# Crontab: 0 5 * * * /home/deploy/onlylemon/backup.sh >> /var/log/onlylemon-backup.log 2>&1
+# Crontab: 0 11 * * * /home/deploy/onlylemon/infra/dashboard-vps/backup.sh >> /var/log/onlylemon-backup.log 2>&1
+# El crontab marca 0 11 porque hay 6 hs. de diferencia con ARG.
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 set -euo pipefail
 
-COMPOSE_FILE="/home/deploy/onlylemon/docker-compose.yml"
+COMPOSE_FILE="/home/deploy/onlylemon/docker-compose.dashboard-vps.yml"
 TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
 BACKUP_DIR="/home/deploy/onlylemon/backups"
 mkdir -p "$BACKUP_DIR"
