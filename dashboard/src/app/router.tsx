@@ -8,10 +8,12 @@ import { AdminCashiersPage } from "@/features/admin/admin-cashiers-page";
 import { AdminStatsPage } from "@/features/admin/admin-stats-page";
 import { AdminLandingsPage } from "@/features/admin/admin-landings-page";
 import { AdminLeadsPage } from "@/features/admin/admin-leads-page";
+import { AdminConversionsPage } from "@/features/admin/admin-conversions-page";
 import { CashierSessionPage } from "@/features/cashier/cashier-session-page";
 import { CashierAddFundsPage } from "@/features/cashier/cashier-add-funds-page";
 import { CashierHistoryPage } from "@/features/cashier/cashier-history-page";
 import { CashierAccountPage } from "@/features/cashier/cashier-account-page";
+import { CashierConversionsPage } from "@/features/cashier/cashier-conversions-page";
 
 export const router = createBrowserRouter([
   {
@@ -48,6 +50,10 @@ export const router = createBrowserRouter([
                 element: <AdminLeadsPage />,
               },
               {
+                path: "/admin/conversions",
+                element: <AdminConversionsPage />,
+              },
+              {
                 path: "/admin/account",
                 element: <AdminAccountPage />,
               },
@@ -67,6 +73,10 @@ export const router = createBrowserRouter([
               {
                 path: "/cashier/history",
                 element: <CashierHistoryPage />,
+              },
+              {
+                path: "/cashier/conversions",
+                element: <CashierConversionsPage />,
               },
               {
                 path: "/cashier/account",
