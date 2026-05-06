@@ -16,7 +16,7 @@ export interface AuthSession {
 
 export type CashierStatus = "ACTIVE" | "DISABLED";
 export type LandingStatus = "ACTIVE" | "DISABLED";
-export type LeadStatus = "NOT_CONTACTED" | "CONTACTED" | "CONVERTED" | "EXPIRED";
+export type LeadStatus = "NOT_CONTACTED" | "CONTACTED" | "CONVERTED";
 
 export interface Landing {
   id: string;
@@ -91,22 +91,43 @@ export interface CashierRuntimeState {
   hasActiveWorkSession: boolean;
 }
 
+export interface LeadStatusTimelineEntry {
+  status: LeadStatus;
+  at: string;
+}
+
 export interface Lead {
   id: string;
   code: string;
   adCode?: string | null;
   status: LeadStatus;
   phone: string | null;
-  amount: number | null;
   metaPixelId: string;
   contactedAt: string | null;
-  convertedAt: string | null;
-  expiresAt: string;
   createdAt: string;
   activityAt?: string;
   cashierId?: string | null;
   cashierName?: string | null;
   cashierUsername?: string | null;
+  statusTimeline: LeadStatusTimelineEntry[];
+}
+
+export interface Conversion {
+  id: string;
+  leadId: string;
+  code: string;
+  phone: string | null;
+  amount: string | number;
+  createdAt: string;
+  cashierId?: string | null;
+  cashierName?: string | null;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface StatsSummary {
@@ -136,7 +157,8 @@ export interface CashierStats {
 
 export interface FundsSeriesPoint {
   date: string;
-  totalValue: number;
+  count: number;
+  sum: number;
 }
 
 export interface DateRangeFilters {
@@ -148,7 +170,22 @@ export interface DateRangeFilters {
 export interface LeadsFilters {
   status?: LeadStatus;
   cashierId?: string;
+  cashierIds?: string[];
   adCode?: string;
+  code?: string;
+  phone?: string;
+}
+
+export interface ConversionsFilters {
+  page?: number;
+  pageSize?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  phone?: string;
+  code?: string;
+  cashierIds?: string[];
+  amountMin?: number;
+  amountMax?: number;
 }
 
 export interface CreateCashierInput {
