@@ -93,24 +93,6 @@ export const finishCurrentSessionActivity = (cashierId: string, endedAt: Date) =
     },
   });
 
-// NOTE: findQueueLeadForCashier used expiresAt and EXPIRED status, both removed in
-// meta-conversions-refactor. This function is a stub until removed in M3.
-export const findQueueLeadForCashier = async (cashierId: string) => {
-  return prisma.lead.findFirst({
-    where: {
-      cashierId,
-      status: 'CONTACTED',
-    },
-    orderBy: [
-      {
-        contactedAt: 'asc',
-      },
-      {
-        createdAt: 'asc',
-      },
-    ],
-  });
-};
 
 export const findLeadByIdForCashier = (leadId: string, cashierId: string) =>
   prisma.lead.findFirst({
@@ -120,23 +102,6 @@ export const findLeadByIdForCashier = (leadId: string, cashierId: string) =>
     },
   });
 
-export const moveLeadToQueueTail = (leadId: string, now: Date) =>
-  prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      contactedAt: now,
-    },
-  });
-
-// NOTE: convertLead used Lead.amount and Lead.convertedAt, dropped in meta-conversions-refactor.
-// This stub just sets status=CONVERTED. Will be replaced by createConversion in M2.
-export const convertLead = (leadId: string, _amount: number, _convertedAt: Date) =>
-  prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      status: 'CONVERTED',
-    },
-  });
 
 type PrismaTx = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 

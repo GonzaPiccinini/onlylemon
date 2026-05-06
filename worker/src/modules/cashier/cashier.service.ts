@@ -10,11 +10,9 @@ import {
   startSession,
 } from '../../integrations/waha/client.js';
 import {
-  convertLead,
   createConversion,
   finishCurrentSessionActivity,
   findLeadByIdForCashier,
-  findQueueLeadForCashier,
   finishSessionActivity,
   getCashierById,
   getCashierBySessionName,
@@ -23,7 +21,6 @@ import {
   listConversionsForCashier,
   listLeadsForCashier,
   listSessionActivities,
-  moveLeadToQueueTail,
   searchLeadsForCashier,
   startSessionActivity,
   updateCashierAccount,
@@ -568,119 +565,6 @@ export const completeWhatsappLinkService = async (
   };
 };
 
-export const getCurrentQueueLeadService = async (cashierId: string) => {
-  await getCashierSession(cashierId);
-  const lead = await findQueueLeadForCashier(cashierId);
-
-  if (!lead) {
-    return null;
-  }
-
-  return toLeadDto(lead);
-};
-
-export const skipQueueLeadService = async (cashierId: string, leadId: string) => {
-  const lead = await findLeadByIdForCashier(leadId, cashierId);
-  if (!lead) {
-    return 'NOT_FOUND' as const;
-  }
-
-  if (lead.status !== 'CONTACTED') {
-    return 'INVALID_STATUS' as const;
-  }
-
-  // NOTE: expiresAt guard removed in meta-conversions-refactor (Lead.expiresAt was dropped)
-  await moveLeadToQueueTail(lead.id, new Date());
-  return 'OK' as const;
-};
-
-export const convertQueueLeadService = async (
-  cashierId: string,
-  leadId: string,
-  amount: number,
-) => {
-  const lead = await findLeadByIdForCashier(leadId, cashierId);
-  if (!lead) {
-    return { kind: 'NOT_FOUND' as const };
-  }
-
-  if (lead.status !== 'CONTACTED') {
-    return { kind: 'INVALID_STATUS' as const };
-  }
-
-  // NOTE: expiresAt guard removed in meta-conversions-refactor (Lead.expiresAt was dropped)
-  if (!lead.phone) {
-    return { kind: 'PHONE_REQUIRED' as const };
-  }
-
-  const converted = await convertLead(lead.id, amount, new Date());
-
-  leadsConvertedTotal.labels(lead.metaPixelId).inc();
-  leadConversionAmountArs.labels(lead.metaPixelId).observe(amount);
-  logger.info({
-    event: 'lead_converted',
-    leadId: lead.id,
-    cashierId,
-    metaPixelId: lead.metaPixelId,
-    amount,
-  });
-
-  const landing = await getLandingByMetaPixelId(lead.metaPixelId);
-
-  if (!landing) {
-    logger.error({
-      event: 'meta_landing_not_found',
-      leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
-    });
-
-    return { kind: 'OK' as const, data: toLeadDto(converted) };
-  }
-
-  const conversionResult = await sendMetaConversion({
-    phone: lead.phone,
-    value: amount,
-    fbc: lead.fbc,
-    fbp: lead.fbp,
-    userAgent: lead.userAgent,
-    metaPixelId: lead.metaPixelId,
-    metaAccessToken: landing.metaAccessToken,
-    eventId: lead.id,
-    eventSourceUrl: landing.url,
-    leadCode: lead.code,
-  });
-
-  if (!conversionResult.purchaseSent) {
-    logger.error({
-      event: 'meta_conversion_failed',
-      leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
-      eventName: 'Purchase',
-    });
-  }
-
-  if (conversionResult.highValueRequired && !conversionResult.highValueSent) {
-    logger.error({
-      event: 'meta_conversion_failed',
-      leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
-      eventName: 'HighValueCustomer',
-    });
-  }
-
-  for (const tier of conversionResult.tiers) {
-    if (tier.required && !tier.sent) {
-      logger.error({
-        event: 'meta_conversion_failed',
-        leadId: lead.id,
-        metaPixelId: lead.metaPixelId,
-        eventName: tier.eventName,
-      });
-    }
-  }
-
-  return { kind: 'OK' as const, data: toLeadDto(converted) };
-};
 
 export const listCashierLeadsService = async (
   cashierId: string,
