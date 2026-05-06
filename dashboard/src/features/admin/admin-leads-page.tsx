@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { useAdminCashiers, useAdminLeads } from '@/features/admin/admin-hooks';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,8 @@ export const AdminLeadsPage = () => {
   const pageSize = 10;
 
   const { data: cashiers = [] } = useAdminCashiers();
+  const previousLeadStatusesRef = useRef<Map<string, LeadStatus>>(new Map());
+  const previousLeadOrderRef = useRef<string[]>([]);
   const filters = useMemo(
     () => ({
       status: status === 'ALL' ? undefined : status,
@@ -57,10 +59,64 @@ export const AdminLeadsPage = () => {
     [adCode, cashierId, status],
   );
   const { data: leads = [], isLoading } = useAdminLeads(filters);
-  const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
+  const orderedLeads = useMemo(() => {
+    if (leads.length === 0) {
+      return leads;
+    }
+
+    const previousLeadStatuses = previousLeadStatusesRef.current;
+    const previousLeadOrder = previousLeadOrderRef.current;
+    const previousIndexById = new Map(
+      previousLeadOrder.map((leadId, index) => [leadId, index]),
+    );
+
+    const leadsById = new Map(leads.map((lead) => [lead.id, lead]));
+    const nextOrder = leads.map((lead) => lead.id);
+    const transitionedToExpired = leads
+      .filter((lead) => {
+        const previousStatus = previousLeadStatuses.get(lead.id);
+        return previousStatus !== undefined
+          && previousStatus !== 'EXPIRED'
+          && lead.status === 'EXPIRED';
+      })
+      .sort((left, right) => {
+        const leftIndex = previousIndexById.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+        const rightIndex = previousIndexById.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+        return leftIndex - rightIndex;
+      });
+
+    transitionedToExpired.forEach((lead) => {
+      const previousIndex = previousIndexById.get(lead.id);
+      if (previousIndex === undefined) {
+        return;
+      }
+
+      const currentIndex = nextOrder.indexOf(lead.id);
+      if (currentIndex === -1) {
+        return;
+      }
+
+      nextOrder.splice(currentIndex, 1);
+      const targetIndex = Math.min(previousIndex, nextOrder.length);
+      nextOrder.splice(targetIndex, 0, lead.id);
+    });
+
+    return nextOrder
+      .map((leadId) => leadsById.get(leadId))
+      .filter((lead): lead is NonNullable<typeof lead> => lead !== undefined);
+  }, [leads]);
+
+  useEffect(() => {
+    previousLeadStatusesRef.current = new Map(
+      orderedLeads.map((lead) => [lead.id, lead.status]),
+    );
+    previousLeadOrderRef.current = orderedLeads.map((lead) => lead.id);
+  }, [orderedLeads]);
+
+  const totalPages = Math.max(1, Math.ceil(orderedLeads.length / pageSize));
   const normalizedPage = Math.min(page, totalPages);
   const start = (normalizedPage - 1) * pageSize;
-  const paginatedLeads = leads.slice(start, start + pageSize);
+  const paginatedLeads = orderedLeads.slice(start, start + pageSize);
 
   return (
     <section className="flex flex-col gap-4">
@@ -167,7 +223,7 @@ export const AdminLeadsPage = () => {
                 <TableRow>
                   <TableCell colSpan={7}>Cargando leads...</TableCell>
                 </TableRow>
-              ) : leads.length === 0 ? (
+              ) : orderedLeads.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7}>
                     No hay leads para el filtro seleccionado.
