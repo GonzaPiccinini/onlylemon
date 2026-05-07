@@ -8,6 +8,8 @@ Núcleo de negocio de OnlyLemon. Combina tres responsabilidades en un solo proce
 
 **Stack**: Node.js 20 · TypeScript · Express 4 · Prisma 7 · PostgreSQL · BullMQ · Redis · Zod · Pino · JWT · prom-client
 
+> **First-run setup**: On a fresh deployment with no SUPER_ADMIN, the dashboard will automatically render a setup form at `/setup`. Submit it to create the first SUPER_ADMIN. No manual SQL is required. See `GET /api/auth/setup-status` and `POST /api/auth/setup`.
+
 ## Responsabilidades
 
 - **Leads**: `POST /api/leads` crea un lead con un `code` único alfanumérico (8 chars, nanoid), asocia un cashier disponible para la landing (`metaPixelId`) y devuelve `{ code, number }`. Envía `Lead` a Meta Conversion API.
@@ -69,7 +71,7 @@ worker/
 | `CashierLanding` | Muchos-a-muchos entre cashier y landing. |
 | `ProcessedJob` | Idempotencia: `jobKey` único por evento. |
 
-Enums: `Role(ADMIN\|CASHIER)`, `CashierStatus(ACTIVE\|DISABLED)`, `LandingStatus(ACTIVE\|DISABLED)`, `LeadStatus(NOT_CONTACTED\|CONTACTED\|CONVERTED\|EXPIRED)`.
+Enums: `Role(ADMIN\|CASHIER\|SUPER_ADMIN)`, `CashierStatus(ACTIVE\|DISABLED)`, `AdminStatus(ACTIVE\|DISABLED)`, `LandingStatus(ACTIVE\|DISABLED)`, `LeadStatus(NOT_CONTACTED\|CONTACTED\|CONVERTED\|EXPIRED)`.
 
 ## Variables de entorno
 
@@ -150,15 +152,15 @@ npm run dev
 
 El worker abre HTTP en `:3002` y se suscribe a la cola `inbound`. Para probar end-to-end local, levantar también el gateway apuntando al mismo Redis.
 
-### Crear usuario admin inicial
+### Crear usuario admin inicial (in-app setup)
 
-No hay seed script commiteado; se puede crear con `prisma studio`, un SQL directo o un script propio. Ejemplo vía `psql`:
+El primer SUPER_ADMIN se crea en-app: navegá al dashboard, el sistema detecta automáticamente que no hay
+ningún super-admin (`GET /api/auth/setup-status → { needsSetup: true }`) y muestra el formulario de
+configuración inicial. Completalo para crear la cuenta. No se requiere SQL manual.
 
-```sql
-INSERT INTO "User" (id, name, username, password, role, "createdAt", "updatedAt")
-VALUES (gen_random_uuid(), 'root', 'root', '<bcrypt-hash>', 'ADMIN', now(), now());
-INSERT INTO "Admin" (id, "userId", "createdAt", "updatedAt")
-VALUES (gen_random_uuid(), (SELECT id FROM "User" WHERE username='root'), now(), now());
+Si por algún motivo necesitás verificar que el setup fue aplicado:
+```bash
+psql "$DATABASE_URL" -c "SELECT count(*) FROM \"User\" WHERE role='SUPER_ADMIN';"
 ```
 
 ## Endpoints HTTP
@@ -181,16 +183,24 @@ VALUES (gen_random_uuid(), (SELECT id FROM "User" WHERE username='root'), now(),
 
 | Método | Path | Descripción |
 |---|---|---|
+| GET | `/api/auth/setup-status` | Público. `{ needsSetup: true }` si no existe ningún `SUPER_ADMIN`. |
+| POST | `/api/auth/setup` | Público. Crea el primer SUPER_ADMIN atómicamente. `201` con JWT, `409` si ya existe. |
 | POST | `/api/auth/login` | Login. Devuelve JWT. |
 | GET | `/api/auth/me` | Usuario autenticado. |
 | POST | `/api/auth/logout` | Invalida token. |
 
-### Admin (`requireRole('ADMIN')`)
+### Admin (`requireRole('ADMIN', 'SUPER_ADMIN')`)
 
 Cashiers: `GET/POST /api/admin/cashiers`, `PUT /:id`, `PATCH /:id/disable|enable`, `GET/PUT /:id/landings`.
 Landings: `GET/POST /api/admin/landings`, `PUT /:id`, `PATCH /:id/disable|enable`.
 Stats: `GET /api/admin/stats/summary|cashiers|funds-series`.
 Leads: `GET /api/admin/leads`.
+
+**SUPER_ADMIN only** (`requireRole('SUPER_ADMIN')`):
+- `GET /api/admin/admins` — lista todos los admins (ADMIN + SUPER_ADMIN).
+- `POST /api/admin/admins` — crea un nuevo ADMIN.
+- `PATCH /api/admin/admins/:id` — edita nombre/usuario/contraseña.
+- `PATCH /api/admin/admins/:id/status` — habilita o deshabilita (no se puede auto-deshabilitar).
 
 ### Cashier (`requireRole('CASHIER')`)
 

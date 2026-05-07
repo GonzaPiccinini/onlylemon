@@ -463,6 +463,73 @@ export const updateAdminAccount = (
     select: { id: true, username: true, name: true },
   });
 
+// ---------------------------------------------------------------------------
+// Admin CRUD helpers (tasks 15–18)
+// ---------------------------------------------------------------------------
+
+export const findAdminById = (adminId: string) =>
+  prisma.admin.findUnique({
+    where: { id: adminId },
+    include: { user: { select: { id: true, name: true, username: true, role: true } } },
+  });
+
+export const listAdmins = () =>
+  prisma.admin.findMany({
+    include: { user: { select: { id: true, name: true, username: true, role: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+export const createAdmin = async (input: {
+  name: string;
+  username: string;
+  hashedPassword: string;
+}) =>
+  prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name: input.name,
+        username: input.username,
+        password: input.hashedPassword,
+        role: 'ADMIN',
+      },
+    });
+
+    return tx.admin.create({
+      data: { userId: user.id },
+      include: { user: { select: { id: true, name: true, username: true, role: true } } },
+    });
+  });
+
+export const updateAdmin = async (
+  adminId: string,
+  input: { name?: string; username?: string; hashedPassword?: string },
+) =>
+  prisma.$transaction(async (tx) => {
+    const admin = await tx.admin.findUnique({ where: { id: adminId } });
+    if (!admin) return null;
+
+    await tx.user.update({
+      where: { id: admin.userId },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.username !== undefined ? { username: input.username } : {}),
+        ...(input.hashedPassword ? { password: input.hashedPassword } : {}),
+      },
+    });
+
+    return tx.admin.findUnique({
+      where: { id: adminId },
+      include: { user: { select: { id: true, name: true, username: true, role: true } } },
+    });
+  });
+
+export const setAdminStatus = (adminId: string, status: 'ACTIVE' | 'DISABLED') =>
+  prisma.admin.update({
+    where: { id: adminId },
+    data: { status },
+    include: { user: { select: { id: true, name: true, username: true, role: true } } },
+  });
+
 export const replaceCashierLandings = async (
   cashierId: string,
   landingIds: string[],

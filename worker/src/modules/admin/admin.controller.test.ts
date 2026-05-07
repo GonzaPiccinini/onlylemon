@@ -124,3 +124,116 @@ test('listAdminConversionsHandler: cashierIds CSV parsed correctly (DB-integrate
 
   assert.ok([200, 500].includes(res.statusCode));
 });
+
+// ---------------------------------------------------------------------------
+// Task 23 — Admin CRUD controller handlers (TDD: RED → GREEN)
+// ---------------------------------------------------------------------------
+
+test('admin controller exports listAdminsHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.listAdminsHandler, 'function');
+});
+
+test('admin controller exports createAdminHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.createAdminHandler, 'function');
+});
+
+test('admin controller exports updateAdminHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.updateAdminHandler, 'function');
+});
+
+test('admin controller exports setAdminStatusHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.setAdminStatusHandler, 'function');
+});
+
+// ---------------------------------------------------------------------------
+// createAdminHandler — validation guard
+// ---------------------------------------------------------------------------
+
+test('createAdminHandler: invalid payload (missing name) → 400', async () => {
+  const { createAdminHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ body: { username: 'testuser', password: 'password1' } });
+  const res = makeRes();
+
+  await createAdminHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('createAdminHandler: invalid payload (password too short) → 400', async () => {
+  const { createAdminHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ body: { name: 'Test', username: 'testuser', password: 'abc' } });
+  const res = makeRes();
+
+  await createAdminHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('createAdminHandler: password 7 chars (below min 8) → 400', async () => {
+  const { createAdminHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ body: { name: 'Test', username: 'testuser', password: 'abcdefg' } });
+  const res = makeRes();
+
+  await createAdminHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+// ---------------------------------------------------------------------------
+// updateAdminHandler — validation guard
+// ---------------------------------------------------------------------------
+
+test('updateAdminHandler: empty body (no fields) → 400', async () => {
+  const { updateAdminHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ body: {}, params: { adminId: 'admin-1' } });
+  const res = makeRes();
+
+  await updateAdminHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('updateAdminHandler: invalid password (too short) → 400', async () => {
+  const { updateAdminHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ body: { password: 'abc' }, params: { adminId: 'admin-1' } });
+  const res = makeRes();
+
+  await updateAdminHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('updateAdminHandler: password 7 chars (below min 8) → 400', async () => {
+  const { updateAdminHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ body: { password: 'abcdefg' }, params: { adminId: 'admin-1' } });
+  const res = makeRes();
+
+  await updateAdminHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+// ---------------------------------------------------------------------------
+// setAdminStatusHandler — validation guard
+// ---------------------------------------------------------------------------
+
+test('setAdminStatusHandler: invalid status value → 400', async () => {
+  const { setAdminStatusHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ body: { status: 'UNKNOWN' }, params: { adminId: 'admin-1' } });
+  const res = makeRes();
+
+  await setAdminStatusHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});

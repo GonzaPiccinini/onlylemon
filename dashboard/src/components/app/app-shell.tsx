@@ -11,6 +11,7 @@ import {
   LogOutIcon,
   TagsIcon,
   UsersIcon,
+  ShieldCheckIcon,
   ArrowRightLeftIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,11 @@ const adminLinks: ShellLink[] = [
   { to: "/admin/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/admin/landings", label: "Landings", icon: TagsIcon },
   { to: "/admin/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
+];
+
+// Extra links visible only to SUPER_ADMIN
+const superAdminLinks: ShellLink[] = [
+  { to: "/admin/admins", label: "Admins", icon: ShieldCheckIcon },
 ];
 
 const cashierLinks: ShellLink[] = [
@@ -76,22 +82,26 @@ export const AppShell = () => {
     return null;
   }
 
-  const links =
-    user.role === "ADMIN"
-      ? adminLinks
-      : cashierLinks.filter((link) => {
-          if (link.to !== "/cashier/add-funds") {
-            return true;
-          }
+  const isAdminRole = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
 
-          return runtimeState?.canOperateLeads ?? true;
-        });
+  const links = isAdminRole
+    ? [
+        ...adminLinks,
+        ...(user.role === "SUPER_ADMIN" ? superAdminLinks : []),
+      ]
+    : cashierLinks.filter((link) => {
+        if (link.to !== "/cashier/add-funds") {
+          return true;
+        }
+
+        return runtimeState?.canOperateLeads ?? true;
+      });
 
   return (
     <div className="relative mx-auto flex min-h-svh w-full max-w-[1360px] gap-4 px-3 py-3 md:gap-6 md:px-6 md:py-6">
       <aside className="sticky top-4 hidden h-[calc(100svh-2rem)] w-[250px] flex-col justify-between rounded-2xl border bg-sidebar/90 p-5 shadow-sm backdrop-blur md:flex">
         <div className="flex flex-col gap-6">
-          <Link to={user.role === "ADMIN" ? "/admin" : "/cashier"} className="block">
+          <Link to={isAdminRole ? "/admin" : "/cashier"} className="block">
             <img
               src="/logo_con_nombre.png"
               alt="Lemonbet"
@@ -134,7 +144,9 @@ export const AppShell = () => {
                 </p>
               ) : null}
             </div>
-            <Badge variant="secondary">{user.role === "ADMIN" ? "Admin" : "Cajero"}</Badge>
+            <Badge variant="secondary">
+              {user.role === "SUPER_ADMIN" ? "Super Admin" : user.role === "ADMIN" ? "Admin" : "Cajero"}
+            </Badge>
           </div>
           <Button variant="outline" onClick={logout}>
             <LogOutIcon data-icon="inline-start" />
@@ -147,7 +159,9 @@ export const AppShell = () => {
         <header className="flex items-center justify-between rounded-2xl border bg-card/95 px-3 py-3 shadow-sm md:hidden">
           <div className="flex items-center gap-2">
             <img src="/logo_sin_nombre.png" alt="Lemonbet" className="size-8 object-contain" loading="eager" />
-            <Badge variant="secondary">{user.role === "ADMIN" ? "Admin" : "Cajero"}</Badge>
+            <Badge variant="secondary">
+              {user.role === "SUPER_ADMIN" ? "Super Admin" : user.role === "ADMIN" ? "Admin" : "Cajero"}
+            </Badge>
           </div>
           <Button variant="outline" size="sm" onClick={logout}>
             <LogOutIcon data-icon="inline-start" />

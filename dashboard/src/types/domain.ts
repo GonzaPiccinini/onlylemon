@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "CASHIER";
+export type Role = "ADMIN" | "CASHIER" | "SUPER_ADMIN";
 
 export interface User {
   id: string;
@@ -246,4 +246,38 @@ export interface UpdateCashierAccountInput {
 export interface UpdateAdminAccountInput {
   username?: string;
   password?: string;
+}
+
+export type AdminStatus = "ACTIVE" | "DISABLED";
+
+export interface AdminListItem {
+  id: string;
+  name: string;
+  username: string;
+  role: Role;
+  status: AdminStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAdminInput {
+  name: string;
+  username: string;
+  password: string;
+}
+
+export interface UpdateAdminInput {
+  name?: string;
+  username?: string;
+  password?: string;
+}
+
+export interface SetupStatusResponse {
+  needsSetup: boolean;
+}
+
+export interface SetupInput {
+  name: string;
+  username: string;
+  password: string;
 }

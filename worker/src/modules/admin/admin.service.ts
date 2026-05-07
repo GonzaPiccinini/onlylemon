@@ -1,25 +1,31 @@
 import { hashPassword } from '../../utils/password.js';
-import type { UpdateAdminAccountInput } from './admin.types.js';
+import type { UpdateAdminAccountInput, UpdateAdminInput } from './admin.types.js';
+import type { AdminStatus, Role } from '../../generated/prisma/client.js';
 import { deleteSession, getSessions } from '../../integrations/waha/client.js';
 import { emitCashierRuntimeStateChanged } from '../cashier/runtime-events.js';
 import {
+  createAdmin,
   createCashier,
   createLanding,
   disableCashier,
   enableCashier,
+  findAdminById,
   getConversionsByLeadContactedDateRange,
   getCashierLandings,
   getConversionsByDateRange,
   getConversionsWithLeadByDateRange,
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
+  listAdmins,
   listCashiers,
   getCashierById,
   listConversionsAdmin,
   listLandings,
   listLeads,
   replaceCashierLandings,
+  setAdminStatus,
   setLandingStatus,
+  updateAdmin,
   updateAdminAccount,
   updateCashier,
   updateLanding,
@@ -579,6 +585,120 @@ export const replaceCashierLandingsService = async (
 ) => {
   const items = await replaceCashierLandings(cashierId, landingIds);
   return items.map((item) => toLandingDto(item.landing));
+};
+
+// ---------------------------------------------------------------------------
+// Admin CRUD — error classes (tasks 19–22)
+// ---------------------------------------------------------------------------
+
+export class AdminNotFoundError extends Error {
+  constructor() {
+    super('Admin not found');
+    this.name = 'AdminNotFoundError';
+  }
+}
+
+/**
+ * SelfDisableError is thrown by setAdminStatusService when the caller tries
+ * to change their own status. Self-edit of name/username/password is allowed
+ * (per locked decision 6), but self-status-change is not (REQ-ADMIN-STATUS-1).
+ */
+export class SelfDisableError extends Error {
+  constructor() {
+    super('Cannot change own admin status');
+    this.name = 'SelfDisableError';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Admin CRUD — DTO mapper (task 19–22)
+// ---------------------------------------------------------------------------
+
+const toAdminDto = (admin: {
+  id: string;
+  status: AdminStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  user: { id: string; name: string; username: string; role: Role };
+}) => ({
+  id: admin.id,
+  userId: admin.user.id,
+  name: admin.user.name,
+  username: admin.user.username,
+  role: admin.user.role as 'ADMIN' | 'SUPER_ADMIN',
+  status: admin.status as 'ACTIVE' | 'DISABLED',
+  createdAt: admin.createdAt,
+  updatedAt: admin.updatedAt,
+});
+
+// ---------------------------------------------------------------------------
+// Admin CRUD services (tasks 19–22)
+// ---------------------------------------------------------------------------
+
+/**
+ * Task 19 — createAdminService
+ * Hashes password, creates User+Admin in a transaction, returns DTO.
+ * Username collision is surfaced as a Prisma P2002 error — the controller maps it to 409.
+ */
+export const createAdminService = async (input: {
+  name: string;
+  username: string;
+  password: string;
+}) => {
+  const created = await createAdmin({
+    name: input.name,
+    username: input.username,
+    hashedPassword: hashPassword(input.password),
+  });
+  return toAdminDto(created);
+};
+
+/**
+ * Task 20 — listAdminsService
+ * Thin wrapper that returns all admins (ADMIN + SUPER_ADMIN) ordered by createdAt DESC.
+ */
+export const listAdminsService = async () => {
+  const admins = await listAdmins();
+  return admins.map(toAdminDto);
+};
+
+/**
+ * Task 21 — updateAdminService
+ * Partial update — at least one field required (validated upstream via updateAdminSchema).
+ * Does NOT block self-edit per locked decision 6.
+ * Throws AdminNotFoundError if admin does not exist.
+ * Username collision surfaces as Prisma P2002 — controller maps to 409.
+ */
+export const updateAdminService = async (
+  adminId: string,
+  input: UpdateAdminInput,
+) => {
+  const updated = await updateAdmin(adminId, {
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...(input.username !== undefined ? { username: input.username } : {}),
+    ...(input.password ? { hashedPassword: hashPassword(input.password) } : {}),
+  });
+  if (!updated) throw new AdminNotFoundError();
+  return toAdminDto(updated);
+};
+
+/**
+ * Task 22 — setAdminStatusService
+ * Blocks self-disable: if the target admin's userId equals the caller's userId,
+ * throws SelfDisableError (mapped to 403 in the controller).
+ * This applies regardless of whether the requested status is ACTIVE or DISABLED.
+ */
+export const setAdminStatusService = async (
+  callerUserId: string,
+  adminId: string,
+  status: 'ACTIVE' | 'DISABLED',
+) => {
+  const target = await findAdminById(adminId);
+  if (!target) throw new AdminNotFoundError();
+  if (target.user.id === callerUserId) throw new SelfDisableError();
+
+  const updated = await setAdminStatus(adminId, status);
+  return toAdminDto(updated);
 };
 
 /**

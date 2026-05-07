@@ -1,16 +1,21 @@
 import type { Request, Response } from 'express';
 import {
   conversionsFilterSchema,
+  createAdminSchema,
   createCashierSchema,
   createLandingSchema,
   dateRangeSchema,
   leadsFilterSchema,
   replaceCashierLandingsSchema,
+  setAdminStatusSchema,
   updateAdminAccountSchema,
+  updateAdminSchema,
   updateCashierSchema,
   updateLandingSchema,
 } from './admin.types.js';
 import {
+  AdminNotFoundError,
+  createAdminService,
   createCashierService,
   createLandingService,
   disableCashierService,
@@ -20,13 +25,17 @@ import {
   getFundsSeriesService,
   getSummaryService,
   listAdminConversionsService,
+  listAdminsService,
   listCashierLandingsService,
   listCashiersService,
   listLeadsService,
   listLandingsService,
   replaceCashierLandingsService,
+  setAdminStatusService,
   setLandingStatusService,
+  SelfDisableError,
   updateAdminAccountService,
+  updateAdminService,
   updateCashierService,
   updateLandingService,
 } from './admin.service.js';
@@ -266,6 +275,88 @@ export const replaceCashierLandingsHandler = async (
     return res.status(409).json({
       error: error instanceof Error ? error.message : 'Could not replace landings',
     });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Admin CRUD handlers (task 23)
+// All gated by requireAuth + requireRole('SUPER_ADMIN') in admin.routes.ts
+// ---------------------------------------------------------------------------
+
+export const listAdminsHandler = async (_req: Request, res: Response) => {
+  const data = await listAdminsService();
+  return res.status(200).json(data);
+};
+
+export const createAdminHandler = async (req: Request, res: Response) => {
+  const parsed = createAdminSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const data = await createAdminService(parsed.data);
+    return res.status(201).json(data);
+  } catch (e) {
+    const prismaError = e as { code?: string };
+    if (prismaError?.code === 'P2002') {
+      return res.status(409).json({ error: 'Username already in use' });
+    }
+    return res.status(500).json({ error: 'Could not create admin' });
+  }
+};
+
+export const updateAdminHandler = async (req: Request, res: Response) => {
+  const parsed = updateAdminSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const data = await updateAdminService(req.params.adminId, parsed.data);
+    return res.status(200).json(data);
+  } catch (e) {
+    if (e instanceof AdminNotFoundError) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    const prismaError = e as { code?: string };
+    if (prismaError?.code === 'P2002') {
+      return res.status(409).json({ error: 'Username already in use' });
+    }
+    return res.status(500).json({ error: 'Could not update admin' });
+  }
+};
+
+export const setAdminStatusHandler = async (req: Request, res: Response) => {
+  const parsed = setAdminStatusSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const data = await setAdminStatusService(
+      req.authUser!.userId,
+      req.params.adminId,
+      parsed.data.status,
+    );
+    return res.status(200).json(data);
+  } catch (e) {
+    if (e instanceof AdminNotFoundError) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    if (e instanceof SelfDisableError) {
+      return res.status(403).json({ error: 'self_disable_not_allowed' });
+    }
+    return res.status(500).json({ error: 'Could not change admin status' });
   }
 };
 

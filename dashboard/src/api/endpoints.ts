@@ -3,6 +3,8 @@ export const endpoints = {
     login: "/auth/login",
     me: "/auth/me",
     logout: "/auth/logout",
+    setupStatus: "/auth/setup-status",
+    setup: "/auth/setup",
   },
   admin: {
     account: "/admin/account",
@@ -22,6 +24,9 @@ export const endpoints = {
     statsSummary: "/admin/stats/summary",
     statsByCashier: "/admin/stats/cashiers",
     statsFundsSeries: "/admin/stats/funds-series",
+    admins: "/admin/admins",
+    adminById: (adminId: string) => `/admin/admins/${adminId}`,
+    adminStatus: (adminId: string) => `/admin/admins/${adminId}/status`,
   },
   cashier: {
     sessions: "/cashier/sessions",

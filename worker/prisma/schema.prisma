@@ -22,11 +22,12 @@ model User {
 }
 
 model Admin {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String      @id @default(uuid())
+  user      User        @relation(fields: [userId], references: [id])
+  userId    String      @unique
+  status    AdminStatus @default(ACTIVE)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@map("Admin")
 }
@@ -123,9 +124,15 @@ enum CashierStatus {
   DISABLED
 }
 
+enum AdminStatus {
+  ACTIVE
+  DISABLED
+}
+
 enum Role {
   CASHIER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum LandingStatus {

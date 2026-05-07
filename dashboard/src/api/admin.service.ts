@@ -2,10 +2,13 @@ import { endpoints } from "@/api/endpoints";
 import { http } from "@/api/http";
 import type {
   AdminFundsSeries,
+  AdminListItem,
+  AdminStatus,
   Cashier,
   CashierStats,
   Conversion,
   ConversionsFilters,
+  CreateAdminInput,
   CreateLandingInput,
   CreateCashierInput,
   DateRangeFilters,
@@ -15,6 +18,7 @@ import type {
   PaginatedResult,
   StatsSummary,
   UpdateAdminAccountInput,
+  UpdateAdminInput,
   UpdateLandingInput,
   UpdateCashierInput,
 } from "@/types/domain";
@@ -146,5 +150,25 @@ export const adminService = {
 
   async updateAdminAccount(input: UpdateAdminAccountInput): Promise<void> {
     await http.patch(endpoints.admin.account, input);
+  },
+
+  async listAdmins(): Promise<AdminListItem[]> {
+    const { data } = await http.get<AdminListItem[]>(endpoints.admin.admins);
+    return data;
+  },
+
+  async createAdmin(input: CreateAdminInput): Promise<AdminListItem> {
+    const { data } = await http.post<AdminListItem>(endpoints.admin.admins, input);
+    return data;
+  },
+
+  async updateAdmin(adminId: string, input: UpdateAdminInput): Promise<AdminListItem> {
+    const { data } = await http.patch<AdminListItem>(endpoints.admin.adminById(adminId), input);
+    return data;
+  },
+
+  async setAdminStatus(adminId: string, status: AdminStatus): Promise<AdminListItem> {
+    const { data } = await http.patch<AdminListItem>(endpoints.admin.adminStatus(adminId), { status });
+    return data;
   },
 };
