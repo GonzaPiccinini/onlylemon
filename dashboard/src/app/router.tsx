@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { AppShell } from "@/components/app/app-shell";
 import { AuthRedirect } from "@/components/app/auth-redirect";
+import { NotFound } from "@/components/app/not-found";
 import { RoleGuard } from "@/components/app/role-guard";
 import { LoginPage } from "@/features/auth/login-page";
 import { AdminAccountPage } from "@/features/admin/admin-account-page";
@@ -102,5 +103,9 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  {
+    path: "*",
+    element: <NotFound />,
   },
 ]);
