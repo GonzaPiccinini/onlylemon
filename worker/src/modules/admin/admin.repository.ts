@@ -253,7 +253,7 @@ export const getLandingByMetaPixelId = (metaPixelId: string) =>
   });
 
 export const listLeads = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+  statuses?: Array<'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'>;
   cashierId?: string;
   cashierIds?: string[];
   adCode?: string;
@@ -263,7 +263,7 @@ export const listLeads = (filters: {
   prisma.lead.findMany(buildListLeadsQuery(filters));
 
 export const buildListLeadsQuery = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+  statuses?: Array<'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'>;
   cashierId?: string;
   cashierIds?: string[];
   adCode?: string;
@@ -272,7 +272,7 @@ export const buildListLeadsQuery = (filters: {
 }) =>
   ({
     where: {
-      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
       ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
       ...(filters.cashierIds?.length ? { cashierId: { in: filters.cashierIds } } : {}),
       ...(filters.adCode

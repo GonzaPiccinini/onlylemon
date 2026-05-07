@@ -30,17 +30,17 @@ test('buildListLeadsQuery orders leads by updateAt desc', async () => {
   });
 });
 
-test('buildListLeadsQuery keeps optional status, cashier and adCode filters', async () => {
+test('buildListLeadsQuery keeps optional statuses, cashier and adCode filters', async () => {
   const { buildListLeadsQuery } = await import('./admin.repository.js');
 
   const query = buildListLeadsQuery({
-    status: 'CONTACTED',
+    statuses: ['CONTACTED'],
     cashierId: 'cashier-123',
     adCode: 'camp-2026',
   });
 
   assert.deepEqual(query.where, {
-    status: 'CONTACTED',
+    status: { in: ['CONTACTED'] },
     cashierId: 'cashier-123',
     adCode: {
       contains: 'camp-2026',
@@ -143,10 +143,22 @@ test('buildListLeadsQuery: cashierIds filter maps to cashierId in', async () => 
   assert.deepEqual(q.where.cashierId, { in: ['c1', 'c2'] });
 });
 
-test('buildListLeadsQuery: status filter (CONVERTED) sets status field', async () => {
+test('buildListLeadsQuery: statuses filter (CONVERTED) sets status in field', async () => {
   const { buildListLeadsQuery } = await import('./admin.repository.js');
-  const q = buildListLeadsQuery({ status: 'CONVERTED' });
-  assert.equal(q.where.status, 'CONVERTED');
+  const q = buildListLeadsQuery({ statuses: ['CONVERTED'] });
+  assert.deepEqual(q.where.status, { in: ['CONVERTED'] });
+});
+
+test('buildListLeadsQuery: multiple statuses sets status in array', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ statuses: ['CONTACTED', 'CONVERTED'] });
+  assert.deepEqual(q.where.status, { in: ['CONTACTED', 'CONVERTED'] });
+});
+
+test('buildListLeadsQuery: empty statuses array does not set status filter', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ statuses: [] });
+  assert.equal(q.where.status, undefined);
 });
 
 test('buildListConversionsQuery: listConversionsAdmin function is exported', async () => {

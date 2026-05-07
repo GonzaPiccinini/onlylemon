@@ -128,7 +128,7 @@ export const AdminConversionsPage = () => {
               <FieldLabel>Telefono</FieldLabel>
               <Input
                 value={phone}
-                placeholder="Ej. +54911..."
+                placeholder="Ej. 54911..."
                 onChange={handleFilterChange(setPhone)}
               />
             </div>
