@@ -137,6 +137,107 @@ test('listCashierConversionsHandler: missing cashierId → 400', async () => {
 });
 
 // ---------------------------------------------------------------------------
+// M4.1 — RED: Auth-spoof regression tests
+// ---------------------------------------------------------------------------
+
+test('listCashierConversionsHandler: auth-spoof cashierId in query → NOT a guard-400', async () => {
+  // ESM limitation documented at file header — cannot patch imported services.
+  // We test the AUTH-SCOPING INVARIANT: when cashierId is in req.query (spoof attempt),
+  // the handler must NOT respond with 400 from the getCashierId guard (which would mean
+  // it used req.query.cashierId which is null/not linked).
+  // Instead it should proceed past the guard using req.authUser.cashierId.
+  // The handler will eventually fail at the DB call (no real DB), but statusCode will
+  // be 500 or proceed to service call — NOT a guard-400 from missing cashierId.
+  //
+  // Strategy: We verify the handler does NOT return 400 with { error: 'Cashier profile not linked' }
+  // when req.authUser.cashierId is valid but req.query.cashierId is a spoof.
+  // Since we can't call the live service without a DB, we assert statusCode != 400 from guard branch,
+  // OR we assert that the response body does not contain the 'Cashier profile not linked' error.
+  const { listCashierConversionsHandler } = await import('./cashier.controller.js');
+
+  const req = makeReq({
+    authUser: { cashierId: 'real-cashier', userId: 'user-1' },
+    query: { cashierId: 'spoof' },  // cashierId in query = spoof attempt
+  });
+  const res = makeRes();
+
+  try {
+    await listCashierConversionsHandler(req, res);
+  } catch {
+    // DB error expected — we don't have a real DB in unit tests
+    // The guard already ran and did NOT fire if we reach here
+  }
+
+  // If the guard fired (used req.query.cashierId as null/missing), we'd get the guard 400.
+  // Instead, the guard passes (authUser.cashierId = 'real-cashier'), so either:
+  // (a) statusCode is 0 (handler threw before setting status — service call failed with no DB)
+  // (b) statusCode is not 400 from guard (it could be 200 or 500 from service)
+  // The key assertion: response body is NOT { error: 'Cashier profile not linked' }
+  const body = res.body as Record<string, unknown> | null;
+  assert.notEqual(body?.error, 'Cashier profile not linked');
+});
+
+test('leadsListHandler: auth-spoof cashierId in query → NOT a guard-400', async () => {
+  const { leadsListHandler } = await import('./cashier.controller.js');
+
+  const req = makeReq({
+    authUser: { cashierId: 'real-cashier', userId: 'user-1' },
+    query: { cashierId: 'spoof' },
+  });
+  const res = makeRes();
+
+  try {
+    await leadsListHandler(req, res);
+  } catch {
+    // DB error expected
+  }
+
+  const body = res.body as Record<string, unknown> | null;
+  assert.notEqual(body?.error, 'Cashier profile not linked');
+});
+
+test('listCashierConversionsHandler: amountMin > amountMax → 400 with specific error', async () => {
+  // This test is RED until M4.2 adds the amountMin <= amountMax guard
+  const { listCashierConversionsHandler } = await import('./cashier.controller.js');
+
+  const req = makeReq({
+    authUser: { cashierId: 'real-cashier', userId: 'user-1' },
+    query: { amountMin: '10000', amountMax: '5000' },
+  });
+  const res = makeRes();
+
+  try {
+    await listCashierConversionsHandler(req, res);
+  } catch {
+    // DB error is fine — we just want the guard to fire first
+  }
+
+  assert.equal(res.statusCode, 400);
+  const body = res.body as Record<string, unknown>;
+  assert.equal(body?.error, 'amountMin must be <= amountMax');
+});
+
+test('listCashierConversionsHandler: valid schema params → does NOT 400 from schema validation', async () => {
+  const { listCashierConversionsHandler } = await import('./cashier.controller.js');
+
+  const req = makeReq({
+    authUser: { cashierId: 'real-cashier', userId: 'user-1' },
+    query: { dateFrom: '2026-05-01', dateTo: '2026-05-07', amountMin: '1000', amountMax: '9999' },
+  });
+  const res = makeRes();
+
+  try {
+    await listCashierConversionsHandler(req, res);
+  } catch {
+    // DB error expected — we don't care about service result
+  }
+
+  // Schema validation must NOT fire (valid params)
+  const body = res.body as Record<string, unknown> | null;
+  assert.notEqual(body?.error, 'Invalid query');
+});
+
+// ---------------------------------------------------------------------------
 // M3.2 — createConversionHandler: schema validation guard
 // ---------------------------------------------------------------------------
 

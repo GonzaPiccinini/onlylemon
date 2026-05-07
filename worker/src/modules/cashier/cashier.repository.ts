@@ -1,4 +1,4 @@
-import { LeadStatus, type Prisma } from '../../generated/prisma/client.js';
+import { type Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../persistence/prisma/client.js';
 
 export const SEARCH_RESULTS_LIMIT = 10;
@@ -147,18 +147,53 @@ export const searchLeadsForCashier = (cashierId: string, q: string) => {
   });
 };
 
+type CashierConversionsFilters = {
+  dateFrom?: Date;
+  dateTo?: Date;
+  amountMin?: number;
+  amountMax?: number;
+  phone?: string;
+  code?: string;
+};
+
+type CashierLeadsFilters = {
+  statuses?: Array<'CONTACTED' | 'CONVERTED'>;
+  code?: string;
+  phone?: string;
+};
+
 /**
- * M2.4 — Paginated list of conversions for a cashier's leads, ordered createdAt DESC.
+ * Paginated list of conversions for a cashier's leads, ordered createdAt DESC.
+ * cashierId is ALWAYS pinned first in the where clause — never overridable by filters.
  */
 export const listConversionsForCashier = (
   cashierId: string,
+  filters: CashierConversionsFilters,
   page: number,
   pageSize: number,
 ) => {
+  const leadWhere: Record<string, unknown> = { cashierId };  // ALWAYS scoped
+  if (filters.phone) leadWhere.phone = { contains: filters.phone };
+  if (filters.code)  leadWhere.code  = { contains: filters.code };
+
+  const createdAt: Record<string, Date> = {};
+  if (filters.dateFrom) createdAt.gte = filters.dateFrom;
+  if (filters.dateTo)   createdAt.lt  = filters.dateTo;
+
+  const amount: Record<string, number> = {};
+  if (filters.amountMin !== undefined) amount.gte = filters.amountMin;
+  if (filters.amountMax !== undefined) amount.lte = filters.amountMax;
+
+  const where = {
+    lead: leadWhere,
+    ...(Object.keys(createdAt).length ? { createdAt } : {}),
+    ...(Object.keys(amount).length ? { amount } : {}),
+  };
+
   const skip = (page - 1) * pageSize;
   return Promise.all([
     prisma.conversion.findMany({
-      where: { lead: { cashierId } },
+      where,
       skip,
       take: pageSize,
       orderBy: { createdAt: 'desc' },
@@ -168,24 +203,33 @@ export const listConversionsForCashier = (
         },
       },
     }),
-    prisma.conversion.count({ where: { lead: { cashierId } } }),
+    prisma.conversion.count({ where }),
   ]);
 };
 
-export const listLeadsForCashier = async (
-  cashierId: string,
-  status?: LeadStatus,
-) => {
-  return prisma.lead.findMany({
+/**
+ * List leads for a cashier, applying optional filters.
+ * cashierId is ALWAYS pinned in the where clause — never overridable by filters.
+ * NOTE: NOT_CONTACTED exclusion is enforced at the service layer, not here.
+ *       Repo applies statuses[] filter as-is from the (already-cleaned) service input.
+ */
+export const listLeadsForCashier = (cashierId: string, filters: CashierLeadsFilters) =>
+  prisma.lead.findMany({
     where: {
-      cashierId,
-      ...(status ? { status } : {}),
+      cashierId,  // ALWAYS scoped — never overridden
+      ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
+      ...(filters.code   ? { code:   { contains: filters.code } } : {}),
+      ...(filters.phone  ? { phone:  { contains: filters.phone } } : {}),
     },
-    orderBy: {
-      createdAt: 'desc',
+    orderBy: { createdAt: 'desc' },
+    include: {
+      conversions: {
+        select: { createdAt: true },
+        orderBy: { createdAt: 'asc' },
+        take: 1,
+      },
     },
   });
-};
 
 export const updateCashierAccount = async (
   cashierId: string,

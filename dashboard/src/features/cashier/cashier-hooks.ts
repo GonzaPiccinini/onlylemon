@@ -2,15 +2,15 @@ import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cashierService } from "@/api/cashier.service";
 import { env } from "@/config/env";
-import type { CashierRuntimeState, ConvertLeadInput, LeadStatus } from "@/types/domain";
+import type { CashierConversionsFilters, CashierLeadsFilters, CashierRuntimeState, ConvertLeadInput } from "@/types/domain";
 
 const cashierKeys = {
   sessions: ["cashier", "sessions"] as const,
   currentSession: ["cashier", "current-session"] as const,
   runtimeState: ["cashier", "runtime-state"] as const,
-  leads: (status?: LeadStatus) => ["cashier", "leads", status ?? "ALL"] as const,
+  leads: (filters: CashierLeadsFilters) => ["cashier", "leads", filters] as const,
   searchLeads: (q: string) => ["cashier", "leads", "search", q] as const,
-  conversions: (page: number, pageSize: number) => ["cashier", "conversions", page, pageSize] as const,
+  conversions: (filters: CashierConversionsFilters) => ["cashier", "conversions", filters] as const,
   whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
   whatsappLinkStatus: ["cashier", "whatsapp-link-status"] as const,
 };
@@ -135,16 +135,16 @@ export const useSearchCashierLeads = (q: string, options?: { enabled?: boolean }
     enabled: q.length > 0 && (options?.enabled ?? true),
   });
 
-export const useCashierConversions = ({ page, pageSize }: { page: number; pageSize: number }) =>
+export const useCashierConversions = (filters: CashierConversionsFilters) =>
   useQuery({
-    queryKey: cashierKeys.conversions(page, pageSize),
-    queryFn: () => cashierService.listConversions({ page, pageSize }),
+    queryKey: cashierKeys.conversions(filters),
+    queryFn: () => cashierService.listConversions(filters),
   });
 
-export const useCashierLeads = (status?: LeadStatus) =>
+export const useCashierLeads = (filters: CashierLeadsFilters) =>
   useQuery({
-    queryKey: cashierKeys.leads(status),
-    queryFn: () => cashierService.listLeads(status),
+    queryKey: cashierKeys.leads(filters),
+    queryFn: () => cashierService.listLeads(filters),
   });
 
 export { cashierKeys };

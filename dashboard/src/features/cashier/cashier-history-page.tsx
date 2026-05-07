@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { LeadStatusTimeline } from '@/components/common/lead-status-timeline';
 import { Badge } from '@/components/ui/badge';
@@ -10,14 +10,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { FieldLabel } from '@/components/ui/field';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
   TableBody,
@@ -27,22 +21,31 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useCashierLeads } from '@/features/cashier/cashier-hooks';
-import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
 import { PaginationControls } from '@/components/common/pagination-controls';
 
-const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
-  { label: 'Todos', value: 'ALL' },
+const STATUS_OPTIONS: Array<{ label: string; value: 'CONTACTED' | 'CONVERTED' }> = [
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
 ];
 
 export const CashierHistoryPage = () => {
-  const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
+  const [statuses, setStatuses] = useState<Array<'CONTACTED' | 'CONVERTED'>>([]);
+  const [code, setCode] = useState('');
+  const [phone, setPhone] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const filterStatus = status === 'ALL' ? undefined : status;
-  const { data: leads = [], isLoading } = useCashierLeads(filterStatus);
+
+  const filters = useMemo(
+    () => ({
+      statuses: statuses.length > 0 ? statuses : undefined,
+      code: code.trim() || undefined,
+      phone: phone.trim() || undefined,
+    }),
+    [statuses, code, phone],
+  );
+
+  const { data: leads = [], isLoading } = useCashierLeads(filters);
   const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
   const normalizedPage = Math.min(page, totalPages);
   const start = (normalizedPage - 1) * pageSize;
@@ -63,33 +66,48 @@ export const CashierHistoryPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>
-          <div className='max-w-xs'>
+          <div className='grid gap-3 md:grid-cols-3'>
             <div className='flex flex-col gap-2'>
-              <FieldLabel>Filtrar por estado</FieldLabel>
-              <Select
-                value={status}
-                onValueChange={(value) => {
-                  setStatus(value as LeadStatus | 'ALL');
+              <FieldLabel htmlFor='cashier-leads-statuses'>
+                Filtrar por estado
+              </FieldLabel>
+              <MultiSelect
+                id='cashier-leads-statuses'
+                options={STATUS_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+                value={statuses}
+                onChange={(next) => {
+                  setStatuses(next as Array<'CONTACTED' | 'CONVERTED'>);
                   setPage(1);
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='Filtrar por estado' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {STATUS_OPTIONS.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        label={option.label}
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                placeholder='Todos los estados'
+              />
+            </div>
+
+            <div className='flex flex-col gap-2'>
+              <FieldLabel>Filtrar por codigo</FieldLabel>
+              <Input
+                value={code}
+                placeholder='Ej. ABC123'
+                onChange={(event) => {
+                  setCode(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className='flex flex-col gap-2'>
+              <FieldLabel>Filtrar por telefono</FieldLabel>
+              <Input
+                value={phone}
+                placeholder='Ej. 54911...'
+                onChange={(event) => {
+                  setPhone(event.target.value);
+                  setPage(1);
+                }}
+              />
             </div>
           </div>
 

@@ -193,6 +193,23 @@ export interface ConversionsFilters {
   amountMax?: number;
 }
 
+export interface CashierConversionsFilters {
+  page?: number;
+  pageSize?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  phone?: string;
+  code?: string;
+  amountMin?: number;
+  amountMax?: number;
+}
+
+export interface CashierLeadsFilters {
+  statuses?: Array<'CONTACTED' | 'CONVERTED'>;
+  code?: string;
+  phone?: string;
+}
+
 export interface CreateCashierInput {
   name: string;
   username: string;
