@@ -162,7 +162,7 @@ export const sendMetaConversion = async (
     customData,
   });
 
-  const highValueRequired = payload.value > 10_000;
+  const highValueRequired = payload.value >= 10_000;
   let highValueSent = false;
 
   if (highValueRequired) {

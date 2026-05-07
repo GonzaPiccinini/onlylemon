@@ -24,7 +24,7 @@ const normalizePhone = (phone: string): string => phone.replace(/\D/g, '');
 const sha256 = async (value: string): Promise<string> =>
   crypto.createHash('sha256').update(value).digest('hex');
 
-test('sendMetaConversion sends only Purchase when value is 10000 or below', async () => {
+test('sendMetaConversion sends only Purchase when value is below 10000', async () => {
   const originalFetch = globalThis.fetch;
 
   const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
@@ -42,7 +42,7 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
     const { sendMetaConversion } = await import('./conversion.js');
     const payload = {
       phone: '+54 9 11 1234-5678',
-      value: 10000,
+      value: 9999,
       fbc: 'fb.1.111',
       fbp: 'fb.1.222',
       userAgent: 'Mozilla/5.0',
@@ -97,7 +97,7 @@ test('sendMetaConversion sends only Purchase when value is 10000 or below', asyn
     assert.equal(body.data[0].event_id, 'lead-abc');
     assert.equal(body.data[0].action_source, 'website');
     assert.equal(body.data[0].event_source_url, 'https://cajero1.onlylemon.app');
-    assert.deepEqual(body.data[0].custom_data, { currency: 'ARS', value: 10000 });
+    assert.deepEqual(body.data[0].custom_data, { currency: 'ARS', value: 9999 });
     assert.equal(body.data[0].user_data.fbc, 'fb.1.111');
     assert.equal(body.data[0].user_data.fbp, 'fb.1.222');
     assert.equal(body.data[0].user_data.client_user_agent, 'Mozilla/5.0');
