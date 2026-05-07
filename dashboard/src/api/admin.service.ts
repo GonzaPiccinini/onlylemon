@@ -1,6 +1,7 @@
 import { endpoints } from "@/api/endpoints";
 import { http } from "@/api/http";
 import type {
+  AdminFundsSeries,
   Cashier,
   CashierStats,
   Conversion,
@@ -8,7 +9,6 @@ import type {
   CreateLandingInput,
   CreateCashierInput,
   DateRangeFilters,
-  FundsSeriesPoint,
   Landing,
   Lead,
   LeadsFilters,
@@ -102,8 +102,8 @@ export const adminService = {
     return data;
   },
 
-  async getFundsSeries(filters: DateRangeFilters): Promise<FundsSeriesPoint[]> {
-    const { data } = await http.get<FundsSeriesPoint[]>(
+  async getFundsSeries(filters: DateRangeFilters): Promise<AdminFundsSeries> {
+    const { data } = await http.get<AdminFundsSeries>(
       endpoints.admin.statsFundsSeries,
       {
         params: toDateRangeParams(filters),

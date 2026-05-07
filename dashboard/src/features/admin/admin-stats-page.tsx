@@ -13,6 +13,7 @@ import { MetricCard } from "@/components/common/metric-card";
 import { LoadingCard } from "@/components/common/loading-card";
 import { PeriodFilter } from "@/components/common/period-filter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Table,
   TableBody,
@@ -32,11 +33,16 @@ import {
 
 export const AdminStatsPage = () => {
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
+  const [selectedSeries, setSelectedSeries] = useState<"contacted" | "gross">("contacted");
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const { data: summary, isLoading: summaryLoading } = useAdminSummary(dateRange);
   const { data: cashierStats = [], isLoading: cashierStatsLoading } = useCashierStats(dateRange);
-  const { data: fundsSeries = [], isLoading: seriesLoading } = useFundsSeries(dateRange);
+  const { data: fundsSeries, isLoading: seriesLoading } = useFundsSeries(dateRange);
+  const chartData =
+    selectedSeries === "contacted"
+      ? (fundsSeries?.incomeByContactedDate ?? [])
+      : (fundsSeries?.grossByConversionDate ?? []);
   const totalPages = Math.max(1, Math.ceil(cashierStats.length / pageSize));
   const normalizedPage = Math.min(page, totalPages);
   const start = (normalizedPage - 1) * pageSize;
@@ -72,9 +78,24 @@ export const AdminStatsPage = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Evolucion de valor convertido</CardTitle>
-          <CardDescription>Total acumulado por dia en el periodo.</CardDescription>
+        <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle>Evolucion de ingresos</CardTitle>
+            <CardDescription>
+              {selectedSeries === "contacted"
+                ? "Ingreso por dia segun fecha de contacto del lead."
+                : "Ingreso bruto por dia segun fecha de conversion."}
+            </CardDescription>
+          </div>
+          <ToggleGroup
+            type="single"
+            value={selectedSeries}
+            onValueChange={(nextValue) => setSelectedSeries(nextValue as "contacted" | "gross")}
+            className="self-start"
+          >
+            <ToggleGroupItem value="contacted">Por contacto</ToggleGroupItem>
+            <ToggleGroupItem value="gross">Bruto por conversion</ToggleGroupItem>
+          </ToggleGroup>
         </CardHeader>
         <CardContent className="h-[300px]">
           {seriesLoading ? (
@@ -83,7 +104,7 @@ export const AdminStatsPage = () => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={fundsSeries} margin={{ top: 20, left: 8, right: 8, bottom: 8 }}>
+              <BarChart data={chartData} margin={{ top: 20, left: 8, right: 8, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="4 4" />
                 <XAxis dataKey="date" />
                 <YAxis />

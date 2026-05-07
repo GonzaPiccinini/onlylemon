@@ -161,6 +161,11 @@ export interface FundsSeriesPoint {
   sum: number;
 }
 
+export interface AdminFundsSeries {
+  grossByConversionDate: FundsSeriesPoint[];
+  incomeByContactedDate: FundsSeriesPoint[];
+}
+
 export interface DateRangeFilters {
   from: string;
   to: string;

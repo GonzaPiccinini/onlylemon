@@ -203,6 +203,33 @@ export const getConversionsByDateRange = (
   });
 
 /**
+ * Admin stats series grouped by lead.contactedAt day.
+ * Returns conversions whose lead has contactedAt in the selected date range.
+ */
+export const getConversionsByLeadContactedDateRange = (
+  from: Date,
+  to: Date,
+  cashierId?: string,
+) =>
+  prisma.conversion.findMany({
+    where: {
+      lead: {
+        contactedAt: { gte: from, lt: to },
+        ...(cashierId ? { cashierId } : {}),
+      },
+    },
+    select: {
+      amount: true,
+      lead: {
+        select: {
+          contactedAt: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+/**
  * Returns Conversions in the date range together with their lead's
  * createdAt (for averageConversionHours) and the owning cashier
  * (for per-cashier convertedValue grouping in stats services).
