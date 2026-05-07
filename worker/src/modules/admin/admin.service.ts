@@ -9,6 +9,7 @@ import {
   enableCashier,
   getCashierLandings,
   getConversionsByDateRange,
+  getConversionsWithLeadByDateRange,
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
   listCashiers,
@@ -259,16 +260,11 @@ export const enableCashierService = async (cashierId: string) => {
 
 export const getSummaryService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const leads = await getLeadsByDateRange(
-    range.from,
-    range.to,
-    query.cashierId,
-  );
-  const activities = await getSessionActivitiesByDateRange(
-    range.from,
-    range.to,
-    query.cashierId,
-  );
+  const [leads, activities, conversions] = await Promise.all([
+    getLeadsByDateRange(range.from, range.to, query.cashierId),
+    getSessionActivitiesByDateRange(range.from, range.to, query.cashierId),
+    getConversionsWithLeadByDateRange(range.from, range.to, query.cashierId),
+  ]);
 
   const notContacted = leads.filter(
     (lead) => lead.status === 'NOT_CONTACTED',
@@ -279,9 +275,23 @@ export const getSummaryService = async (query: DateRangeQuery) => {
   const expiredLeads = 0;
   const totalLeads = notContacted + contacted + converted;
 
-  const totalConvertedValue = 0;
-  const averageConvertedValue = 0;
-  const averageConversionHours = 0;
+  const totalConvertedValue = conversions.reduce(
+    (acc, conv) => acc + conv.amount.toNumber(),
+    0,
+  );
+  const averageConvertedValue =
+    conversions.length === 0 ? 0 : totalConvertedValue / conversions.length;
+  const totalConversionHours = conversions.reduce(
+    (acc, conv) =>
+      acc +
+      (conv.createdAt.getTime() - conv.lead.createdAt.getTime()) /
+        1000 /
+        60 /
+        60,
+    0,
+  );
+  const averageConversionHours =
+    conversions.length === 0 ? 0 : totalConversionHours / conversions.length;
 
   const totalActiveMinutes = activities.reduce((acc, item) => {
     if (!item.endedAt) {
@@ -309,16 +319,11 @@ export const getSummaryService = async (query: DateRangeQuery) => {
 
 export const getCashierStatsService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const leads = await getLeadsByDateRange(
-    range.from,
-    range.to,
-    query.cashierId,
-  );
-  const activities = await getSessionActivitiesByDateRange(
-    range.from,
-    range.to,
-    query.cashierId,
-  );
+  const [leads, activities, conversions] = await Promise.all([
+    getLeadsByDateRange(range.from, range.to, query.cashierId),
+    getSessionActivitiesByDateRange(range.from, range.to, query.cashierId),
+    getConversionsWithLeadByDateRange(range.from, range.to, query.cashierId),
+  ]);
 
   const grouped = new Map<
     string,
@@ -370,6 +375,33 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
     }
 
     // EXPIRED was removed in meta-conversions-refactor; expiredLeads stays at 0 (compat shim)
+  });
+
+  conversions.forEach((conv) => {
+    const cashier = conv.lead.cashier;
+    if (!cashier) {
+      return;
+    }
+
+    if (!grouped.has(cashier.id)) {
+      grouped.set(cashier.id, {
+        cashierId: cashier.id,
+        cashierName: cashier.user.name,
+        totalLeads: 0,
+        contactedLeads: 0,
+        convertedLeads: 0,
+        expiredLeads: 0,
+        convertedValue: 0,
+        activeMinutes: 0,
+      });
+    }
+
+    const current = grouped.get(cashier.id);
+    if (!current) {
+      return;
+    }
+
+    current.convertedValue += conv.amount.toNumber();
   });
 
   activities.forEach((item) => {

@@ -202,6 +202,40 @@ export const getConversionsByDateRange = (
     orderBy: { createdAt: 'asc' },
   });
 
+/**
+ * Returns Conversions in the date range together with their lead's
+ * createdAt (for averageConversionHours) and the owning cashier
+ * (for per-cashier convertedValue grouping in stats services).
+ */
+export const getConversionsWithLeadByDateRange = (
+  from: Date,
+  to: Date,
+  cashierId?: string,
+) =>
+  prisma.conversion.findMany({
+    where: {
+      createdAt: { gte: from, lt: to },
+      ...(cashierId ? { lead: { cashierId } } : {}),
+    },
+    select: {
+      createdAt: true,
+      amount: true,
+      lead: {
+        select: {
+          createdAt: true,
+          cashierId: true,
+          cashier: {
+            select: {
+              id: true,
+              user: { select: { name: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
 export const listLandings = () =>
   prisma.landing.findMany({
     orderBy: {
