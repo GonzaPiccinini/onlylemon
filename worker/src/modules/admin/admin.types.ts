@@ -148,3 +148,20 @@ export interface AdminListItem {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ---------------------------------------------------------------------------
+// admin-conversions-totals — M1
+// ---------------------------------------------------------------------------
+
+export const conversionsTotalsFilterSchema = conversionsFilterSchema.omit({
+  page: true,
+  pageSize: true,
+});
+
+export type ConversionsTotalsFilters = z.infer<typeof conversionsTotalsFilterSchema>;
+
+export interface ConversionsTotalsDto {
+  totalAmount: number;
+  count: number;
+  averageAmount: number;
+}

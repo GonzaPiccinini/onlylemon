@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import {
   conversionsFilterSchema,
+  conversionsTotalsFilterSchema,
   createAdminSchema,
   createCashierSchema,
   createLandingSchema,
@@ -23,6 +24,7 @@ import {
   disableCashierService,
   enableCashierService,
   finishCashierWorkSessionService,
+  getAdminConversionsTotalsService,
   getCashierStatsService,
   getFundsSeriesService,
   getLeadHistoryService,
@@ -422,5 +424,38 @@ export const listAdminConversionsHandler = async (req: Request, res: Response) =
   };
 
   const data = await listAdminConversionsService(filters, page, pageSize);
+  return res.status(200).json(data);
+};
+
+export const getAdminConversionsTotalsHandler = async (req: Request, res: Response) => {
+  const parsed = conversionsTotalsFilterSchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid query',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  const { dateFrom, dateTo, phone, code, adCode, cashierIds: cashierIdsCsv, amountMin, amountMax } = parsed.data;
+
+  const cashierIds = cashierIdsCsv
+    ? cashierIdsCsv
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : undefined;
+
+  const filters = {
+    dateFrom: dateFrom ? new Date(`${dateFrom}T03:00:00.000Z`) : undefined,
+    dateTo: dateTo ? new Date(`${dateTo}T03:00:00.000Z`) : undefined,
+    phone,
+    code,
+    adCode,
+    cashierIds,
+    amountMin,
+    amountMax,
+  };
+
+  const data = await getAdminConversionsTotalsService(filters);
   return res.status(200).json(data);
 };

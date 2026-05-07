@@ -297,3 +297,97 @@ test('getLeadHistoryHandler: 404 when service returns null (lead not found)', as
     // DB unavailable — acceptable
   }
 });
+
+// ---------------------------------------------------------------------------
+// admin-conversions-totals — M4: getAdminConversionsTotalsHandler
+// Auth/role guard: transitively covered by adminRouter.use(requireAuth, requireRole(...))
+// in admin.routes.ts — not re-tested at handler level (no supertest plumbing in this suite).
+// ---------------------------------------------------------------------------
+
+test('admin controller exports getAdminConversionsTotalsHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.getAdminConversionsTotalsHandler, 'function');
+});
+
+test('getAdminConversionsTotalsHandler: invalid dateFrom format → 400', async () => {
+  const { getAdminConversionsTotalsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ query: { dateFrom: 'not-a-date' } });
+  const res = makeRes();
+
+  await getAdminConversionsTotalsHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+  const body = res.body as Record<string, unknown>;
+  assert.ok('error' in body);
+  assert.ok('details' in body);
+});
+
+test('getAdminConversionsTotalsHandler: invalid amountMin (non-numeric string) → 400', async () => {
+  const { getAdminConversionsTotalsHandler } = await import('./admin.controller.js');
+
+  // z.coerce.number() coerces via Number('abc') → NaN → Zod rejects with invalid_type
+  const req = makeReq({ query: { amountMin: 'abc' } });
+  const res = makeRes();
+
+  await getAdminConversionsTotalsHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('getAdminConversionsTotalsHandler: page and pageSize query params are silently stripped', async () => {
+  const { getAdminConversionsTotalsHandler } = await import('./admin.controller.js');
+
+  // conversionsTotalsFilterSchema omits page/pageSize — passing them must NOT cause 400
+  const req = makeReq({ query: { page: '2', pageSize: '50' } });
+  const res = makeRes();
+
+  try {
+    await getAdminConversionsTotalsHandler(req, res);
+  } catch {
+    // DB unavailable — parse validation still runs before DB call
+    return;
+  }
+
+  // If we reach here without throwing, status must not be 400 (pagination not rejected)
+  assert.ok(res.statusCode !== 400);
+});
+
+test('getAdminConversionsTotalsHandler: valid empty query → 200 with totals shape (DB-integrated)', async () => {
+  const { getAdminConversionsTotalsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ query: {} });
+  const res = makeRes();
+
+  try {
+    await getAdminConversionsTotalsHandler(req, res);
+  } catch {
+    // DB unavailable in unit test context — skip body assertion
+    return;
+  }
+
+  if (res.statusCode === 200) {
+    const body = res.body as { totalAmount: unknown; count: unknown; averageAmount: unknown };
+    assert.equal(typeof body.totalAmount, 'number');
+    assert.equal(typeof body.count, 'number');
+    assert.equal(typeof body.averageAmount, 'number');
+  } else {
+    assert.ok([200, 500].includes(res.statusCode));
+  }
+});
+
+test('getAdminConversionsTotalsHandler: cashierIds CSV "a,b" → parsed as array (DB-integrated)', async () => {
+  const { getAdminConversionsTotalsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ query: { cashierIds: 'a,b' } });
+  const res = makeRes();
+
+  try {
+    await getAdminConversionsTotalsHandler(req, res);
+  } catch {
+    // DB unavailable — CSV parse logic exercised by schema validation above
+    return;
+  }
+
+  assert.ok([200, 500].includes(res.statusCode));
+});

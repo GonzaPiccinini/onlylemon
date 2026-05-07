@@ -491,6 +491,14 @@ export const listConversionsAdmin = (
   ]);
 };
 
+export const getConversionsTotals = (filters: ConversionsAdminFilters) =>
+  prisma.conversion.aggregate({
+    where: buildListConversionsQuery(filters).where,
+    _count: { _all: true },
+    _sum: { amount: true },
+    _avg: { amount: true },
+  });
+
 export const setLandingStatus = (
   landingId: string,
   status: 'ACTIVE' | 'DISABLED',
