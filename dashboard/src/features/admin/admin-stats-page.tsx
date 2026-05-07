@@ -131,7 +131,6 @@ export const AdminStatsPage = () => {
                 <TableHead>Total leads</TableHead>
                 <TableHead>Contactados</TableHead>
                 <TableHead>Convertidos</TableHead>
-                <TableHead>Expirados</TableHead>
                 <TableHead>Tasa conversion</TableHead>
                 <TableHead>Valor convertido</TableHead>
                 <TableHead>Horas</TableHead>
@@ -140,11 +139,11 @@ export const AdminStatsPage = () => {
             <TableBody>
               {cashierStatsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8}>Cargando estadisticas...</TableCell>
+                  <TableCell colSpan={7}>Cargando estadisticas...</TableCell>
                 </TableRow>
               ) : cashierStats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8}>No hay datos para el periodo seleccionado.</TableCell>
+                  <TableCell colSpan={7}>No hay datos para el periodo seleccionado.</TableCell>
                 </TableRow>
               ) : (
                 paginatedStats.map((cashier) => (
@@ -153,7 +152,6 @@ export const AdminStatsPage = () => {
                     <TableCell>{cashier.totalLeads}</TableCell>
                     <TableCell>{cashier.contactedLeads}</TableCell>
                     <TableCell>{cashier.convertedLeads}</TableCell>
-                    <TableCell>{cashier.expiredLeads}</TableCell>
                     <TableCell>{formatPercentage(cashier.conversionRate)}</TableCell>
                     <TableCell>{formatCurrency(cashier.convertedValue)}</TableCell>
                     <TableCell>{formatHours(cashier.activeHours)}</TableCell>
