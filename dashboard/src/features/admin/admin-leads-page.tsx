@@ -52,7 +52,7 @@ const renderDisplayStatusBadge = (status: LeadDisplayStatus) => {
     return (
       <Badge
         variant='outline'
-        className='!border-primary text-primary'
+        className='border-primary! text-primary'
       >
         {leadDisplayStatusLabel(status)}
       </Badge>
@@ -78,7 +78,7 @@ const renderTimelineEntryBadge = (entry: FullTimelineEntry) => {
     return (
       <Badge
         variant='outline'
-        className='shrink-0 !border-primary text-primary'
+        className='shrink-0 border-primary! text-primary'
       >
         {leadDisplayStatusLabel(entry.status)}
       </Badge>
