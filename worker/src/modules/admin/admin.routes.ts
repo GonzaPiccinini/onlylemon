@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   cashierStatsHandler,
+  createAdminHandler,
   createCashierHandler,
   createLandingHandler,
   disableCashierHandler,
@@ -10,13 +11,16 @@ import {
   finishCashierWorkSessionHandler,
   fundsSeriesHandler,
   listAdminConversionsHandler,
+  listAdminsHandler,
   listLeadsHandler,
   listCashierLandingsHandler,
   listCashiersHandler,
   listLandingsHandler,
   replaceCashierLandingsHandler,
+  setAdminStatusHandler,
   summaryHandler,
   updateAdminAccountHandler,
+  updateAdminHandler,
   updateLandingHandler,
   updateCashierHandler,
 } from './admin.controller.js';
@@ -24,7 +28,14 @@ import { requireAuth, requireRole } from '../security/auth.middleware.js';
 
 export const adminRouter = Router();
 
-adminRouter.use(requireAuth, requireRole('ADMIN'));
+// Widen from ADMIN to ADMIN+SUPER_ADMIN (REQ-AUTHZ-SUPERSET-1)
+adminRouter.use(requireAuth, requireRole('ADMIN', 'SUPER_ADMIN'));
+
+// SUPER_ADMIN-only: admin CRUD
+adminRouter.get('/admins', requireRole('SUPER_ADMIN'), listAdminsHandler);
+adminRouter.post('/admins', requireRole('SUPER_ADMIN'), createAdminHandler);
+adminRouter.patch('/admins/:adminId', requireRole('SUPER_ADMIN'), updateAdminHandler);
+adminRouter.patch('/admins/:adminId/status', requireRole('SUPER_ADMIN'), setAdminStatusHandler);
 
 adminRouter.patch('/account', updateAdminAccountHandler);
 

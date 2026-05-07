@@ -17,9 +17,18 @@ export const CashierStatus = {
 export type CashierStatus = (typeof CashierStatus)[keyof typeof CashierStatus]
 
 
+export const AdminStatus = {
+  ACTIVE: 'ACTIVE',
+  DISABLED: 'DISABLED'
+} as const
+
+export type AdminStatus = (typeof AdminStatus)[keyof typeof AdminStatus]
+
+
 export const Role = {
   CASHIER: 'CASHIER',
-  ADMIN: 'ADMIN'
+  ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN'
 } as const
 
 export type Role = (typeof Role)[keyof typeof Role]

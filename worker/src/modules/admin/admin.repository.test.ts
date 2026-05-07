@@ -163,3 +163,62 @@ test('buildListConversionsQuery: listConversionsAdmin function is exported', asy
   const { listConversionsAdmin } = await import('./admin.repository.js');
   assert.equal(typeof listConversionsAdmin, 'function');
 });
+
+// ---------------------------------------------------------------------------
+// Task 15 — createAdmin repository (TDD: RED → GREEN)
+// ---------------------------------------------------------------------------
+
+test('createAdmin is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.createAdmin, 'function');
+});
+
+test('createAdmin: arity is 1 (accepts input object)', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  const fn = mod.createAdmin as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Task 16 — listAdmins repository (TDD: RED → GREEN)
+// ---------------------------------------------------------------------------
+
+test('listAdmins is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.listAdmins, 'function');
+});
+
+test('listAdmins: arity is 0 (no parameters)', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  const fn = mod.listAdmins as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Task 17 — updateAdmin repository (TDD: RED → GREEN)
+// ---------------------------------------------------------------------------
+
+test('updateAdmin is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.updateAdmin, 'function');
+});
+
+test('updateAdmin: arity is 2 (adminId, input)', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  const fn = mod.updateAdmin as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 2);
+});
+
+// ---------------------------------------------------------------------------
+// Task 18 — setAdminStatus + findAdminById repository (TDD: RED → GREEN)
+// ---------------------------------------------------------------------------
+
+test('setAdminStatus is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.setAdminStatus, 'function');
+});
+
+test('findAdminById is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.findAdminById, 'function');
+});

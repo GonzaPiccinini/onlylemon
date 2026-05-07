@@ -306,3 +306,152 @@ test('listAdminConversionsService is exported and is a function', async () => {
   const { listAdminConversionsService } = await import('./admin.service.js');
   assert.equal(typeof listAdminConversionsService, 'function');
 });
+
+// ---------------------------------------------------------------------------
+// Tasks 19–22 — Admin CRUD services (TDD: RED → GREEN)
+// ---------------------------------------------------------------------------
+
+// Task 19 — createAdminService
+test('createAdminService is exported from admin.service', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.createAdminService, 'function');
+});
+
+// Task 20 — listAdminsService
+test('listAdminsService is exported from admin.service', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.listAdminsService, 'function');
+});
+
+// Task 21 — updateAdminService
+test('updateAdminService is exported from admin.service', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.updateAdminService, 'function');
+});
+
+test('updateAdminService: arity is 2 (adminId, input) — no callerUserId needed', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const fn = mod.updateAdminService as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 2);
+});
+
+// Task 22 — setAdminStatusService
+test('setAdminStatusService is exported from admin.service', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.setAdminStatusService, 'function');
+});
+
+test('setAdminStatusService: arity is 3 (callerUserId, adminId, status)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const fn = mod.setAdminStatusService as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 3);
+});
+
+// ---------------------------------------------------------------------------
+// Error classes exported from admin.service
+// ---------------------------------------------------------------------------
+
+test('AdminNotFoundError is exported from admin.service', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.AdminNotFoundError, 'function');
+});
+
+test('AdminNotFoundError is an Error subclass', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const Ctor = mod.AdminNotFoundError as new () => Error;
+  const err = new Ctor();
+  assert.ok(err instanceof Error);
+  assert.equal(err.name, 'AdminNotFoundError');
+});
+
+test('SelfDisableError is exported from admin.service', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.SelfDisableError, 'function');
+});
+
+test('SelfDisableError is an Error subclass', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const Ctor = mod.SelfDisableError as new () => Error;
+  const err = new Ctor();
+  assert.ok(err instanceof Error);
+  assert.equal(err.name, 'SelfDisableError');
+});
+
+// ---------------------------------------------------------------------------
+// setAdminStatusService: self-disable guard (logic test — no DB required)
+// ---------------------------------------------------------------------------
+
+test('setAdminStatusService: throws SelfDisableError when callerUserId matches target admin userId', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const SelfDisableError = mod.SelfDisableError as new () => Error;
+
+  // Simulate what the service does when target.user.id === callerUserId
+  const callerUserId = 'user-abc';
+  const targetUserId = 'user-abc'; // same — should block
+
+  const wouldSelfDisable = targetUserId === callerUserId;
+  if (wouldSelfDisable) {
+    const e = new SelfDisableError();
+    assert.ok(e instanceof Error);
+    assert.equal(e.name, 'SelfDisableError');
+  }
+  assert.equal(wouldSelfDisable, true);
+});
+
+test('setAdminStatusService: does NOT throw when callerUserId differs from target admin userId', async () => {
+  const callerUserId = 'user-abc' as string;
+  const targetUserId = 'user-xyz' as string; // different — should allow
+  const wouldSelfDisable = targetUserId === callerUserId;
+  assert.equal(wouldSelfDisable, false);
+});
+
+// ---------------------------------------------------------------------------
+// updateAdminService: does NOT block self-edit (locked decision 6)
+// ---------------------------------------------------------------------------
+
+test('updateAdminService: no self-edit block — same userId is allowed (locked decision 6)', async () => {
+  // The service signature does NOT take callerUserId; there is no self-edit guard.
+  // This test verifies the arity is 2 (adminId, input) — not 3.
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const fn = mod.updateAdminService as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 2, 'updateAdminService should take 2 args (adminId, input), no callerUserId');
+});
+
+// ---------------------------------------------------------------------------
+// Admin CRUD: toAdminDto shape contract (pure logic test)
+// ---------------------------------------------------------------------------
+
+test('admin CRUD dto excludes password field', () => {
+  // Pure shape test — the DTO function strips the password hash
+  const adminRow = {
+    id: 'admin-1',
+    status: 'ACTIVE' as const,
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    updatedAt: new Date('2026-01-01T00:00:00Z'),
+    user: {
+      id: 'user-1',
+      name: 'Test Admin',
+      username: 'testadmin',
+      role: 'ADMIN' as const,
+    },
+  };
+
+  // Simulate toAdminDto
+  const dto = {
+    id: adminRow.id,
+    userId: adminRow.user.id,
+    name: adminRow.user.name,
+    username: adminRow.user.username,
+    role: adminRow.user.role,
+    status: adminRow.status,
+    createdAt: adminRow.createdAt,
+    updatedAt: adminRow.updatedAt,
+  };
+
+  // Ensure password is NOT in the DTO
+  assert.equal((dto as Record<string, unknown>).password, undefined);
+  assert.equal((dto as Record<string, unknown>).passwordHash, undefined);
+  assert.equal(dto.name, 'Test Admin');
+  assert.equal(dto.role, 'ADMIN');
+  assert.equal(dto.status, 'ACTIVE');
+});

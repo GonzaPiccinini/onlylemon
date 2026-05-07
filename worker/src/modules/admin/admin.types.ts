@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Role } from '../../types/api.js';
 
 export const createCashierSchema = z.object({
   name: z.string().trim().min(2),
@@ -78,3 +79,44 @@ export const conversionsFilterSchema = z.object({
 });
 
 export type ConversionsFilterQuery = z.infer<typeof conversionsFilterSchema>;
+
+// ---------------------------------------------------------------------------
+// Admin management schemas
+// ---------------------------------------------------------------------------
+
+export const createAdminSchema = z.object({
+  name: z.string().trim().min(2),
+  username: z.string().trim().min(3),
+  password: z.string().min(8),
+});
+
+export type CreateAdminInput = z.infer<typeof createAdminSchema>;
+
+export const updateAdminSchema = z
+  .object({
+    name: z.string().trim().min(2).optional(),
+    username: z.string().trim().min(3).optional(),
+    password: z.string().min(8).optional(),
+  })
+  .refine((value) => Boolean(value.name || value.username || value.password), {
+    message: 'At least one field is required',
+  });
+
+export type UpdateAdminInput = z.infer<typeof updateAdminSchema>;
+
+export const setAdminStatusSchema = z.object({
+  status: z.enum(['ACTIVE', 'DISABLED']),
+});
+
+export type SetAdminStatusInput = z.infer<typeof setAdminStatusSchema>;
+
+export interface AdminListItem {
+  id: string;
+  userId: string;
+  name: string;
+  username: string;
+  role: Extract<Role, 'ADMIN' | 'SUPER_ADMIN'>;
+  status: 'ACTIVE' | 'DISABLED';
+  createdAt: Date;
+  updatedAt: Date;
+}
