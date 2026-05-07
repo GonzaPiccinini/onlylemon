@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createConversionSchema, cashierConversionsFilterSchema, cashierLeadsFilterSchema } from './cashier.types.js';
+import { createConversionSchema, cashierConversionsFilterSchema } from './cashier.types.js';
 
 test('createConversionSchema rejects amounts lower than 3000', () => {
   const parsed = createConversionSchema.safeParse({ amount: 2999 });
@@ -83,49 +83,14 @@ test('cashierConversionsFilterSchema: cashierIds absent from parsed.data', () =>
 });
 
 // ---------------------------------------------------------------------------
-// M1.1 — cashierLeadsFilterSchema tests (RED)
-// ---------------------------------------------------------------------------
-
-test('cashierLeadsFilterSchema: CONTACTED accepted in statuses', () => {
-  const parsed = cashierLeadsFilterSchema.safeParse({ statuses: ['CONTACTED'] });
-  assert.equal(parsed.success, true);
-});
-
-test('cashierLeadsFilterSchema: CONVERTED accepted in statuses', () => {
-  const parsed = cashierLeadsFilterSchema.safeParse({ statuses: ['CONVERTED'] });
-  assert.equal(parsed.success, true);
-});
-
-test('cashierLeadsFilterSchema: NOT_CONTACTED causes parse failure', () => {
-  const parsed = cashierLeadsFilterSchema.safeParse({ statuses: ['NOT_CONTACTED'] });
-  assert.equal(parsed.success, false);
-});
-
-test('cashierLeadsFilterSchema: cashierId absent from parsed.data', () => {
-  const parsed = cashierLeadsFilterSchema.safeParse({ cashierId: 'spoof' });
-  assert.equal(parsed.success, true);
-  if (parsed.success) {
-    const data = parsed.data as Record<string, unknown>;
-    assert.equal(data['cashierId'], undefined);
-  }
-});
-
-// ---------------------------------------------------------------------------
 // M1.3 — REFACTOR: edge-case assertions (no production code changes)
 // ---------------------------------------------------------------------------
 
-test('cashierConversionsFilterSchema: cashierId absent from parsed.data (both schemas — defense-in-depth)', () => {
-  const parsed1 = cashierConversionsFilterSchema.safeParse({ cashierId: 'x', amountMin: '100' });
-  assert.equal(parsed1.success, true);
-  if (parsed1.success) {
-    const data = parsed1.data as Record<string, unknown>;
-    assert.equal(data['cashierId'], undefined);
-  }
-
-  const parsed2 = cashierLeadsFilterSchema.safeParse({ cashierId: 'x', statuses: ['CONTACTED'] });
-  assert.equal(parsed2.success, true);
-  if (parsed2.success) {
-    const data = parsed2.data as Record<string, unknown>;
+test('cashierConversionsFilterSchema: cashierId absent from parsed.data (defense-in-depth)', () => {
+  const parsed = cashierConversionsFilterSchema.safeParse({ cashierId: 'x', amountMin: '100' });
+  assert.equal(parsed.success, true);
+  if (parsed.success) {
+    const data = parsed.data as Record<string, unknown>;
     assert.equal(data['cashierId'], undefined);
   }
 });
@@ -141,10 +106,5 @@ test('cashierConversionsFilterSchema: amountMin "500" string coerces to number 5
 
 test('cashierConversionsFilterSchema: dateFrom "2026-5-6" (no zero-padding) fails regex', () => {
   const parsed = cashierConversionsFilterSchema.safeParse({ dateFrom: '2026-5-6' });
-  assert.equal(parsed.success, false);
-});
-
-test('cashierLeadsFilterSchema: statuses=[NOT_CONTACTED] is a 400-equivalent parse failure', () => {
-  const parsed = cashierLeadsFilterSchema.safeParse({ statuses: ['NOT_CONTACTED'] });
   assert.equal(parsed.success, false);
 });

@@ -5,7 +5,6 @@ import {
   createConversionHandler,
   currentSessionHandler,
   finishSessionHandler,
-  leadsListHandler,
   listCashierConversionsHandler,
   listSessionsHandler,
   searchCashierLeadsHandler,
@@ -30,7 +29,6 @@ cashierRouter.post('/sessions/finish', finishSessionHandler);
 
 cashierRouter.get('/leads/search', searchCashierLeadsHandler);
 cashierRouter.post('/leads/:leadId/convert', createConversionHandler);
-cashierRouter.get('/leads', leadsListHandler);
 cashierRouter.get('/conversions', listCashierConversionsHandler);
 cashierRouter.get('/runtime-state', cashierRuntimeStateHandler);
 cashierRouter.patch('/account', updateAccountHandler);

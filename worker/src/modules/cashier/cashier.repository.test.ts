@@ -132,24 +132,6 @@ test('listConversionsForCashier: with dateFrom/dateTo — structural contract fo
   assert.deepEqual(expectedCreatedAt, { gte: dateFrom, lt: dateTo });
 });
 
-test('listLeadsForCashier: accepts (cashierId, filters) signature', async () => {
-  const { listLeadsForCashier } = await import('./cashier.repository.js');
-  // New signature has 2 params (cashierId, filters)
-  assert.equal(listLeadsForCashier.length, 2);
-});
-
-test('listLeadsForCashier: is exported and is a function', async () => {
-  const { listLeadsForCashier } = await import('./cashier.repository.js');
-  assert.equal(typeof listLeadsForCashier, 'function');
-});
-
-test('listLeadsForCashier: with statuses=[CONTACTED] — structural contract', async () => {
-  // Expected where for statuses filter
-  const statuses = ['CONTACTED' as const];
-  const expectedStatusClause = { status: { in: statuses } };
-  assert.deepEqual(expectedStatusClause, { status: { in: ['CONTACTED'] } });
-});
-
 // ---------------------------------------------------------------------------
 // M2.3 — REFACTOR: additional coverage completeness
 // ---------------------------------------------------------------------------

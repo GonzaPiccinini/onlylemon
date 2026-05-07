@@ -19,13 +19,6 @@ export const cashierConversionsFilterSchema = z.object({
 });
 export type CashierConversionsFilterQuery = z.infer<typeof cashierConversionsFilterSchema>;
 
-export const cashierLeadsFilterSchema = z.object({
-  statuses: z.array(z.enum(['CONTACTED', 'CONVERTED'])).optional(),
-  code:   z.string().trim().min(1).optional(),
-  phone:  z.string().trim().min(1).optional(),
-});
-export type CashierLeadsFilterQuery = z.infer<typeof cashierLeadsFilterSchema>;
-
 export const completeWhatsappLinkSchema = z.object({
   sessionName: z.string().trim().min(1),
 });

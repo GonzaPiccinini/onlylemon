@@ -2,13 +2,12 @@ import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cashierService } from "@/api/cashier.service";
 import { env } from "@/config/env";
-import type { CashierConversionsFilters, CashierLeadsFilters, CashierRuntimeState, ConvertLeadInput } from "@/types/domain";
+import type { CashierConversionsFilters, CashierRuntimeState, ConvertLeadInput } from "@/types/domain";
 
 const cashierKeys = {
   sessions: ["cashier", "sessions"] as const,
   currentSession: ["cashier", "current-session"] as const,
   runtimeState: ["cashier", "runtime-state"] as const,
-  leads: (filters: CashierLeadsFilters) => ["cashier", "leads", filters] as const,
   searchLeads: (q: string) => ["cashier", "leads", "search", q] as const,
   conversions: (filters: CashierConversionsFilters) => ["cashier", "conversions", filters] as const,
   whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
@@ -139,12 +138,6 @@ export const useCashierConversions = (filters: CashierConversionsFilters) =>
   useQuery({
     queryKey: cashierKeys.conversions(filters),
     queryFn: () => cashierService.listConversions(filters),
-  });
-
-export const useCashierLeads = (filters: CashierLeadsFilters) =>
-  useQuery({
-    queryKey: cashierKeys.leads(filters),
-    queryFn: () => cashierService.listLeads(filters),
   });
 
 export { cashierKeys };

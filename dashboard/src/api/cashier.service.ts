@@ -2,7 +2,6 @@ import { endpoints } from "@/api/endpoints";
 import { http } from "@/api/http";
 import type {
   CashierConversionsFilters,
-  CashierLeadsFilters,
   CashierRuntimeState,
   Conversion,
   ConvertLeadInput,
@@ -62,17 +61,6 @@ export const cashierService = {
         ...(filters.code ? { code: filters.code } : {}),
         ...(filters.amountMin !== undefined ? { amountMin: filters.amountMin } : {}),
         ...(filters.amountMax !== undefined ? { amountMax: filters.amountMax } : {}),
-      },
-    });
-    return data;
-  },
-
-  async listLeads(filters: CashierLeadsFilters): Promise<Lead[]> {
-    const { data } = await http.get<Lead[]>(endpoints.cashier.leads, {
-      params: {
-        ...(filters.statuses?.length ? { statuses: filters.statuses } : {}),
-        ...(filters.code ? { code: filters.code } : {}),
-        ...(filters.phone ? { phone: filters.phone } : {}),
       },
     });
     return data;

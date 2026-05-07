@@ -37,7 +37,6 @@ export const endpoints = {
     createConversion: (leadId: string) => `/cashier/leads/${leadId}/convert`,
     searchLeads: "/cashier/leads/search",
     conversions: "/cashier/conversions",
-    leads: "/cashier/leads",
     runtimeState: "/cashier/runtime-state",
     account: "/cashier/account",
     whatsappLinkState: "/cashier/whatsapp/link-state",
