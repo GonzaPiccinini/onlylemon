@@ -1,11 +1,12 @@
 import { endpoints } from "@/api/endpoints";
 import { http } from "@/api/http";
 import type {
+  CashierConversionsFilters,
+  CashierLeadsFilters,
   CashierRuntimeState,
   Conversion,
   ConvertLeadInput,
   Lead,
-  LeadStatus,
   PaginatedResult,
   Session,
   UpdateCashierAccountInput,
@@ -50,16 +51,29 @@ export const cashierService = {
     return data.items;
   },
 
-  async listConversions({ page, pageSize }: { page: number; pageSize: number }): Promise<PaginatedResult<Conversion>> {
+  async listConversions(filters: CashierConversionsFilters): Promise<PaginatedResult<Conversion>> {
     const { data } = await http.get<PaginatedResult<Conversion>>(endpoints.cashier.conversions, {
-      params: { page, pageSize },
+      params: {
+        ...(filters.page !== undefined ? { page: filters.page } : {}),
+        ...(filters.pageSize !== undefined ? { pageSize: filters.pageSize } : {}),
+        ...(filters.dateFrom ? { dateFrom: filters.dateFrom } : {}),
+        ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
+        ...(filters.phone ? { phone: filters.phone } : {}),
+        ...(filters.code ? { code: filters.code } : {}),
+        ...(filters.amountMin !== undefined ? { amountMin: filters.amountMin } : {}),
+        ...(filters.amountMax !== undefined ? { amountMax: filters.amountMax } : {}),
+      },
     });
     return data;
   },
 
-  async listLeads(status?: LeadStatus): Promise<Lead[]> {
+  async listLeads(filters: CashierLeadsFilters): Promise<Lead[]> {
     const { data } = await http.get<Lead[]>(endpoints.cashier.leads, {
-      params: status ? { status } : undefined,
+      params: {
+        ...(filters.statuses?.length ? { statuses: filters.statuses } : {}),
+        ...(filters.code ? { code: filters.code } : {}),
+        ...(filters.phone ? { phone: filters.phone } : {}),
+      },
     });
     return data;
   },
