@@ -202,6 +202,33 @@ export const getConversionsByDateRange = (
     orderBy: { createdAt: 'asc' },
   });
 
+/**
+ * Admin stats series grouped by lead.contactedAt day.
+ * Returns conversions whose lead has contactedAt in the selected date range.
+ */
+export const getConversionsByLeadContactedDateRange = (
+  from: Date,
+  to: Date,
+  cashierId?: string,
+) =>
+  prisma.conversion.findMany({
+    where: {
+      lead: {
+        contactedAt: { gte: from, lt: to },
+        ...(cashierId ? { cashierId } : {}),
+      },
+    },
+    select: {
+      amount: true,
+      lead: {
+        select: {
+          contactedAt: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
 export const listLandings = () =>
   prisma.landing.findMany({
     orderBy: {

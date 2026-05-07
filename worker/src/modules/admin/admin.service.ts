@@ -7,6 +7,7 @@ import {
   createLanding,
   disableCashier,
   enableCashier,
+  getConversionsByLeadContactedDateRange,
   getCashierLandings,
   getConversionsByDateRange,
   getLeadsByDateRange,
@@ -442,15 +443,47 @@ export const groupConversionsByDay = (
     .map(([date, { count, sum }]) => ({ date, count, sum }));
 };
 
+const groupAmountsByDay = (
+  rows: Array<{ at: Date; amount: { toNumber: () => number } }>,
+): Array<{ date: string; count: number; sum: number }> => {
+  const grouped = new Map<string, { count: number; sum: number }>();
+
+  rows.forEach((row) => {
+    const day = formatArgentinaDayKey(row.at);
+    const existing = grouped.get(day) ?? { count: 0, sum: 0 };
+    grouped.set(day, {
+      count: existing.count + 1,
+      sum: existing.sum + row.amount.toNumber(),
+    });
+  });
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, { count, sum }]) => ({ date, count, sum }));
+};
+
 export const getFundsSeriesService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const conversions = await getConversionsByDateRange(
-    range.from,
-    range.to,
-    query.cashierId,
-  );
+  const [grossByConversionDateRows, incomeByContactedDateRows] = await Promise.all([
+    getConversionsByDateRange(range.from, range.to, query.cashierId),
+    getConversionsByLeadContactedDateRange(range.from, range.to, query.cashierId),
+  ]);
 
-  return groupConversionsByDay(conversions);
+  return {
+    grossByConversionDate: groupConversionsByDay(grossByConversionDateRows),
+    incomeByContactedDate: groupAmountsByDay(
+      incomeByContactedDateRows.flatMap((row) =>
+        row.lead.contactedAt
+          ? [
+              {
+                at: row.lead.contactedAt,
+                amount: row.amount,
+              },
+            ]
+          : [],
+      ),
+    ),
+  };
 };
 
 export const listLeadsService = async (filters: LeadsFilterQuery) => {
