@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
+import { ChevronDownIcon, ChevronRightIcon, FilterIcon } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import {
   useAdminCashiers,
@@ -223,7 +223,15 @@ export const AdminLeadsPage = () => {
   const [phone, setPhone] = useState('');
   const [page, setPage] = useState(1);
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const pageSize = 10;
+
+  const activeFiltersCount =
+    (statuses.length > 0 ? 1 : 0) +
+    (cashierIds.length > 0 ? 1 : 0) +
+    (adCode.trim() ? 1 : 0) +
+    (code.trim() ? 1 : 0) +
+    (phone.trim() ? 1 : 0);
 
   const { data: cashiers = [] } = useAdminCashiers();
   const cashierOptions = useMemo(
@@ -273,6 +281,24 @@ export const AdminLeadsPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              aria-expanded={filtersOpen}
+            >
+              <FilterIcon className="size-4" />
+              Filtros
+              {activeFiltersCount > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {activeFiltersCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+          {filtersOpen && (
           <div className="grid gap-3 md:grid-cols-3">
             <div className="flex flex-col gap-2">
               <FieldLabel htmlFor="admin-leads-statuses">
@@ -346,6 +372,7 @@ export const AdminLeadsPage = () => {
               />
             </div>
           </div>
+          )}
 
           <Table>
             <TableHeader>
