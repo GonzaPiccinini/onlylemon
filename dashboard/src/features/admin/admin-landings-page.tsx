@@ -2,8 +2,16 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PencilLineIcon, PlusIcon, ToggleLeftIcon, ToggleRightIcon } from "lucide-react";
+import { Menu as MenuPrimitive } from "@base-ui/react/menu";
+import {
+  MoreHorizontalIcon,
+  PencilLineIcon,
+  PlusIcon,
+  ToggleLeftIcon,
+  ToggleRightIcon,
+} from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +65,8 @@ const updateSchema = z.object({
 
 type CreateValues = z.infer<typeof createSchema>;
 type UpdateValues = z.infer<typeof updateSchema>;
+
+const shortMaskedToken = (masked: string): string => `••••${masked.slice(-4)}`;
 
 export const AdminLandingsPage = () => {
   const { data: landings = [], isLoading } = useLandings();
@@ -245,7 +255,14 @@ export const AdminLandingsPage = () => {
                 <TableRow key={landing.id}>
                   <TableCell>{landing.url}</TableCell>
                   <TableCell>{landing.metaPixelId}</TableCell>
-                  <TableCell>{landing.metaAccessTokenMasked}</TableCell>
+                  <TableCell>
+                    <span
+                      className="font-mono text-xs"
+                      title={landing.metaAccessTokenMasked}
+                    >
+                      {shortMaskedToken(landing.metaAccessTokenMasked)}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <Badge variant={landing.status === "ACTIVE" ? "default" : "outline"}>
                       {landing.status === "ACTIVE" ? "Activa" : "Deshabilitada"}
@@ -253,23 +270,54 @@ export const AdminLandingsPage = () => {
                   </TableCell>
                   <TableCell>{formatDateTime(landing.updatedAt)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => openEditDialog(landing)}>
-                        <PencilLineIcon data-icon="inline-start" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleLanding(landing)}
-                      >
-                        {landing.status === "ACTIVE" ? (
-                          <ToggleLeftIcon data-icon="inline-start" />
-                        ) : (
-                          <ToggleRightIcon data-icon="inline-start" />
-                        )}
-                        {landing.status === "ACTIVE" ? "Deshabilitar" : "Habilitar"}
-                      </Button>
+                    <div className="flex justify-end">
+                      <MenuPrimitive.Root>
+                        <MenuPrimitive.Trigger
+                          render={
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              aria-label="Acciones"
+                            />
+                          }
+                        >
+                          <MoreHorizontalIcon className="size-4" />
+                        </MenuPrimitive.Trigger>
+                        <MenuPrimitive.Portal>
+                          <MenuPrimitive.Positioner
+                            sideOffset={4}
+                            align="end"
+                            className="z-50"
+                          >
+                            <MenuPrimitive.Popup
+                              className={cn(
+                                "min-w-[10rem] overflow-hidden rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none",
+                                "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
+                                "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+                              )}
+                            >
+                              <MenuPrimitive.Item
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+                                onClick={() => openEditDialog(landing)}
+                              >
+                                <PencilLineIcon className="size-4" />
+                                Editar
+                              </MenuPrimitive.Item>
+                              <MenuPrimitive.Item
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+                                onClick={() => toggleLanding(landing)}
+                              >
+                                {landing.status === "ACTIVE" ? (
+                                  <ToggleLeftIcon className="size-4" />
+                                ) : (
+                                  <ToggleRightIcon className="size-4" />
+                                )}
+                                {landing.status === "ACTIVE" ? "Deshabilitar" : "Habilitar"}
+                              </MenuPrimitive.Item>
+                            </MenuPrimitive.Popup>
+                          </MenuPrimitive.Positioner>
+                        </MenuPrimitive.Portal>
+                      </MenuPrimitive.Root>
                     </div>
                   </TableCell>
                 </TableRow>
