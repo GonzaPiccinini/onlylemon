@@ -566,13 +566,32 @@ export const completeWhatsappLinkService = async (
 };
 
 
+type CashierLeadsFilters = {
+  statuses?: Array<'CONTACTED' | 'CONVERTED'>;
+  code?: string;
+  phone?: string;
+};
+
 export const listCashierLeadsService = async (
   cashierId: string,
-  status?: LeadStatus,
+  filters: CashierLeadsFilters,
 ) => {
   await getCashierSession(cashierId);
-  const leads = await listLeadsForCashier(cashierId, status);
-  return leads.map(toLeadDto);
+  // S-LD-1: Default exclusion of NOT_CONTACTED.
+  // If statuses is empty/absent, default to ['CONTACTED','CONVERTED'] so
+  // the repo always excludes NOT_CONTACTED leads at the DB level.
+  const effectiveFilters: CashierLeadsFilters = {
+    ...filters,
+    statuses:
+      filters.statuses && filters.statuses.length > 0
+        ? filters.statuses
+        : ['CONTACTED', 'CONVERTED'],
+  };
+  const leads = await listLeadsForCashier(cashierId, effectiveFilters);
+  return leads.map(toLeadDtoWithTimeline).map((dto) => ({
+    ...dto,
+    statusTimeline: dto.statusTimeline.filter((entry) => entry.status !== 'NOT_CONTACTED'),
+  }));
 };
 
 export const updateCashierAccountService = async (
@@ -738,16 +757,26 @@ type ConversionDto = {
   createdAt: Date;
 };
 
+type CashierConversionsFilters = {
+  dateFrom?: Date;
+  dateTo?: Date;
+  amountMin?: number;
+  amountMax?: number;
+  phone?: string;
+  code?: string;
+};
+
 /**
- * M2.4 — listCashierConversionsService
  * Paginated list of the cashier's conversions, ordered createdAt DESC.
+ * Accepts filter object for date range, amount range, phone, and code.
  */
 export const listCashierConversionsService = async (
   cashierId: string,
+  filters: CashierConversionsFilters,
   page = 1,
   pageSize = 25,
 ) => {
-  const [rows, total] = await listConversionsForCashier(cashierId, page, pageSize);
+  const [rows, total] = await listConversionsForCashier(cashierId, filters, page, pageSize);
 
   const items: ConversionDto[] = rows.map((c) => ({
     id: c.id,

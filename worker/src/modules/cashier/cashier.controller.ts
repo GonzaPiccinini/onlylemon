@@ -1,8 +1,9 @@
 import type { Request, Response } from 'express';
 import {
+  cashierConversionsFilterSchema,
+  cashierLeadsFilterSchema,
   completeWhatsappLinkSchema,
   createConversionSchema,
-  leadStatusSchema,
   startWhatsappLinkSchema,
   updateAccountSchema,
 } from './cashier.types.js';
@@ -25,6 +26,10 @@ import {
   startSessionService,
   updateCashierAccountService,
 } from './cashier.service.js';
+import {
+  argentinaDayStartUtc,
+  argentinaDayEndUtcExclusive,
+} from '../../utils/timezone.js';
 
 const getCashierId = (req: Request): string | null => req.authUser?.cashierId ?? null;
 
@@ -147,10 +152,27 @@ export const listCashierConversionsHandler = async (req: Request, res: Response)
     return res.status(400).json({ error: 'Cashier profile not linked' });
   }
 
-  const page = req.query.page ? parseInt(String(req.query.page), 10) : 1;
-  const pageSize = req.query.pageSize ? parseInt(String(req.query.pageSize), 10) : 25;
+  const parsed = cashierConversionsFilterSchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
+  }
 
-  const data = await listCashierConversionsService(cashierId, page, pageSize);
+  const { dateFrom, dateTo, phone, code, amountMin, amountMax, page, pageSize } = parsed.data;
+
+  if (amountMin !== undefined && amountMax !== undefined && amountMin > amountMax) {
+    return res.status(400).json({ error: 'amountMin must be <= amountMax' });
+  }
+
+  const filters = {
+    dateFrom: dateFrom ? argentinaDayStartUtc(dateFrom) : undefined,
+    dateTo:   dateTo   ? argentinaDayEndUtcExclusive(dateTo) : undefined,
+    phone,
+    code,
+    amountMin,
+    amountMax,
+  };
+
+  const data = await listCashierConversionsService(cashierId, filters, page, pageSize);
   return res.status(200).json(data);
 };
 
@@ -160,12 +182,9 @@ export const leadsListHandler = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Cashier profile not linked' });
   }
 
-  const parsed = leadStatusSchema.safeParse(req.query.status);
+  const parsed = cashierLeadsFilterSchema.safeParse(req.query);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: 'Invalid status',
-      details: parsed.error.flatten(),
-    });
+    return res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
   }
 
   const data = await listCashierLeadsService(cashierId, parsed.data);
