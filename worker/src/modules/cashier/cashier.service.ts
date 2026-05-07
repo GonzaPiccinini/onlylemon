@@ -10,22 +10,23 @@ import {
   startSession,
 } from '../../integrations/waha/client.js';
 import {
-  convertLead,
+  createConversion,
   finishCurrentSessionActivity,
   findLeadByIdForCashier,
-  findQueueLeadForCashier,
   finishSessionActivity,
   getCashierById,
   getCashierBySessionName,
   getCashierSession,
   getCurrentSessionActivity,
+  listConversionsForCashier,
   listLeadsForCashier,
   listSessionActivities,
-  moveLeadToQueueTail,
+  searchLeadsForCashier,
   startSessionActivity,
   updateCashierAccount,
   updateCashierWhatsappLink,
 } from './cashier.repository.js';
+import { prisma } from '../../persistence/prisma/client.js';
 import { hashPassword } from '../../utils/password.js';
 import { emitCashierRuntimeStateChanged } from './runtime-events.js';
 import { logger } from '../../lib/logger.js';
@@ -65,25 +66,56 @@ const toSessionDto = (item: {
   };
 };
 
+/**
+ * Build statusTimeline from scalar timestamps + first Conversion createdAt.
+ * Always includes NOT_CONTACTED; CONTACTED if contactedAt set; CONVERTED if any conversions.
+ * Entries are ordered chronologically.
+ */
+export const toLeadDtoWithTimeline = (lead: {
+  id: string;
+  code: string;
+  phone: string | null;
+  status: LeadStatus;
+  contactedAt: Date | null;
+  createdAt: Date;
+  conversions: Array<{ createdAt: Date }>;
+}) => {
+  const timeline: Array<{ status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'; at: Date }> = [
+    { status: 'NOT_CONTACTED', at: lead.createdAt },
+  ];
+  if (lead.contactedAt) {
+    timeline.push({ status: 'CONTACTED', at: lead.contactedAt });
+  }
+  if (lead.conversions[0]?.createdAt) {
+    timeline.push({ status: 'CONVERTED', at: lead.conversions[0].createdAt });
+  }
+  timeline.sort((a, b) => a.at.getTime() - b.at.getTime());
+
+  return {
+    id: lead.id,
+    code: lead.code,
+    phone: lead.phone,
+    status: lead.status,
+    contactedAt: lead.contactedAt,
+    createdAt: lead.createdAt,
+    statusTimeline: timeline,
+  };
+};
+
 const toLeadDto = (lead: {
   id: string;
   code: string;
   phone: string | null;
   status: LeadStatus;
-  amount: unknown | null;
   contactedAt: Date | null;
-  convertedAt: Date | null;
-  expiresAt: Date;
   createdAt: Date;
+  conversions?: Array<{ createdAt: Date }>;
 }) => ({
   id: lead.id,
   code: lead.code,
   phone: lead.phone,
   status: lead.status,
-  amount: lead.amount === null ? null : Number(lead.amount),
   contactedAt: lead.contactedAt,
-  convertedAt: lead.convertedAt,
-  expiresAt: lead.expiresAt,
   createdAt: lead.createdAt,
 });
 
@@ -533,37 +565,46 @@ export const completeWhatsappLinkService = async (
   };
 };
 
-export const getCurrentQueueLeadService = async (cashierId: string) => {
+
+export const listCashierLeadsService = async (
+  cashierId: string,
+  status?: LeadStatus,
+) => {
   await getCashierSession(cashierId);
-  const lead = await findQueueLeadForCashier(cashierId);
-
-  if (!lead) {
-    return null;
-  }
-
-  return toLeadDto(lead);
+  const leads = await listLeadsForCashier(cashierId, status);
+  return leads.map(toLeadDto);
 };
 
-export const skipQueueLeadService = async (cashierId: string, leadId: string) => {
-  const lead = await findLeadByIdForCashier(leadId, cashierId);
-  if (!lead) {
-    return 'NOT_FOUND' as const;
-  }
+export const updateCashierAccountService = async (
+  cashierId: string,
+  input: {
+    username?: string;
+    password?: string;
+  },
+) => {
+  const updated = await updateCashierAccount(cashierId, {
+    ...(input.username ? { username: input.username } : {}),
+    ...(input.password ? { password: hashPassword(input.password) } : {}),
+  });
 
-  if (lead.status !== 'CONTACTED') {
-    return 'INVALID_STATUS' as const;
-  }
-
-  const now = new Date();
-  if (lead.expiresAt <= now) {
-    return 'EXPIRED' as const;
-  }
-
-  await moveLeadToQueueTail(lead.id, now);
-  return 'OK' as const;
+  return {
+    id: updated.id,
+    name: updated.name,
+    username: updated.username,
+  };
 };
 
-export const convertQueueLeadService = async (
+/**
+ * M2.2 — createConversionService
+ *
+ * Insert a Conversion row for the given lead.
+ * - Validates cashier ownership.
+ * - Validates lead status IN (CONTACTED, CONVERTED).
+ * - Validates phone presence.
+ * - Inserts Conversion + flips lead status to CONVERTED (idempotent) in a transaction.
+ * - Dispatches Meta Purchase + tier events outside the transaction.
+ */
+export const createConversionService = async (
   cashierId: string,
   leadId: string,
   amount: number,
@@ -573,20 +614,25 @@ export const convertQueueLeadService = async (
     return { kind: 'NOT_FOUND' as const };
   }
 
-  if (lead.status !== 'CONTACTED') {
+  if (lead.status !== 'CONTACTED' && lead.status !== 'CONVERTED') {
     return { kind: 'INVALID_STATUS' as const };
-  }
-
-  const now = new Date();
-  if (lead.expiresAt <= now) {
-    return { kind: 'EXPIRED' as const };
   }
 
   if (!lead.phone) {
     return { kind: 'PHONE_REQUIRED' as const };
   }
 
-  const converted = await convertLead(lead.id, amount, now);
+  const [conversion] = await prisma.$transaction(async (tx) => {
+    const created = await createConversion(tx as Parameters<typeof createConversion>[0], {
+      leadId,
+      amount,
+    });
+    await tx.lead.update({
+      where: { id: leadId },
+      data: { status: 'CONVERTED' },
+    });
+    return [created];
+  });
 
   leadsConvertedTotal.labels(lead.metaPixelId).inc();
   leadConversionAmountArs.labels(lead.metaPixelId).observe(amount);
@@ -607,7 +653,15 @@ export const convertQueueLeadService = async (
       metaPixelId: lead.metaPixelId,
     });
 
-    return { kind: 'OK' as const, data: toLeadDto(converted) };
+    return {
+      kind: 'OK' as const,
+      conversion: {
+        id: conversion.id,
+        leadId: conversion.leadId,
+        amount: conversion.amount,
+        createdAt: conversion.createdAt,
+      },
+    };
   }
 
   const conversionResult = await sendMetaConversion({
@@ -652,33 +706,56 @@ export const convertQueueLeadService = async (
     }
   }
 
-  return { kind: 'OK' as const, data: toLeadDto(converted) };
-};
-
-export const listCashierLeadsService = async (
-  cashierId: string,
-  status?: LeadStatus,
-) => {
-  await getCashierSession(cashierId);
-  const leads = await listLeadsForCashier(cashierId, status);
-  return leads.map(toLeadDto);
-};
-
-export const updateCashierAccountService = async (
-  cashierId: string,
-  input: {
-    username?: string;
-    password?: string;
-  },
-) => {
-  const updated = await updateCashierAccount(cashierId, {
-    ...(input.username ? { username: input.username } : {}),
-    ...(input.password ? { password: hashPassword(input.password) } : {}),
-  });
-
   return {
-    id: updated.id,
-    name: updated.name,
-    username: updated.username,
+    kind: 'OK' as const,
+    conversion: {
+      id: conversion.id,
+      leadId: conversion.leadId,
+      amount: conversion.amount,
+      createdAt: conversion.createdAt,
+    },
   };
+};
+
+/**
+ * M2.3 — searchCashierLeadsService
+ * Returns leads matching q (case-sensitive code/phone substring) scoped to cashier.
+ * Empty q → [] immediately.
+ */
+export const searchCashierLeadsService = async (cashierId: string, q: string) => {
+  if (!q) {
+    return [];
+  }
+  const leads = await searchLeadsForCashier(cashierId, q);
+  return leads.map(toLeadDtoWithTimeline);
+};
+
+type ConversionDto = {
+  id: string;
+  code: string;
+  phone: string | null;
+  amount: unknown;
+  createdAt: Date;
+};
+
+/**
+ * M2.4 — listCashierConversionsService
+ * Paginated list of the cashier's conversions, ordered createdAt DESC.
+ */
+export const listCashierConversionsService = async (
+  cashierId: string,
+  page = 1,
+  pageSize = 25,
+) => {
+  const [rows, total] = await listConversionsForCashier(cashierId, page, pageSize);
+
+  const items: ConversionDto[] = rows.map((c) => ({
+    id: c.id,
+    code: c.lead.code,
+    phone: c.lead.phone,
+    amount: c.amount,
+    createdAt: c.createdAt,
+  }));
+
+  return { items, total, page, pageSize };
 };

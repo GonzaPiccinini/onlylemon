@@ -7,9 +7,10 @@ import type { CashierRuntimeState, ConvertLeadInput, LeadStatus } from "@/types/
 const cashierKeys = {
   sessions: ["cashier", "sessions"] as const,
   currentSession: ["cashier", "current-session"] as const,
-  queueCurrentLead: ["cashier", "queue-current-lead"] as const,
   runtimeState: ["cashier", "runtime-state"] as const,
   leads: (status?: LeadStatus) => ["cashier", "leads", status ?? "ALL"] as const,
+  searchLeads: (q: string) => ["cashier", "leads", "search", q] as const,
+  conversions: (page: number, pageSize: number) => ["cashier", "conversions", page, pageSize] as const,
   whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
   whatsappLinkStatus: ["cashier", "whatsapp-link-status"] as const,
 };
@@ -55,13 +56,6 @@ export const useFinishSession = () => {
     },
   });
 };
-
-export const useQueueCurrentLead = (enabled = true) =>
-  useQuery({
-    queryKey: cashierKeys.queueCurrentLead,
-    queryFn: cashierService.getQueueCurrentLead,
-    enabled,
-  });
 
 export const useCashierRuntimeState = (enabled = true) =>
   useQuery({
@@ -118,35 +112,34 @@ export const useCashierRuntimeStateStream = (
   }, [enabled, queryClient, token]);
 };
 
-export const useConvertQueueLead = () => {
+export const useCreateConversion = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ leadId, input }: { leadId: string; input: ConvertLeadInput }) =>
-      cashierService.convertQueueLead(leadId, input),
+      cashierService.createConversion(leadId, input),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: cashierKeys.queueCurrentLead }),
         queryClient.invalidateQueries({ queryKey: ["cashier", "leads"] }),
+        queryClient.invalidateQueries({ queryKey: ["cashier", "conversions"] }),
         queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
       ]);
     },
   });
 };
 
-export const useSkipQueueLead = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (leadId: string) => cashierService.skipQueueLead(leadId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: cashierKeys.queueCurrentLead }),
-        queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
-      ]);
-    },
+export const useSearchCashierLeads = (q: string, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: cashierKeys.searchLeads(q),
+    queryFn: () => cashierService.searchLeads(q),
+    enabled: q.length > 0 && (options?.enabled ?? true),
   });
-};
+
+export const useCashierConversions = ({ page, pageSize }: { page: number; pageSize: number }) =>
+  useQuery({
+    queryKey: cashierKeys.conversions(page, pageSize),
+    queryFn: () => cashierService.listConversions({ page, pageSize }),
+  });
 
 export const useCashierLeads = (status?: LeadStatus) =>
   useQuery({

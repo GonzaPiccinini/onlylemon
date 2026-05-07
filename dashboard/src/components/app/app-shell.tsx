@@ -11,6 +11,7 @@ import {
   LogOutIcon,
   TagsIcon,
   UsersIcon,
+  ArrowRightLeftIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ const adminLinks: ShellLink[] = [
   { to: "/admin", label: "Cajeros", icon: UsersIcon },
   { to: "/admin/stats", label: "Estadisticas", icon: BarChart3Icon },
   { to: "/admin/leads", label: "Leads", icon: ListChecksIcon },
+  { to: "/admin/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/admin/landings", label: "Landings", icon: TagsIcon },
   { to: "/admin/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
 ];
@@ -40,6 +42,7 @@ const cashierLinks: ShellLink[] = [
   { to: "/cashier", label: "Sesion", icon: Clock3Icon },
   { to: "/cashier/add-funds", label: "Cargas", icon: CircleDollarSignIcon },
   { to: "/cashier/history", label: "Leads", icon: BarChart3Icon },
+  { to: "/cashier/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/cashier/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
 ];
 
@@ -162,7 +165,9 @@ export const AppShell = () => {
               ? "grid-cols-2"
               : links.length === 4
                 ? "grid-cols-4"
-                : "grid-cols-3",
+                : links.length === 5
+                  ? "grid-cols-5"
+                  : "grid-cols-3",
           )}
         >
           {links.map((link) => (

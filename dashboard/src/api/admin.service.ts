@@ -3,6 +3,8 @@ import { http } from "@/api/http";
 import type {
   Cashier,
   CashierStats,
+  Conversion,
+  ConversionsFilters,
   CreateLandingInput,
   CreateCashierInput,
   DateRangeFilters,
@@ -10,6 +12,7 @@ import type {
   Landing,
   Lead,
   LeadsFilters,
+  PaginatedResult,
   StatsSummary,
   UpdateAdminAccountInput,
   UpdateLandingInput,
@@ -110,10 +113,30 @@ export const adminService = {
       params: {
         ...(filters.status ? { status: filters.status } : {}),
         ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
+        ...(filters.cashierIds?.length ? { cashierIds: filters.cashierIds } : {}),
         ...(filters.adCode ? { adCode: filters.adCode } : {}),
+        ...(filters.code ? { code: filters.code } : {}),
+        ...(filters.phone ? { phone: filters.phone } : {}),
       },
     });
 
+    return data;
+  },
+
+  async listConversions(filters: ConversionsFilters): Promise<PaginatedResult<Conversion>> {
+    const { data } = await http.get<PaginatedResult<Conversion>>(endpoints.admin.conversions, {
+      params: {
+        ...(filters.page !== undefined ? { page: filters.page } : {}),
+        ...(filters.pageSize !== undefined ? { pageSize: filters.pageSize } : {}),
+        ...(filters.dateFrom ? { dateFrom: filters.dateFrom } : {}),
+        ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
+        ...(filters.phone ? { phone: filters.phone } : {}),
+        ...(filters.code ? { code: filters.code } : {}),
+        ...(filters.cashierIds?.length ? { cashierIds: filters.cashierIds.join(",") } : {}),
+        ...(filters.amountMin !== undefined ? { amountMin: filters.amountMin } : {}),
+        ...(filters.amountMax !== undefined ? { amountMax: filters.amountMax } : {}),
+      },
+    });
     return data;
   },
 

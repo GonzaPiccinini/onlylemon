@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminService } from "@/api/admin.service";
 import type {
+  ConversionsFilters,
   CreateCashierInput,
   CreateLandingInput,
   DateRangeFilters,
@@ -17,6 +18,7 @@ const adminKeys = {
   cashierStats: (filters: DateRangeFilters) => ["admin", "cashier-stats", filters] as const,
   fundsSeries: (filters: DateRangeFilters) => ["admin", "funds-series", filters] as const,
   leads: (filters: LeadsFilters) => ["admin", "leads", filters] as const,
+  conversions: (filters: ConversionsFilters) => ["admin", "conversions", filters] as const,
 };
 
 export const useAdminCashiers = () =>
@@ -154,6 +156,12 @@ export const useAdminLeads = (filters: LeadsFilters) =>
     queryFn: () => adminService.listLeads(filters),
     refetchInterval: 15000,
     refetchIntervalInBackground: true,
+  });
+
+export const useAdminConversions = (filters: ConversionsFilters) =>
+  useQuery({
+    queryKey: adminKeys.conversions(filters),
+    queryFn: () => adminService.listConversions(filters),
   });
 
 export const useUpdateAdminAccount = () =>

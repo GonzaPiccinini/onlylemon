@@ -1,26 +1,26 @@
 import type { Request, Response } from 'express';
 import {
   completeWhatsappLinkSchema,
-  convertLeadSchema,
+  createConversionSchema,
   leadStatusSchema,
   startWhatsappLinkSchema,
   updateAccountSchema,
 } from './cashier.types.js';
 import {
   completeWhatsappLinkService,
-  convertQueueLeadService,
+  createConversionService,
   enforceCashierCanOperateLeadsService,
   finishSessionService,
-  getCurrentQueueLeadService,
   getCashierRuntimeStateService,
   getWhatsappLinkStateService,
   getWhatsappLinkStatusService,
   getCurrentSessionService,
+  listCashierConversionsService,
   listCashierLeadsService,
   refreshWhatsappLinkService,
   resetWhatsappLinkService,
   listSessionsService,
-  skipQueueLeadService,
+  searchCashierLeadsService,
   startWhatsappLinkService,
   startSessionService,
   updateCashierAccountService,
@@ -95,23 +95,13 @@ export const finishSessionHandler = async (req: Request, res: Response) => {
   return res.status(200).json(data);
 };
 
-export const queueCurrentLeadHandler = async (req: Request, res: Response) => {
+export const createConversionHandler = async (req: Request, res: Response) => {
   const cashierId = await ensureCashierCanOperateLeads(req, res);
   if (!cashierId) {
     return;
   }
 
-  const data = await getCurrentQueueLeadService(cashierId);
-  return res.status(200).json(data);
-};
-
-export const queueConvertLeadHandler = async (req: Request, res: Response) => {
-  const cashierId = await ensureCashierCanOperateLeads(req, res);
-  if (!cashierId) {
-    return;
-  }
-
-  const parsed = convertLeadSchema.safeParse(req.body);
+  const parsed = createConversionSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error: 'Invalid payload',
@@ -119,7 +109,7 @@ export const queueConvertLeadHandler = async (req: Request, res: Response) => {
     });
   }
 
-  const result = await convertQueueLeadService(
+  const result = await createConversionService(
     cashierId,
     req.params.leadId,
     parsed.data.amount,
@@ -130,40 +120,38 @@ export const queueConvertLeadHandler = async (req: Request, res: Response) => {
   }
 
   if (result.kind === 'INVALID_STATUS') {
-    return res.status(409).json({ error: 'Lead is not in CONTACTED status' });
-  }
-
-  if (result.kind === 'EXPIRED') {
-    return res.status(409).json({ error: 'Lead expired' });
+    return res.status(409).json({ error: 'Lead is not in a convertible status' });
   }
 
   if (result.kind === 'PHONE_REQUIRED') {
-    return res.status(409).json({ error: 'Lead phone is required' });
+    return res.status(422).json({ error: 'Lead phone is required' });
   }
 
-  return res.status(200).json(result.data);
+  return res.status(201).json({ conversion: result.conversion });
 };
 
-export const queueSkipLeadHandler = async (req: Request, res: Response) => {
-  const cashierId = await ensureCashierCanOperateLeads(req, res);
+export const searchCashierLeadsHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
   if (!cashierId) {
-    return;
+    return res.status(400).json({ error: 'Cashier profile not linked' });
   }
 
-  const result = await skipQueueLeadService(cashierId, req.params.leadId);
-  if (result === 'NOT_FOUND') {
-    return res.status(404).json({ error: 'Lead not found' });
+  const q = typeof req.query.q === 'string' ? req.query.q : '';
+  const items = await searchCashierLeadsService(cashierId, q);
+  return res.status(200).json({ items });
+};
+
+export const listCashierConversionsHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
   }
 
-  if (result === 'INVALID_STATUS') {
-    return res.status(409).json({ error: 'Lead is not in CONTACTED status' });
-  }
+  const page = req.query.page ? parseInt(String(req.query.page), 10) : 1;
+  const pageSize = req.query.pageSize ? parseInt(String(req.query.pageSize), 10) : 25;
 
-  if (result === 'EXPIRED') {
-    return res.status(409).json({ error: 'Lead expired' });
-  }
-
-  return res.status(204).send();
+  const data = await listCashierConversionsService(cashierId, page, pageSize);
+  return res.status(200).json(data);
 };
 
 export const leadsListHandler = async (req: Request, res: Response) => {

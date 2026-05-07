@@ -8,11 +8,12 @@ import {
   disableCashier,
   enableCashier,
   getCashierLandings,
-  getConvertedLeadsByConvertedAtRange,
+  getConversionsByDateRange,
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
   listCashiers,
   getCashierById,
+  listConversionsAdmin,
   listLandings,
   listLeads,
   replaceCashierLandings,
@@ -66,13 +67,10 @@ export const toLeadDto = (lead: {
   id: string;
   code: string;
   adCode: string | null;
-  status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
   phone: string | null;
-  amount: unknown | null;
   metaPixelId: string;
   contactedAt: Date | null;
-  convertedAt: Date | null;
-  expiresAt: Date;
   createdAt: Date;
   updateAt: Date;
   cashier?: {
@@ -82,23 +80,36 @@ export const toLeadDto = (lead: {
       username: string;
     };
   } | null;
-}) => ({
-  id: lead.id,
-  code: lead.code,
-  adCode: lead.adCode,
-  status: lead.status,
-  phone: lead.phone,
-  amount: lead.amount === null ? null : Number(lead.amount),
-  metaPixelId: lead.metaPixelId,
-  contactedAt: lead.contactedAt,
-  convertedAt: lead.convertedAt,
-  expiresAt: lead.expiresAt,
-  createdAt: lead.createdAt,
-  activityAt: lead.updateAt,
-  cashierId: lead.cashier?.id ?? null,
-  cashierName: lead.cashier?.user.name ?? null,
-  cashierUsername: lead.cashier?.user.username ?? null,
-});
+  conversions?: Array<{ createdAt: Date }>;
+}) => {
+  const timeline: Array<{ status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'; at: Date }> = [
+    { status: 'NOT_CONTACTED', at: lead.createdAt },
+  ];
+  if (lead.contactedAt) {
+    timeline.push({ status: 'CONTACTED', at: lead.contactedAt });
+  }
+  const firstConversion = lead.conversions?.[0];
+  if (firstConversion?.createdAt) {
+    timeline.push({ status: 'CONVERTED', at: firstConversion.createdAt });
+  }
+  timeline.sort((a, b) => a.at.getTime() - b.at.getTime());
+
+  return {
+    id: lead.id,
+    code: lead.code,
+    adCode: lead.adCode,
+    status: lead.status,
+    phone: lead.phone,
+    metaPixelId: lead.metaPixelId,
+    contactedAt: lead.contactedAt,
+    createdAt: lead.createdAt,
+    activityAt: lead.updateAt,
+    cashierId: lead.cashier?.id ?? null,
+    cashierName: lead.cashier?.user.name ?? null,
+    cashierUsername: lead.cashier?.user.username ?? null,
+    statusTimeline: timeline,
+  };
+};
 
 const buildWahaStatusByName = async (): Promise<Map<string, string>> => {
   try {
@@ -246,40 +257,13 @@ export const getSummaryService = async (query: DateRangeQuery) => {
   ).length;
   const contacted = leads.filter((lead) => lead.status === 'CONTACTED').length;
   const converted = leads.filter((lead) => lead.status === 'CONVERTED').length;
-  const expired = leads.filter((lead) => lead.status === 'EXPIRED').length;
-  const totalLeads = notContacted + contacted + converted + expired;
+  // EXPIRED was removed in meta-conversions-refactor migration; always 0 for compat shim
+  const expiredLeads = 0;
+  const totalLeads = notContacted + contacted + converted;
 
-  const totalConvertedValue = leads
-    .filter((lead) => lead.status === 'CONVERTED' && lead.amount !== null)
-    .reduce((acc, lead) => acc + toNumber(lead.amount), 0);
-
-  const averageConvertedValue =
-    converted === 0 ? 0 : totalConvertedValue / converted;
-
-  const averageConversionHours = (() => {
-    const convertedWithContact = leads.filter(
-      (lead) =>
-        lead.status === 'CONVERTED' && lead.contactedAt && lead.convertedAt,
-    );
-
-    if (convertedWithContact.length === 0) {
-      return 0;
-    }
-
-    const totalHours = convertedWithContact.reduce((acc, lead) => {
-      const contactedAt = lead.contactedAt;
-      const convertedAt = lead.convertedAt;
-      if (!contactedAt || !convertedAt) {
-        return acc;
-      }
-
-      return (
-        acc + (convertedAt.getTime() - contactedAt.getTime()) / 1000 / 60 / 60
-      );
-    }, 0);
-
-    return totalHours / convertedWithContact.length;
-  })();
+  const totalConvertedValue = 0;
+  const averageConvertedValue = 0;
+  const averageConversionHours = 0;
 
   const totalActiveMinutes = activities.reduce((acc, item) => {
     if (!item.endedAt) {
@@ -296,7 +280,7 @@ export const getSummaryService = async (query: DateRangeQuery) => {
     notContactedLeads: notContacted,
     contactedLeads: contacted,
     convertedLeads: converted,
-    expiredLeads: expired,
+    expiredLeads,
     conversionRate: totalLeads === 0 ? 0 : (converted / totalLeads) * 100,
     totalConvertedValue,
     averageConvertedValue,
@@ -365,14 +349,9 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
 
     if (lead.status === 'CONVERTED') {
       current.convertedLeads += 1;
-      if (lead.amount !== null) {
-        current.convertedValue += toNumber(lead.amount);
-      }
     }
 
-    if (lead.status === 'EXPIRED') {
-      current.expiredLeads += 1;
-    }
+    // EXPIRED was removed in meta-conversions-refactor; expiredLeads stays at 0 (compat shim)
   });
 
   activities.forEach((item) => {
@@ -421,32 +400,39 @@ export const getCashierStatsService = async (query: DateRangeQuery) => {
   }));
 };
 
-export const groupConvertedLeadsByDay = (
-  leads: Array<{ convertedAt: Date | null; amount: unknown | null }>,
-): Array<{ date: string; totalValue: number }> => {
-  const grouped = new Map<string, number>();
 
-  leads
-    .filter((lead) => lead.convertedAt !== null && lead.amount !== null)
-    .forEach((lead) => {
-      const day = formatArgentinaDayKey(lead.convertedAt as Date);
-      grouped.set(day, (grouped.get(day) ?? 0) + toNumber(lead.amount));
+/**
+ * M2.9 — groupConversionsByDay
+ * Groups Conversion rows by Argentina day bucket, summing amounts and counting rows.
+ */
+export const groupConversionsByDay = (
+  conversions: Array<{ createdAt: Date; amount: { toNumber: () => number } }>,
+): Array<{ date: string; count: number; sum: number }> => {
+  const grouped = new Map<string, { count: number; sum: number }>();
+
+  conversions.forEach((conv) => {
+    const day = formatArgentinaDayKey(conv.createdAt);
+    const existing = grouped.get(day) ?? { count: 0, sum: 0 };
+    grouped.set(day, {
+      count: existing.count + 1,
+      sum: existing.sum + conv.amount.toNumber(),
     });
+  });
 
   return [...grouped.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([date, totalValue]) => ({ date, totalValue }));
+    .map(([date, { count, sum }]) => ({ date, count, sum }));
 };
 
 export const getFundsSeriesService = async (query: DateRangeQuery) => {
   const range = toRange(query);
-  const leads = await getConvertedLeadsByConvertedAtRange(
+  const conversions = await getConversionsByDateRange(
     range.from,
     range.to,
     query.cashierId,
   );
 
-  return groupConvertedLeadsByDay(leads);
+  return groupConversionsByDay(conversions);
 };
 
 export const listLeadsService = async (filters: LeadsFilterQuery) => {
@@ -510,4 +496,39 @@ export const replaceCashierLandingsService = async (
 ) => {
   const items = await replaceCashierLandings(cashierId, landingIds);
   return items.map((item) => toLandingDto(item.landing));
+};
+
+/**
+ * M2.5 — listAdminConversionsService
+ * Returns paginated admin conversions with all filters.
+ */
+type ConversionsAdminFilters = {
+  dateFrom?: Date;
+  dateTo?: Date;
+  amountMin?: number;
+  amountMax?: number;
+  phone?: string;
+  code?: string;
+  cashierIds?: string[];
+};
+
+export const listAdminConversionsService = async (
+  filters: ConversionsAdminFilters,
+  page = 1,
+  pageSize = 25,
+) => {
+  const [rows, total] = await listConversionsAdmin(filters, page, pageSize);
+
+  const items = rows.map((c) => ({
+    id: c.id,
+    leadId: c.leadId,
+    code: c.lead.code,
+    phone: c.lead.phone,
+    cashierId: c.lead.cashier?.id ?? null,
+    cashierName: c.lead.cashier?.user.name ?? null,
+    amount: c.amount,
+    createdAt: c.createdAt,
+  }));
+
+  return { items, total, page, pageSize };
 };

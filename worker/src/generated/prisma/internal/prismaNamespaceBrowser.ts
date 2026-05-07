@@ -56,6 +56,7 @@ export const ModelName = {
   Cashier: 'Cashier',
   SessionActivity: 'SessionActivity',
   Lead: 'Lead',
+  Conversion: 'Conversion',
   Landing: 'Landing',
   CashierLanding: 'CashierLanding',
   ProcessedJob: 'ProcessedJob'
@@ -132,19 +133,26 @@ export const LeadScalarFieldEnum = {
   fbc: 'fbc',
   fbp: 'fbp',
   metaPixelId: 'metaPixelId',
-  amount: 'amount',
   status: 'status',
   userAgent: 'userAgent',
   phone: 'phone',
   cashierId: 'cashierId',
-  expiresAt: 'expiresAt',
   contactedAt: 'contactedAt',
-  convertedAt: 'convertedAt',
   createdAt: 'createdAt',
   updateAt: 'updateAt'
 } as const
 
 export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const ConversionScalarFieldEnum = {
+  id: 'id',
+  leadId: 'leadId',
+  amount: 'amount',
+  createdAt: 'createdAt'
+} as const
+
+export type ConversionScalarFieldEnum = (typeof ConversionScalarFieldEnum)[keyof typeof ConversionScalarFieldEnum]
 
 
 export const LandingScalarFieldEnum = {

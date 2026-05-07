@@ -14,7 +14,6 @@ type CreateLeadData = {
   fbp: string;
   userAgent: string;
   metaPixelId: string;
-  expiresAt: Date;
 };
 
 type UpdateLeadData = {
@@ -166,9 +165,6 @@ export async function markLeadAsContacted(
     where: {
       id,
       status: 'NOT_CONTACTED',
-      expiresAt: {
-        gt: now,
-      },
       contactedAt: null,
     },
     data: {
@@ -176,22 +172,6 @@ export async function markLeadAsContacted(
       cashierId,
       status: 'CONTACTED',
       contactedAt: now,
-    },
-  });
-
-  return result.count;
-}
-
-export async function expireLeadIfStillOpen(id: string): Promise<number> {
-  const result = await prisma.lead.updateMany({
-    where: {
-      id,
-      status: {
-        in: ['NOT_CONTACTED', 'CONTACTED'],
-      },
-    },
-    data: {
-      status: 'EXPIRED',
     },
   });
 

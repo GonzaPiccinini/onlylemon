@@ -180,27 +180,26 @@ export const getLeadsByDateRange = (
     },
   });
 
-export const getConvertedLeadsByConvertedAtRange = (
+/**
+ * M3.5 — getConversionsByDateRange
+ * Returns all Conversions in the date range (for getFundsSeriesService histogram).
+ * Optional cashierId scopes to a specific cashier's leads.
+ */
+export const getConversionsByDateRange = (
   from: Date,
   to: Date,
   cashierId?: string,
 ) =>
-  prisma.lead.findMany({
+  prisma.conversion.findMany({
     where: {
-      convertedAt: {
-        gte: from,
-        lt: to,
-      },
-      ...(cashierId ? { cashierId } : {}),
+      createdAt: { gte: from, lt: to },
+      ...(cashierId ? { lead: { cashierId } } : {}),
     },
     select: {
-      id: true,
-      convertedAt: true,
+      createdAt: true,
       amount: true,
     },
-    orderBy: {
-      convertedAt: 'asc',
-    },
+    orderBy: { createdAt: 'asc' },
   });
 
 export const listLandings = () =>
@@ -254,21 +253,28 @@ export const getLandingByMetaPixelId = (metaPixelId: string) =>
   });
 
 export const listLeads = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
   cashierId?: string;
+  cashierIds?: string[];
   adCode?: string;
+  code?: string;
+  phone?: string;
 }) =>
   prisma.lead.findMany(buildListLeadsQuery(filters));
 
 export const buildListLeadsQuery = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED' | 'EXPIRED';
+  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
   cashierId?: string;
+  cashierIds?: string[];
   adCode?: string;
+  code?: string;
+  phone?: string;
 }) =>
   ({
     where: {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
+      ...(filters.cashierIds?.length ? { cashierId: { in: filters.cashierIds } } : {}),
       ...(filters.adCode
         ? {
             adCode: {
@@ -277,6 +283,8 @@ export const buildListLeadsQuery = (filters: {
             },
           }
         : {}),
+      ...(filters.code ? { code: { contains: filters.code } } : {}),
+      ...(filters.phone ? { phone: { contains: filters.phone } } : {}),
     },
     include: {
       cashier: {
@@ -284,11 +292,76 @@ export const buildListLeadsQuery = (filters: {
           user: true,
         },
       },
+      conversions: {
+        select: { createdAt: true },
+        orderBy: { createdAt: 'asc' as const },
+        take: 1,
+      },
     },
     orderBy: {
       updateAt: 'desc' as const,
     },
   }) satisfies Prisma.LeadFindManyArgs;
+
+// ---------------------------------------------------------------------------
+// M2.5 — Conversion admin queries
+// ---------------------------------------------------------------------------
+
+type ConversionsAdminFilters = {
+  dateFrom?: Date;
+  dateTo?: Date;
+  amountMin?: number;
+  amountMax?: number;
+  phone?: string;
+  code?: string;
+  cashierIds?: string[];
+};
+
+export const buildListConversionsQuery = (filters: ConversionsAdminFilters) => {
+  const leadWhere: Record<string, unknown> = {};
+  if (filters.phone) leadWhere.phone = { contains: filters.phone };
+  if (filters.code) leadWhere.code = { contains: filters.code };
+  if (filters.cashierIds?.length) leadWhere.cashierId = { in: filters.cashierIds };
+
+  const createdAtFilter: Record<string, Date> = {};
+  if (filters.dateFrom) createdAtFilter.gte = filters.dateFrom;
+  if (filters.dateTo) createdAtFilter.lt = filters.dateTo;
+
+  const amountFilter: Record<string, number> = {};
+  if (filters.amountMin !== undefined) amountFilter.gte = filters.amountMin;
+  if (filters.amountMax !== undefined) amountFilter.lte = filters.amountMax;
+
+  return {
+    where: {
+      ...(Object.keys(createdAtFilter).length ? { createdAt: createdAtFilter } : {}),
+      ...(Object.keys(amountFilter).length ? { amount: amountFilter } : {}),
+      ...(Object.keys(leadWhere).length ? { lead: leadWhere } : {}),
+    },
+    orderBy: { createdAt: 'desc' as const },
+    include: {
+      lead: {
+        include: {
+          cashier: {
+            include: { user: true },
+          },
+        },
+      },
+    },
+  };
+};
+
+export const listConversionsAdmin = (
+  filters: ConversionsAdminFilters,
+  page: number,
+  pageSize: number,
+) => {
+  const q = buildListConversionsQuery(filters);
+  const skip = (page - 1) * pageSize;
+  return Promise.all([
+    prisma.conversion.findMany({ ...q, skip, take: pageSize }),
+    prisma.conversion.count({ where: q.where }),
+  ]);
+};
 
 export const setLandingStatus = (
   landingId: string,

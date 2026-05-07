@@ -2,9 +2,11 @@ import { endpoints } from "@/api/endpoints";
 import { http } from "@/api/http";
 import type {
   CashierRuntimeState,
+  Conversion,
   ConvertLeadInput,
   Lead,
   LeadStatus,
+  PaginatedResult,
   Session,
   UpdateCashierAccountInput,
   WhatsappLinkArtifacts,
@@ -33,18 +35,26 @@ export const cashierService = {
     return data;
   },
 
-  async getQueueCurrentLead(): Promise<Lead | null> {
-    const { data } = await http.get<Lead | null>(endpoints.cashier.queueCurrentLead);
+  async createConversion(leadId: string, input: ConvertLeadInput): Promise<{ conversion: Conversion }> {
+    const { data } = await http.post<{ conversion: Conversion }>(
+      endpoints.cashier.createConversion(leadId),
+      input,
+    );
     return data;
   },
 
-  async convertQueueLead(leadId: string, input: ConvertLeadInput): Promise<Lead> {
-    const { data } = await http.post<Lead>(endpoints.cashier.queueConvertLead(leadId), input);
-    return data;
+  async searchLeads(q: string): Promise<Lead[]> {
+    const { data } = await http.get<{ items: Lead[] }>(endpoints.cashier.searchLeads, {
+      params: { q },
+    });
+    return data.items;
   },
 
-  async skipQueueLead(leadId: string): Promise<void> {
-    await http.post(endpoints.cashier.queueSkipLead(leadId));
+  async listConversions({ page, pageSize }: { page: number; pageSize: number }): Promise<PaginatedResult<Conversion>> {
+    const { data } = await http.get<PaginatedResult<Conversion>>(endpoints.cashier.conversions, {
+      params: { page, pageSize },
+    });
+    return data;
   },
 
   async listLeads(status?: LeadStatus): Promise<Lead[]> {

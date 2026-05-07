@@ -1,5 +1,7 @@
-import { LeadStatus } from '../../generated/prisma/client.js';
+import { LeadStatus, type Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../persistence/prisma/client.js';
+
+export const SEARCH_RESULTS_LIMIT = 10;
 
 export const getCashierSession = (cashierId: string) =>
   prisma.cashier.findUniqueOrThrow({
@@ -93,40 +95,6 @@ export const finishCurrentSessionActivity = (cashierId: string, endedAt: Date) =
     },
   });
 
-export const findQueueLeadForCashier = async (cashierId: string) => {
-  const now = new Date();
-
-  await prisma.lead.updateMany({
-    where: {
-      cashierId,
-      status: 'CONTACTED',
-      expiresAt: {
-        lte: now,
-      },
-    },
-    data: {
-      status: 'EXPIRED',
-    },
-  });
-
-  return prisma.lead.findFirst({
-    where: {
-      cashierId,
-      status: 'CONTACTED',
-      expiresAt: {
-        gt: now,
-      },
-    },
-    orderBy: [
-      {
-        contactedAt: 'asc',
-      },
-      {
-        createdAt: 'asc',
-      },
-    ],
-  });
-};
 
 export const findLeadByIdForCashier = (leadId: string, cashierId: string) =>
   prisma.lead.findFirst({
@@ -136,45 +104,78 @@ export const findLeadByIdForCashier = (leadId: string, cashierId: string) =>
     },
   });
 
-export const moveLeadToQueueTail = (leadId: string, now: Date) =>
-  prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      contactedAt: now,
-    },
+
+type PrismaTx = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+/**
+ * M2.1 — Insert a Conversion row inside a transaction.
+ * The caller is responsible for opening the transaction.
+ */
+export const createConversion = (
+  tx: PrismaTx,
+  data: { leadId: string; amount: number | Prisma.Decimal },
+) =>
+  tx.conversion.create({
+    data: { leadId: data.leadId, amount: data.amount },
   });
 
-export const convertLead = (leadId: string, amount: number, convertedAt: Date) =>
-  prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      amount,
-      status: 'CONVERTED',
-      convertedAt,
+/**
+ * M2.3 — Search leads for a cashier by code or phone substring.
+ * Empty q short-circuits to [] (never queries DB).
+ * Includes the first Conversion (asc createdAt) for timeline derivation.
+ */
+export const searchLeadsForCashier = (cashierId: string, q: string) => {
+  if (!q) {
+    return Promise.resolve([]);
+  }
+
+  return prisma.lead.findMany({
+    where: {
+      cashierId,
+      status: { in: ['CONTACTED', 'CONVERTED'] },
+      OR: [{ code: { contains: q } }, { phone: { contains: q } }],
+    },
+    take: SEARCH_RESULTS_LIMIT,
+    orderBy: { contactedAt: 'desc' },
+    include: {
+      conversions: {
+        select: { createdAt: true },
+        orderBy: { createdAt: 'asc' },
+        take: 1,
+      },
     },
   });
+};
+
+/**
+ * M2.4 — Paginated list of conversions for a cashier's leads, ordered createdAt DESC.
+ */
+export const listConversionsForCashier = (
+  cashierId: string,
+  page: number,
+  pageSize: number,
+) => {
+  const skip = (page - 1) * pageSize;
+  return Promise.all([
+    prisma.conversion.findMany({
+      where: { lead: { cashierId } },
+      skip,
+      take: pageSize,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        lead: {
+          select: { code: true, phone: true },
+        },
+      },
+    }),
+    prisma.conversion.count({ where: { lead: { cashierId } } }),
+  ]);
+};
 
 export const listLeadsForCashier = async (
   cashierId: string,
   status?: LeadStatus,
 ) => {
-  const now = new Date();
-
-  await prisma.lead.updateMany({
-    where: {
-      cashierId,
-      status: {
-        in: ['NOT_CONTACTED', 'CONTACTED'],
-      },
-      expiresAt: {
-        lte: now,
-      },
-    },
-    data: {
-      status: 'EXPIRED',
-    },
-  });
-
   return prisma.lead.findMany({
     where: {
       cashierId,

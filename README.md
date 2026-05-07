@@ -49,27 +49,72 @@ Diagramas y pasos detallados: [`docs/production-deployment.md`](./docs/productio
 
 ## Desarrollo local
 
-Cada servicio tiene su propio `README.md` con instrucciones. Setup mínimo global:
+Hay dos caminos según lo que quieras hacer.
+
+### Opción A — Stack completo con Docker Compose (recomendado)
+
+`docker-compose.local.yml` levanta postgres + redis + gateway + worker + dashboard buildeados desde el repo, todo en una red `onlylemon-local`:
 
 ```bash
-# 1. Redis y Postgres locales (o contenedores)
+docker compose -f docker-compose.local.yml up --build
+# WAHA detrás de un profile (requiere docker login a docker.io con acceso a waha-plus:gows):
+docker compose -f docker-compose.local.yml --profile waha up --build
+```
+
+Inspeccionar la config resuelta (con o sin profile):
+
+```bash
+docker compose -f docker-compose.local.yml --profile waha config
+```
+
+Puertos en `127.0.0.1`:
+
+| Servicio | Puerto host | Container |
+|---|---|---|
+| dashboard (Caddy) | `8080` | `onlylemon-dashboard-local` |
+| worker | `4000` | `onlylemon-worker-local` |
+| gateway | `3000` | `onlylemon-gateway-local` |
+| postgres | `5432` | `onlylemon-postgres-stack-local` |
+| redis | `6379` | `onlylemon-redis-local` |
+| waha (profile) | `3001` | `onlylemon-waha-local` |
+
+Características:
+
+- Postgres con volumen named `pg_data` (persistente entre `up`/`down`). Credenciales: `onlylemon` / `onlylemon` / `onlylemon`.
+- Redis sin password (a diferencia de prod).
+- El worker corre `prisma migrate deploy` al iniciar (idempotente sobre una DB ya migrada).
+- Dashboard se buildea con `VITE_API_BASE_URL=http://localhost:4000/api` (build-time arg).
+- WAHA usa `devlikeapro/waha-plus:gows` (mismo image que prod). Si no tenés acceso, omití `--profile waha`; el worker arranca igual y solo fallarán las llamadas a WhatsApp.
+
+Importar un dump de prod al postgres del compose:
+
+```bash
+docker exec -i onlylemon-postgres-stack-local psql -U onlylemon -d onlylemon -v ON_ERROR_STOP=1 < dump.sql
+```
+
+### Opción B — Servicios uno a uno con `npm run dev`
+
+Útil para HMR del dashboard o para iterar rápido sin buildear imágenes:
+
+```bash
+# 1. Redis y Postgres locales (o contenedores standalone)
 docker run -d --name ol-redis -p 6379:6379 redis:7-alpine
 docker run -d --name ol-postgres -p 5432:5432 \
   -e POSTGRES_DB=onlylemon -e POSTGRES_USER=onlylemon -e POSTGRES_PASSWORD=onlylemon \
   postgres:16-alpine
 
-# 2. Instalar dependencias y levantar cada servicio en su propia terminal
+# 2. Cada servicio en su propia terminal
 cd gateway   && cp .env.example .env && npm install && npm run dev
-cd worker    && cp .env.example .env && npm install && npm run prisma:generate && npm run dev
+cd worker    &&                         npm install && npm run prisma:generate && npm run dev   # ver worker/README.md para .env
 cd dashboard && cp .env.example .env && npm install && npm run dev
 ```
 
-Puertos por defecto en dev:
+Puertos por defecto en este modo:
 
 | Servicio | Puerto |
 |---|---|
-| gateway | `3000` (configurable con `PORT`) |
-| worker | `3002` (default del schema; en prod corre en `4000`) |
+| gateway | `3000` |
+| worker | `3002` (default del schema; el compose y prod usan `4000`) |
 | dashboard | `5173` (Vite) — consume `http://<host>:3002/api` |
 
 ## Producción
@@ -147,6 +192,7 @@ onlylemon/
 │   └── dashboard-vps/                Caddyfile + alloy.config + backup.sh
 ├── docs/
 │   └── production-deployment.md      Runbook completo de despliegue
+├── docker-compose.local.yml          Stack local self-contained (postgres + redis + servicios)
 ├── docker-compose.waha-vps.yml
 ├── docker-compose.dashboard-vps.yml
 ├── AGENTS.md                         Guía rápida para agentes IA

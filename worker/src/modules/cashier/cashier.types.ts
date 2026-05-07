@@ -1,13 +1,14 @@
 import { z } from 'zod';
 
-export const convertLeadSchema = z.object({
+export const createConversionSchema = z.object({
   amount: z.coerce.number().min(3000),
 });
 
-export type ConvertLeadPayload = z.infer<typeof convertLeadSchema>;
+
+export type ConvertLeadPayload = z.infer<typeof createConversionSchema>;
 
 export const leadStatusSchema = z
-  .enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED', 'EXPIRED'])
+  .enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED'])
   .optional();
 
 export const completeWhatsappLinkSchema = z.object({

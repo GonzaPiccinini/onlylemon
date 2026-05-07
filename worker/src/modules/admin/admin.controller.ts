@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import {
+  conversionsFilterSchema,
   createCashierSchema,
   createLandingSchema,
   dateRangeSchema,
@@ -17,6 +18,7 @@ import {
   getCashierStatsService,
   getFundsSeriesService,
   getSummaryService,
+  listAdminConversionsService,
   listCashierLandingsService,
   listCashiersService,
   listLeadsService,
@@ -247,4 +249,37 @@ export const replaceCashierLandingsHandler = async (
       error: error instanceof Error ? error.message : 'Could not replace landings',
     });
   }
+};
+
+export const listAdminConversionsHandler = async (req: Request, res: Response) => {
+  const parsed = conversionsFilterSchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid query',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  const { dateFrom, dateTo, phone, code, cashierIds: cashierIdsCsv, amountMin, amountMax, page, pageSize } = parsed.data;
+
+  // Parse comma-separated cashierIds into an array
+  const cashierIds = cashierIdsCsv
+    ? cashierIdsCsv
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : undefined;
+
+  const filters = {
+    dateFrom: dateFrom ? new Date(`${dateFrom}T03:00:00.000Z`) : undefined,
+    dateTo: dateTo ? new Date(`${dateTo}T03:00:00.000Z`) : undefined,
+    phone,
+    code,
+    cashierIds,
+    amountMin,
+    amountMax,
+  };
+
+  const data = await listAdminConversionsService(filters, page, pageSize);
+  return res.status(200).json(data);
 };

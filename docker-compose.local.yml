@@ -1,0 +1,136 @@
+# Local dev stack. Usage:
+#   docker compose -f docker-compose.local.yml up --build
+#   docker compose -f docker-compose.local.yml --profile waha up --build   # incluye WAHA
+#
+# Postgres corre dentro del compose con su propio volumen (`pg_data`) y se expone en
+# 127.0.0.1:5432. `prisma migrate deploy` corre al iniciar el worker; sobre una DB
+# clonada de prod debería ser no-op.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: onlylemon-postgres-stack-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: onlylemon
+      POSTGRES_USER: onlylemon
+      POSTGRES_PASSWORD: onlylemon
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5432:5432'
+    networks: [local]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U onlylemon -d onlylemon']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: onlylemon-redis-local
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '127.0.0.1:6379:6379'
+    volumes:
+      - redis_data:/data
+    networks: [local]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ./worker
+    container_name: onlylemon-worker-local
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://onlylemon:onlylemon@postgres:5432/onlylemon
+      BULLMQ_REDIS_URL: redis://redis:6379
+      BULLMQ_QUEUE_NAME: inbound
+      WORKER_CONCURRENCY: 5
+      LEADS_CODE_TTL_HOURS: 48
+      JWT_SECRET: dev-jwt-secret-change-me-please
+      CORS_ORIGIN: http://localhost:8080
+      WAHA_BASE_URL: http://waha:3000
+      WAHA_API_KEY: dev-waha-key
+      WAHA_WEBHOOK_URL: http://gateway:3000/api/webhook
+      WAHA_WEBHOOK_EVENTS: message,session.status
+      WAHA_WEBHOOK_TOKEN_HEADER: x-webhook-token
+      WAHA_WEBHOOK_TOKEN_VALUE: dev-token
+      LOG_LEVEL: debug
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - '127.0.0.1:4000:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [local]
+
+  gateway:
+    build:
+      context: ./gateway
+    container_name: onlylemon-gateway-local
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      WEBHOOK_TOKEN_HEADER: x-webhook-token
+      WEBHOOK_TOKEN_VALUE: dev-token
+      BULLMQ_REDIS_URL: redis://redis:6379
+      BULLMQ_QUEUE_NAME: inbound
+      CORS_ALLOWED_ORIGINS: http://localhost:8080
+      MAX_PAYLOAD_BYTES: 1048576
+      QUEUE_MAX_BACKLOG: 10000
+      QUEUE_DEGRADED_BACKLOG: 5000
+      LOG_LEVEL: debug
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [local]
+
+  dashboard:
+    build:
+      context: ./dashboard
+      args:
+        VITE_API_BASE_URL: http://localhost:4000/api
+    container_name: onlylemon-dashboard-local
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8080:80'
+    depends_on: [worker]
+    networks: [local]
+
+  waha:
+    image: devlikeapro/waha-plus:gows
+    container_name: onlylemon-waha-local
+    restart: unless-stopped
+    profiles: [waha]
+    environment:
+      WAHA_API_KEY: dev-waha-key
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WAHA_PRINT_QR: 'true'
+      WAHA_LOG_LEVEL: info
+    ports:
+      - '127.0.0.1:3001:3000'
+    volumes:
+      - waha_data:/app/.sessions
+    networks: [local]
+
+volumes:
+  pg_data:
+  redis_data:
+  waha_data:
+
+networks:
+  local:
+    name: onlylemon-local
+    driver: bridge

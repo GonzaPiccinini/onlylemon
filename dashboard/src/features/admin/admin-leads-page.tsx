@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
+import { LeadStatusTimeline } from '@/components/common/lead-status-timeline';
 import { useAdminCashiers, useAdminLeads } from '@/features/admin/admin-hooks';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
   TableBody,
@@ -27,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
 import { PaginationControls } from '@/components/common/pagination-controls';
@@ -37,24 +39,31 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
   { label: 'No contactado', value: 'NOT_CONTACTED' },
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
-  { label: 'Expirado', value: 'EXPIRED' },
 ];
 
 export const AdminLeadsPage = () => {
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
-  const [cashierId, setCashierId] = useState<string>('ALL');
+  const [cashierIds, setCashierIds] = useState<string[]>([]);
   const [adCode, setAdCode] = useState('');
+  const [code, setCode] = useState('');
+  const [phone, setPhone] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
   const { data: cashiers = [] } = useAdminCashiers();
+  const cashierOptions = useMemo(
+    () => cashiers.map((c) => ({ value: c.id, label: c.name })),
+    [cashiers],
+  );
   const filters = useMemo(
     () => ({
       status: status === 'ALL' ? undefined : status,
-      cashierId: cashierId === 'ALL' ? undefined : cashierId,
+      cashierIds: cashierIds.length > 0 ? cashierIds : undefined,
       adCode: adCode.trim() || undefined,
+      code: code.trim() || undefined,
+      phone: phone.trim() || undefined,
     }),
-    [adCode, cashierId, status],
+    [adCode, cashierIds, code, phone, status],
   );
   const { data: leads = [], isLoading } = useAdminLeads(filters);
   const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
@@ -107,34 +116,20 @@ export const AdminLeadsPage = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel>Filtrar por cajero</FieldLabel>
-              <Select
-                value={cashierId}
-                onValueChange={(value) => {
-                  setCashierId(value ?? 'ALL');
+              <FieldLabel htmlFor="admin-leads-cashiers">
+                Filtrar por cajero
+              </FieldLabel>
+              <MultiSelect
+                id="admin-leads-cashiers"
+                options={cashierOptions}
+                value={cashierIds}
+                onChange={(next) => {
+                  setCashierIds(next);
                   setPage(1);
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por cajero" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="ALL" label="Todos">
-                      Todos
-                    </SelectItem>
-                    {cashiers.map((cashier) => (
-                      <SelectItem
-                        key={cashier.id}
-                        value={cashier.id}
-                        label={cashier.name}
-                      >
-                        {cashier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                placeholder="Todos los cajeros"
+                emptyText="Sin cajeros disponibles"
+              />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -144,6 +139,30 @@ export const AdminLeadsPage = () => {
                 placeholder="Ej. utm_content"
                 onChange={(event) => {
                   setAdCode(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <FieldLabel>Filtrar por codigo</FieldLabel>
+              <Input
+                value={code}
+                placeholder="Ej. ABC123"
+                onChange={(event) => {
+                  setCode(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <FieldLabel>Filtrar por telefono</FieldLabel>
+              <Input
+                value={phone}
+                placeholder="Ej. +54911..."
+                onChange={(event) => {
+                  setPhone(event.target.value);
                   setPage(1);
                 }}
               />
@@ -158,7 +177,7 @@ export const AdminLeadsPage = () => {
                 <TableHead>Estado</TableHead>
                 <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
-                <TableHead>Monto</TableHead>
+                <TableHead>Historico</TableHead>
                 <TableHead>Actividad</TableHead>
               </TableRow>
             </TableHeader>
@@ -190,7 +209,7 @@ export const AdminLeadsPage = () => {
                     <TableCell>{lead.cashierName ?? 'Sin asignar'}</TableCell>
                     <TableCell>{lead.phone ?? '-'}</TableCell>
                     <TableCell>
-                      {lead.amount === null ? '-' : formatCurrency(lead.amount)}
+                      <LeadStatusTimeline timeline={lead.statusTimeline} />
                     </TableCell>
                     <TableCell>{formatDateTime(lead.activityAt ?? lead.createdAt)}</TableCell>
                   </TableRow>

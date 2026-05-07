@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
+import { LeadStatusTimeline } from '@/components/common/lead-status-timeline';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -25,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency } from '@/lib/format';
 import { useCashierLeads } from '@/features/cashier/cashier-hooks';
 import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
@@ -35,7 +35,6 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
   { label: 'Todos', value: 'ALL' },
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
-  { label: 'Expirado', value: 'EXPIRED' },
 ];
 
 export const CashierHistoryPage = () => {
@@ -60,7 +59,7 @@ export const CashierHistoryPage = () => {
         <CardHeader>
           <CardTitle>Leads registrados</CardTitle>
           <CardDescription>
-            Visualiza estado, telefono, valor y fechas clave.
+            Visualiza estado, telefono y fechas clave.
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>
@@ -100,7 +99,7 @@ export const CashierHistoryPage = () => {
                 <TableHead>Codigo</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Telefono</TableHead>
-                <TableHead>Monto</TableHead>
+                <TableHead>Historico</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -129,7 +128,7 @@ export const CashierHistoryPage = () => {
                     </TableCell>
                     <TableCell>{lead.phone ?? '-'}</TableCell>
                     <TableCell>
-                      {lead.amount === null ? '-' : formatCurrency(lead.amount)}
+                      <LeadStatusTimeline timeline={lead.statusTimeline} />
                     </TableCell>
                   </TableRow>
                 ))

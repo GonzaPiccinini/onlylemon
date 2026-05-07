@@ -48,3 +48,108 @@ test('buildListLeadsQuery keeps optional status, cashier and adCode filters', as
     },
   });
 });
+
+// ---------------------------------------------------------------------------
+// M2.5 — buildListConversionsQuery
+// ---------------------------------------------------------------------------
+
+test('buildListConversionsQuery: no filters → empty where (no lead constraint)', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const q = buildListConversionsQuery({});
+  // Without filters lead sub-object should be empty (or absent)
+  assert.ok(q.where !== undefined);
+  assert.ok(q.orderBy !== undefined);
+});
+
+test('buildListConversionsQuery: dateFrom filter → createdAt gte', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const from = new Date('2026-01-01T00:00:00Z');
+  const q = buildListConversionsQuery({ dateFrom: from });
+  assert.deepEqual(q.where.createdAt, { gte: from });
+});
+
+test('buildListConversionsQuery: dateTo filter → createdAt lt', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const to = new Date('2026-01-31T00:00:00Z');
+  const q = buildListConversionsQuery({ dateTo: to });
+  assert.deepEqual(q.where.createdAt, { lt: to });
+});
+
+test('buildListConversionsQuery: dateFrom + dateTo → createdAt gte+lt combined', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const from = new Date('2026-01-01T00:00:00Z');
+  const to = new Date('2026-01-31T00:00:00Z');
+  const q = buildListConversionsQuery({ dateFrom: from, dateTo: to });
+  assert.deepEqual(q.where.createdAt, { gte: from, lt: to });
+});
+
+test('buildListConversionsQuery: amountMin → amount gte', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const q = buildListConversionsQuery({ amountMin: 3000 });
+  assert.deepEqual(q.where.amount, { gte: 3000 });
+});
+
+test('buildListConversionsQuery: amountMax → amount lte', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const q = buildListConversionsQuery({ amountMax: 10000 });
+  assert.deepEqual(q.where.amount, { lte: 10000 });
+});
+
+test('buildListConversionsQuery: cashierIds filter → lead.cashierId in', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const q = buildListConversionsQuery({ cashierIds: ['c1', 'c2'] });
+  assert.deepEqual(q.where.lead?.cashierId, { in: ['c1', 'c2'] });
+});
+
+test('buildListConversionsQuery: phone filter → lead.phone contains (case-sensitive)', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const q = buildListConversionsQuery({ phone: '54911' });
+  assert.deepEqual(q.where.lead?.phone, { contains: '54911' });
+});
+
+test('buildListConversionsQuery: code filter → lead.code contains (case-sensitive)', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const q = buildListConversionsQuery({ code: 'LEAD' });
+  assert.deepEqual(q.where.lead?.code, { contains: 'LEAD' });
+});
+
+test('buildListConversionsQuery: orders by createdAt desc', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const q = buildListConversionsQuery({});
+  assert.deepEqual(q.orderBy, { createdAt: 'desc' });
+});
+
+// ---------------------------------------------------------------------------
+// M2.7 — buildListLeadsQuery new filters (code, phone, cashierIds, status)
+// ---------------------------------------------------------------------------
+
+test('buildListLeadsQuery: code filter uses case-sensitive contains (no mode: insensitive)', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ code: 'LEAD001' });
+  assert.deepEqual(q.where.code, { contains: 'LEAD001' });
+  // Must NOT have mode: insensitive (unlike adCode)
+  assert.equal((q.where.code as { mode?: string }).mode, undefined);
+});
+
+test('buildListLeadsQuery: phone filter uses case-sensitive contains', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ phone: '54911' });
+  assert.deepEqual(q.where.phone, { contains: '54911' });
+});
+
+test('buildListLeadsQuery: cashierIds filter maps to cashierId in', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ cashierIds: ['c1', 'c2'] });
+  assert.deepEqual(q.where.cashierId, { in: ['c1', 'c2'] });
+});
+
+test('buildListLeadsQuery: status filter (CONVERTED) sets status field', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ status: 'CONVERTED' });
+  assert.equal(q.where.status, 'CONVERTED');
+});
+
+test('buildListConversionsQuery: listConversionsAdmin function is exported', async () => {
+  const { listConversionsAdmin } = await import('./admin.repository.js');
+  assert.equal(typeof listConversionsAdmin, 'function');
+});
