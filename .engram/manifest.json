@@ -80,6 +80,14 @@
       "sessions": 20,
       "memories": 54,
       "prompts": 0
+    },
+    {
+      "id": "59e52aa5",
+      "created_by": "asteroid",
+      "created_at": "2026-05-07T20:27:50Z",
+      "sessions": 8,
+      "memories": 24,
+      "prompts": 0
     }
   ]
 }
