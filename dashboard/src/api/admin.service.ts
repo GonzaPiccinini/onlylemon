@@ -8,6 +8,7 @@ import type {
   CashierStats,
   Conversion,
   ConversionsFilters,
+  ConversionsTotals,
   CreateAdminInput,
   CreateLandingInput,
   CreateCashierInput,
@@ -155,6 +156,24 @@ export const adminService = {
       params: {
         ...(filters.page !== undefined ? { page: filters.page } : {}),
         ...(filters.pageSize !== undefined ? { pageSize: filters.pageSize } : {}),
+        ...(filters.dateFrom ? { dateFrom: filters.dateFrom } : {}),
+        ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
+        ...(filters.phone ? { phone: filters.phone } : {}),
+        ...(filters.code ? { code: filters.code } : {}),
+        ...(filters.adCode ? { adCode: filters.adCode } : {}),
+        ...(filters.cashierIds?.length ? { cashierIds: filters.cashierIds.join(",") } : {}),
+        ...(filters.amountMin !== undefined ? { amountMin: filters.amountMin } : {}),
+        ...(filters.amountMax !== undefined ? { amountMax: filters.amountMax } : {}),
+      },
+    });
+    return data;
+  },
+
+  async getConversionsTotals(
+    filters: Omit<ConversionsFilters, "page" | "pageSize">,
+  ): Promise<ConversionsTotals> {
+    const { data } = await http.get<ConversionsTotals>(endpoints.admin.conversionsTotals, {
+      params: {
         ...(filters.dateFrom ? { dateFrom: filters.dateFrom } : {}),
         ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
         ...(filters.phone ? { phone: filters.phone } : {}),

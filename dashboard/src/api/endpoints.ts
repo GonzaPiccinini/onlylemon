@@ -22,6 +22,7 @@ export const endpoints = {
     leads: "/admin/leads",
     leadHistory: (leadId: string) => `/admin/leads/${leadId}/history`,
     conversions: "/admin/conversions",
+    conversionsTotals: "/admin/conversions/totals",
     statsSummary: "/admin/stats/summary",
     statsByCashier: "/admin/stats/cashiers",
     statsFundsSeries: "/admin/stats/funds-series",

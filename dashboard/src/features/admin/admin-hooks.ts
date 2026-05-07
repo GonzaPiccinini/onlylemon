@@ -11,6 +11,8 @@ import type {
   UpdateLandingInput,
 } from "@/types/domain";
 
+type ConversionsTotalsFilters = Omit<ConversionsFilters, "page" | "pageSize">;
+
 const adminKeys = {
   cashiers: ["admin", "cashiers"] as const,
   landings: ["admin", "landings"] as const,
@@ -21,6 +23,8 @@ const adminKeys = {
   leadHistory: (leadId: string, filters: { dateFrom?: string | null; dateTo?: string | null }) =>
     ["admin", "lead-history", leadId, filters] as const,
   conversions: (filters: ConversionsFilters) => ["admin", "conversions", filters] as const,
+  conversionsTotals: (filters: ConversionsTotalsFilters) =>
+    ["admin", "conversions-totals", filters] as const,
 };
 
 export const useAdminCashiers = () =>
@@ -198,6 +202,12 @@ export const useAdminConversions = (filters: ConversionsFilters) =>
   useQuery({
     queryKey: adminKeys.conversions(filters),
     queryFn: () => adminService.listConversions(filters),
+  });
+
+export const useAdminConversionsTotals = (filters: ConversionsTotalsFilters) =>
+  useQuery({
+    queryKey: adminKeys.conversionsTotals(filters),
+    queryFn: () => adminService.getConversionsTotals(filters),
   });
 
 export const useUpdateAdminAccount = () =>

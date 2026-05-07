@@ -144,6 +144,12 @@ export interface Conversion {
   cashierName?: string | null;
 }
 
+export interface ConversionsTotals {
+  totalAmount: number;
+  count: number;
+  averageAmount: number;
+}
+
 export interface PaginatedResult<T> {
   items: T[];
   total: number;

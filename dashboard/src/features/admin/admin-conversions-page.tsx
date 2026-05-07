@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/common/page-header';
 import { PaginationControls } from '@/components/common/pagination-controls';
-import { useAdminConversions, useAdminCashiers } from '@/features/admin/admin-hooks';
+import { useAdminConversions, useAdminCashiers, useAdminConversionsTotals } from '@/features/admin/admin-hooks';
 import {
   Card,
   CardContent,
@@ -58,6 +58,22 @@ export const AdminConversionsPage = () => {
     }),
     [page, dateFrom, dateTo, phone, code, adCode, cashierIds, amountMin, amountMax],
   );
+
+  const totalsFilters = useMemo(
+    () => ({
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      phone: phone.trim() || undefined,
+      code: code.trim() || undefined,
+      adCode: adCode.trim() || undefined,
+      cashierIds: cashierIds.length > 0 ? cashierIds : undefined,
+      amountMin: amountMin !== '' ? Number(amountMin) : undefined,
+      amountMax: amountMax !== '' ? Number(amountMax) : undefined,
+    }),
+    [dateFrom, dateTo, phone, code, adCode, cashierIds, amountMin, amountMax],
+  );
+
+  const { data: totals, isLoading: totalsLoading } = useAdminConversionsTotals(totalsFilters);
 
   const { data, isLoading } = useAdminConversions(filters);
   const items = data?.items ?? [];
@@ -162,6 +178,33 @@ export const AdminConversionsPage = () => {
                 onChange={handleFilterChange(setAmountMax)}
               />
             </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-1">
+                <CardDescription>Monto total</CardDescription>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">
+                {totalsLoading ? '…' : formatCurrency(totals?.totalAmount ?? 0)}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-1">
+                <CardDescription>Cantidad</CardDescription>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">
+                {totalsLoading ? '…' : String(totals?.count ?? 0)}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-1">
+                <CardDescription>Monto promedio</CardDescription>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">
+                {totalsLoading ? '…' : formatCurrency(totals?.averageAmount ?? 0)}
+              </CardContent>
+            </Card>
           </div>
 
           <Table>
