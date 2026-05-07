@@ -10,6 +10,7 @@ import {
   enableLandingHandler,
   finishCashierWorkSessionHandler,
   fundsSeriesHandler,
+  getAdminConversionsTotalsHandler,
   getLeadHistoryHandler,
   listAdminConversionsHandler,
   listAdminsHandler,
@@ -64,3 +65,5 @@ adminRouter.get('/stats/funds-series', fundsSeriesHandler);
 adminRouter.get('/leads', listLeadsHandler);
 adminRouter.get('/leads/:id/history', getLeadHistoryHandler);
 adminRouter.get('/conversions', listAdminConversionsHandler);
+// Must precede any future /conversions/:id dynamic route
+adminRouter.get('/conversions/totals', getAdminConversionsTotalsHandler);

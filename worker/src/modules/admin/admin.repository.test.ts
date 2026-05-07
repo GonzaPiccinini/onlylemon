@@ -222,3 +222,56 @@ test('findAdminById is exported from admin.repository', async () => {
   const mod = await import('./admin.repository.js') as Record<string, unknown>;
   assert.equal(typeof mod.findAdminById, 'function');
 });
+
+// ---------------------------------------------------------------------------
+// admin-conversions-totals — M2: getConversionsTotals repository
+// ---------------------------------------------------------------------------
+
+test('getConversionsTotals is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.getConversionsTotals, 'function');
+});
+
+test('getConversionsTotals: where clause matches buildListConversionsQuery with no filters', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const filters = {};
+  const q = buildListConversionsQuery(filters);
+  assert.deepEqual(q.where, buildListConversionsQuery({}).where);
+});
+
+test('getConversionsTotals: where clause matches buildListConversionsQuery with dateFrom filter', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const dateFrom = new Date('2024-01-01T03:00:00.000Z');
+  const filters = { dateFrom };
+  const q = buildListConversionsQuery(filters);
+  assert.deepEqual(q.where.createdAt, { gte: dateFrom });
+});
+
+test('getConversionsTotals: where clause matches buildListConversionsQuery with amountMin+amountMax', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const filters = { amountMin: 100, amountMax: 5000 };
+  const q = buildListConversionsQuery(filters);
+  assert.deepEqual(q.where.amount, { gte: 100, lte: 5000 });
+});
+
+test('getConversionsTotals: where clause matches buildListConversionsQuery with cashierIds', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const filters = { cashierIds: ['c1', 'c2'] };
+  const q = buildListConversionsQuery(filters);
+  assert.deepEqual(q.where.lead?.cashierId, { in: ['c1', 'c2'] });
+});
+
+test('getConversionsTotals: where clause matches buildListConversionsQuery with phone+code+adCode', async () => {
+  const { buildListConversionsQuery } = await import('./admin.repository.js');
+  const filters = { phone: '5491', code: 'LEAD', adCode: 'camp-1' };
+  const q = buildListConversionsQuery(filters);
+  assert.deepEqual(q.where.lead?.phone, { contains: '5491' });
+  assert.deepEqual(q.where.lead?.code, { contains: 'LEAD', mode: 'insensitive' });
+  assert.deepEqual(q.where.lead?.adCode, { contains: 'camp-1', mode: 'insensitive' });
+});
+
+test('getConversionsTotals: returns a thenable (structural)', async () => {
+  const { getConversionsTotals } = await import('./admin.repository.js');
+  const result = getConversionsTotals({});
+  assert.equal(typeof result.then, 'function');
+});

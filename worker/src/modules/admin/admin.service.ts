@@ -15,6 +15,7 @@ import {
   getConversionsAggregateForLeads,
   getConversionsByDateRange,
   getConversionsWithLeadByDateRange,
+  getConversionsTotals,
   getLeadHistory,
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
@@ -37,7 +38,7 @@ import {
   getCurrentSessionActivity,
   updateCashierWhatsappLink,
 } from '../cashier/cashier.repository.js';
-import type { DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
+import type { ConversionsTotalsDto, DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
 import {
   argentinaDayEndUtcExclusive,
   argentinaDayStartUtc,
@@ -814,3 +815,32 @@ export const listAdminConversionsService = async (
 
   return { items, total, page, pageSize };
 };
+
+// ---------------------------------------------------------------------------
+// admin-conversions-totals — M3
+// ---------------------------------------------------------------------------
+
+type ConversionsTotalsRepo = {
+  getConversionsTotals: (filters: ConversionsAdminFilters) => Promise<{
+    _count: { _all: number };
+    _sum: { amount: { toNumber: () => number } | null };
+    _avg: { amount: { toNumber: () => number } | null };
+  }>;
+};
+
+export const getAdminConversionsTotalsServiceImpl = async (
+  repo: ConversionsTotalsRepo,
+  filters: ConversionsAdminFilters,
+): Promise<ConversionsTotalsDto> => {
+  const result = await repo.getConversionsTotals(filters);
+  return {
+    totalAmount: result._sum.amount?.toNumber() ?? 0,
+    count: result._count._all,
+    averageAmount: result._avg.amount?.toNumber() ?? 0,
+  };
+};
+
+export const getAdminConversionsTotalsService = (
+  filters: ConversionsAdminFilters,
+): Promise<ConversionsTotalsDto> =>
+  getAdminConversionsTotalsServiceImpl({ getConversionsTotals }, filters);

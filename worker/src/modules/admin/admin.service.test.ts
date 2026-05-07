@@ -741,3 +741,75 @@ test('admin CRUD dto excludes password field', () => {
   assert.equal(dto.role, 'ADMIN');
   assert.equal(dto.status, 'ACTIVE');
 });
+
+// ---------------------------------------------------------------------------
+// admin-conversions-totals — M3: getAdminConversionsTotalsServiceImpl
+// ---------------------------------------------------------------------------
+
+test('getAdminConversionsTotalsServiceImpl: Decimal nulls → { totalAmount: 0, count: 0, averageAmount: 0 }', async () => {
+  const { getAdminConversionsTotalsServiceImpl } = await import('./admin.service.js') as Record<string, unknown> as {
+    getAdminConversionsTotalsServiceImpl: (
+      repo: { getConversionsTotals: (filters: unknown) => Promise<unknown> },
+      filters: unknown,
+    ) => Promise<{ totalAmount: number; count: number; averageAmount: number }>;
+  };
+
+  const stubRepo = {
+    getConversionsTotals: async (_filters: unknown) => ({
+      _count: { _all: 0 },
+      _sum: { amount: null },
+      _avg: { amount: null },
+    }),
+  };
+
+  const result = await getAdminConversionsTotalsServiceImpl(stubRepo, {});
+  assert.deepEqual(result, { totalAmount: 0, count: 0, averageAmount: 0 });
+});
+
+test('getAdminConversionsTotalsServiceImpl: Decimal values → correct numeric coercion', async () => {
+  const { getAdminConversionsTotalsServiceImpl } = await import('./admin.service.js') as Record<string, unknown> as {
+    getAdminConversionsTotalsServiceImpl: (
+      repo: { getConversionsTotals: (filters: unknown) => Promise<unknown> },
+      filters: unknown,
+    ) => Promise<{ totalAmount: number; count: number; averageAmount: number }>;
+  };
+
+  const stubRepo = {
+    getConversionsTotals: async (_filters: unknown) => ({
+      _count: { _all: 3 },
+      _sum: { amount: { toNumber: () => 1500.5 } },
+      _avg: { amount: { toNumber: () => 500.17 } },
+    }),
+  };
+
+  const result = await getAdminConversionsTotalsServiceImpl(stubRepo, {});
+  assert.equal(result.count, 3);
+  assert.equal(result.totalAmount, 1500.5);
+  assert.equal(result.averageAmount, 500.17);
+});
+
+test('getAdminConversionsTotalsServiceImpl: passes filters to repo unchanged', async () => {
+  const { getAdminConversionsTotalsServiceImpl } = await import('./admin.service.js') as Record<string, unknown> as {
+    getAdminConversionsTotalsServiceImpl: (
+      repo: { getConversionsTotals: (filters: unknown) => Promise<unknown> },
+      filters: unknown,
+    ) => Promise<{ totalAmount: number; count: number; averageAmount: number }>;
+  };
+
+  let capturedFilters: unknown = null;
+  const filters = { dateFrom: new Date('2024-01-01T03:00:00.000Z'), amountMin: 100 };
+  const stubRepo = {
+    getConversionsTotals: async (f: unknown) => {
+      capturedFilters = f;
+      return { _count: { _all: 0 }, _sum: { amount: null }, _avg: { amount: null } };
+    },
+  };
+
+  await getAdminConversionsTotalsServiceImpl(stubRepo, filters);
+  assert.deepEqual(capturedFilters, filters);
+});
+
+test('getAdminConversionsTotalsService is exported from admin.service', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.getAdminConversionsTotalsService, 'function');
+});
