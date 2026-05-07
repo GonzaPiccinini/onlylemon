@@ -789,6 +789,7 @@ type ConversionsAdminFilters = {
   amountMax?: number;
   phone?: string;
   code?: string;
+  adCode?: string;
   cashierIds?: string[];
 };
 
@@ -803,6 +804,7 @@ export const listAdminConversionsService = async (
     id: c.id,
     leadId: c.leadId,
     code: c.lead.code,
+    adCode: c.lead.adCode,
     phone: c.lead.phone,
     cashierId: c.lead.cashier?.id ?? null,
     cashierName: c.lead.cashier?.user.name ?? null,

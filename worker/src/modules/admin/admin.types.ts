@@ -71,6 +71,7 @@ export const conversionsFilterSchema = z.object({
     .optional(),
   phone: z.string().trim().min(1).optional(),
   code: z.string().trim().min(1).optional(),
+  adCode: z.string().trim().min(1).optional(),
   cashierIds: z.string().optional(), // comma-separated CSV; parsed in controller
   amountMin: z.coerce.number().optional(),
   amountMax: z.coerce.number().optional(),

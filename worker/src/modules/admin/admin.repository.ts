@@ -440,6 +440,7 @@ type ConversionsAdminFilters = {
   amountMax?: number;
   phone?: string;
   code?: string;
+  adCode?: string;
   cashierIds?: string[];
 };
 
@@ -447,6 +448,7 @@ export const buildListConversionsQuery = (filters: ConversionsAdminFilters) => {
   const leadWhere: Record<string, unknown> = {};
   if (filters.phone) leadWhere.phone = { contains: filters.phone };
   if (filters.code) leadWhere.code = { contains: filters.code, mode: 'insensitive' as const };
+  if (filters.adCode) leadWhere.adCode = { contains: filters.adCode, mode: 'insensitive' as const };
   if (filters.cashierIds?.length) leadWhere.cashierId = { in: filters.cashierIds };
 
   const createdAtFilter: Record<string, Date> = {};

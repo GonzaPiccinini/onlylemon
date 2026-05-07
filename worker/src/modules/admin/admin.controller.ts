@@ -400,7 +400,7 @@ export const listAdminConversionsHandler = async (req: Request, res: Response) =
     });
   }
 
-  const { dateFrom, dateTo, phone, code, cashierIds: cashierIdsCsv, amountMin, amountMax, page, pageSize } = parsed.data;
+  const { dateFrom, dateTo, phone, code, adCode, cashierIds: cashierIdsCsv, amountMin, amountMax, page, pageSize } = parsed.data;
 
   // Parse comma-separated cashierIds into an array
   const cashierIds = cashierIdsCsv
@@ -415,6 +415,7 @@ export const listAdminConversionsHandler = async (req: Request, res: Response) =
     dateTo: dateTo ? new Date(`${dateTo}T03:00:00.000Z`) : undefined,
     phone,
     code,
+    adCode,
     cashierIds,
     amountMin,
     amountMax,

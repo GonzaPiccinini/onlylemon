@@ -136,6 +136,7 @@ export interface Conversion {
   id: string;
   leadId: string;
   code: string;
+  adCode?: string | null;
   phone: string | null;
   amount: string | number;
   createdAt: string;
@@ -208,6 +209,7 @@ export interface ConversionsFilters {
   dateTo?: string;
   phone?: string;
   code?: string;
+  adCode?: string;
   cashierIds?: string[];
   amountMin?: number;
   amountMax?: number;

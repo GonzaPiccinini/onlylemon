@@ -159,6 +159,7 @@ export const adminService = {
         ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
         ...(filters.phone ? { phone: filters.phone } : {}),
         ...(filters.code ? { code: filters.code } : {}),
+        ...(filters.adCode ? { adCode: filters.adCode } : {}),
         ...(filters.cashierIds?.length ? { cashierIds: filters.cashierIds.join(",") } : {}),
         ...(filters.amountMin !== undefined ? { amountMin: filters.amountMin } : {}),
         ...(filters.amountMax !== undefined ? { amountMax: filters.amountMax } : {}),
