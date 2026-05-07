@@ -88,6 +88,18 @@ export const useEnableCashier = () => {
   });
 };
 
+export const useFinishCashierWorkSession = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (cashierId: string) =>
+      adminService.finishCashierWorkSession(cashierId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
+    },
+  });
+};
+
 export const useLandings = () =>
   useQuery({
     queryKey: adminKeys.landings,

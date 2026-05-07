@@ -52,6 +52,10 @@ export const adminService = {
     await http.patch(endpoints.admin.cashierEnable(cashierId));
   },
 
+  async finishCashierWorkSession(cashierId: string): Promise<void> {
+    await http.post(endpoints.admin.cashierFinishSession(cashierId));
+  },
+
   async replaceCashierLandings(cashierId: string, landingIds: string[]): Promise<Landing[]> {
     const { data } = await http.put<Landing[]>(endpoints.admin.cashierLandings(cashierId), {
       landingIds,

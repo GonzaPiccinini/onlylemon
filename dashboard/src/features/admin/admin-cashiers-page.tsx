@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import {
   CheckCircle2Icon,
+  LogOutIcon,
+  MoreHorizontalIcon,
   PencilLineIcon,
   PlusIcon,
   TagsIcon,
   UserX2Icon,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +50,7 @@ import {
   useCreateCashier,
   useDisableCashier,
   useEnableCashier,
+  useFinishCashierWorkSession,
   useLandings,
   useReplaceCashierLandings,
   useUpdateCashier,
@@ -97,6 +102,7 @@ export const AdminCashiersPage = () => {
   const createCashier = useCreateCashier();
   const disableCashier = useDisableCashier();
   const enableCashier = useEnableCashier();
+  const finishCashierWorkSession = useFinishCashierWorkSession();
   const updateCashier = useUpdateCashier();
   const replaceCashierLandings = useReplaceCashierLandings();
   const [page, setPage] = useState(1);
@@ -175,6 +181,15 @@ export const AdminCashiersPage = () => {
       toast.success('Cajero activado');
     } catch {
       toast.error('No se pudo activar');
+    }
+  };
+
+  const onFinishWorkSession = async (cashierId: string) => {
+    try {
+      await finishCashierWorkSession.mutateAsync(cashierId);
+      toast.success('Sesion de trabajo finalizada');
+    } catch {
+      toast.error('No se pudo finalizar la sesion');
     }
   };
 
@@ -384,42 +399,77 @@ export const AdminCashiersPage = () => {
                   </TableCell>
                   <TableCell>{formatDateTime(cashier.createdAt)}</TableCell>
                   <TableCell className='text-right'>
-                    <div className='flex justify-end gap-2'>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => openLandingDialog(cashier)}
-                      >
-                        <TagsIcon data-icon='inline-start' />
-                        Landings
-                      </Button>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => openEditDialog(cashier)}
-                      >
-                        <PencilLineIcon data-icon='inline-start' />
-                        Editar
-                      </Button>
-                      {cashier.status === 'ACTIVE' ? (
-                        <Button
-                          variant='destructive'
-                          size='sm'
-                          onClick={() => onDisable(cashier.id)}
+                    <div className='flex justify-end'>
+                      <MenuPrimitive.Root>
+                        <MenuPrimitive.Trigger
+                          render={
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              aria-label='Acciones'
+                            />
+                          }
                         >
-                          <UserX2Icon data-icon='inline-start' />
-                          Deshabilitar
-                        </Button>
-                      ) : (
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          onClick={() => onEnable(cashier.id)}
-                        >
-                          <CheckCircle2Icon data-icon='inline-start' />
-                          Activar
-                        </Button>
-                      )}
+                          <MoreHorizontalIcon className='size-4' />
+                        </MenuPrimitive.Trigger>
+                        <MenuPrimitive.Portal>
+                          <MenuPrimitive.Positioner
+                            sideOffset={4}
+                            align='end'
+                            className='z-50'
+                          >
+                            <MenuPrimitive.Popup
+                              className={cn(
+                                'min-w-[10rem] overflow-hidden rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none',
+                                'data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95',
+                                'data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+                              )}
+                            >
+                              <MenuPrimitive.Item
+                                className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                onClick={() => openLandingDialog(cashier)}
+                              >
+                                <TagsIcon className='size-4' />
+                                Landings
+                              </MenuPrimitive.Item>
+                              <MenuPrimitive.Item
+                                className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                onClick={() => openEditDialog(cashier)}
+                              >
+                                <PencilLineIcon className='size-4' />
+                                Editar
+                              </MenuPrimitive.Item>
+                              {cashier.hasActiveWorkSession ? (
+                                <MenuPrimitive.Item
+                                  className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                  disabled={finishCashierWorkSession.isPending}
+                                  onClick={() => onFinishWorkSession(cashier.id)}
+                                >
+                                  <LogOutIcon className='size-4' />
+                                  Cerrar turno
+                                </MenuPrimitive.Item>
+                              ) : null}
+                              {cashier.status === 'ACTIVE' ? (
+                                <MenuPrimitive.Item
+                                  className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-destructive outline-none transition-colors hover:bg-destructive/10 hover:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive'
+                                  onClick={() => onDisable(cashier.id)}
+                                >
+                                  <UserX2Icon className='size-4' />
+                                  Deshabilitar
+                                </MenuPrimitive.Item>
+                              ) : (
+                                <MenuPrimitive.Item
+                                  className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                  onClick={() => onEnable(cashier.id)}
+                                >
+                                  <CheckCircle2Icon className='size-4' />
+                                  Activar
+                                </MenuPrimitive.Item>
+                              )}
+                            </MenuPrimitive.Popup>
+                          </MenuPrimitive.Positioner>
+                        </MenuPrimitive.Portal>
+                      </MenuPrimitive.Root>
                     </div>
                   </TableCell>
                 </TableRow>

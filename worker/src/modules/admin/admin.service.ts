@@ -24,6 +24,7 @@ import {
 } from './admin.repository.js';
 import {
   finishCurrentSessionActivity,
+  getCurrentSessionActivity,
   updateCashierWhatsappLink,
 } from '../cashier/cashier.repository.js';
 import type { DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
@@ -225,6 +226,23 @@ export const disableCashierService = async (cashierId: string) => {
     createdAt: disabled.createdAt,
     landings: disabled.landings.map((entry) => toLandingDto(entry.landing)),
   };
+};
+
+export const finishCashierWorkSessionService = async (cashierId: string) => {
+  const cashier = await getCashierById(cashierId);
+  if (!cashier) {
+    return { kind: 'NOT_FOUND' as const };
+  }
+
+  const current = await getCurrentSessionActivity(cashierId);
+  if (!current) {
+    return { kind: 'NO_ACTIVE_SESSION' as const };
+  }
+
+  await finishCurrentSessionActivity(cashierId, new Date());
+  emitCashierRuntimeStateChanged(cashierId);
+
+  return { kind: 'OK' as const };
 };
 
 export const enableCashierService = async (cashierId: string) => {

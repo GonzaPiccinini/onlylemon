@@ -10,6 +10,8 @@ export const endpoints = {
     cashierById: (cashierId: string) => `/admin/cashiers/${cashierId}`,
     cashierDisable: (cashierId: string) => `/admin/cashiers/${cashierId}/disable`,
     cashierEnable: (cashierId: string) => `/admin/cashiers/${cashierId}/enable`,
+    cashierFinishSession: (cashierId: string) =>
+      `/admin/cashiers/${cashierId}/sessions/finish`,
     cashierLandings: (cashierId: string) => `/admin/cashiers/${cashierId}/landings`,
     landings: "/admin/landings",
     landingById: (landingId: string) => `/admin/landings/${landingId}`,
