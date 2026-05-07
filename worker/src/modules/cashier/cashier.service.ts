@@ -738,7 +738,7 @@ export const createConversionService = async (
 
 /**
  * M2.3 — searchCashierLeadsService
- * Returns leads matching q (case-sensitive code/phone substring) scoped to cashier.
+ * Returns leads matching q (case-insensitive code, case-sensitive phone substring) scoped to cashier.
  * Empty q → [] immediately.
  */
 export const searchCashierLeadsService = async (cashierId: string, q: string) => {

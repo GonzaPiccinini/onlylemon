@@ -107,10 +107,10 @@ test('buildListConversionsQuery: phone filter → lead.phone contains (case-sens
   assert.deepEqual(q.where.lead?.phone, { contains: '54911' });
 });
 
-test('buildListConversionsQuery: code filter → lead.code contains (case-sensitive)', async () => {
+test('buildListConversionsQuery: code filter → lead.code contains (case-insensitive)', async () => {
   const { buildListConversionsQuery } = await import('./admin.repository.js');
   const q = buildListConversionsQuery({ code: 'LEAD' });
-  assert.deepEqual(q.where.lead?.code, { contains: 'LEAD' });
+  assert.deepEqual(q.where.lead?.code, { contains: 'LEAD', mode: 'insensitive' });
 });
 
 test('buildListConversionsQuery: orders by createdAt desc', async () => {
@@ -123,12 +123,10 @@ test('buildListConversionsQuery: orders by createdAt desc', async () => {
 // M2.7 — buildListLeadsQuery new filters (code, phone, cashierIds, status)
 // ---------------------------------------------------------------------------
 
-test('buildListLeadsQuery: code filter uses case-sensitive contains (no mode: insensitive)', async () => {
+test('buildListLeadsQuery: code filter uses case-insensitive contains (mode: insensitive)', async () => {
   const { buildListLeadsQuery } = await import('./admin.repository.js');
   const q = buildListLeadsQuery({ code: 'LEAD001' });
-  assert.deepEqual(q.where.code, { contains: 'LEAD001' });
-  // Must NOT have mode: insensitive (unlike adCode)
-  assert.equal((q.where.code as { mode?: string }).mode, undefined);
+  assert.deepEqual(q.where.code, { contains: 'LEAD001', mode: 'insensitive' });
 });
 
 test('buildListLeadsQuery: phone filter uses case-sensitive contains', async () => {

@@ -133,7 +133,10 @@ export const searchLeadsForCashier = (cashierId: string, q: string) => {
     where: {
       cashierId,
       status: { in: ['CONTACTED', 'CONVERTED'] },
-      OR: [{ code: { contains: q } }, { phone: { contains: q } }],
+      OR: [
+        { code: { contains: q, mode: 'insensitive' as const } },
+        { phone: { contains: q } },
+      ],
     },
     take: SEARCH_RESULTS_LIMIT,
     orderBy: { contactedAt: 'desc' },
@@ -174,7 +177,7 @@ export const listConversionsForCashier = (
 ) => {
   const leadWhere: Record<string, unknown> = { cashierId };  // ALWAYS scoped
   if (filters.phone) leadWhere.phone = { contains: filters.phone };
-  if (filters.code)  leadWhere.code  = { contains: filters.code };
+  if (filters.code)  leadWhere.code  = { contains: filters.code, mode: 'insensitive' as const };
 
   const createdAt: Record<string, Date> = {};
   if (filters.dateFrom) createdAt.gte = filters.dateFrom;
@@ -218,7 +221,7 @@ export const listLeadsForCashier = (cashierId: string, filters: CashierLeadsFilt
     where: {
       cashierId,  // ALWAYS scoped — never overridden
       ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
-      ...(filters.code   ? { code:   { contains: filters.code } } : {}),
+      ...(filters.code   ? { code:   { contains: filters.code, mode: 'insensitive' as const } } : {}),
       ...(filters.phone  ? { phone:  { contains: filters.phone } } : {}),
     },
     orderBy: { createdAt: 'desc' },
