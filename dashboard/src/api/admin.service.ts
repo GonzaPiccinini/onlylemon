@@ -14,6 +14,7 @@ import type {
   DateRangeFilters,
   Landing,
   Lead,
+  LeadHistoryPage,
   LeadsFilters,
   PaginatedResult,
   StatsSummary,
@@ -128,6 +129,24 @@ export const adminService = {
       },
     });
 
+    return data;
+  },
+
+  async getLeadHistory(
+    leadId: string,
+    opts: { page: number; pageSize?: number; dateFrom?: string; dateTo?: string },
+  ): Promise<LeadHistoryPage> {
+    const { data } = await http.get<LeadHistoryPage>(
+      endpoints.admin.leadHistory(leadId),
+      {
+        params: {
+          page: opts.page,
+          ...(opts.pageSize !== undefined ? { pageSize: opts.pageSize } : {}),
+          ...(opts.dateFrom ? { dateFrom: opts.dateFrom } : {}),
+          ...(opts.dateTo ? { dateTo: opts.dateTo } : {}),
+        },
+      },
+    );
     return data;
   },
 

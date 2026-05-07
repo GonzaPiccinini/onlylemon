@@ -10,6 +10,7 @@ import {
   enableLandingHandler,
   finishCashierWorkSessionHandler,
   fundsSeriesHandler,
+  getLeadHistoryHandler,
   listAdminConversionsHandler,
   listAdminsHandler,
   listLeadsHandler,
@@ -61,4 +62,5 @@ adminRouter.get('/stats/summary', summaryHandler);
 adminRouter.get('/stats/cashiers', cashierStatsHandler);
 adminRouter.get('/stats/funds-series', fundsSeriesHandler);
 adminRouter.get('/leads', listLeadsHandler);
+adminRouter.get('/leads/:id/history', getLeadHistoryHandler);
 adminRouter.get('/conversions', listAdminConversionsHandler);

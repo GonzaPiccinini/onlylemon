@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminService } from "@/api/admin.service";
 import type {
   ConversionsFilters,
@@ -18,6 +18,8 @@ const adminKeys = {
   cashierStats: (filters: DateRangeFilters) => ["admin", "cashier-stats", filters] as const,
   fundsSeries: (filters: DateRangeFilters) => ["admin", "funds-series", filters] as const,
   leads: (filters: LeadsFilters) => ["admin", "leads", filters] as const,
+  leadHistory: (leadId: string, filters: { dateFrom?: string | null; dateTo?: string | null }) =>
+    ["admin", "lead-history", leadId, filters] as const,
   conversions: (filters: ConversionsFilters) => ["admin", "conversions", filters] as const,
 };
 
@@ -168,6 +170,28 @@ export const useAdminLeads = (filters: LeadsFilters) =>
     queryFn: () => adminService.listLeads(filters),
     refetchInterval: 15000,
     refetchIntervalInBackground: true,
+  });
+
+export const useAdminLeadHistory = (
+  leadId: string,
+  opts: { enabled: boolean; dateFrom?: string; dateTo?: string },
+) =>
+  useInfiniteQuery({
+    queryKey: adminKeys.leadHistory(leadId, {
+      dateFrom: opts.dateFrom ?? null,
+      dateTo: opts.dateTo ?? null,
+    }),
+    queryFn: ({ pageParam }) =>
+      adminService.getLeadHistory(leadId, {
+        page: pageParam as number,
+        pageSize: 10,
+        dateFrom: opts.dateFrom,
+        dateTo: opts.dateTo,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+    enabled: opts.enabled,
+    staleTime: 30_000,
   });
 
 export const useAdminConversions = (filters: ConversionsFilters) =>

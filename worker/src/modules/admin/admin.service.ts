@@ -12,8 +12,10 @@ import {
   findAdminById,
   getConversionsByLeadContactedDateRange,
   getCashierLandings,
+  getConversionsAggregateForLeads,
   getConversionsByDateRange,
   getConversionsWithLeadByDateRange,
+  getLeadHistory,
   getLeadsByDateRange,
   getSessionActivitiesByDateRange,
   listAdmins,
@@ -72,36 +74,53 @@ const toLandingDto = (landing: {
   updatedAt: landing.updatedAt,
 });
 
-export const toLeadDto = (lead: {
-  id: string;
-  code: string;
-  adCode: string | null;
-  status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
-  phone: string | null;
-  metaPixelId: string;
-  contactedAt: Date | null;
-  createdAt: Date;
-  updateAt: Date;
-  cashier?: {
+export const toLeadDto = (
+  lead: {
     id: string;
-    user: {
-      name: string;
-      username: string;
-    };
-  } | null;
-  conversions?: Array<{ createdAt: Date }>;
-}) => {
+    code: string;
+    adCode: string | null;
+    status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+    phone: string | null;
+    metaPixelId: string;
+    contactedAt: Date | null;
+    createdAt: Date;
+    updateAt: Date;
+    cashier?: {
+      id: string;
+      user: {
+        name: string;
+        username: string;
+      };
+    } | null;
+    conversions?: Array<{ createdAt: Date }>;
+  },
+  aggregate?: { count: number; lastAt: Date | null },
+) => {
+  const firstConversion = lead.conversions?.[0];
+  const firstConversionAt = firstConversion?.createdAt ?? null;
+
+  const conversionsCount =
+    aggregate?.count ?? (lead.conversions?.length ?? 0);
+  const lastConversionAt =
+    aggregate?.lastAt ??
+    (lead.conversions && lead.conversions.length > 0
+      ? lead.conversions[lead.conversions.length - 1].createdAt
+      : null);
+
   const timeline: Array<{ status: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'; at: Date }> = [
     { status: 'NOT_CONTACTED', at: lead.createdAt },
   ];
   if (lead.contactedAt) {
     timeline.push({ status: 'CONTACTED', at: lead.contactedAt });
   }
-  const firstConversion = lead.conversions?.[0];
-  if (firstConversion?.createdAt) {
-    timeline.push({ status: 'CONVERTED', at: firstConversion.createdAt });
+  if (firstConversionAt) {
+    timeline.push({ status: 'CONVERTED', at: firstConversionAt });
   }
   timeline.sort((a, b) => a.at.getTime() - b.at.getTime());
+
+  const lastStatusChangeAt = [lead.createdAt, lead.contactedAt, lastConversionAt]
+    .filter((d): d is Date => d instanceof Date)
+    .reduce((acc, d) => (d.getTime() > acc.getTime() ? d : acc), lead.createdAt);
 
   return {
     id: lead.id,
@@ -117,8 +136,29 @@ export const toLeadDto = (lead: {
     cashierName: lead.cashier?.user.name ?? null,
     cashierUsername: lead.cashier?.user.username ?? null,
     statusTimeline: timeline,
+    conversionsCount,
+    firstConversionAt,
+    lastConversionAt,
+    lastStatusChangeAt,
   };
 };
+
+export const buildLeadHistoryDto = (
+  lead: { id: string; createdAt: Date; contactedAt: Date | null },
+  conversions: Array<{ createdAt: Date }>,
+  pagination: { page: number; pageSize: number; total: number; hasMore: boolean },
+  firstConversionAt: Date | null = null,
+) => ({
+  id: lead.id,
+  createdAt: lead.createdAt,
+  contactedAt: lead.contactedAt,
+  conversions: conversions.map((c) => ({ at: c.createdAt })),
+  page: pagination.page,
+  pageSize: pagination.pageSize,
+  total: pagination.total,
+  hasMore: pagination.hasMore,
+  firstConversionAt,
+});
 
 const buildWahaStatusByName = async (): Promise<Map<string, string>> => {
   try {
@@ -526,8 +566,45 @@ export const getFundsSeriesService = async (query: DateRangeQuery) => {
 
 export const listLeadsService = async (filters: LeadsFilterQuery) => {
   const leads = await listLeads(filters);
-  return leads.map(toLeadDto);
+  const aggregateById = await getConversionsAggregateForLeads(
+    leads.map((lead) => lead.id),
+  );
+  return leads.map((lead) =>
+    toLeadDto(lead, aggregateById.get(lead.id) ?? { count: 0, lastAt: null }),
+  );
 };
+
+type GetLeadHistoryFn = (
+  leadId: string,
+  opts: { page: number; pageSize: number; dateFrom?: Date; dateTo?: Date },
+) => Promise<{
+  lead: { id: string; createdAt: Date; contactedAt: Date | null } | null;
+  conversions: Array<{ createdAt: Date }>;
+  total: number;
+  firstConversion: { createdAt: Date } | null;
+}>;
+
+export const getLeadHistoryServiceImpl = async (
+  deps: { getLeadHistory: GetLeadHistoryFn },
+  leadId: string,
+  opts: { page: number; pageSize: number; dateFrom?: Date; dateTo?: Date } = { page: 1, pageSize: 10 },
+) => {
+  const { lead, conversions, total, firstConversion } = await deps.getLeadHistory(leadId, opts);
+  if (!lead) return null;
+  const hasMore = opts.page * opts.pageSize < total;
+  const firstConversionAt = firstConversion?.createdAt ?? null;
+  return buildLeadHistoryDto(lead, conversions, {
+    page: opts.page,
+    pageSize: opts.pageSize,
+    total,
+    hasMore,
+  }, firstConversionAt);
+};
+
+export const getLeadHistoryService = async (
+  leadId: string,
+  opts: { page: number; pageSize: number; dateFrom?: Date; dateTo?: Date } = { page: 1, pageSize: 10 },
+) => getLeadHistoryServiceImpl({ getLeadHistory }, leadId, opts);
 
 export const listLandingsService = async () => {
   const landings = await listLandings();
