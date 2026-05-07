@@ -229,6 +229,40 @@ export const getConversionsByLeadContactedDateRange = (
     orderBy: { createdAt: 'asc' },
   });
 
+/**
+ * Returns Conversions in the date range together with their lead's
+ * createdAt (for averageConversionHours) and the owning cashier
+ * (for per-cashier convertedValue grouping in stats services).
+ */
+export const getConversionsWithLeadByDateRange = (
+  from: Date,
+  to: Date,
+  cashierId?: string,
+) =>
+  prisma.conversion.findMany({
+    where: {
+      createdAt: { gte: from, lt: to },
+      ...(cashierId ? { lead: { cashierId } } : {}),
+    },
+    select: {
+      createdAt: true,
+      amount: true,
+      lead: {
+        select: {
+          createdAt: true,
+          cashierId: true,
+          cashier: {
+            select: {
+              id: true,
+              user: { select: { name: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
 export const listLandings = () =>
   prisma.landing.findMany({
     orderBy: {
@@ -280,7 +314,7 @@ export const getLandingByMetaPixelId = (metaPixelId: string) =>
   });
 
 export const listLeads = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+  statuses?: Array<'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'>;
   cashierId?: string;
   cashierIds?: string[];
   adCode?: string;
@@ -290,7 +324,7 @@ export const listLeads = (filters: {
   prisma.lead.findMany(buildListLeadsQuery(filters));
 
 export const buildListLeadsQuery = (filters: {
-  status?: 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+  statuses?: Array<'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'>;
   cashierId?: string;
   cashierIds?: string[];
   adCode?: string;
@@ -299,7 +333,7 @@ export const buildListLeadsQuery = (filters: {
 }) =>
   ({
     where: {
-      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
       ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
       ...(filters.cashierIds?.length ? { cashierId: { in: filters.cashierIds } } : {}),
       ...(filters.adCode
