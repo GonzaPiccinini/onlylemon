@@ -12,14 +12,6 @@ import {
 } from '@/components/ui/card';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
@@ -29,20 +21,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatDateTime } from '@/lib/format';
 import type { LeadStatus } from '@/types/domain';
 import { leadStatusLabel } from '@/lib/lead-status';
 import { PaginationControls } from '@/components/common/pagination-controls';
 
-const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus | 'ALL' }> = [
-  { label: 'Todos', value: 'ALL' },
+const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus }> = [
   { label: 'No contactado', value: 'NOT_CONTACTED' },
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
 ];
 
 export const AdminLeadsPage = () => {
-  const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
+  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [cashierIds, setCashierIds] = useState<string[]>([]);
   const [adCode, setAdCode] = useState('');
   const [code, setCode] = useState('');
@@ -57,13 +47,13 @@ export const AdminLeadsPage = () => {
   );
   const filters = useMemo(
     () => ({
-      status: status === 'ALL' ? undefined : status,
+      statuses: statuses.length > 0 ? statuses : undefined,
       cashierIds: cashierIds.length > 0 ? cashierIds : undefined,
       adCode: adCode.trim() || undefined,
       code: code.trim() || undefined,
       phone: phone.trim() || undefined,
     }),
-    [adCode, cashierIds, code, phone, status],
+    [adCode, cashierIds, code, phone, statuses],
   );
   const { data: leads = [], isLoading } = useAdminLeads(filters);
   const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
@@ -88,31 +78,22 @@ export const AdminLeadsPage = () => {
         <CardContent className="flex flex-col gap-4">
           <div className="grid gap-3 md:grid-cols-3">
             <div className="flex flex-col gap-2">
-              <FieldLabel>Filtrar por estado</FieldLabel>
-              <Select
-                value={status}
-                onValueChange={(value) => {
-                  setStatus(value as LeadStatus | 'ALL');
+              <FieldLabel htmlFor="admin-leads-statuses">
+                Filtrar por estado
+              </FieldLabel>
+              <MultiSelect
+                id="admin-leads-statuses"
+                options={STATUS_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+                value={statuses}
+                onChange={(next) => {
+                  setStatuses(next as LeadStatus[]);
                   setPage(1);
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {STATUS_OPTIONS.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        label={option.label}
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                placeholder="Todos los estados"
+              />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -160,7 +141,7 @@ export const AdminLeadsPage = () => {
               <FieldLabel>Filtrar por telefono</FieldLabel>
               <Input
                 value={phone}
-                placeholder="Ej. +54911..."
+                placeholder="Ej. 54911..."
                 onChange={(event) => {
                   setPhone(event.target.value);
                   setPage(1);
@@ -178,17 +159,16 @@ export const AdminLeadsPage = () => {
                 <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
                 <TableHead>Historico</TableHead>
-                <TableHead>Actividad</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7}>Cargando leads...</TableCell>
+                  <TableCell colSpan={6}>Cargando leads...</TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={6}>
                     No hay leads para el filtro seleccionado.
                   </TableCell>
                 </TableRow>
@@ -211,7 +191,6 @@ export const AdminLeadsPage = () => {
                     <TableCell>
                       <LeadStatusTimeline timeline={lead.statusTimeline} />
                     </TableCell>
-                    <TableCell>{formatDateTime(lead.activityAt ?? lead.createdAt)}</TableCell>
                   </TableRow>
                 ))
               )}
