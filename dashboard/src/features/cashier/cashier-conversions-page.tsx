@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
+import { FilterIcon } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -25,6 +28,7 @@ const PAGE_SIZE = 25;
 
 export const CashierConversionsPage = () => {
   const [page, setPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filter state
   const [dateFrom, setDateFrom] = useState('');
@@ -33,6 +37,14 @@ export const CashierConversionsPage = () => {
   const [code, setCode] = useState('');
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
+
+  const activeFiltersCount =
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0) +
+    (phone.trim() ? 1 : 0) +
+    (code.trim() ? 1 : 0) +
+    (amountMin !== '' ? 1 : 0) +
+    (amountMax !== '' ? 1 : 0);
 
   const filters = useMemo(
     () => ({
@@ -73,7 +85,25 @@ export const CashierConversionsPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>
+          <div>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              aria-expanded={filtersOpen}
+            >
+              <FilterIcon className='size-4' />
+              Filtros
+              {activeFiltersCount > 0 && (
+                <Badge variant='secondary' className='ml-1'>
+                  {activeFiltersCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
           {/* Filter bar */}
+          {filtersOpen && (
           <div className='grid gap-3 md:grid-cols-3'>
             <div className='flex flex-col gap-2'>
               <FieldLabel>Fecha desde</FieldLabel>
@@ -128,6 +158,7 @@ export const CashierConversionsPage = () => {
               />
             </div>
           </div>
+          )}
 
           <Table>
             <TableHeader>
