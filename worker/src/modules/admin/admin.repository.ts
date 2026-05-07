@@ -323,6 +323,64 @@ export const listLeads = (filters: {
 }) =>
   prisma.lead.findMany(buildListLeadsQuery(filters));
 
+export const getConversionsAggregateForLeads = async (leadIds: string[]) => {
+  if (leadIds.length === 0) {
+    return new Map<string, { count: number; lastAt: Date | null }>();
+  }
+  const rows = await prisma.conversion.groupBy({
+    by: ['leadId'],
+    where: { leadId: { in: leadIds } },
+    _count: { _all: true },
+    _max: { createdAt: true },
+  });
+  return new Map(
+    rows.map((row) => [
+      row.leadId,
+      { count: row._count._all, lastAt: row._max.createdAt },
+    ]),
+  );
+};
+
+type LeadHistoryOpts = {
+  page: number;
+  pageSize: number;
+  dateFrom?: Date;
+  dateTo?: Date;
+};
+
+export const getLeadHistory = async (leadId: string, opts: LeadHistoryOpts) => {
+  const skip = (opts.page - 1) * opts.pageSize;
+  const createdAt: Record<string, Date> = {};
+  if (opts.dateFrom) createdAt.gte = opts.dateFrom;
+  if (opts.dateTo) createdAt.lt = opts.dateTo;
+  const conversionWhere = {
+    leadId,
+    ...(Object.keys(createdAt).length ? { createdAt } : {}),
+  };
+
+  const [lead, conversions, total, firstConversion] = await Promise.all([
+    prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { id: true, createdAt: true, contactedAt: true },
+    }),
+    prisma.conversion.findMany({
+      where: conversionWhere,
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' as const },
+      skip,
+      take: opts.pageSize,
+    }),
+    prisma.conversion.count({ where: conversionWhere }),
+    prisma.conversion.findFirst({
+      where: { leadId },
+      orderBy: { createdAt: 'asc' as const },
+      select: { createdAt: true },
+    }),
+  ]);
+
+  return { lead, conversions, total, firstConversion };
+};
+
 export const buildListLeadsQuery = (filters: {
   statuses?: Array<'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'>;
   cashierId?: string;
@@ -382,6 +440,7 @@ type ConversionsAdminFilters = {
   amountMax?: number;
   phone?: string;
   code?: string;
+  adCode?: string;
   cashierIds?: string[];
 };
 
@@ -389,6 +448,7 @@ export const buildListConversionsQuery = (filters: ConversionsAdminFilters) => {
   const leadWhere: Record<string, unknown> = {};
   if (filters.phone) leadWhere.phone = { contains: filters.phone };
   if (filters.code) leadWhere.code = { contains: filters.code, mode: 'insensitive' as const };
+  if (filters.adCode) leadWhere.adCode = { contains: filters.adCode, mode: 'insensitive' as const };
   if (filters.cashierIds?.length) leadWhere.cashierId = { in: filters.cashierIds };
 
   const createdAtFilter: Record<string, Date> = {};

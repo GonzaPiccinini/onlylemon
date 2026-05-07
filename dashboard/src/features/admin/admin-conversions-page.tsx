@@ -32,6 +32,7 @@ export const AdminConversionsPage = () => {
   const [dateTo, setDateTo] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [adCode, setAdCode] = useState('');
   const [cashierIds, setCashierIds] = useState<string[]>([]);
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
@@ -50,11 +51,12 @@ export const AdminConversionsPage = () => {
       dateTo: dateTo || undefined,
       phone: phone.trim() || undefined,
       code: code.trim() || undefined,
+      adCode: adCode.trim() || undefined,
       cashierIds: cashierIds.length > 0 ? cashierIds : undefined,
       amountMin: amountMin !== '' ? Number(amountMin) : undefined,
       amountMax: amountMax !== '' ? Number(amountMax) : undefined,
     }),
-    [page, dateFrom, dateTo, phone, code, cashierIds, amountMin, amountMax],
+    [page, dateFrom, dateTo, phone, code, adCode, cashierIds, amountMin, amountMax],
   );
 
   const { data, isLoading } = useAdminConversions(filters);
@@ -125,6 +127,14 @@ export const AdminConversionsPage = () => {
               />
             </div>
             <div className="flex flex-col gap-2">
+              <FieldLabel>Publicidad</FieldLabel>
+              <Input
+                value={adCode}
+                placeholder="Ej. utm_content"
+                onChange={handleFilterChange(setAdCode)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
               <FieldLabel>Telefono</FieldLabel>
               <Input
                 value={phone}
@@ -158,6 +168,7 @@ export const AdminConversionsPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Codigo</TableHead>
+                <TableHead>Publicidad</TableHead>
                 <TableHead>Cajero</TableHead>
                 <TableHead>Telefono</TableHead>
                 <TableHead>Monto</TableHead>
@@ -167,11 +178,11 @@ export const AdminConversionsPage = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5}>Cargando conversiones...</TableCell>
+                  <TableCell colSpan={6}>Cargando conversiones...</TableCell>
                 </TableRow>
               ) : items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={6}>
                     No hay conversiones para los filtros seleccionados.
                   </TableCell>
                 </TableRow>
@@ -179,6 +190,7 @@ export const AdminConversionsPage = () => {
                 items.map((conversion) => (
                   <TableRow key={conversion.id}>
                     <TableCell>{conversion.code}</TableCell>
+                    <TableCell>{conversion.adCode ?? '-'}</TableCell>
                     <TableCell>{conversion.cashierName ?? '-'}</TableCell>
                     <TableCell>{conversion.phone ?? '-'}</TableCell>
                     <TableCell>

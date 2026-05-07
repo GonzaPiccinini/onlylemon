@@ -71,6 +71,7 @@ export const conversionsFilterSchema = z.object({
     .optional(),
   phone: z.string().trim().min(1).optional(),
   code: z.string().trim().min(1).optional(),
+  adCode: z.string().trim().min(1).optional(),
   cashierIds: z.string().optional(), // comma-separated CSV; parsed in controller
   amountMin: z.coerce.number().optional(),
   amountMax: z.coerce.number().optional(),
@@ -79,6 +80,33 @@ export const conversionsFilterSchema = z.object({
 });
 
 export type ConversionsFilterQuery = z.infer<typeof conversionsFilterSchema>;
+
+const isValidCalendarDate = (s: string): boolean => {
+  const d = new Date(`${s}T03:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return false;
+  // Re-format as YYYY-MM-DD and compare: catches rolled-over dates like '2026-02-30'
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}` === s;
+};
+
+export const leadHistoryQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isValidCalendarDate, { message: 'Invalid date' })
+    .optional(),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isValidCalendarDate, { message: 'Invalid date' })
+    .optional(),
+});
+
+export type LeadHistoryQuery = z.infer<typeof leadHistoryQuerySchema>;
 
 // ---------------------------------------------------------------------------
 // Admin management schemas

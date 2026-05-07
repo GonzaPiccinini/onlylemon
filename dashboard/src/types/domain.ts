@@ -96,6 +96,10 @@ export interface LeadStatusTimelineEntry {
   at: string;
 }
 
+export interface LeadConversionEntry {
+  at: string;
+}
+
 export interface Lead {
   id: string;
   code: string;
@@ -110,12 +114,29 @@ export interface Lead {
   cashierName?: string | null;
   cashierUsername?: string | null;
   statusTimeline: LeadStatusTimelineEntry[];
+  conversionsCount?: number;
+  firstConversionAt?: string | null;
+  lastConversionAt?: string | null;
+  lastStatusChangeAt?: string;
+}
+
+export interface LeadHistoryPage {
+  id: string;
+  createdAt: string;
+  contactedAt: string | null;
+  conversions: LeadConversionEntry[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+  firstConversionAt: string | null;
 }
 
 export interface Conversion {
   id: string;
   leadId: string;
   code: string;
+  adCode?: string | null;
   phone: string | null;
   amount: string | number;
   createdAt: string;
@@ -188,6 +209,7 @@ export interface ConversionsFilters {
   dateTo?: string;
   phone?: string;
   code?: string;
+  adCode?: string;
   cashierIds?: string[];
   amountMin?: number;
   amountMax?: number;

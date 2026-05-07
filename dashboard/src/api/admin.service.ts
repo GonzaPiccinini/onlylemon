@@ -14,6 +14,7 @@ import type {
   DateRangeFilters,
   Landing,
   Lead,
+  LeadHistoryPage,
   LeadsFilters,
   PaginatedResult,
   StatsSummary,
@@ -131,6 +132,24 @@ export const adminService = {
     return data;
   },
 
+  async getLeadHistory(
+    leadId: string,
+    opts: { page: number; pageSize?: number; dateFrom?: string; dateTo?: string },
+  ): Promise<LeadHistoryPage> {
+    const { data } = await http.get<LeadHistoryPage>(
+      endpoints.admin.leadHistory(leadId),
+      {
+        params: {
+          page: opts.page,
+          ...(opts.pageSize !== undefined ? { pageSize: opts.pageSize } : {}),
+          ...(opts.dateFrom ? { dateFrom: opts.dateFrom } : {}),
+          ...(opts.dateTo ? { dateTo: opts.dateTo } : {}),
+        },
+      },
+    );
+    return data;
+  },
+
   async listConversions(filters: ConversionsFilters): Promise<PaginatedResult<Conversion>> {
     const { data } = await http.get<PaginatedResult<Conversion>>(endpoints.admin.conversions, {
       params: {
@@ -140,6 +159,7 @@ export const adminService = {
         ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
         ...(filters.phone ? { phone: filters.phone } : {}),
         ...(filters.code ? { code: filters.code } : {}),
+        ...(filters.adCode ? { adCode: filters.adCode } : {}),
         ...(filters.cashierIds?.length ? { cashierIds: filters.cashierIds.join(",") } : {}),
         ...(filters.amountMin !== undefined ? { amountMin: filters.amountMin } : {}),
         ...(filters.amountMax !== undefined ? { amountMax: filters.amountMax } : {}),

@@ -5,6 +5,7 @@ import {
   createCashierSchema,
   createLandingSchema,
   dateRangeSchema,
+  leadHistoryQuerySchema,
   leadsFilterSchema,
   replaceCashierLandingsSchema,
   setAdminStatusSchema,
@@ -13,6 +14,7 @@ import {
   updateCashierSchema,
   updateLandingSchema,
 } from './admin.types.js';
+import { addOneDayIsoDate } from '../../utils/timezone.js';
 import {
   AdminNotFoundError,
   createAdminService,
@@ -23,6 +25,7 @@ import {
   finishCashierWorkSessionService,
   getCashierStatsService,
   getFundsSeriesService,
+  getLeadHistoryService,
   getSummaryService,
   listAdminConversionsService,
   listAdminsService,
@@ -184,6 +187,34 @@ export const listLeadsHandler = async (req: Request, res: Response) => {
   }
 
   const data = await listLeadsService(parsed.data);
+  return res.status(200).json(data);
+};
+
+export const getLeadHistoryHandler = async (req: Request, res: Response) => {
+  const leadId = req.params.id;
+  if (!leadId) {
+    return res.status(400).json({ error: 'Missing lead id' });
+  }
+  const parsed = leadHistoryQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid query',
+      details: parsed.error.flatten(),
+    });
+  }
+  const { page, pageSize, dateFrom, dateTo } = parsed.data;
+  const data = await getLeadHistoryService(leadId, {
+    page,
+    pageSize,
+    dateFrom: dateFrom ? new Date(`${dateFrom}T03:00:00.000Z`) : undefined,
+    // dateTo is made inclusive by shifting to the start of the next day before
+    // passing to the repo, which uses `lt`. So dateTo='2026-05-07' becomes
+    // lt 2026-05-08T03:00:00Z (Argentina midnight of May 8), including all of May 7.
+    dateTo: dateTo ? new Date(`${addOneDayIsoDate(dateTo)}T03:00:00.000Z`) : undefined,
+  });
+  if (!data) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
   return res.status(200).json(data);
 };
 
@@ -369,7 +400,7 @@ export const listAdminConversionsHandler = async (req: Request, res: Response) =
     });
   }
 
-  const { dateFrom, dateTo, phone, code, cashierIds: cashierIdsCsv, amountMin, amountMax, page, pageSize } = parsed.data;
+  const { dateFrom, dateTo, phone, code, adCode, cashierIds: cashierIdsCsv, amountMin, amountMax, page, pageSize } = parsed.data;
 
   // Parse comma-separated cashierIds into an array
   const cashierIds = cashierIdsCsv
@@ -384,6 +415,7 @@ export const listAdminConversionsHandler = async (req: Request, res: Response) =
     dateTo: dateTo ? new Date(`${dateTo}T03:00:00.000Z`) : undefined,
     phone,
     code,
+    adCode,
     cashierIds,
     amountMin,
     amountMax,

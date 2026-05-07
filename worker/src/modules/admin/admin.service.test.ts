@@ -292,6 +292,292 @@ test('groupConversionsByDay: buckets UTC timestamp crossing Argentina midnight i
   assert.equal(result[0].date, '2026-05-05');
 });
 
+// ---------------------------------------------------------------------------
+// admin-leads-history-pagination — Phase I (verify-fixes): FIX-4 schema refine
+// ---------------------------------------------------------------------------
+
+test('leadHistoryQuerySchema: rejects invalid calendar date "2026-13-99" as dateFrom (passes regex but not a real date)', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({ dateFrom: '2026-13-99' });
+  assert.equal(result.success, false);
+});
+
+test('leadHistoryQuerySchema: rejects invalid calendar date "2026-02-30" as dateTo (Feb 30 does not exist)', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({ dateTo: '2026-02-30' });
+  assert.equal(result.success, false);
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-history-pagination — Phase I: FIX-1 addOneDayIsoDate helper
+// ---------------------------------------------------------------------------
+
+test('addOneDayIsoDate: adds one day to a normal date', async () => {
+  const { addOneDayIsoDate } = await import('../../utils/timezone.js');
+  assert.equal(addOneDayIsoDate('2026-05-07'), '2026-05-08');
+});
+
+test('addOneDayIsoDate: handles month boundary correctly (May 31 → June 1)', async () => {
+  const { addOneDayIsoDate } = await import('../../utils/timezone.js');
+  assert.equal(addOneDayIsoDate('2026-05-31'), '2026-06-01');
+});
+
+test('addOneDayIsoDate: handles year boundary correctly (Dec 31 → Jan 1)', async () => {
+  const { addOneDayIsoDate } = await import('../../utils/timezone.js');
+  assert.equal(addOneDayIsoDate('2026-12-31'), '2027-01-01');
+});
+
+test('addOneDayIsoDate: handles leap year Feb 28 → Feb 29', async () => {
+  const { addOneDayIsoDate } = await import('../../utils/timezone.js');
+  assert.equal(addOneDayIsoDate('2024-02-28'), '2024-02-29');
+});
+
+test('addOneDayIsoDate: handles non-leap Feb 28 → Mar 1', async () => {
+  const { addOneDayIsoDate } = await import('../../utils/timezone.js');
+  assert.equal(addOneDayIsoDate('2026-02-28'), '2026-03-01');
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-history-pagination — Phase I: FIX-3 getLeadHistoryServiceImpl
+// ---------------------------------------------------------------------------
+
+test('getLeadHistoryServiceImpl: returns null when lead does not exist', async () => {
+  const { getLeadHistoryServiceImpl } = await import('./admin.service.js');
+
+  const stubRepo = async (_leadId: string, _opts: unknown) => ({
+    lead: null,
+    conversions: [],
+    total: 0,
+    firstConversion: null,
+  });
+
+  const result = await getLeadHistoryServiceImpl({ getLeadHistory: stubRepo }, 'nonexistent', { page: 1, pageSize: 10 });
+  assert.equal(result, null);
+});
+
+test('getLeadHistoryServiceImpl: hasMore=true when more pages remain', async () => {
+  const { getLeadHistoryServiceImpl } = await import('./admin.service.js');
+
+  const stubRepo = async (_leadId: string, _opts: unknown) => ({
+    lead: { id: 'l1', createdAt: new Date('2026-01-01T00:00:00Z'), contactedAt: null },
+    conversions: Array.from({ length: 10 }, (_, i) => ({ createdAt: new Date(`2026-01-0${i + 1}T00:00:00Z`) })),
+    total: 25,
+    firstConversion: { createdAt: new Date('2026-01-01T00:00:00Z') },
+  });
+
+  const result = await getLeadHistoryServiceImpl({ getLeadHistory: stubRepo }, 'l1', { page: 1, pageSize: 10 });
+  assert.ok(result !== null);
+  assert.equal(result!.hasMore, true);
+});
+
+test('getLeadHistoryServiceImpl: hasMore=false on last page', async () => {
+  const { getLeadHistoryServiceImpl } = await import('./admin.service.js');
+
+  const stubRepo = async (_leadId: string, _opts: unknown) => ({
+    lead: { id: 'l1', createdAt: new Date('2026-01-01T00:00:00Z'), contactedAt: null },
+    conversions: [{ createdAt: new Date('2026-01-21T00:00:00Z') }],
+    total: 21,
+    firstConversion: { createdAt: new Date('2026-01-01T00:00:00Z') },
+  });
+
+  // page=3, pageSize=10 → 3*10=30 >= 21 → hasMore=false
+  const result = await getLeadHistoryServiceImpl({ getLeadHistory: stubRepo }, 'l1', { page: 3, pageSize: 10 });
+  assert.ok(result !== null);
+  assert.equal(result!.hasMore, false);
+});
+
+test('getLeadHistoryServiceImpl: hasMore=false when total=0', async () => {
+  const { getLeadHistoryServiceImpl } = await import('./admin.service.js');
+
+  const stubRepo = async (_leadId: string, _opts: unknown) => ({
+    lead: { id: 'l1', createdAt: new Date('2026-01-01T00:00:00Z'), contactedAt: null },
+    conversions: [],
+    total: 0,
+    firstConversion: null,
+  });
+
+  const result = await getLeadHistoryServiceImpl({ getLeadHistory: stubRepo }, 'l1', { page: 1, pageSize: 10 });
+  assert.ok(result !== null);
+  assert.equal(result!.hasMore, false);
+  assert.equal(result!.total, 0);
+});
+
+test('getLeadHistoryServiceImpl: passes dateFrom and dateTo through to repo', async () => {
+  const { getLeadHistoryServiceImpl } = await import('./admin.service.js');
+
+  let capturedOpts: unknown = null;
+  const stubRepo = async (_leadId: string, opts: unknown) => {
+    capturedOpts = opts;
+    return {
+      lead: { id: 'l1', createdAt: new Date('2026-01-01T00:00:00Z'), contactedAt: null },
+      conversions: [],
+      total: 0,
+      firstConversion: null,
+    };
+  };
+
+  const dateFrom = new Date('2026-05-01T03:00:00.000Z');
+  const dateTo = new Date('2026-05-08T03:00:00.000Z'); // after +1 day shift
+  await getLeadHistoryServiceImpl({ getLeadHistory: stubRepo }, 'l1', { page: 1, pageSize: 10, dateFrom, dateTo });
+
+  const opts = capturedOpts as Record<string, unknown>;
+  assert.deepEqual(opts.dateFrom, dateFrom);
+  assert.deepEqual(opts.dateTo, dateTo);
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-history-pagination — Phase I: FIX-2 firstConversionAt in DTO
+// ---------------------------------------------------------------------------
+
+test('buildLeadHistoryDto: includes firstConversionAt when firstConversion is provided', async () => {
+  const { buildLeadHistoryDto } = await import('./admin.service.js');
+
+  const firstConversionAt = new Date('2026-04-01T10:00:00Z');
+  const lead = { id: 'l1', createdAt: new Date('2026-03-01T00:00:00Z'), contactedAt: null };
+  const conversions = [{ createdAt: new Date('2026-04-05T10:00:00Z') }];
+  const pagination = { page: 1, pageSize: 10, total: 1, hasMore: false };
+
+  const dto = buildLeadHistoryDto(lead, conversions, pagination, firstConversionAt);
+
+  assert.deepEqual(dto.firstConversionAt, firstConversionAt);
+});
+
+test('buildLeadHistoryDto: firstConversionAt is null when firstConversion not provided', async () => {
+  const { buildLeadHistoryDto } = await import('./admin.service.js');
+
+  const lead = { id: 'l1', createdAt: new Date('2026-03-01T00:00:00Z'), contactedAt: null };
+  const conversions: Array<{ createdAt: Date }> = [];
+  const pagination = { page: 1, pageSize: 10, total: 0, hasMore: false };
+
+  const dto = buildLeadHistoryDto(lead, conversions, pagination, null);
+
+  assert.equal(dto.firstConversionAt, null);
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-history-pagination — Phase A: leadHistoryQuerySchema
+// ---------------------------------------------------------------------------
+
+test('leadHistoryQuerySchema: rejects page=0', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({ page: '0' });
+  assert.equal(result.success, false);
+});
+
+test('leadHistoryQuerySchema: rejects page=-1', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({ page: '-1' });
+  assert.equal(result.success, false);
+});
+
+test('leadHistoryQuerySchema: rejects pageSize=0', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({ pageSize: '0' });
+  assert.equal(result.success, false);
+});
+
+test('leadHistoryQuerySchema: rejects pageSize=101', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({ pageSize: '101' });
+  assert.equal(result.success, false);
+});
+
+test('leadHistoryQuerySchema: rejects bad dateFrom format (2026/05/01)', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({ dateFrom: '2026/05/01' });
+  assert.equal(result.success, false);
+});
+
+test('leadHistoryQuerySchema: accepts defaults when params omitted', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({});
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.page, 1);
+    assert.equal(result.data.pageSize, 10);
+    assert.equal(result.data.dateFrom, undefined);
+    assert.equal(result.data.dateTo, undefined);
+  }
+});
+
+test('leadHistoryQuerySchema: accepts valid full payload', async () => {
+  const { leadHistoryQuerySchema } = await import('./admin.types.js');
+  const result = leadHistoryQuerySchema.safeParse({
+    page: '2',
+    pageSize: '25',
+    dateFrom: '2026-05-01',
+    dateTo: '2026-05-31',
+  });
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.page, 2);
+    assert.equal(result.data.pageSize, 25);
+    assert.equal(result.data.dateFrom, '2026-05-01');
+    assert.equal(result.data.dateTo, '2026-05-31');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-history-pagination — Phase C: buildLeadHistoryDto (C3 RED first)
+// ---------------------------------------------------------------------------
+
+test('buildLeadHistoryDto: maps plain objects to flat DTO shape', async () => {
+  const { buildLeadHistoryDto } = await import('./admin.service.js');
+
+  const lead = {
+    id: 'lead-abc',
+    createdAt: new Date('2026-04-01T10:00:00Z'),
+    contactedAt: new Date('2026-04-02T10:00:00Z'),
+  };
+  const conversions = [
+    { createdAt: new Date('2026-04-03T10:00:00Z') },
+    { createdAt: new Date('2026-04-04T10:00:00Z') },
+  ];
+  const pagination = { page: 1, pageSize: 10, total: 2, hasMore: false };
+
+  const dto = buildLeadHistoryDto(lead, conversions, pagination);
+
+  assert.equal(dto.id, 'lead-abc');
+  assert.deepEqual(dto.createdAt, lead.createdAt);
+  assert.deepEqual(dto.contactedAt, lead.contactedAt);
+  assert.equal(dto.page, 1);
+  assert.equal(dto.pageSize, 10);
+  assert.equal(dto.total, 2);
+  assert.equal(dto.hasMore, false);
+  assert.equal(dto.conversions.length, 2);
+  assert.deepEqual(dto.conversions[0].at, conversions[0].createdAt);
+  assert.deepEqual(dto.conversions[1].at, conversions[1].createdAt);
+});
+
+test('buildLeadHistoryDto: hasMore=true when page * pageSize < total', async () => {
+  const { buildLeadHistoryDto } = await import('./admin.service.js');
+
+  const lead = { id: 'l1', createdAt: new Date('2026-01-01T00:00:00Z'), contactedAt: null };
+  const conversions = Array.from({ length: 10 }, (_, i) => ({
+    createdAt: new Date(`2026-01-0${i + 1}T00:00:00Z`),
+  }));
+  const pagination = { page: 1, pageSize: 10, total: 25, hasMore: true };
+
+  const dto = buildLeadHistoryDto(lead, conversions, pagination);
+
+  assert.equal(dto.hasMore, true);
+  assert.equal(dto.total, 25);
+  assert.equal(dto.page, 1);
+});
+
+test('buildLeadHistoryDto: hasMore=false when page * pageSize >= total', async () => {
+  const { buildLeadHistoryDto } = await import('./admin.service.js');
+
+  const lead = { id: 'l2', createdAt: new Date('2026-01-01T00:00:00Z'), contactedAt: null };
+  const conversions = [{ createdAt: new Date('2026-04-03T10:00:00Z') }];
+  const pagination = { page: 3, pageSize: 10, total: 25, hasMore: false };
+
+  const dto = buildLeadHistoryDto(lead, conversions, pagination);
+
+  assert.equal(dto.hasMore, false);
+  assert.equal(dto.page, 3);
+});
+
 test('groupConversionsByDay: empty array returns empty result', async () => {
   const { groupConversionsByDay } = await import('./admin.service.js');
   const result = groupConversionsByDay([]);

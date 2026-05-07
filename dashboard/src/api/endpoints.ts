@@ -20,6 +20,7 @@ export const endpoints = {
     landingDisable: (landingId: string) => `/admin/landings/${landingId}/disable`,
     landingEnable: (landingId: string) => `/admin/landings/${landingId}/enable`,
     leads: "/admin/leads",
+    leadHistory: (leadId: string) => `/admin/leads/${leadId}/history`,
     conversions: "/admin/conversions",
     statsSummary: "/admin/stats/summary",
     statsByCashier: "/admin/stats/cashiers",
