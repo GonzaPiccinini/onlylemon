@@ -691,7 +691,7 @@ export const createConversionService = async (
     userAgent: lead.userAgent,
     metaPixelId: lead.metaPixelId,
     metaAccessToken: landing.metaAccessToken,
-    eventId: lead.id,
+    eventId: conversion.id,
     eventSourceUrl: landing.url,
     leadCode: lead.code,
   });
