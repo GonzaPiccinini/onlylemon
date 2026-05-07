@@ -15,6 +15,7 @@ import {
   createLandingService,
   disableCashierService,
   enableCashierService,
+  finishCashierWorkSessionService,
   getCashierStatsService,
   getFundsSeriesService,
   getSummaryService,
@@ -106,6 +107,23 @@ export const enableCashierHandler = async (req: Request, res: Response) => {
   } catch {
     return res.status(404).json({ error: 'Cashier not found' });
   }
+};
+
+export const finishCashierWorkSessionHandler = async (
+  req: Request,
+  res: Response,
+) => {
+  const result = await finishCashierWorkSessionService(req.params.cashierId);
+
+  if (result.kind === 'NOT_FOUND') {
+    return res.status(404).json({ error: 'Cashier not found' });
+  }
+
+  if (result.kind === 'NO_ACTIVE_SESSION') {
+    return res.status(409).json({ error: 'There is no active session' });
+  }
+
+  return res.status(204).send();
 };
 
 export const summaryHandler = async (req: Request, res: Response) => {
