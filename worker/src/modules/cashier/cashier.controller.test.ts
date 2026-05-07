@@ -177,25 +177,6 @@ test('listCashierConversionsHandler: auth-spoof cashierId in query → NOT a gua
   assert.notEqual(body?.error, 'Cashier profile not linked');
 });
 
-test('leadsListHandler: auth-spoof cashierId in query → NOT a guard-400', async () => {
-  const { leadsListHandler } = await import('./cashier.controller.js');
-
-  const req = makeReq({
-    authUser: { cashierId: 'real-cashier', userId: 'user-1' },
-    query: { cashierId: 'spoof' },
-  });
-  const res = makeRes();
-
-  try {
-    await leadsListHandler(req, res);
-  } catch {
-    // DB error expected
-  }
-
-  const body = res.body as Record<string, unknown> | null;
-  assert.notEqual(body?.error, 'Cashier profile not linked');
-});
-
 test('listCashierConversionsHandler: amountMin > amountMax → 400 with specific error', async () => {
   // This test is RED until M4.2 adds the amountMin <= amountMax guard
   const { listCashierConversionsHandler } = await import('./cashier.controller.js');

@@ -19,7 +19,6 @@ import {
   getCashierSession,
   getCurrentSessionActivity,
   listConversionsForCashier,
-  listLeadsForCashier,
   listSessionActivities,
   searchLeadsForCashier,
   startSessionActivity,
@@ -565,34 +564,6 @@ export const completeWhatsappLinkService = async (
   };
 };
 
-
-type CashierLeadsFilters = {
-  statuses?: Array<'CONTACTED' | 'CONVERTED'>;
-  code?: string;
-  phone?: string;
-};
-
-export const listCashierLeadsService = async (
-  cashierId: string,
-  filters: CashierLeadsFilters,
-) => {
-  await getCashierSession(cashierId);
-  // S-LD-1: Default exclusion of NOT_CONTACTED.
-  // If statuses is empty/absent, default to ['CONTACTED','CONVERTED'] so
-  // the repo always excludes NOT_CONTACTED leads at the DB level.
-  const effectiveFilters: CashierLeadsFilters = {
-    ...filters,
-    statuses:
-      filters.statuses && filters.statuses.length > 0
-        ? filters.statuses
-        : ['CONTACTED', 'CONVERTED'],
-  };
-  const leads = await listLeadsForCashier(cashierId, effectiveFilters);
-  return leads.map(toLeadDtoWithTimeline).map((dto) => ({
-    ...dto,
-    statusTimeline: dto.statusTimeline.filter((entry) => entry.status !== 'NOT_CONTACTED'),
-  }));
-};
 
 export const updateCashierAccountService = async (
   cashierId: string,

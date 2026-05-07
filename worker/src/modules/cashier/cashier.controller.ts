@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import {
   cashierConversionsFilterSchema,
-  cashierLeadsFilterSchema,
   completeWhatsappLinkSchema,
   createConversionSchema,
   startWhatsappLinkSchema,
@@ -17,7 +16,6 @@ import {
   getWhatsappLinkStatusService,
   getCurrentSessionService,
   listCashierConversionsService,
-  listCashierLeadsService,
   refreshWhatsappLinkService,
   resetWhatsappLinkService,
   listSessionsService,
@@ -173,21 +171,6 @@ export const listCashierConversionsHandler = async (req: Request, res: Response)
   };
 
   const data = await listCashierConversionsService(cashierId, filters, page, pageSize);
-  return res.status(200).json(data);
-};
-
-export const leadsListHandler = async (req: Request, res: Response) => {
-  const cashierId = getCashierId(req);
-  if (!cashierId) {
-    return res.status(400).json({ error: 'Cashier profile not linked' });
-  }
-
-  const parsed = cashierLeadsFilterSchema.safeParse(req.query);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
-  }
-
-  const data = await listCashierLeadsService(cashierId, parsed.data);
   return res.status(200).json(data);
 };
 

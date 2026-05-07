@@ -159,11 +159,6 @@ type CashierConversionsFilters = {
   code?: string;
 };
 
-type CashierLeadsFilters = {
-  statuses?: Array<'CONTACTED' | 'CONVERTED'>;
-  code?: string;
-  phone?: string;
-};
 
 /**
  * Paginated list of conversions for a cashier's leads, ordered createdAt DESC.
@@ -209,30 +204,6 @@ export const listConversionsForCashier = (
     prisma.conversion.count({ where }),
   ]);
 };
-
-/**
- * List leads for a cashier, applying optional filters.
- * cashierId is ALWAYS pinned in the where clause — never overridable by filters.
- * NOTE: NOT_CONTACTED exclusion is enforced at the service layer, not here.
- *       Repo applies statuses[] filter as-is from the (already-cleaned) service input.
- */
-export const listLeadsForCashier = (cashierId: string, filters: CashierLeadsFilters) =>
-  prisma.lead.findMany({
-    where: {
-      cashierId,  // ALWAYS scoped — never overridden
-      ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
-      ...(filters.code   ? { code:   { contains: filters.code, mode: 'insensitive' as const } } : {}),
-      ...(filters.phone  ? { phone:  { contains: filters.phone } } : {}),
-    },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      conversions: {
-        select: { createdAt: true },
-        orderBy: { createdAt: 'asc' },
-        take: 1,
-      },
-    },
-  });
 
 export const updateCashierAccount = async (
   cashierId: string,

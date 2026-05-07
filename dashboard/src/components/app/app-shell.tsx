@@ -54,7 +54,6 @@ const superAdminLinks: ShellLink[] = [
 const cashierLinks: ShellLink[] = [
   { to: "/cashier", label: "Sesion", icon: Clock3Icon },
   { to: "/cashier/add-funds", label: "Cargas", icon: CircleDollarSignIcon },
-  { to: "/cashier/history", label: "Leads", icon: BarChart3Icon },
   { to: "/cashier/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/cashier/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
 ];

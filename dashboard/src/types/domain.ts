@@ -226,12 +226,6 @@ export interface CashierConversionsFilters {
   amountMax?: number;
 }
 
-export interface CashierLeadsFilters {
-  statuses?: Array<'CONTACTED' | 'CONVERTED'>;
-  code?: string;
-  phone?: string;
-}
-
 export interface CreateCashierInput {
   name: string;
   username: string;
