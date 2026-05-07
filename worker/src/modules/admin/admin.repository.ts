@@ -344,7 +344,14 @@ export const buildListLeadsQuery = (filters: {
             },
           }
         : {}),
-      ...(filters.code ? { code: { contains: filters.code } } : {}),
+      ...(filters.code
+        ? {
+            code: {
+              contains: filters.code,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
       ...(filters.phone ? { phone: { contains: filters.phone } } : {}),
     },
     include: {
@@ -381,7 +388,7 @@ type ConversionsAdminFilters = {
 export const buildListConversionsQuery = (filters: ConversionsAdminFilters) => {
   const leadWhere: Record<string, unknown> = {};
   if (filters.phone) leadWhere.phone = { contains: filters.phone };
-  if (filters.code) leadWhere.code = { contains: filters.code };
+  if (filters.code) leadWhere.code = { contains: filters.code, mode: 'insensitive' as const };
   if (filters.cashierIds?.length) leadWhere.cashierId = { in: filters.cashierIds };
 
   const createdAtFilter: Record<string, Date> = {};
