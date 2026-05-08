@@ -52,7 +52,7 @@ const renderDisplayStatusBadge = (status: LeadDisplayStatus) => {
     return (
       <Badge
         variant='outline'
-        className='border-primary! text-primary'
+        className='border-primary/40! bg-primary/10 text-primary'
       >
         {leadDisplayStatusLabel(status)}
       </Badge>
