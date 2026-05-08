@@ -78,7 +78,7 @@ const renderTimelineEntryBadge = (entry: FullTimelineEntry) => {
     return (
       <Badge
         variant='outline'
-        className='shrink-0 border-primary! text-primary'
+        className='border-primary/40! bg-primary/10 text-primary'
       >
         {leadDisplayStatusLabel(entry.status)}
       </Badge>
