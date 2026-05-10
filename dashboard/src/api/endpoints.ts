@@ -30,6 +30,10 @@ export const endpoints = {
     admins: "/admin/admins",
     adminById: (adminId: string) => `/admin/admins/${adminId}`,
     adminStatus: (adminId: string) => `/admin/admins/${adminId}/status`,
+    landingFallbackPhones: (landingId: string) =>
+      `/admin/landings/${landingId}/fallback-phones`,
+    landingFallbackPhone: (landingId: string, id: string) =>
+      `/admin/landings/${landingId}/fallback-phones/${id}`,
   },
   cashier: {
     sessions: "/cashier/sessions",

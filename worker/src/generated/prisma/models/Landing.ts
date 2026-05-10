@@ -199,6 +199,7 @@ export type LandingWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   cashiers?: Prisma.CashierLandingListRelationFilter
+  fallbackPhones?: Prisma.LandingFallbackPhoneListRelationFilter
 }
 
 export type LandingOrderByWithRelationInput = {
@@ -210,6 +211,7 @@ export type LandingOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   cashiers?: Prisma.CashierLandingOrderByRelationAggregateInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneOrderByRelationAggregateInput
 }
 
 export type LandingWhereUniqueInput = Prisma.AtLeast<{
@@ -224,6 +226,7 @@ export type LandingWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   cashiers?: Prisma.CashierLandingListRelationFilter
+  fallbackPhones?: Prisma.LandingFallbackPhoneListRelationFilter
 }, "id" | "metaPixelId">
 
 export type LandingOrderByWithAggregationInput = {
@@ -261,6 +264,7 @@ export type LandingCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cashiers?: Prisma.CashierLandingCreateNestedManyWithoutLandingInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUncheckedCreateInput = {
@@ -272,6 +276,7 @@ export type LandingUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cashiers?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutLandingInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUpdateInput = {
@@ -283,6 +288,7 @@ export type LandingUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cashiers?: Prisma.CashierLandingUpdateManyWithoutLandingNestedInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingUncheckedUpdateInput = {
@@ -294,6 +300,7 @@ export type LandingUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cashiers?: Prisma.CashierLandingUncheckedUpdateManyWithoutLandingNestedInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingCreateManyInput = {
@@ -365,6 +372,20 @@ export type EnumLandingStatusFieldUpdateOperationsInput = {
   set?: $Enums.LandingStatus
 }
 
+export type LandingCreateNestedOneWithoutFallbackPhonesInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutFallbackPhonesInput, Prisma.LandingUncheckedCreateWithoutFallbackPhonesInput>
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutFallbackPhonesInput
+  connect?: Prisma.LandingWhereUniqueInput
+}
+
+export type LandingUpdateOneRequiredWithoutFallbackPhonesNestedInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutFallbackPhonesInput, Prisma.LandingUncheckedCreateWithoutFallbackPhonesInput>
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutFallbackPhonesInput
+  upsert?: Prisma.LandingUpsertWithoutFallbackPhonesInput
+  connect?: Prisma.LandingWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LandingUpdateToOneWithWhereWithoutFallbackPhonesInput, Prisma.LandingUpdateWithoutFallbackPhonesInput>, Prisma.LandingUncheckedUpdateWithoutFallbackPhonesInput>
+}
+
 export type LandingCreateNestedOneWithoutCashiersInput = {
   create?: Prisma.XOR<Prisma.LandingCreateWithoutCashiersInput, Prisma.LandingUncheckedCreateWithoutCashiersInput>
   connectOrCreate?: Prisma.LandingCreateOrConnectWithoutCashiersInput
@@ -379,6 +400,66 @@ export type LandingUpdateOneRequiredWithoutCashiersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.LandingUpdateToOneWithWhereWithoutCashiersInput, Prisma.LandingUpdateWithoutCashiersInput>, Prisma.LandingUncheckedUpdateWithoutCashiersInput>
 }
 
+export type LandingCreateWithoutFallbackPhonesInput = {
+  id?: string
+  url: string
+  metaPixelId: string
+  metaAccessToken: string
+  status?: $Enums.LandingStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cashiers?: Prisma.CashierLandingCreateNestedManyWithoutLandingInput
+}
+
+export type LandingUncheckedCreateWithoutFallbackPhonesInput = {
+  id?: string
+  url: string
+  metaPixelId: string
+  metaAccessToken: string
+  status?: $Enums.LandingStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cashiers?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutLandingInput
+}
+
+export type LandingCreateOrConnectWithoutFallbackPhonesInput = {
+  where: Prisma.LandingWhereUniqueInput
+  create: Prisma.XOR<Prisma.LandingCreateWithoutFallbackPhonesInput, Prisma.LandingUncheckedCreateWithoutFallbackPhonesInput>
+}
+
+export type LandingUpsertWithoutFallbackPhonesInput = {
+  update: Prisma.XOR<Prisma.LandingUpdateWithoutFallbackPhonesInput, Prisma.LandingUncheckedUpdateWithoutFallbackPhonesInput>
+  create: Prisma.XOR<Prisma.LandingCreateWithoutFallbackPhonesInput, Prisma.LandingUncheckedCreateWithoutFallbackPhonesInput>
+  where?: Prisma.LandingWhereInput
+}
+
+export type LandingUpdateToOneWithWhereWithoutFallbackPhonesInput = {
+  where?: Prisma.LandingWhereInput
+  data: Prisma.XOR<Prisma.LandingUpdateWithoutFallbackPhonesInput, Prisma.LandingUncheckedUpdateWithoutFallbackPhonesInput>
+}
+
+export type LandingUpdateWithoutFallbackPhonesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cashiers?: Prisma.CashierLandingUpdateManyWithoutLandingNestedInput
+}
+
+export type LandingUncheckedUpdateWithoutFallbackPhonesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cashiers?: Prisma.CashierLandingUncheckedUpdateManyWithoutLandingNestedInput
+}
+
 export type LandingCreateWithoutCashiersInput = {
   id?: string
   url: string
@@ -387,6 +468,7 @@ export type LandingCreateWithoutCashiersInput = {
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUncheckedCreateWithoutCashiersInput = {
@@ -397,6 +479,7 @@ export type LandingUncheckedCreateWithoutCashiersInput = {
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
 }
 
 export type LandingCreateOrConnectWithoutCashiersInput = {
@@ -423,6 +506,7 @@ export type LandingUpdateWithoutCashiersInput = {
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingUncheckedUpdateWithoutCashiersInput = {
@@ -433,6 +517,7 @@ export type LandingUncheckedUpdateWithoutCashiersInput = {
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedUpdateManyWithoutLandingNestedInput
 }
 
 
@@ -442,10 +527,12 @@ export type LandingUncheckedUpdateWithoutCashiersInput = {
 
 export type LandingCountOutputType = {
   cashiers: number
+  fallbackPhones: number
 }
 
 export type LandingCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cashiers?: boolean | LandingCountOutputTypeCountCashiersArgs
+  fallbackPhones?: boolean | LandingCountOutputTypeCountFallbackPhonesArgs
 }
 
 /**
@@ -465,6 +552,13 @@ export type LandingCountOutputTypeCountCashiersArgs<ExtArgs extends runtime.Type
   where?: Prisma.CashierLandingWhereInput
 }
 
+/**
+ * LandingCountOutputType without action
+ */
+export type LandingCountOutputTypeCountFallbackPhonesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LandingFallbackPhoneWhereInput
+}
+
 
 export type LandingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -475,6 +569,7 @@ export type LandingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   createdAt?: boolean
   updatedAt?: boolean
   cashiers?: boolean | Prisma.Landing$cashiersArgs<ExtArgs>
+  fallbackPhones?: boolean | Prisma.Landing$fallbackPhonesArgs<ExtArgs>
   _count?: boolean | Prisma.LandingCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["landing"]>
 
@@ -511,6 +606,7 @@ export type LandingSelectScalar = {
 export type LandingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "url" | "metaPixelId" | "metaAccessToken" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["landing"]>
 export type LandingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cashiers?: boolean | Prisma.Landing$cashiersArgs<ExtArgs>
+  fallbackPhones?: boolean | Prisma.Landing$fallbackPhonesArgs<ExtArgs>
   _count?: boolean | Prisma.LandingCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type LandingIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -520,6 +616,7 @@ export type $LandingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   name: "Landing"
   objects: {
     cashiers: Prisma.$CashierLandingPayload<ExtArgs>[]
+    fallbackPhones: Prisma.$LandingFallbackPhonePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -924,6 +1021,7 @@ readonly fields: LandingFieldRefs;
 export interface Prisma__LandingClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   cashiers<T extends Prisma.Landing$cashiersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$cashiersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CashierLandingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  fallbackPhones<T extends Prisma.Landing$fallbackPhonesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$fallbackPhonesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LandingFallbackPhonePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1374,6 +1472,30 @@ export type Landing$cashiersArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.CashierLandingScalarFieldEnum | Prisma.CashierLandingScalarFieldEnum[]
+}
+
+/**
+ * Landing.fallbackPhones
+ */
+export type Landing$fallbackPhonesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LandingFallbackPhone
+   */
+  select?: Prisma.LandingFallbackPhoneSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LandingFallbackPhone
+   */
+  omit?: Prisma.LandingFallbackPhoneOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LandingFallbackPhoneInclude<ExtArgs> | null
+  where?: Prisma.LandingFallbackPhoneWhereInput
+  orderBy?: Prisma.LandingFallbackPhoneOrderByWithRelationInput | Prisma.LandingFallbackPhoneOrderByWithRelationInput[]
+  cursor?: Prisma.LandingFallbackPhoneWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LandingFallbackPhoneScalarFieldEnum | Prisma.LandingFallbackPhoneScalarFieldEnum[]
 }
 
 /**

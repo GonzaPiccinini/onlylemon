@@ -5,6 +5,8 @@ import { logger } from '../../lib/logger.js';
 import { getNumberByLid } from '../waha/client.js';
 import {
   getActiveLandingCashierCandidatesByMetaPixelId,
+  getAllLinkedCashierCandidatesByMetaPixelId,
+  getLandingFallbackPhonesByMetaPixelId,
   getContactedLeadCountByCashierForLanding,
   getLeadByCode,
   getLeadByFbc,
@@ -50,7 +52,7 @@ type SelectNumberResult =
     }
   | {
       ok: false;
-      reason: 'LANDING_NOT_FOUND' | 'NO_AVAILABLE_CASHIER';
+      reason: 'LANDING_NOT_FOUND' | 'FALLBACK_INVARIANT_VIOLATION';
     };
 
 export type LeadMatchResult =
@@ -66,6 +68,15 @@ export class LeadFbcConflictError extends Error {
   constructor() {
     super('LEAD_FBC_CONFLICT');
     this.name = 'LeadFbcConflictError';
+  }
+}
+
+export class FallbackInvariantViolationError extends Error {
+  metaPixelId: string;
+  constructor(metaPixelId: string) {
+    super('FALLBACK_INVARIANT_VIOLATION');
+    this.name = 'FallbackInvariantViolationError';
+    this.metaPixelId = metaPixelId;
   }
 }
 
@@ -138,6 +149,8 @@ const DEFICIT_TIE_EPSILON = 0.25;
 
 type SelectCashierDependencies = {
   getActiveLandingCashierCandidatesByMetaPixelId: typeof getActiveLandingCashierCandidatesByMetaPixelId;
+  getAllLinkedCashierCandidatesByMetaPixelId: typeof getAllLinkedCashierCandidatesByMetaPixelId;
+  getLandingFallbackPhonesByMetaPixelId: typeof getLandingFallbackPhonesByMetaPixelId;
   getSessions: typeof getSessions;
   getContactedLeadCountByCashierForLanding: typeof getContactedLeadCountByCashierForLanding;
   getNow: () => Date;
@@ -146,6 +159,8 @@ type SelectCashierDependencies = {
 
 const defaultSelectCashierDependencies: SelectCashierDependencies = {
   getActiveLandingCashierCandidatesByMetaPixelId,
+  getAllLinkedCashierCandidatesByMetaPixelId,
+  getLandingFallbackPhonesByMetaPixelId,
   getSessions,
   getContactedLeadCountByCashierForLanding,
   getNow: () => new Date(),
@@ -165,13 +180,7 @@ export async function selectCashierNumberForLandingWithDependencies(
     };
   }
 
-  if (candidates.length === 0) {
-    return {
-      ok: false,
-      reason: 'NO_AVAILABLE_CASHIER',
-    };
-  }
-
+  // Single WAHA call — shared across L1, L2, and L3 (REQ-2)
   const sessions = await dependencies.getSessions();
   const workingSessionNumbers = new Map<string, string>();
 
@@ -188,6 +197,7 @@ export async function selectCashierNumberForLandingWithDependencies(
     workingSessionNumbers.set(session.name, number);
   }
 
+  // Level 1: on-shift cashiers (open SessionActivity) that are WAHA-WORKING
   const eligible = candidates
     .map((candidate) => ({
       cashierId: candidate.cashierId,
@@ -205,10 +215,42 @@ export async function selectCashierNumberForLandingWithDependencies(
     );
 
   if (eligible.length === 0) {
-    return {
-      ok: false,
-      reason: 'NO_AVAILABLE_CASHIER',
-    };
+    // Level 2: any ACTIVE cashier with sessionName linked to this landing that is WAHA-WORKING
+    const l2Candidates = await dependencies.getAllLinkedCashierCandidatesByMetaPixelId(metaPixelId);
+
+    if (l2Candidates && l2Candidates.length > 0) {
+      const l2Eligible = l2Candidates
+        .map((candidate) => ({
+          cashierId: candidate.cashierId,
+          number: workingSessionNumbers.get(candidate.sessionName) ?? null,
+        }))
+        .filter((item): item is { cashierId: string; number: string } => Boolean(item.number));
+
+      if (l2Eligible.length > 0) {
+        const l2Selected = l2Eligible[
+          Math.min(
+            Math.floor(dependencies.getRandom() * l2Eligible.length),
+            l2Eligible.length - 1,
+          )
+        ];
+        return { ok: true, number: l2Selected.number };
+      }
+    }
+
+    // Level 3: fallback phones for this landing (random uniform pick)
+    const fallbackPhones = await dependencies.getLandingFallbackPhonesByMetaPixelId(metaPixelId);
+
+    if (!fallbackPhones || fallbackPhones.length === 0) {
+      return { ok: false, reason: 'FALLBACK_INVARIANT_VIOLATION' };
+    }
+
+    const l3Selected = fallbackPhones[
+      Math.min(
+        Math.floor(dependencies.getRandom() * fallbackPhones.length),
+        fallbackPhones.length - 1,
+      )
+    ];
+    return { ok: true, number: l3Selected.phone };
   }
 
   const now = dependencies.getNow();
@@ -389,6 +431,13 @@ export async function createLeadWithDependencies(
   if (!selectedNumber.ok) {
     if (selectedNumber.reason === 'LANDING_NOT_FOUND') {
       throw new Error(selectedNumber.reason);
+    }
+    if (selectedNumber.reason === 'FALLBACK_INVARIANT_VIOLATION') {
+      logger.error({
+        event: 'fallback_invariant_violation',
+        metaPixelId: payload.metaPixelId,
+      });
+      throw new FallbackInvariantViolationError(payload.metaPixelId);
     }
   }
 

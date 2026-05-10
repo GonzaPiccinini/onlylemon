@@ -59,6 +59,7 @@ export const ModelName = {
   Lead: 'Lead',
   Conversion: 'Conversion',
   Landing: 'Landing',
+  LandingFallbackPhone: 'LandingFallbackPhone',
   CashierLanding: 'CashierLanding',
   ProcessedJob: 'ProcessedJob'
 } as const
@@ -179,6 +180,19 @@ export const LandingScalarFieldEnum = {
 } as const
 
 export type LandingScalarFieldEnum = (typeof LandingScalarFieldEnum)[keyof typeof LandingScalarFieldEnum]
+
+
+export const LandingFallbackPhoneScalarFieldEnum = {
+  id: 'id',
+  landingId: 'landingId',
+  phone: 'phone',
+  label: 'label',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LandingFallbackPhoneScalarFieldEnum = (typeof LandingFallbackPhoneScalarFieldEnum)[keyof typeof LandingFallbackPhoneScalarFieldEnum]
 
 
 export const CashierLandingScalarFieldEnum = {

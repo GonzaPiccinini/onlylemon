@@ -392,6 +392,7 @@ export const ModelName = {
   Lead: 'Lead',
   Conversion: 'Conversion',
   Landing: 'Landing',
+  LandingFallbackPhone: 'LandingFallbackPhone',
   CashierLanding: 'CashierLanding',
   ProcessedJob: 'ProcessedJob'
 } as const
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "refreshToken" | "admin" | "cashier" | "sessionActivity" | "lead" | "conversion" | "landing" | "cashierLanding" | "processedJob"
+    modelProps: "user" | "refreshToken" | "admin" | "cashier" | "sessionActivity" | "lead" | "conversion" | "landing" | "landingFallbackPhone" | "cashierLanding" | "processedJob"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1005,6 +1006,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    LandingFallbackPhone: {
+      payload: Prisma.$LandingFallbackPhonePayload<ExtArgs>
+      fields: Prisma.LandingFallbackPhoneFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LandingFallbackPhoneFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LandingFallbackPhoneFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>
+        }
+        findFirst: {
+          args: Prisma.LandingFallbackPhoneFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LandingFallbackPhoneFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>
+        }
+        findMany: {
+          args: Prisma.LandingFallbackPhoneFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>[]
+        }
+        create: {
+          args: Prisma.LandingFallbackPhoneCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>
+        }
+        createMany: {
+          args: Prisma.LandingFallbackPhoneCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LandingFallbackPhoneCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>[]
+        }
+        delete: {
+          args: Prisma.LandingFallbackPhoneDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>
+        }
+        update: {
+          args: Prisma.LandingFallbackPhoneUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>
+        }
+        deleteMany: {
+          args: Prisma.LandingFallbackPhoneDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LandingFallbackPhoneUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LandingFallbackPhoneUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>[]
+        }
+        upsert: {
+          args: Prisma.LandingFallbackPhoneUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LandingFallbackPhonePayload>
+        }
+        aggregate: {
+          args: Prisma.LandingFallbackPhoneAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLandingFallbackPhone>
+        }
+        groupBy: {
+          args: Prisma.LandingFallbackPhoneGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LandingFallbackPhoneGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LandingFallbackPhoneCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LandingFallbackPhoneCountAggregateOutputType> | number
+        }
+      }
+    }
     CashierLanding: {
       payload: Prisma.$CashierLandingPayload<ExtArgs>
       fields: Prisma.CashierLandingFieldRefs
@@ -1292,6 +1367,19 @@ export const LandingScalarFieldEnum = {
 } as const
 
 export type LandingScalarFieldEnum = (typeof LandingScalarFieldEnum)[keyof typeof LandingScalarFieldEnum]
+
+
+export const LandingFallbackPhoneScalarFieldEnum = {
+  id: 'id',
+  landingId: 'landingId',
+  phone: 'phone',
+  label: 'label',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LandingFallbackPhoneScalarFieldEnum = (typeof LandingFallbackPhoneScalarFieldEnum)[keyof typeof LandingFallbackPhoneScalarFieldEnum]
 
 
 export const CashierLandingScalarFieldEnum = {
@@ -1584,6 +1672,7 @@ export type GlobalOmitConfig = {
   lead?: Prisma.LeadOmit
   conversion?: Prisma.ConversionOmit
   landing?: Prisma.LandingOmit
+  landingFallbackPhone?: Prisma.LandingFallbackPhoneOmit
   cashierLanding?: Prisma.CashierLandingOmit
   processedJob?: Prisma.ProcessedJobOmit
 }

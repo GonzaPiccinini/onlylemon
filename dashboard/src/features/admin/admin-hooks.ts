@@ -3,11 +3,13 @@ import { adminService } from "@/api/admin.service";
 import type {
   ConversionsFilters,
   CreateCashierInput,
+  CreateLandingFallbackPhoneInput,
   CreateLandingInput,
   DateRangeFilters,
   LeadsFilters,
   UpdateAdminAccountInput,
   UpdateCashierInput,
+  UpdateLandingFallbackPhoneInput,
   UpdateLandingInput,
 } from "@/types/domain";
 
@@ -16,6 +18,8 @@ type ConversionsTotalsFilters = Omit<ConversionsFilters, "page" | "pageSize">;
 const adminKeys = {
   cashiers: ["admin", "cashiers"] as const,
   landings: ["admin", "landings"] as const,
+  landingFallbackPhones: (landingId: string) =>
+    ["admin", "landings", landingId, "fallback-phones"] as const,
   summary: (filters: DateRangeFilters) => ["admin", "summary", filters] as const,
   cashierStats: (filters: DateRangeFilters) => ["admin", "cashier-stats", filters] as const,
   fundsSeries: (filters: DateRangeFilters) => ["admin", "funds-series", filters] as const,
@@ -215,3 +219,62 @@ export const useUpdateAdminAccount = () =>
     mutationFn: (input: UpdateAdminAccountInput) =>
       adminService.updateAdminAccount(input),
   });
+
+export const useLandingFallbackPhones = (landingId: string) =>
+  useQuery({
+    queryKey: adminKeys.landingFallbackPhones(landingId),
+    queryFn: () => adminService.listLandingFallbackPhones(landingId),
+  });
+
+export const useCreateLandingFallbackPhone = (landingId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateLandingFallbackPhoneInput) =>
+      adminService.createLandingFallbackPhone(landingId, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: adminKeys.landingFallbackPhones(landingId),
+        }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
+      ]);
+    },
+  });
+};
+
+export const useUpdateLandingFallbackPhone = (landingId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateLandingFallbackPhoneInput }) =>
+      adminService.updateLandingFallbackPhone(landingId, id, patch),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: adminKeys.landingFallbackPhones(landingId),
+        }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
+      ]);
+    },
+  });
+};
+
+export const useDeleteLandingFallbackPhone = (landingId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => adminService.deleteLandingFallbackPhone(landingId, id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: adminKeys.landingFallbackPhones(landingId),
+        }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
+      ]);
+    },
+    // Surface LAST_FALLBACK 409 through the mutation error — UI reads mutation.error
+    // No special transform needed: the raw ApiError shape (statusCode + message/error code)
+    // is surfaced automatically via the mutation's `error` field.
+  });
+};

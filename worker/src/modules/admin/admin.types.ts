@@ -13,16 +13,46 @@ export const updateCashierSchema = z.object({
   password: z.string().min(6).optional(),
 });
 
+// ---------------------------------------------------------------------------
+// LandingFallbackPhone — Zod schemas (B6.2)
+// ---------------------------------------------------------------------------
+
+const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
+
+export const createLandingFallbackPhoneSchema = z.object({
+  phone: z.string().regex(PHONE_REGEX, 'Invalid phone format (8–15 digits, optional + prefix)'),
+  label: z.string().trim().optional(),
+  order: z.number().int().optional(),
+});
+
+export const updateLandingFallbackPhoneSchema = z
+  .object({
+    phone: z.string().regex(PHONE_REGEX, 'Invalid phone format (8–15 digits, optional + prefix)').optional(),
+    label: z.string().trim().nullable().optional(),
+    order: z.number().int().nullable().optional(),
+  })
+  .refine((value) => value.phone !== undefined || value.label !== undefined || value.order !== undefined, {
+    message: 'At least one field is required',
+  });
+
+const fallbackPhoneItemSchema = z.object({
+  phone: z.string().regex(PHONE_REGEX, 'Invalid phone format (8–15 digits, optional + prefix)'),
+  label: z.string().trim().optional(),
+  order: z.number().int().optional(),
+});
+
 export const createLandingSchema = z.object({
   url: z.string().trim().url(),
   metaPixelId: z.string().trim().min(1),
   metaAccessToken: z.string().trim().min(1),
+  fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required'),
 });
 
 export const updateLandingSchema = z.object({
   url: z.string().trim().url(),
   metaPixelId: z.string().trim().min(1),
   metaAccessToken: z.string().trim().min(1).optional(),
+  fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required').optional(),
 });
 
 export const replaceCashierLandingsSchema = z.object({
@@ -164,4 +194,31 @@ export interface ConversionsTotalsDto {
   totalAmount: number;
   count: number;
   averageAmount: number;
+}
+
+// ---------------------------------------------------------------------------
+// LandingFallbackPhone — B2.2
+// ---------------------------------------------------------------------------
+
+export interface LandingFallbackPhoneDto {
+  id: string;
+  landingId: string;
+  phone: string;
+  label: string | null;
+  order: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLandingFallbackPhoneInput {
+  landingId: string;
+  phone: string;
+  label?: string;
+  order?: number;
+}
+
+export interface UpdateLandingFallbackPhoneInput {
+  phone?: string;
+  label?: string | null;
+  order?: number | null;
 }

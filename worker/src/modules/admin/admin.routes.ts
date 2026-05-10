@@ -4,6 +4,8 @@ import {
   createAdminHandler,
   createCashierHandler,
   createLandingHandler,
+  createLandingFallbackPhoneHandler,
+  deleteLandingFallbackPhoneHandler,
   disableCashierHandler,
   enableCashierHandler,
   disableLandingHandler,
@@ -17,6 +19,7 @@ import {
   listLeadsHandler,
   listCashierLandingsHandler,
   listCashiersHandler,
+  listLandingFallbackPhonesHandler,
   listLandingsHandler,
   replaceCashierLandingsHandler,
   setAdminStatusHandler,
@@ -24,6 +27,7 @@ import {
   updateAdminAccountHandler,
   updateAdminHandler,
   updateLandingHandler,
+  updateLandingFallbackPhoneHandler,
   updateCashierHandler,
 } from './admin.controller.js';
 import { requireAuth, requireRole } from '../security/auth.middleware.js';
@@ -58,6 +62,12 @@ adminRouter.post('/landings', createLandingHandler);
 adminRouter.put('/landings/:landingId', updateLandingHandler);
 adminRouter.patch('/landings/:landingId/disable', disableLandingHandler);
 adminRouter.patch('/landings/:landingId/enable', enableLandingHandler);
+
+// Fallback phones CRUD [REQ-3, REQ-4, REQ-5, REQ-6]
+adminRouter.get('/landings/:landingId/fallback-phones', listLandingFallbackPhonesHandler);
+adminRouter.post('/landings/:landingId/fallback-phones', createLandingFallbackPhoneHandler);
+adminRouter.patch('/landings/:landingId/fallback-phones/:id', updateLandingFallbackPhoneHandler);
+adminRouter.delete('/landings/:landingId/fallback-phones/:id', deleteLandingFallbackPhoneHandler);
 
 adminRouter.get('/stats/summary', summaryHandler);
 adminRouter.get('/stats/cashiers', cashierStatsHandler);

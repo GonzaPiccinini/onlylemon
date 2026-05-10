@@ -4,6 +4,7 @@ import {
   conversionsTotalsFilterSchema,
   createAdminSchema,
   createCashierSchema,
+  createLandingFallbackPhoneSchema,
   createLandingSchema,
   dateRangeSchema,
   leadHistoryQuerySchema,
@@ -13,6 +14,7 @@ import {
   updateAdminAccountSchema,
   updateAdminSchema,
   updateCashierSchema,
+  updateLandingFallbackPhoneSchema,
   updateLandingSchema,
 } from './admin.types.js';
 import { addOneDayIsoDate } from '../../utils/timezone.js';
@@ -20,7 +22,9 @@ import {
   AdminNotFoundError,
   createAdminService,
   createCashierService,
-  createLandingService,
+  createLandingFallbackPhoneService,
+  createLandingServiceWithFallbacks,
+  deleteLandingFallbackPhoneService,
   disableCashierService,
   enableCashierService,
   finishCashierWorkSessionService,
@@ -29,10 +33,13 @@ import {
   getFundsSeriesService,
   getLeadHistoryService,
   getSummaryService,
+  InvalidPhoneFormatError,
+  LastFallbackError,
   listAdminConversionsService,
   listAdminsService,
   listCashierLandingsService,
   listCashiersService,
+  listLandingFallbackPhonesService,
   listLeadsService,
   listLandingsService,
   replaceCashierLandingsService,
@@ -42,7 +49,8 @@ import {
   updateAdminAccountService,
   updateAdminService,
   updateCashierService,
-  updateLandingService,
+  updateLandingFallbackPhoneService,
+  updateLandingServiceWithFallbacks,
 } from './admin.service.js';
 
 export const updateAdminAccountHandler = async (req: Request, res: Response) => {
@@ -235,9 +243,12 @@ export const createLandingHandler = async (req: Request, res: Response) => {
   }
 
   try {
-    const data = await createLandingService(parsed.data);
+    const data = await createLandingServiceWithFallbacks(parsed.data);
     return res.status(201).json(data);
-  } catch {
+  } catch (e) {
+    if (e instanceof InvalidPhoneFormatError) {
+      return res.status(400).json({ error: e.message });
+    }
     return res.status(409).json({ error: 'Landing could not be created' });
   }
 };
@@ -252,9 +263,12 @@ export const updateLandingHandler = async (req: Request, res: Response) => {
   }
 
   try {
-    const data = await updateLandingService(req.params.landingId, parsed.data);
+    const data = await updateLandingServiceWithFallbacks(req.params.landingId, parsed.data);
     return res.status(200).json(data);
-  } catch {
+  } catch (e) {
+    if (e instanceof InvalidPhoneFormatError) {
+      return res.status(400).json({ error: e.message });
+    }
     return res.status(404).json({ error: 'Landing not found' });
   }
 };
@@ -459,3 +473,102 @@ export const getAdminConversionsTotalsHandler = async (req: Request, res: Respon
   const data = await getAdminConversionsTotalsService(filters);
   return res.status(200).json(data);
 };
+
+// ---------------------------------------------------------------------------
+// B6.2 — LandingFallbackPhone CRUD handlers [REQ-3, REQ-4, REQ-5, REQ-6]
+// ---------------------------------------------------------------------------
+
+export const listLandingFallbackPhonesHandler = async (req: Request, res: Response) => {
+  const { landingId } = req.params;
+  const data = await listLandingFallbackPhonesService(landingId);
+  return res.status(200).json(data);
+};
+
+export const createLandingFallbackPhoneHandler = async (req: Request, res: Response) => {
+  const parsed = createLandingFallbackPhoneSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  const { landingId } = req.params;
+
+  try {
+    const data = await createLandingFallbackPhoneService(landingId, parsed.data);
+    return res.status(201).json(data);
+  } catch (e) {
+    if (e instanceof InvalidPhoneFormatError) {
+      return res.status(400).json({ error: e.message });
+    }
+    const prismaError = e as { code?: string };
+    if (prismaError?.code === 'P2002') {
+      return res.status(409).json({ error: 'Phone already exists for this landing' });
+    }
+    if (prismaError?.code === 'P2003' || prismaError?.code === 'P2025') {
+      return res.status(404).json({ error: 'Landing not found' });
+    }
+    return res.status(500).json({ error: 'Could not create fallback phone' });
+  }
+};
+
+export const updateLandingFallbackPhoneHandler = async (req: Request, res: Response) => {
+  const parsed = updateLandingFallbackPhoneSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  const { id } = req.params;
+
+  try {
+    const data = await updateLandingFallbackPhoneService(id, parsed.data);
+    return res.status(200).json(data);
+  } catch (e) {
+    if (e instanceof InvalidPhoneFormatError) {
+      return res.status(400).json({ error: e.message });
+    }
+    const prismaError = e as { code?: string };
+    if (prismaError?.code === 'P2002') {
+      return res.status(409).json({ error: 'Phone already exists for this landing' });
+    }
+    if (prismaError?.code === 'P2025') {
+      return res.status(404).json({ error: 'Fallback phone not found' });
+    }
+    return res.status(500).json({ error: 'Could not update fallback phone' });
+  }
+};
+
+/**
+ * Injectable variant of deleteLandingFallbackPhoneHandler for unit testing.
+ * Accepts a deps object so tests can inject a mock deleteFn without ES module mocking.
+ */
+export const deleteLandingFallbackPhoneHandlerImpl =
+  (deps: { deleteFn: (id: string) => Promise<void> }) =>
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+      await deps.deleteFn(id);
+      return res.status(204).send();
+    } catch (e) {
+      if (e instanceof LastFallbackError) {
+        return res.status(409).json({
+          code: 'LAST_FALLBACK',
+          message: 'Debes agregar otro respaldo antes de eliminar este',
+        });
+      }
+      const prismaError = e as { code?: string };
+      if (prismaError?.code === 'P2025') {
+        return res.status(404).json({ error: 'Fallback phone not found' });
+      }
+      return res.status(500).json({ error: 'Could not delete fallback phone' });
+    }
+  };
+
+export const deleteLandingFallbackPhoneHandler = deleteLandingFallbackPhoneHandlerImpl({
+  deleteFn: deleteLandingFallbackPhoneService,
+});

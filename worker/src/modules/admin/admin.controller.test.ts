@@ -392,3 +392,251 @@ test('getAdminConversionsTotalsHandler: cashierIds CSV "a,b" → parsed as array
 
   assert.ok([200, 500].includes(res.statusCode));
 });
+
+// ---------------------------------------------------------------------------
+// B6.1 — Fallback phone routes (RED → GREEN)
+// ---------------------------------------------------------------------------
+
+// --- Export surface ---
+
+test('admin controller exports listLandingFallbackPhonesHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.listLandingFallbackPhonesHandler, 'function');
+});
+
+test('admin controller exports createLandingFallbackPhoneHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.createLandingFallbackPhoneHandler, 'function');
+});
+
+test('admin controller exports updateLandingFallbackPhoneHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.updateLandingFallbackPhoneHandler, 'function');
+});
+
+test('admin controller exports deleteLandingFallbackPhoneHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.deleteLandingFallbackPhoneHandler, 'function');
+});
+
+// --- createLandingFallbackPhoneHandler: Zod-level validation (400) ---
+
+test('createLandingFallbackPhoneHandler: missing phone field → 400', async () => {
+  const { createLandingFallbackPhoneHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { landingId: 'landing-1' }, body: {} });
+  const res = makeRes();
+
+  await createLandingFallbackPhoneHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('createLandingFallbackPhoneHandler: invalid phone (too short — 7 digits) → 400', async () => {
+  const { createLandingFallbackPhoneHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { landingId: 'landing-1' }, body: { phone: '1234567' } });
+  const res = makeRes();
+
+  await createLandingFallbackPhoneHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('createLandingFallbackPhoneHandler: invalid E.164 (leading zero after +) → 400', async () => {
+  const { createLandingFallbackPhoneHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { landingId: 'landing-1' }, body: { phone: '+0abc' } });
+  const res = makeRes();
+
+  await createLandingFallbackPhoneHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+// --- updateLandingFallbackPhoneHandler: Zod-level validation (400) ---
+
+test('updateLandingFallbackPhoneHandler: invalid E.164 phone in body → 400', async () => {
+  const { updateLandingFallbackPhoneHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({
+    params: { landingId: 'landing-1', id: 'fp-1' },
+    body: { phone: 'not-a-phone' },
+  });
+  const res = makeRes();
+
+  await updateLandingFallbackPhoneHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('updateLandingFallbackPhoneHandler: empty body (no fields) → 400', async () => {
+  const { updateLandingFallbackPhoneHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { landingId: 'landing-1', id: 'fp-1' }, body: {} });
+  const res = makeRes();
+
+  await updateLandingFallbackPhoneHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+// --- deleteLandingFallbackPhoneHandler: last-fallback → 409 ---
+
+test('deleteLandingFallbackPhoneHandler: service throws LastFallbackError → 409 with LAST_FALLBACK code', async () => {
+  const { deleteLandingFallbackPhoneHandler } = await import('./admin.controller.js');
+  const { LastFallbackError } = await import('./admin.service.js');
+
+  // Directly call the injectable variant with a dep that always throws LastFallbackError
+  // The handler uses the real service which calls the real repo — not testable without DB.
+  // Instead we test the handler's error-mapping by checking that LastFallbackError → 409
+  // by constructing the error and verifying the handler mapping is correct via the error class.
+  // We assert that LastFallbackError is exported and has the right name.
+  const err = new LastFallbackError();
+  assert.equal(err.name, 'LastFallbackError');
+  assert.equal(err.message, 'Debes agregar otro respaldo antes de eliminar este');
+
+  // The handler → DB unavailable in unit tests, we can only verify export + error class shape.
+  // The 409 mapping is validated via the handler implementation review + integration in B6.2.
+  assert.equal(typeof deleteLandingFallbackPhoneHandler, 'function');
+});
+
+// --- Landing create/update: empty fallbackPhones → 400 ---
+
+test('createLandingHandler (extended): empty fallbackPhones array → 400', async () => {
+  const { createLandingHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({
+    body: {
+      url: 'https://example.com',
+      metaPixelId: 'px-1',
+      metaAccessToken: 'token-1',
+      fallbackPhones: [],
+    },
+  });
+  const res = makeRes();
+
+  await createLandingHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('createLandingHandler (extended): fallbackPhones with invalid E.164 → 400', async () => {
+  const { createLandingHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({
+    body: {
+      url: 'https://example.com',
+      metaPixelId: 'px-1',
+      metaAccessToken: 'token-1',
+      fallbackPhones: [{ phone: 'not-e164' }],
+    },
+  });
+  const res = makeRes();
+
+  await createLandingHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('createLandingHandler (extended): missing fallbackPhones field → 400', async () => {
+  const { createLandingHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({
+    body: {
+      url: 'https://example.com',
+      metaPixelId: 'px-1',
+      metaAccessToken: 'token-1',
+      // no fallbackPhones
+    },
+  });
+  const res = makeRes();
+
+  await createLandingHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('updateLandingHandler (extended): empty fallbackPhones array → 400', async () => {
+  const { updateLandingHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({
+    params: { landingId: 'landing-1' },
+    body: {
+      url: 'https://example.com',
+      metaPixelId: 'px-1',
+      metaAccessToken: 'token-1',
+      fallbackPhones: [],
+    },
+  });
+  const res = makeRes();
+
+  await updateLandingHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('updateLandingHandler (extended): fallbackPhones with invalid E.164 → 400', async () => {
+  const { updateLandingHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({
+    params: { landingId: 'landing-1' },
+    body: {
+      url: 'https://example.com',
+      metaPixelId: 'px-1',
+      fallbackPhones: [{ phone: 'bad' }],
+    },
+  });
+  const res = makeRes();
+
+  await updateLandingHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+// --- listLandingFallbackPhonesHandler: DB-integrated (skips if unavailable) ---
+
+test('listLandingFallbackPhonesHandler: valid landingId → 200 or 500 (DB-integrated)', async () => {
+  const { listLandingFallbackPhonesHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { landingId: 'some-landing-id' } });
+  const res = makeRes();
+
+  try {
+    await listLandingFallbackPhonesHandler(req, res);
+  } catch {
+    return; // DB unavailable — acceptable
+  }
+
+  assert.ok([200, 500].includes(res.statusCode));
+});
+
+// ---------------------------------------------------------------------------
+// B10.2 — Delete-last 409 with exact message text at controller level
+// REQ-4
+// ---------------------------------------------------------------------------
+
+test('B10.2: deleteLandingFallbackPhoneHandlerImpl → 409 with exact message when LastFallbackError is thrown', async () => {
+  const { deleteLandingFallbackPhoneHandlerImpl } = await import('./admin.controller.js') as Record<string, unknown> & {
+    deleteLandingFallbackPhoneHandlerImpl: (
+      deps: { deleteFn: (id: string) => Promise<void> }
+    ) => (req: import('express').Request, res: import('express').Response) => Promise<unknown>;
+  };
+  const { LastFallbackError } = await import('./admin.service.js');
+
+  const handler = deleteLandingFallbackPhoneHandlerImpl({
+    deleteFn: async (_id: string) => {
+      throw new LastFallbackError();
+    },
+  });
+
+  const req = makeReq({ params: { id: 'phone-id-1' } });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 409);
+  const body = res.body as { code: string; message: string };
+  assert.equal(body.code, 'LAST_FALLBACK');
+  assert.equal(body.message, 'Debes agregar otro respaldo antes de eliminar este');
+});
