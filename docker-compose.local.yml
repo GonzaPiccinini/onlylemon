@@ -55,6 +55,7 @@ services:
       WORKER_CONCURRENCY: 5
       LEADS_CODE_TTL_HOURS: 48
       JWT_SECRET: dev-jwt-secret-change-me-please
+      JWT_REFRESH_SECRET: dev-jwt-refresh-secret-change-me-please-now
       CORS_ORIGIN: http://localhost:8080
       WAHA_BASE_URL: http://waha:3000
       WAHA_API_KEY: dev-waha-key

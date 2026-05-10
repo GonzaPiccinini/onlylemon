@@ -11,6 +11,8 @@ export interface User {
 
 export interface AuthSession {
   token: string;
+  refreshToken: string;
+  expiresIn: number;
   user: User;
 }
 

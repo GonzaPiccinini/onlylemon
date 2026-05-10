@@ -17,6 +17,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER =
   process.env.WAHA_WEBHOOK_TOKEN_HEADER ?? 'x-webhook-token';
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
 
@@ -88,4 +89,94 @@ test('findAdminStatusByUserId: structural contract — selects only status field
   // The function should return null when the admin is not found (mirrors cashier pattern)
   // We validate this by confirming the null-coalescing behavior is present in implementation.
   assert.ok(true, 'structural contract verified via implementation review');
+});
+
+// ---------------------------------------------------------------------------
+// B2.3 — createRefreshToken / findRefreshToken / deleteRefreshToken /
+//         deleteAllRefreshTokensByUserId + error classes (RED → GREEN)
+// ---------------------------------------------------------------------------
+
+test('createRefreshToken is exported from auth.repository', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.createRefreshToken, 'function');
+});
+
+test('createRefreshToken: accepts input and optional tx (arity check)', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  const fn = mod.createRefreshToken as (...args: unknown[]) => unknown;
+  // Function has 2 declared params (input required, tx optional) — both are counted in Function.length
+  assert.ok(fn.length >= 1, 'createRefreshToken must accept at least input param');
+});
+
+test('findRefreshToken is exported from auth.repository', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.findRefreshToken, 'function');
+});
+
+test('findRefreshToken: arity is 1 (token string)', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  const fn = mod.findRefreshToken as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 1);
+});
+
+test('deleteRefreshToken is exported from auth.repository', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.deleteRefreshToken, 'function');
+});
+
+test('deleteRefreshToken: accepts token and optional tx (arity check)', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  const fn = mod.deleteRefreshToken as (...args: unknown[]) => unknown;
+  // Function has 2 declared params (token required, tx optional) — both are counted in Function.length
+  assert.ok(fn.length >= 1, 'deleteRefreshToken must accept at least token param');
+});
+
+test('deleteAllRefreshTokensByUserId is exported from auth.repository', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.deleteAllRefreshTokensByUserId, 'function');
+});
+
+test('deleteAllRefreshTokensByUserId: arity is 1 (userId string)', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  const fn = mod.deleteAllRefreshTokensByUserId as (...args: unknown[]) => unknown;
+  assert.equal(fn.length, 1);
+});
+
+test('RefreshReuseError is exported from auth.repository', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.RefreshReuseError, 'function');
+});
+
+test('RefreshReuseError is an instance of Error with name RefreshReuseError', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  const Ctor = mod.RefreshReuseError as new () => Error;
+  const err = new Ctor();
+  assert.ok(err instanceof Error);
+  assert.equal(err.name, 'RefreshReuseError');
+});
+
+test('RefreshExpiredError is exported from auth.repository', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.RefreshExpiredError, 'function');
+});
+
+test('RefreshExpiredError is an instance of Error with name RefreshExpiredError', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  const Ctor = mod.RefreshExpiredError as new () => Error;
+  const err = new Ctor();
+  assert.ok(err instanceof Error);
+  assert.equal(err.name, 'RefreshExpiredError');
+});
+
+test('RefreshInvalidError is exported from auth.repository', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.RefreshInvalidError, 'function');
+});
+
+test('RefreshInvalidError is an instance of Error with name RefreshInvalidError', async () => {
+  const mod = await import('./auth.repository.js') as Record<string, unknown>;
+  const Ctor = mod.RefreshInvalidError as new () => Error;
+  const err = new Ctor();
+  assert.ok(err instanceof Error);
+  assert.equal(err.name, 'RefreshInvalidError');
 });

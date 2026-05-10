@@ -20,7 +20,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { authService } from "@/api/auth.service";
 import { SetupPage } from "@/features/setup/setup-page";
 
-const AUTH_STORAGE_KEY = "lemonbet-auth";
+const AUTH_STORAGE_KEY = "auth";
 
 const hasAuthSession = (): boolean => {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);

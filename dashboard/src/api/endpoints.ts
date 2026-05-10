@@ -3,6 +3,7 @@ export const endpoints = {
     login: "/auth/login",
     me: "/auth/me",
     logout: "/auth/logout",
+    refresh: "/auth/refresh",
     setupStatus: "/auth/setup-status",
     setup: "/auth/setup",
   },

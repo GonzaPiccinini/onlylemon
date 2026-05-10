@@ -3,6 +3,7 @@ import {
   loginHandler,
   logoutHandler,
   meHandler,
+  refreshHandler,
   setupHandler,
   setupStatusHandler,
 } from './auth.controller.js';
@@ -14,6 +15,7 @@ export const authRouter = Router();
 authRouter.get('/setup-status', setupStatusHandler);
 authRouter.post('/setup', setupHandler);
 authRouter.post('/login', loginHandler);
+authRouter.post('/refresh', refreshHandler);
 
 // Authenticated endpoints
 authRouter.get('/me', requireAuth, meHandler);
