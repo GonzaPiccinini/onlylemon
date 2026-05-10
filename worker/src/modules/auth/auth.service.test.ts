@@ -445,3 +445,145 @@ test('logout: returns void (surface check — typeof logout === function, arity 
   assert.equal(typeof logout, 'function');
   assert.ok((logout?.length ?? 0) >= 1, 'logout must accept at least 1 argument (refreshToken)');
 });
+
+// ---------------------------------------------------------------------------
+// W1 — Atomic runSetup: tx-boundary tests (RED: written before refactor)
+//
+// These tests verify that runSetup wraps BOTH createSuperAdmin and
+// createRefreshToken inside a SINGLE outer prisma.$transaction callback.
+// They MUST fail (red) before the W1 implementation in auth.service.ts and
+// auth.repository.ts. After the refactor they become green.
+// ---------------------------------------------------------------------------
+
+test('runSetup: wraps createSuperAdmin and createRefreshToken in exactly one $transaction call', async () => {
+  // Import the prisma client and the service module
+  const { prisma } = await import('../../persistence/prisma/client.js');
+  const { runSetup } = await import('./auth.service.js');
+
+  const txCalls: number[] = [];
+  const innerCalls: string[] = [];
+
+  // Fake tx client that records writes and resolves successfully
+  const fakeTx = {
+    user: {
+      count: async () => 0,
+      create: async (_args: unknown) => {
+        innerCalls.push('user.create');
+        return { id: 'u1', name: 'Test Admin', username: 'testadmin', role: 'SUPER_ADMIN' };
+      },
+    },
+    admin: {
+      create: async (_args: unknown) => {
+        innerCalls.push('admin.create');
+        return { userId: 'u1' };
+      },
+    },
+    refreshToken: {
+      create: async (_args: unknown) => {
+        innerCalls.push('refreshToken.create');
+        return { id: 'rt1' };
+      },
+    },
+  };
+
+  // Stub prisma.user.count for the pre-check (countSuperAdmins runs OUTSIDE the tx)
+  const originalUserCount = prisma.user.count.bind(prisma.user);
+  // @ts-expect-error — runtime override for test isolation
+  prisma.user.count = async (_args?: unknown) => 0;
+
+  const originalTx = prisma.$transaction.bind(prisma);
+  // @ts-expect-error — runtime override of $transaction
+  prisma.$transaction = async (cbOrArr: unknown, _opts?: unknown) => {
+    txCalls.push(1);
+    if (typeof cbOrArr === 'function') {
+      return (cbOrArr as (tx: unknown) => Promise<unknown>)(fakeTx);
+    }
+    return originalTx(cbOrArr as never, _opts as never);
+  };
+
+  try {
+    const result = await runSetup({ name: 'Test Admin', username: 'testadmin', password: 'pwd123!ABC' });
+
+    assert.equal(txCalls.length, 1, 'prisma.$transaction must be called exactly once — both writes inside one tx');
+    assert.deepEqual(
+      innerCalls,
+      ['user.create', 'admin.create', 'refreshToken.create'],
+      'user.create, admin.create, and refreshToken.create must all fire inside the single tx callback in order',
+    );
+    assert.ok(typeof result.token === 'string' && result.token.length > 0, 'result must have a non-empty token');
+    assert.ok(typeof result.refreshToken === 'string' && result.refreshToken.length > 0, 'result must have a non-empty refreshToken');
+    assert.equal(result.user.role, 'SUPER_ADMIN', 'result.user.role must be SUPER_ADMIN');
+  } finally {
+    // Restore originals regardless of test outcome (prevent leakage)
+    prisma.user.count = originalUserCount;
+    prisma.$transaction = originalTx;
+  }
+});
+
+test('runSetup: if refreshToken.create throws inside the tx, runSetup rejects and $transaction propagates the error', async () => {
+  const { prisma } = await import('../../persistence/prisma/client.js');
+  const { runSetup } = await import('./auth.service.js');
+
+  const writesAttempted: string[] = [];
+  let txPropagatedError = false;
+
+  const fakeTxWithThrowOnRefreshToken = {
+    user: {
+      count: async () => 0,
+      create: async (_args: unknown) => {
+        writesAttempted.push('user.create');
+        return { id: 'u2', name: 'Test Admin', username: 'testadmin2', role: 'SUPER_ADMIN' };
+      },
+    },
+    admin: {
+      create: async (_args: unknown) => {
+        writesAttempted.push('admin.create');
+        return { userId: 'u2' };
+      },
+    },
+    refreshToken: {
+      create: async (_args: unknown) => {
+        throw new Error('simulated refreshToken.create DB failure');
+      },
+    },
+  };
+
+  // Stub prisma.user.count for the pre-check outside the tx
+  const originalUserCount = prisma.user.count.bind(prisma.user);
+  // @ts-expect-error — runtime override for test isolation
+  prisma.user.count = async (_args?: unknown) => 0;
+
+  const originalTx = prisma.$transaction.bind(prisma);
+  // @ts-expect-error — runtime override of $transaction
+  prisma.$transaction = async (cbOrArr: unknown, _opts?: unknown) => {
+    if (typeof cbOrArr === 'function') {
+      try {
+        return await (cbOrArr as (tx: unknown) => Promise<unknown>)(fakeTxWithThrowOnRefreshToken);
+      } catch (e) {
+        txPropagatedError = true; // Prisma would roll back; we simulate propagation
+        throw e;
+      }
+    }
+    return originalTx(cbOrArr as never, _opts as never);
+  };
+
+  try {
+    await assert.rejects(
+      () => runSetup({ name: 'Test Admin', username: 'testadmin2', password: 'pwd123!ABC' }),
+      (err: Error) => {
+        return err.message === 'simulated refreshToken.create DB failure';
+      },
+      'runSetup must reject when refreshToken.create throws inside the tx',
+    );
+    assert.equal(txPropagatedError, true, '$transaction must propagate the inner error (rollback path)');
+    assert.deepEqual(
+      writesAttempted,
+      ['user.create', 'admin.create'],
+      'user and admin writes happen inside the tx before the refresh token throw',
+    );
+  } finally {
+    // Restore originals
+    prisma.user.count = originalUserCount;
+    prisma.$transaction = originalTx;
+  }
+});

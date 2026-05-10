@@ -138,18 +138,27 @@ export const runSetup = async (input: SetupPayload): Promise<AuthSessionResponse
   const jti = globalThis.crypto.randomUUID();
   const expiresAt = new Date(Date.now() + config.JWT_REFRESH_EXPIRES_DAYS * 24 * 3_600_000);
 
-  const user = await createSuperAdmin({
-    name,
-    username,
-    hashedPassword: hashPassword(password),
-  });
+  // Atomic block: SUPER_ADMIN + Admin row + RefreshToken row in ONE Serializable tx
+  const { user, refreshTokenStr } = await prisma.$transaction(
+    async (tx) => {
+      const created = await createSuperAdmin(
+        { name, username, hashedPassword: hashPassword(password) },
+        tx,
+      );
+      const refreshTokenStrLocal = signRefreshToken({ userId: created.id, jti });
+      await createRefreshToken(
+        { token: refreshTokenStrLocal, userId: created.id, expiresAt },
+        tx,
+      );
+      return { user: created, refreshTokenStr: refreshTokenStrLocal };
+    },
+    { isolationLevel: 'Serializable' },
+  );
 
+  // Outside the tx: pure CPU (sign + assemble response)
   const authUser: AuthenticatedUser = { userId: user.id, role: 'SUPER_ADMIN' };
   const token = signAccessToken(authUser);
-  const refreshTokenStr = signRefreshToken({ userId: user.id, jti });
   const expiresIn = getExpiresIn();
-
-  await createRefreshToken({ token: refreshTokenStr, userId: user.id, expiresAt });
 
   return {
     token,
