@@ -10,45 +10,64 @@
 
 ## Prerrequisitos (una vez, no por cliente)
 
-- [ ] Tag `v1.0.0` (o el release más reciente) cortado y publicado en GHCR
-- [ ] Cuentas con acceso: Hetzner/DO (VPS), Cloudflare (DNS + R2), Tailscale, Grafana Cloud, GHCR (PAT con `read:packages`)
+- [ ] Tag `v1.0.0` (o el release más reciente) cortado en upstream `GonzaPiccinini/onlylemon`
+- [ ] Cuentas con acceso desde tu cuenta personal: Hetzner/DO (VPS), Cloudflare (DNS + R2), Tailscale, Grafana Cloud
+- [ ] **Password manager con folder/tag por cliente** — vas a custodiar N cuentas GitHub, cada una con su contraseña + TOTP + recovery codes. Organizá esto bien desde el día 1
+- [ ] **Inbox para emails únicos por cuenta** — Gmail permite alias con `+`: si tu mail es `tucorreo@gmail.com`, GitHub acepta `tucorreo+acme@gmail.com`, `tucorreo+betacorp@gmail.com`, etc. Todos te llegan al mismo inbox
 
 ---
 
 ## Datos del cliente — completar antes de arrancar
 
-| Dato                     | Ejemplo                                         | Notas                                                             |
-| ------------------------ | ----------------------------------------------- | ----------------------------------------------------------------- |
-| Slug                     | `acme`                                          | minúsculas, sin espacios — se usa en repo, GHCR labels, R2 prefix |
-| Dominio base             | `acme.app`                                      | TLD del cliente                                                   |
-| Subdominios              | `app.acme.app`, `api.acme.app`, `waha.acme.app` | apuntan a VPS2/VPS1/VPS1 respectivamente                          |
-| Versión upstream a fijar | `v1.0.0`                                        | tag inmutable en `ghcr.io/.../onlylemon-*:vX.Y.Z`                 |
-| Email del super admin    | `gonza@acme.app`                                | se crea via bootstrap                                             |
-| Meta Pixel ID + token    | —                                               | si el cliente lo tiene                                            |
-| Branding                 | `logo.png`, `favicon.svg`, color primario       | assets reales del cliente                                         |
+| Dato                     | Ejemplo                                         | Notas                                                                     |
+| ------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------- |
+| Slug                     | `acme`                                          | minúsculas, sin espacios — se usa en username GH, GHCR namespace, R2 prefix |
+| Cuenta GitHub            | `onlylemon-acme`                                | username de la cuenta GH a crear (típicamente `onlylemon-<slug>`)         |
+| Email para GitHub        | `tucorreo+acme@gmail.com`                       | alias `+slug` sobre tu inbox real                                          |
+| Dominio base             | `acme.app`                                      | TLD del cliente                                                            |
+| Subdominios              | `app.acme.app`, `api.acme.app`, `waha.acme.app` | apuntan a VPS2/VPS1/VPS1 respectivamente                                  |
+| Versión upstream a fijar | `v1.0.0`                                        | tag inmutable, va a vivir en `ghcr.io/onlylemon-<slug>/onlylemon-*:vX.Y.Z` |
+| Email del super admin    | `gonza@acme.app`                                | se crea via bootstrap                                                      |
+| Meta Pixel ID + token    | —                                               | si el cliente lo tiene                                                     |
+| Branding                 | `logo.png`, `favicon.svg`, color primario       | assets reales del cliente                                                  |
 
 ---
 
-## 1. Crear el repo del cliente
+## 1. Crear la cuenta GitHub del cliente + el repo
 
-Repo nuevo **privado** standalone (no fork): `onlylemon-<slug>` (ej. `onlylemon-acme`). Conserva la historia del upstream para poder `git merge upstream/main` después, pero sin el marker "forked from" — cada cliente es su propio proyecto.
+Cada cliente vive en su propia cuenta GitHub controlada por vos. Aísla blast radius: si una cuenta cliente se compromete, las otras quedan intactas.
+
+### 1.1 Crear la cuenta GitHub
+
+1. Cerrá sesión en GitHub (o usá un browser/perfil distinto).
+2. Sign up con email `tucorreo+<slug>@gmail.com`.
+3. Username: `onlylemon-<slug>` (ej. `onlylemon-acme`).
+4. **Habilitá 2FA con TOTP** apenas verifiques email. Guardá recovery codes en el password manager.
+5. Generá un PAT clásico con scopes `repo`, `read:packages`, `write:packages` desde la propia cuenta del cliente. Lo vas a usar para SSH/GHCR. Guardalo en el password manager.
+6. Agregá tu SSH key personal a la cuenta para poder pushear como vos sin sign-in. Settings → SSH and GPG keys.
+
+### 1.2 Crear el repo en la cuenta del cliente
+
+Ahora podés volver a tu sesión normal de GitHub. Las acciones siguientes se hacen como `GonzaPiccinini` pero apuntando al namespace del cliente — vos tenés acceso porque agregaste tu SSH key arriba.
 
 ```bash
-# 1.1 Crear el repo vacío en GitHub
-gh repo create GonzaPiccinini/onlylemon-acme --private --description "onlylemon — instance: Acme"
+# 1.2.1 Crear el repo vacío en la cuenta del cliente
+gh repo create onlylemon-acme/onlylemon --private --description "onlylemon — instance: Acme"
 
-# 1.2 Mirror del upstream al repo nuevo (en directorio temporal)
+# 1.2.2 Mirror del upstream al repo del cliente (en directorio temporal)
 git clone --bare git@github.com:GonzaPiccinini/onlylemon.git /tmp/onlylemon-mirror.git
 cd /tmp/onlylemon-mirror.git
-git push --mirror git@github.com:GonzaPiccinini/onlylemon-acme.git
+git push --mirror git@github.com:onlylemon-acme/onlylemon.git
 cd .. && rm -rf /tmp/onlylemon-mirror.git
 
-# 1.3 Clonar el repo del cliente para trabajar
-git clone git@github.com:GonzaPiccinini/onlylemon-acme.git
+# 1.2.3 Clonar el repo del cliente para trabajar
+git clone git@github.com:onlylemon-acme/onlylemon.git onlylemon-acme
 cd onlylemon-acme
 git remote add upstream git@github.com:GonzaPiccinini/onlylemon.git
 git fetch upstream --tags
 ```
+
+> El `push --mirror` propaga todos los tags `v*` del upstream → el workflow del cliente los detecta y **buildea automáticamente** las imágenes en `ghcr.io/onlylemon-<slug>/onlylemon-*:vX.Y.Z`. Es el bootstrap del GHCR del cliente. Verificá en la pestaña Actions del repo nuevo que los runs hayan completado antes de seguir.
 
 > El remote `upstream` se usa después para absorber releases nuevos (ver §10). Como compartimos historia (gracias al `--mirror`), `git merge upstream/main` funciona limpio.
 
@@ -94,23 +113,30 @@ cd dashboard && npm install && npm run dev
 
 ## 3. Fijar la versión upstream
 
-Editar los compose para que apunten a un tag inmutable en vez de `:latest` o un SHA.
+Los compose files usan `${IMAGE_PREFIX:-...}` y `${IMAGE_TAG:-...}` con defaults. Para el cliente, fijás ambos en el `.env` del VPS (no editás el yaml).
 
-```yaml
-# docker-compose.dashboard-vps.yml
-worker:
-  image: ghcr.io/gonzapiccinini/onlylemon-worker:v1.0.0 # ← fijar tag
-dashboard:
-  image: ghcr.io/gonzapiccinini/onlylemon-dashboard:v1.0.0
+En el `.env` de cada VPS (ver §5 de [`production-deployment.md`](./production-deployment.md)):
+
+```env
+IMAGE_PREFIX=ghcr.io/onlylemon-acme/onlylemon
+IMAGE_TAG=v1.0.0
 ```
 
-```yaml
-# docker-compose.waha-vps.yml
-gateway:
-  image: ghcr.io/gonzapiccinini/onlylemon-gateway:v1.0.0
+Eso hace que `docker compose up -d` resuelva a:
+
+```
+ghcr.io/onlylemon-acme/onlylemon-worker:v1.0.0
+ghcr.io/onlylemon-acme/onlylemon-dashboard:v1.0.0
+ghcr.io/onlylemon-acme/onlylemon-gateway:v1.0.0
 ```
 
-> El fork **nunca** debería pinear `:latest` — eso anula el propósito del versionado.
+Para que el VPS pueda pullear de la GHCR privada del cliente, necesitás logearte con el PAT que generaste en §1.1.5:
+
+```bash
+echo "<PAT_DEL_CLIENTE>" | docker login ghcr.io -u onlylemon-acme --password-stdin
+```
+
+> El cliente **nunca** debería usar `:latest` ni el prefix de upstream — eso anula el versionado y rompe el aislamiento de blast radius.
 
 ---
 
@@ -159,11 +185,11 @@ Esperar propagación (~2 min) antes de seguir. Caddy va a sacar TLS de Let's Enc
 
 ---
 
-## 7. Configurar secrets del fork
+## 7. Configurar secrets del repo del cliente
 
-### 7.1 Secrets de GitHub Actions (en el fork, no en upstream)
+### 7.1 Secrets de GitHub Actions (en el repo del cliente, no en upstream)
 
-Settings del repo del fork → Secrets and variables → Actions:
+`onlylemon-<slug>/onlylemon` → Settings → Secrets and variables → Actions:
 
 | Secret                  | Valor                 |
 | ----------------------- | --------------------- |
@@ -178,7 +204,12 @@ Settings del repo del fork → Secrets and variables → Actions:
 
 ### 7.2 `.env` en cada VPS
 
-Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md).
+Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md). **Importante**: incluir `IMAGE_PREFIX` y `IMAGE_TAG` (ver §3):
+
+```env
+IMAGE_PREFIX=ghcr.io/onlylemon-<slug>/onlylemon
+IMAGE_TAG=v1.0.0
+```
 
 `AUTO_DEPLOY` repo VAR: dejar en `false` hasta que el primer deploy manual esté ok.
 
@@ -186,11 +217,13 @@ Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md).
 
 ## 8. Deploy inicial
 
-Seguir [`production-deployment.md`](./production-deployment.md) Fase 8 apuntando al fork del cliente (no al upstream):
+Seguir [`production-deployment.md`](./production-deployment.md) Fase 8 apuntando al repo del cliente (no al upstream):
 
 ```bash
-git clone git@github.com:GonzaPiccinini/onlylemon-<slug>.git ~/onlylemon
+git clone git@github.com:onlylemon-<slug>/onlylemon.git ~/onlylemon
 ```
+
+Antes del primer `docker compose up -d`, asegurate de hacer `docker login ghcr.io -u onlylemon-<slug>` con el PAT del cliente, sino el pull falla por GHCR privado.
 
 Recordar:
 
@@ -209,20 +242,22 @@ Recordar:
 
 ## 10. Cuando salga un release nuevo del upstream
 
-Cada `vX.Y.Z` que cortes en upstream queda disponible como imagen inmutable en GHCR. El fork decide cuándo absorberlo:
+Cada `vX.Y.Z` que cortes en upstream existe inicialmente solo en `ghcr.io/gonzapiccinini/onlylemon-*`. Para que el cliente pueda usar ese release necesitás:
+
+1. Mergear el upstream en el repo del cliente.
+2. Pushear el tag al repo del cliente → eso dispara su workflow → se publica `ghcr.io/onlylemon-<slug>/onlylemon-*:vX.Y.Z` en SU GHCR.
+3. Actualizar `IMAGE_TAG` en el `.env` del VPS y `docker compose pull && up -d`.
 
 ```bash
-# En el fork local
+# 10.1 En el repo del cliente local
 git fetch upstream --tags
 git merge upstream/main          # o cherry-pick selectivo
 # Resolver conflictos (idealmente ninguno fuera de src/branding y public)
-
-# Actualizar el tag en ambos compose files
-edit docker-compose.{dashboard,waha}-vps.yml
-# → :v1.1.0
-
-git add -A && git commit -m "chore: bump to v1.1.0"
 git push
+
+# 10.2 Pushear el tag para que el CI del cliente buildee sus propias imágenes
+git push origin vX.Y.Z
+# (verificar en la pestaña Actions del cliente que el run termine)
 ```
 
 En los VPS:
@@ -231,11 +266,15 @@ En los VPS:
 ssh deploy@<vps>
 cd ~/onlylemon
 git pull
+
+# Actualizar IMAGE_TAG en .env
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=vX.Y.Z/' .env
+
 docker compose -f docker-compose.<vps>.yml pull
 docker compose -f docker-compose.<vps>.yml up -d --remove-orphans
 ```
 
-Si `AUTO_DEPLOY=true` en el fork, esto lo dispara solo el push a main del fork.
+Si `AUTO_DEPLOY=true` en el repo del cliente, el push a main del cliente dispara el deploy automático (con el tag de `.env` del VPS).
 
 ---
 
@@ -249,6 +288,9 @@ Correr los smoke tests de Fase 10 de production-deployment.md adaptando los host
 
 | Item                                                                                   | OK  |
 | -------------------------------------------------------------------------------------- | --- |
+| Cuenta GitHub del cliente con 2FA + recovery codes guardados                           |     |
+| PAT del cliente guardado (scopes: repo, read:packages, write:packages)                 |     |
+| Imágenes `:v1.0.0` publicadas en `ghcr.io/onlylemon-<slug>/onlylemon-*` (chequear Actions del repo del cliente) |     |
 | Branding visual confirmado en `/login`, `/setup`, app shell                            |     |
 | HTTPS válido en los 3 subdominios                                                      |     |
 | Super admin creado y puede loguearse                                                   |     |
@@ -256,5 +298,5 @@ Correr los smoke tests de Fase 10 de production-deployment.md adaptando los host
 | Sesión WhatsApp emparejada en WAHA                                                     |     |
 | Métricas y logs visibles en Grafana Cloud con label `tenant=<slug>`                    |     |
 | Primer backup en R2 verificado (test de restore en DB de prueba)                       |     |
-| `AUTO_DEPLOY=true` activado en el fork (solo después del primer deploy manual exitoso) |     |
+| `AUTO_DEPLOY=true` activado en el repo del cliente (solo después del primer deploy manual exitoso) |     |
 | Credenciales guardadas en password manager con slug del cliente                        |     |
