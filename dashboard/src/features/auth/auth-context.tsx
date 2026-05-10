@@ -13,10 +13,11 @@ import { authService, type LoginInput } from "@/api/auth.service";
 import { setAccessToken, toApiError } from "@/api/http";
 import type { Role, User } from "@/types/domain";
 
-const AUTH_STORAGE_KEY = "lemonbet-auth";
+const AUTH_STORAGE_KEY = "auth";
 
 interface AuthStorageValue {
   token: string;
+  refreshToken: string | null;
   user: User;
 }
 
@@ -34,6 +35,22 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const readStorage = (): AuthStorageValue | null => {
+  // One-shot migration from legacy key
+  const legacyRaw = localStorage.getItem("lemonbet-auth");
+  if (!localStorage.getItem("auth") && legacyRaw) {
+    try {
+      const legacy = JSON.parse(legacyRaw) as { token: string; user: User };
+      localStorage.setItem(
+        "auth",
+        JSON.stringify({ token: legacy.token, refreshToken: null, user: legacy.user }),
+      );
+    } catch {
+      console.warn("[auth-migration] legacy parse failed; clearing both keys");
+      localStorage.removeItem("auth");
+    }
+    localStorage.removeItem("lemonbet-auth");
+  }
+
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) {
     return null;
@@ -62,13 +79,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(session.token);
       setUser(session.user);
       setAccessToken(session.token);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+      localStorage.setItem(
+        AUTH_STORAGE_KEY,
+        JSON.stringify({ token: session.token, refreshToken: session.refreshToken, user: session.user }),
+      );
     },
   });
 
   const logout = useCallback(async () => {
+    const stored = readStorage();
     try {
-      await authService.logout();
+      if (stored?.refreshToken) {
+        await authService.logout({ refreshToken: stored.refreshToken });
+      }
     } catch {
       // ignore logout errors to force local session cleanup
     }
@@ -86,8 +109,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const me = await authService.me();
+      const stored = readStorage();
       setUser(me);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, user: me }));
+      localStorage.setItem(
+        AUTH_STORAGE_KEY,
+        JSON.stringify({ token, refreshToken: stored?.refreshToken ?? null, user: me }),
+      );
     } catch {
       await logout();
     }

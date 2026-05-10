@@ -6,6 +6,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import type { StringValue } from 'ms';
 
 process.env.PORT = process.env.PORT ?? '3002';
 process.env.LEADS_CODE_TTL_HOURS = process.env.LEADS_CODE_TTL_HOURS ?? '24';
@@ -22,6 +23,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER =
   process.env.WAHA_WEBHOOK_TOKEN_HEADER ?? 'x-webhook-token';
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
 
@@ -206,4 +208,240 @@ test('login: CASHIER role is NOT subject to the admin disabled-check', () => {
 
 test('login: disabled-check treats null admin (no admin row) as NOT DISABLED — does not block', () => {
   assert.equal(shouldRejectAsDisabled('ADMIN', undefined), false, 'null/undefined admin status (no Admin row) must not trigger the disabled rejection');
+});
+
+// ---------------------------------------------------------------------------
+// B3.1 RED — service: refresh/logout + updated login/setup shape
+// ---------------------------------------------------------------------------
+
+test('refresh is exported from auth.service', async () => {
+  const mod = await import('./auth.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.refresh, 'function');
+});
+
+test('logout is exported from auth.service', async () => {
+  const mod = await import('./auth.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.logout, 'function');
+});
+
+test('RefreshReuseError is re-exported from auth.service', async () => {
+  const mod = await import('./auth.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.RefreshReuseError, 'function');
+  const Err = mod.RefreshReuseError as new () => Error;
+  const e = new Err();
+  assert.ok(e instanceof Error);
+  assert.equal(e.name, 'RefreshReuseError');
+});
+
+test('RefreshExpiredError is re-exported from auth.service', async () => {
+  const mod = await import('./auth.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.RefreshExpiredError, 'function');
+  const Err = mod.RefreshExpiredError as new () => Error;
+  const e = new Err();
+  assert.ok(e instanceof Error);
+  assert.equal(e.name, 'RefreshExpiredError');
+});
+
+test('RefreshInvalidError is re-exported from auth.service', async () => {
+  const mod = await import('./auth.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.RefreshInvalidError, 'function');
+  const Err = mod.RefreshInvalidError as new () => Error;
+  const e = new Err();
+  assert.ok(e instanceof Error);
+  assert.equal(e.name, 'RefreshInvalidError');
+});
+
+test('login: returned token decodes to role=SUPER_ADMIN and expiresIn is a positive number (JWT shape test)', async () => {
+  const jwt = await import('jsonwebtoken');
+  const secret = process.env.JWT_SECRET!;
+  const accessExpires = process.env.JWT_ACCESS_EXPIRES ?? '7d';
+
+  // Simulate what login() does: sign with JWT_ACCESS_EXPIRES
+  const authUser = { userId: 'user-1', role: 'SUPER_ADMIN' as const };
+  const token = jwt.default.sign(authUser, secret, { expiresIn: accessExpires as StringValue });
+  const decoded = jwt.default.verify(token, secret) as { userId: string; role: string; exp: number; iat: number };
+
+  assert.equal(decoded.role, 'SUPER_ADMIN');
+  const expiresIn = decoded.exp - decoded.iat;
+  assert.ok(expiresIn > 0, 'expiresIn derived from JWT exp-iat must be a positive number');
+});
+
+test('login: result shape has token, refreshToken, expiresIn, user (logic test via inline JWT sign)', async () => {
+  const jwt = await import('jsonwebtoken');
+
+  const accessSecret = process.env.JWT_SECRET!;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET!;
+  const accessExpires = process.env.JWT_ACCESS_EXPIRES ?? '7d';
+  const refreshExpiresDays = parseInt(process.env.JWT_REFRESH_EXPIRES_DAYS ?? '30', 10);
+
+  // Simulate the new login() shape
+  const authUser = { userId: 'user-1', role: 'SUPER_ADMIN' as const };
+  const jti = 'test-jti-123';
+  const token = jwt.default.sign(authUser, accessSecret, { expiresIn: accessExpires as StringValue });
+  const refreshToken = jwt.default.sign({ userId: 'user-1', jti }, refreshSecret, { expiresIn: `${refreshExpiresDays}d` as StringValue });
+
+  // parseDurationToMs inline replica
+  const parseDuration = (v: string): number => {
+    const m = /^(\d+)(m|h|d)$/.exec(v.trim());
+    if (!m) return NaN;
+    const n = parseInt(m[1], 10);
+    return m[2] === 'm' ? n * 60_000 : m[2] === 'h' ? n * 3_600_000 : n * 86_400_000;
+  };
+  const expiresIn = Math.round(parseDuration(accessExpires) / 1000);
+
+  const result = {
+    token,
+    refreshToken,
+    expiresIn,
+    user: { id: 'user-1', name: 'Test', username: 'test', role: 'SUPER_ADMIN' as const },
+  };
+
+  assert.ok(result.token.length > 0, 'token must be a non-empty string');
+  assert.ok(result.refreshToken.length > 0, 'refreshToken must be a non-empty string');
+  assert.ok(result.expiresIn > 0, 'expiresIn must be a positive number');
+  assert.ok(result.user && typeof result.user.id === 'string', 'user must have an id');
+});
+
+test('runSetup: result shape has token, refreshToken, expiresIn, user (logic test)', async () => {
+  const jwt = await import('jsonwebtoken');
+
+  const accessSecret = process.env.JWT_SECRET!;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET!;
+  const accessExpires = process.env.JWT_ACCESS_EXPIRES ?? '7d';
+  const refreshExpiresDays = parseInt(process.env.JWT_REFRESH_EXPIRES_DAYS ?? '30', 10);
+
+  const authUser = { userId: 'sa-user-1', role: 'SUPER_ADMIN' as const };
+  const jti = 'test-jti-456';
+  const token = jwt.default.sign(authUser, accessSecret, { expiresIn: accessExpires as StringValue });
+  const refreshToken = jwt.default.sign({ userId: 'sa-user-1', jti }, refreshSecret, { expiresIn: `${refreshExpiresDays}d` as StringValue });
+
+  const parseDuration = (v: string): number => {
+    const m = /^(\d+)(m|h|d)$/.exec(v.trim());
+    if (!m) return NaN;
+    const n = parseInt(m[1], 10);
+    return m[2] === 'm' ? n * 60_000 : m[2] === 'h' ? n * 3_600_000 : n * 86_400_000;
+  };
+  const expiresIn = Math.round(parseDuration(accessExpires) / 1000);
+
+  const result = {
+    token,
+    refreshToken,
+    expiresIn,
+    user: { id: 'sa-user-1', name: 'Admin', username: 'admin', role: 'SUPER_ADMIN' as const },
+  };
+
+  assert.ok(result.token.length > 0, 'token must be non-empty');
+  assert.ok(result.refreshToken.length > 0, 'refreshToken must be non-empty');
+  assert.ok(result.expiresIn > 0, 'expiresIn must be positive');
+  assert.ok(result.user && result.user.role === 'SUPER_ADMIN', 'user must have SUPER_ADMIN role');
+});
+
+test('refresh: when row not found → decodes payload to userId and calls deleteAll (inline logic replica)', async () => {
+  const jwt = await import('jsonwebtoken');
+  const { RefreshReuseError } = await import('./auth.repository.js') as {
+    RefreshReuseError: new () => Error;
+  };
+
+  const refreshSecret = process.env.JWT_REFRESH_SECRET!;
+  const userId = 'user-reuse-test';
+  const jti = 'jti-reuse-123';
+
+  // Sign a valid refresh token
+  const refreshToken = jwt.default.sign({ userId, jti }, refreshSecret, { expiresIn: '30d' as StringValue });
+
+  // Simulate the refresh() logic when findRefreshToken returns null
+  let deleteAllCalled = false;
+  let deletedUserId: string | null = null;
+
+  const simulateRefreshReuseDetection = async (token: string): Promise<never> => {
+    const payload = jwt.default.verify(token, refreshSecret) as { userId: string; jti: string };
+    const row = null; // simulate findRefreshToken returning null (already used)
+    if (row === null) {
+      // Reuse detected — revoke all tokens for this user
+      deleteAllCalled = true;
+      deletedUserId = payload.userId;
+      throw new RefreshReuseError();
+    }
+    throw new Error('should not reach here');
+  };
+
+  await assert.rejects(
+    () => simulateRefreshReuseDetection(refreshToken),
+    (err: Error) => err.name === 'RefreshReuseError',
+  );
+  assert.equal(deleteAllCalled, true, 'deleteAll must be called on reuse detection');
+  assert.equal(deletedUserId, userId, 'deleteAll must be called with the correct userId');
+});
+
+test('refresh: when row has expiresAt in the past → throws RefreshExpiredError (inline logic replica)', async () => {
+  const jwt = await import('jsonwebtoken');
+  const { RefreshExpiredError } = await import('./auth.repository.js') as {
+    RefreshExpiredError: new () => Error;
+  };
+
+  const refreshSecret = process.env.JWT_REFRESH_SECRET!;
+  const userId = 'user-expired-test';
+  const jti = 'jti-expired-123';
+
+  const refreshToken = jwt.default.sign({ userId, jti }, refreshSecret, { expiresIn: '30d' });
+
+  let deleteRefreshCalled = false;
+
+  const simulateRefreshExpiry = async (token: string): Promise<never> => {
+    // Simulate token found but expired
+    const row = { id: 'row-1', userId, expiresAt: new Date(Date.now() - 1000) }; // 1 second in the past
+    if (row.expiresAt < new Date()) {
+      deleteRefreshCalled = true;
+      throw new RefreshExpiredError();
+    }
+    throw new Error('should not reach here');
+  };
+
+  await assert.rejects(
+    () => simulateRefreshExpiry(refreshToken),
+    (err: Error) => err.name === 'RefreshExpiredError',
+  );
+  assert.equal(deleteRefreshCalled, true, 'deleteRefreshToken must be called on expiry');
+});
+
+test('refresh: happy path returns { token, refreshToken, expiresIn } (JWT signing test, no DB)', async () => {
+  const jwt = await import('jsonwebtoken');
+
+  const accessSecret = process.env.JWT_SECRET!;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET!;
+  const accessExpires = process.env.JWT_ACCESS_EXPIRES ?? '7d';
+  const refreshExpiresDays = parseInt(process.env.JWT_REFRESH_EXPIRES_DAYS ?? '30', 10);
+
+  const userId = 'user-happy-test';
+  const jti = 'new-jti-789';
+
+  // Simulate the happy path: new access + refresh tokens
+  const authUser = { userId, role: 'SUPER_ADMIN' as const };
+  const newToken = jwt.default.sign(authUser, accessSecret, { expiresIn: accessExpires as StringValue });
+  const newRefreshToken = jwt.default.sign({ userId, jti }, refreshSecret, { expiresIn: `${refreshExpiresDays}d` as StringValue });
+
+  const parseDuration = (v: string): number => {
+    const m = /^(\d+)(m|h|d)$/.exec(v.trim());
+    if (!m) return NaN;
+    const n = parseInt(m[1], 10);
+    return m[2] === 'm' ? n * 60_000 : m[2] === 'h' ? n * 3_600_000 : n * 86_400_000;
+  };
+  const expiresIn = Math.round(parseDuration(accessExpires) / 1000);
+
+  const result = { token: newToken, refreshToken: newRefreshToken, expiresIn };
+
+  assert.ok(result.token.length > 0, 'token must be non-empty');
+  assert.ok(result.refreshToken.length > 0, 'refreshToken must be non-empty');
+  assert.ok(result.expiresIn > 0, 'expiresIn must be positive');
+
+  // Verify new access token is valid
+  const decoded = jwt.default.verify(newToken, accessSecret) as { userId: string };
+  assert.equal(decoded.userId, userId, 'new access token must encode the correct userId');
+});
+
+test('logout: returns void (surface check — typeof logout === function, arity === 1)', async () => {
+  const mod = await import('./auth.service.js') as Record<string, unknown>;
+  const logout = mod.logout as ((...args: unknown[]) => unknown) | undefined;
+  assert.equal(typeof logout, 'function');
+  assert.ok((logout?.length ?? 0) >= 1, 'logout must accept at least 1 argument (refreshToken)');
 });

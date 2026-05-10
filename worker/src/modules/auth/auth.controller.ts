@@ -1,6 +1,17 @@
 import type { Request, Response } from 'express';
-import { loginSchema, setupSchema } from './auth.types.js';
-import { getMe, getSetupStatus, login, runSetup, SetupConflictError } from './auth.service.js';
+import { loginSchema, setupSchema, refreshSchema, logoutSchema } from './auth.types.js';
+import {
+  getMe,
+  getSetupStatus,
+  login,
+  runSetup,
+  refresh,
+  logout,
+  SetupConflictError,
+  RefreshReuseError,
+  RefreshExpiredError,
+  RefreshInvalidError,
+} from './auth.service.js';
 
 export const loginHandler = async (req: Request, res: Response) => {
   const parsed = loginSchema.safeParse(req.body);
@@ -32,8 +43,42 @@ export const meHandler = async (req: Request, res: Response) => {
   return res.status(200).json(user);
 };
 
-export const logoutHandler = (_req: Request, res: Response) =>
-  res.status(204).send();
+export const logoutHandler = async (req: Request, res: Response) => {
+  const parsed = logoutSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid logout payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  await logout(parsed.data.refreshToken);
+  return res.status(204).send();
+};
+
+export const refreshHandler = async (req: Request, res: Response) => {
+  const parsed = refreshSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid refresh payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const result = await refresh(parsed.data.refreshToken);
+    return res.status(200).json(result);
+  } catch (e) {
+    if (
+      e instanceof RefreshReuseError ||
+      e instanceof RefreshExpiredError ||
+      e instanceof RefreshInvalidError
+    ) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+    throw e;
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Setup flow handlers (public — no requireAuth)

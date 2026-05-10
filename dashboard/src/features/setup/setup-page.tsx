@@ -5,7 +5,7 @@
  * After successful setup, we write the session to localStorage and use
  * window.location.assign('/admin') for navigation (hard reload, locked decision).
  *
- * On 201: persist { token, user } to localStorage["lemonbet-auth"], reload to /admin.
+ * On 201: persist { token, refreshToken, user } to localStorage["auth"], reload to /admin.
  * On 409: show "sistema ya inicializado" message with link to /login.
  * On 400: show field-level errors from server response.
  */
@@ -34,7 +34,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authService } from "@/api/auth.service";
 import type { AuthSession } from "@/types/domain";
 
-const AUTH_STORAGE_KEY = "lemonbet-auth";
+const AUTH_STORAGE_KEY = "auth";
 
 // Mirror worker's setupSchema (password min 8 chars per REQ-AUTH-SETUP-2)
 const schema = z
@@ -80,7 +80,10 @@ export const SetupPage = () => {
       });
 
       // Persist session to localStorage in the same shape auth-context reads
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+      localStorage.setItem(
+        AUTH_STORAGE_KEY,
+        JSON.stringify({ token: session.token, refreshToken: session.refreshToken, user: session.user }),
+      );
 
       // Hard reload — window.location.assign is the locked navigation method here
       // because this component renders outside <RouterProvider>.

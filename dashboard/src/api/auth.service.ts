@@ -26,8 +26,16 @@ export const authService = {
     return data;
   },
 
-  async logout(): Promise<void> {
-    await http.post(endpoints.auth.logout);
+  async logout(body?: { refreshToken: string | null }): Promise<void> {
+    await http.post(endpoints.auth.logout, body ?? {});
+  },
+
+  async refresh(refreshToken: string): Promise<{ token: string; refreshToken: string; expiresIn: number }> {
+    const { data } = await http.post<{ token: string; refreshToken: string; expiresIn: number }>(
+      endpoints.auth.refresh,
+      { refreshToken },
+    );
+    return data;
   },
 
   async getSetupStatus(): Promise<SetupStatusResponse> {
