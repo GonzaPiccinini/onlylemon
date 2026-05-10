@@ -96,6 +96,14 @@
       "sessions": 0,
       "memories": 15,
       "prompts": 0
+    },
+    {
+      "id": "bd47078e",
+      "created_by": "gonzi",
+      "created_at": "2026-05-10T06:18:01Z",
+      "sessions": 0,
+      "memories": 2,
+      "prompts": 0
     }
   ]
 }
