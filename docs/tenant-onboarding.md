@@ -52,6 +52,8 @@ git fetch upstream --tags
 
 > El remote `upstream` se usa después para absorber releases nuevos (ver §10). Como compartimos historia (gracias al `--mirror`), `git merge upstream/main` funciona limpio.
 
+> Bonus del `--mirror`: propaga todos los tags `v*` del upstream → el workflow de Actions del repo nuevo los detecta y **buildea automáticamente** las imágenes en `ghcr.io/gonzapiccinini/onlylemon-<slug>-*:vX.Y.Z`. Verificá en la pestaña Actions que los runs hayan completado antes de seguir.
+
 ---
 
 ## 2. Personalizar branding
@@ -94,23 +96,22 @@ cd dashboard && npm install && npm run dev
 
 ## 3. Fijar la versión upstream
 
-Editar los compose para que apunten a un tag inmutable en vez de `:latest` o un SHA.
+Los compose files usan `${IMAGE_PREFIX:-...}` y `${IMAGE_TAG:-...}` — el yaml es genérico y compartido. Para fijar la versión del cliente, setear las dos variables en el `.env` del VPS (ver §7.2):
 
-```yaml
-# docker-compose.dashboard-vps.yml
-worker:
-  image: ghcr.io/gonzapiccinini/onlylemon-worker:v1.0.0 # ← fijar tag
-dashboard:
-  image: ghcr.io/gonzapiccinini/onlylemon-dashboard:v1.0.0
+```env
+IMAGE_PREFIX=ghcr.io/gonzapiccinini/onlylemon-<slug>
+IMAGE_TAG=v1.0.0
 ```
 
-```yaml
-# docker-compose.waha-vps.yml
-gateway:
-  image: ghcr.io/gonzapiccinini/onlylemon-gateway:v1.0.0
+Eso resuelve a las imágenes que ya quedaron publicadas en §1 vía el `--mirror`:
+
+```
+ghcr.io/gonzapiccinini/onlylemon-<slug>-worker:v1.0.0
+ghcr.io/gonzapiccinini/onlylemon-<slug>-dashboard:v1.0.0
+ghcr.io/gonzapiccinini/onlylemon-<slug>-gateway:v1.0.0
 ```
 
-> El fork **nunca** debería pinear `:latest` — eso anula el propósito del versionado.
+> Nunca pinear `:latest` — anula el versionado.
 
 ---
 
@@ -178,7 +179,12 @@ Settings del repo del fork → Secrets and variables → Actions:
 
 ### 7.2 `.env` en cada VPS
 
-Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md).
+Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md). **Importante**: incluir `IMAGE_PREFIX` y `IMAGE_TAG` (ver §3):
+
+```env
+IMAGE_PREFIX=ghcr.io/gonzapiccinini/onlylemon-<slug>
+IMAGE_TAG=v1.0.0
+```
 
 `AUTO_DEPLOY` repo VAR: dejar en `false` hasta que el primer deploy manual esté ok.
 
@@ -209,20 +215,18 @@ Recordar:
 
 ## 10. Cuando salga un release nuevo del upstream
 
-Cada `vX.Y.Z` que cortes en upstream queda disponible como imagen inmutable en GHCR. El fork decide cuándo absorberlo:
+Cada `vX.Y.Z` que cortes en upstream existe inicialmente solo en `ghcr.io/gonzapiccinini/onlylemon-*` (sin `-<slug>` en el medio). Para que el cliente pueda usar ese release necesitás propagar el tag al repo del cliente — eso dispara su workflow → publica `ghcr.io/gonzapiccinini/onlylemon-<slug>-*:vX.Y.Z` en su namespace.
 
 ```bash
-# En el fork local
+# 10.1 En el repo del cliente local
 git fetch upstream --tags
 git merge upstream/main          # o cherry-pick selectivo
 # Resolver conflictos (idealmente ninguno fuera de src/branding y public)
-
-# Actualizar el tag en ambos compose files
-edit docker-compose.{dashboard,waha}-vps.yml
-# → :v1.1.0
-
-git add -A && git commit -m "chore: bump to v1.1.0"
 git push
+
+# 10.2 Pushear el tag para que el CI del cliente buildee sus propias imágenes
+git push origin vX.Y.Z
+# (verificar en la pestaña Actions del cliente que el run termine)
 ```
 
 En los VPS:
@@ -231,11 +235,15 @@ En los VPS:
 ssh deploy@<vps>
 cd ~/onlylemon
 git pull
+
+# Actualizar IMAGE_TAG en .env
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=vX.Y.Z/' .env
+
 docker compose -f docker-compose.<vps>.yml pull
 docker compose -f docker-compose.<vps>.yml up -d --remove-orphans
 ```
 
-Si `AUTO_DEPLOY=true` en el fork, esto lo dispara solo el push a main del fork.
+Si `AUTO_DEPLOY=true` en el repo del cliente, esto lo dispara solo el push a main del cliente (con el `IMAGE_TAG` que ya tenga el `.env` del VPS).
 
 ---
 
@@ -249,6 +257,7 @@ Correr los smoke tests de Fase 10 de production-deployment.md adaptando los host
 
 | Item                                                                                   | OK  |
 | -------------------------------------------------------------------------------------- | --- |
+| Imágenes `:v1.0.0` publicadas en `ghcr.io/gonzapiccinini/onlylemon-<slug>-*` (verificar Actions del repo del cliente) |     |
 | Branding visual confirmado en `/login`, `/setup`, app shell                            |     |
 | HTTPS válido en los 3 subdominios                                                      |     |
 | Super admin creado y puede loguearse                                                   |     |
@@ -256,5 +265,5 @@ Correr los smoke tests de Fase 10 de production-deployment.md adaptando los host
 | Sesión WhatsApp emparejada en WAHA                                                     |     |
 | Métricas y logs visibles en Grafana Cloud con label `tenant=<slug>`                    |     |
 | Primer backup en R2 verificado (test de restore en DB de prueba)                       |     |
-| `AUTO_DEPLOY=true` activado en el fork (solo después del primer deploy manual exitoso) |     |
+| `AUTO_DEPLOY=true` activado en el repo del cliente (solo después del primer deploy manual exitoso) |     |
 | Credenciales guardadas en password manager con slug del cliente                        |     |
