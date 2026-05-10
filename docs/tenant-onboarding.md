@@ -10,7 +10,6 @@
 
 ## Prerrequisitos (una vez, no por cliente)
 
-- [ ] Repo upstream `onlylemon` marcado como **Template repository** en GitHub: Settings → General → "Template repository" ✅
 - [ ] Tag `v1.0.0` (o el release más reciente) cortado y publicado en GHCR
 - [ ] Cuentas con acceso: Hetzner/DO (VPS), Cloudflare (DNS + R2), Tailscale, Grafana Cloud, GHCR (PAT con `read:packages`)
 
@@ -30,20 +29,28 @@
 
 ---
 
-## 1. Crear el fork
+## 1. Crear el repo del cliente
 
-GitHub UI → "Use this template" → repo nuevo **privado** `onlylemon-<slug>` (ej. `onlylemon-acme`).
-
-Clonar localmente:
+Repo nuevo **privado** standalone (no fork): `onlylemon-<slug>` (ej. `onlylemon-acme`). Conserva la historia del upstream para poder `git merge upstream/main` después, pero sin el marker "forked from" — cada cliente es su propio proyecto.
 
 ```bash
+# 1.1 Crear el repo vacío en GitHub
+gh repo create GonzaPiccinini/onlylemon-acme --private --description "onlylemon — instance: Acme"
+
+# 1.2 Mirror del upstream al repo nuevo (en directorio temporal)
+git clone --bare git@github.com:GonzaPiccinini/onlylemon.git /tmp/onlylemon-mirror.git
+cd /tmp/onlylemon-mirror.git
+git push --mirror git@github.com:GonzaPiccinini/onlylemon-acme.git
+cd .. && rm -rf /tmp/onlylemon-mirror.git
+
+# 1.3 Clonar el repo del cliente para trabajar
 git clone git@github.com:GonzaPiccinini/onlylemon-acme.git
 cd onlylemon-acme
 git remote add upstream git@github.com:GonzaPiccinini/onlylemon.git
 git fetch upstream --tags
 ```
 
-> El remote `upstream` se usa después para absorber releases nuevos (ver §10).
+> El remote `upstream` se usa después para absorber releases nuevos (ver §10). Como compartimos historia (gracias al `--mirror`), `git merge upstream/main` funciona limpio.
 
 ---
 
