@@ -3,6 +3,7 @@ name: Release (build, push, deploy)
 on:
   push:
     branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -35,8 +36,8 @@ jobs:
           context: ./worker
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}-worker:sha-${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}-worker:latest
+            ${{ env.IMAGE_PREFIX }}-worker:${{ github.ref_type == 'tag' && github.ref_name || format('sha-{0}', github.sha) }}
+            ${{ github.ref_type == 'tag' && '' || format('{0}-worker:latest', env.IMAGE_PREFIX) }}
           cache-from: type=gha,scope=worker
           cache-to: type=gha,scope=worker,mode=max
 
@@ -59,8 +60,8 @@ jobs:
           context: ./gateway
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}-gateway:sha-${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}-gateway:latest
+            ${{ env.IMAGE_PREFIX }}-gateway:${{ github.ref_type == 'tag' && github.ref_name || format('sha-{0}', github.sha) }}
+            ${{ github.ref_type == 'tag' && '' || format('{0}-gateway:latest', env.IMAGE_PREFIX) }}
           cache-from: type=gha,scope=gateway
           cache-to: type=gha,scope=gateway,mode=max
 
@@ -85,15 +86,15 @@ jobs:
             VITE_API_BASE_URL=${{ env.VITE_API_BASE_URL }}
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}-dashboard:sha-${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}-dashboard:latest
+            ${{ env.IMAGE_PREFIX }}-dashboard:${{ github.ref_type == 'tag' && github.ref_name || format('sha-{0}', github.sha) }}
+            ${{ github.ref_type == 'tag' && '' || format('{0}-dashboard:latest', env.IMAGE_PREFIX) }}
           cache-from: type=gha,scope=dashboard
           cache-to: type=gha,scope=dashboard,mode=max
 
   deploy-dashboard-vps:
     name: Deploy to dashboard VPS
     needs: [build-worker, build-dashboard]
-    if: ${{ vars.AUTO_DEPLOY == 'true' }}
+    if: ${{ vars.AUTO_DEPLOY == 'true' && github.ref_type != 'tag' }}
     runs-on: ubuntu-latest
     steps:
       - name: SSH and deploy
@@ -141,7 +142,7 @@ jobs:
   deploy-waha-vps:
     name: Deploy to waha VPS
     needs: [build-gateway]
-    if: ${{ vars.AUTO_DEPLOY == 'true' }}
+    if: ${{ vars.AUTO_DEPLOY == 'true' && github.ref_type != 'tag' }}
     runs-on: ubuntu-latest
     steps:
       - name: SSH and deploy
