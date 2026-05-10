@@ -193,6 +193,7 @@ export interface FundsSeriesPoint {
 export interface AdminFundsSeries {
   grossByConversionDate: FundsSeriesPoint[];
   incomeByContactedDate: FundsSeriesPoint[];
+  firstChargesByDate: FundsSeriesPoint[];
 }
 
 export interface DateRangeFilters {

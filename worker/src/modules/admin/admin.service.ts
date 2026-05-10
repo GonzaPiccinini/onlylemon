@@ -14,6 +14,7 @@ import {
   getCashierLandings,
   getConversionsAggregateForLeads,
   getConversionsByDateRange,
+  getFirstConversionsByDateRange,
   getConversionsWithLeadByDateRange,
   getConversionsTotals,
   getLeadHistory,
@@ -541,12 +542,40 @@ const groupAmountsByDay = (
     .map(([date, { count, sum }]) => ({ date, count, sum }));
 };
 
-export const getFundsSeriesService = async (query: DateRangeQuery) => {
+type FundsSeriesRepo = {
+  getConversionsByDateRange: (
+    from: Date,
+    to: Date,
+    cashierId?: string,
+  ) => Promise<Array<{ createdAt: Date; amount: { toNumber: () => number } }>>;
+  getConversionsByLeadContactedDateRange: (
+    from: Date,
+    to: Date,
+    cashierId?: string,
+  ) => Promise<
+    Array<{
+      amount: { toNumber: () => number };
+      lead: { contactedAt: Date | null };
+    }>
+  >;
+  getFirstConversionsByDateRange: (
+    from: Date,
+    to: Date,
+    cashierId?: string,
+  ) => Promise<Array<{ createdAt: Date; amount: { toNumber: () => number } }>>;
+};
+
+export const getFundsSeriesServiceImpl = async (
+  repo: FundsSeriesRepo,
+  query: DateRangeQuery,
+) => {
   const range = toRange(query);
-  const [grossByConversionDateRows, incomeByContactedDateRows] = await Promise.all([
-    getConversionsByDateRange(range.from, range.to, query.cashierId),
-    getConversionsByLeadContactedDateRange(range.from, range.to, query.cashierId),
-  ]);
+  const [grossByConversionDateRows, incomeByContactedDateRows, firstChargeRows] =
+    await Promise.all([
+      repo.getConversionsByDateRange(range.from, range.to, query.cashierId),
+      repo.getConversionsByLeadContactedDateRange(range.from, range.to, query.cashierId),
+      repo.getFirstConversionsByDateRange(range.from, range.to, query.cashierId),
+    ]);
 
   return {
     grossByConversionDate: groupConversionsByDay(grossByConversionDateRows),
@@ -562,8 +591,19 @@ export const getFundsSeriesService = async (query: DateRangeQuery) => {
           : [],
       ),
     ),
+    firstChargesByDate: groupConversionsByDay(firstChargeRows),
   };
 };
+
+export const getFundsSeriesService = async (query: DateRangeQuery) =>
+  getFundsSeriesServiceImpl(
+    {
+      getConversionsByDateRange,
+      getConversionsByLeadContactedDateRange,
+      getFirstConversionsByDateRange,
+    },
+    query,
+  );
 
 export const listLeadsService = async (filters: LeadsFilterQuery) => {
   const leads = await listLeads(filters);

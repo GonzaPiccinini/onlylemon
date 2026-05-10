@@ -1,5 +1,5 @@
 import { prisma } from '../../persistence/prisma/client.js';
-import type { Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 export const listCashiers = () =>
   prisma.cashier.findMany({
@@ -228,6 +228,55 @@ export const getConversionsByLeadContactedDateRange = (
     },
     orderBy: { createdAt: 'asc' },
   });
+
+/**
+ * Admin stats series: first-conversion-per-lead bucketed by date.
+ * For every lead, finds its earliest conversion (MIN(createdAt)) and returns
+ * only those whose first conversion falls within [from, to). Optional
+ * cashierId scopes to a specific cashier's leads.
+ *
+ * Returns rows shaped for groupConversionsByDay: { createdAt, amount.toNumber() }.
+ * Note: $queryRaw returns amount as a string (numeric) — we wrap it with a
+ * toNumber() shim so consumers don't need to know the source.
+ */
+export const getFirstConversionsByDateRange = async (
+  from: Date,
+  to: Date,
+  cashierId?: string,
+): Promise<Array<{ createdAt: Date; amount: { toNumber: () => number } }>> => {
+  const rows = await prisma.$queryRaw<Array<{ createdAt: Date; amount: string | number }>>(
+    cashierId
+      ? Prisma.sql`
+          SELECT c."createdAt", c."amount"
+          FROM "Conversion" c
+          INNER JOIN (
+            SELECT "leadId", MIN("createdAt") AS first_at
+            FROM "Conversion"
+            GROUP BY "leadId"
+          ) f ON f."leadId" = c."leadId" AND f.first_at = c."createdAt"
+          INNER JOIN "Lead" l ON l."id" = c."leadId"
+          WHERE c."createdAt" >= ${from} AND c."createdAt" < ${to}
+            AND l."cashierId" = ${cashierId}
+          ORDER BY c."createdAt" ASC
+        `
+      : Prisma.sql`
+          SELECT c."createdAt", c."amount"
+          FROM "Conversion" c
+          INNER JOIN (
+            SELECT "leadId", MIN("createdAt") AS first_at
+            FROM "Conversion"
+            GROUP BY "leadId"
+          ) f ON f."leadId" = c."leadId" AND f.first_at = c."createdAt"
+          WHERE c."createdAt" >= ${from} AND c."createdAt" < ${to}
+          ORDER BY c."createdAt" ASC
+        `,
+  );
+
+  return rows.map((row) => ({
+    createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
+    amount: { toNumber: () => Number(row.amount) },
+  }));
+};
 
 /**
  * Returns Conversions in the date range together with their lead's

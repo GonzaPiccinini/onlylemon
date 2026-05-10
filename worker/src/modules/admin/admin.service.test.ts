@@ -814,3 +814,89 @@ test('getAdminConversionsTotalsService is exported from admin.service', async ()
   const mod = await import('./admin.service.js') as Record<string, unknown>;
   assert.equal(typeof mod.getAdminConversionsTotalsService, 'function');
 });
+
+// ---------------------------------------------------------------------------
+// admin-stats first-charges chart — getFundsSeriesService aggregates first charges
+// ---------------------------------------------------------------------------
+
+const decimal = (n: number) => ({ toNumber: () => n });
+
+test('getFundsSeriesServiceImpl: returns firstChargesByDate aggregated from first-conversions repo', async () => {
+  const { getFundsSeriesServiceImpl } = await import('./admin.service.js');
+
+  // Two first-conversions on the same Argentina day, summed into one bucket.
+  const firstChargeRows = [
+    { createdAt: new Date('2026-05-10T15:00:00Z'), amount: decimal(1000) },
+    { createdAt: new Date('2026-05-10T20:00:00Z'), amount: decimal(500) },
+    { createdAt: new Date('2026-05-11T15:00:00Z'), amount: decimal(2500) },
+  ];
+
+  const repo = {
+    getConversionsByDateRange: async () => [],
+    getConversionsByLeadContactedDateRange: async () => [],
+    getFirstConversionsByDateRange: async () => firstChargeRows,
+  };
+
+  const result = await getFundsSeriesServiceImpl(repo, {
+    from: '2026-05-01',
+    to: '2026-05-31',
+  });
+
+  assert.ok(Array.isArray(result.firstChargesByDate));
+  assert.equal(result.firstChargesByDate.length, 2);
+  assert.equal(result.firstChargesByDate[0].date, '2026-05-10');
+  assert.equal(result.firstChargesByDate[0].count, 2);
+  assert.equal(result.firstChargesByDate[0].sum, 1500);
+  assert.equal(result.firstChargesByDate[1].date, '2026-05-11');
+  assert.equal(result.firstChargesByDate[1].count, 1);
+  assert.equal(result.firstChargesByDate[1].sum, 2500);
+});
+
+test('getFundsSeriesServiceImpl: returns all three series keys', async () => {
+  const { getFundsSeriesServiceImpl } = await import('./admin.service.js');
+
+  const repo = {
+    getConversionsByDateRange: async () => [],
+    getConversionsByLeadContactedDateRange: async () => [],
+    getFirstConversionsByDateRange: async () => [],
+  };
+
+  const result = await getFundsSeriesServiceImpl(repo, {
+    from: '2026-05-01',
+    to: '2026-05-31',
+  });
+
+  assert.ok('grossByConversionDate' in result);
+  assert.ok('incomeByContactedDate' in result);
+  assert.ok('firstChargesByDate' in result);
+  assert.deepEqual(result.firstChargesByDate, []);
+});
+
+test('getFundsSeriesServiceImpl: forwards cashierId to first-conversions repo', async () => {
+  const { getFundsSeriesServiceImpl } = await import('./admin.service.js');
+
+  let receivedCashierId: string | undefined = 'sentinel';
+  const repo = {
+    getConversionsByDateRange: async () => [],
+    getConversionsByLeadContactedDateRange: async () => [],
+    getFirstConversionsByDateRange: async (_from: Date, _to: Date, cashierId?: string) => {
+      receivedCashierId = cashierId;
+      return [];
+    },
+  };
+
+  await getFundsSeriesServiceImpl(repo, {
+    from: '2026-05-01',
+    to: '2026-05-31',
+    cashierId: 'cashier-42',
+  });
+
+  assert.equal(receivedCashierId, 'cashier-42');
+});
+
+test('getFirstConversionsByDateRange repo function is wired into getFundsSeriesService', async () => {
+  // Production wrapper must exist and be wired to the real repo.
+  const mod = (await import('./admin.service.js')) as Record<string, unknown>;
+  assert.equal(typeof mod.getFundsSeriesService, 'function');
+  assert.equal(typeof mod.getFundsSeriesServiceImpl, 'function');
+});

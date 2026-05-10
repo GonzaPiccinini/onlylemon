@@ -33,7 +33,7 @@ import {
 
 export const AdminStatsPage = () => {
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
-  const [selectedSeries, setSelectedSeries] = useState<"contacted" | "gross">("contacted");
+  const [selectedSeries, setSelectedSeries] = useState<"contacted" | "gross" | "first">("contacted");
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const { data: summary, isLoading: summaryLoading } = useAdminSummary(dateRange);
@@ -42,7 +42,9 @@ export const AdminStatsPage = () => {
   const chartData =
     selectedSeries === "contacted"
       ? (fundsSeries?.incomeByContactedDate ?? [])
-      : (fundsSeries?.grossByConversionDate ?? []);
+      : selectedSeries === "gross"
+      ? (fundsSeries?.grossByConversionDate ?? [])
+      : (fundsSeries?.firstChargesByDate ?? []);
   const totalPages = Math.max(1, Math.ceil(cashierStats.length / pageSize));
   const normalizedPage = Math.min(page, totalPages);
   const start = (normalizedPage - 1) * pageSize;
@@ -84,17 +86,20 @@ export const AdminStatsPage = () => {
             <CardDescription>
               {selectedSeries === "contacted"
                 ? "Ingreso por dia segun fecha de contacto del lead."
-                : "Ingreso bruto por dia segun fecha de conversion."}
+                : selectedSeries === "gross"
+                ? "Ingreso bruto por dia segun fecha de conversion."
+                : "Primeras cargas por dia (primera conversion historica de cada lead)."}
             </CardDescription>
           </div>
           <ToggleGroup
             type="single"
             value={selectedSeries}
-            onValueChange={(nextValue) => setSelectedSeries(nextValue as "contacted" | "gross")}
+            onValueChange={(nextValue) => setSelectedSeries(nextValue as "contacted" | "gross" | "first")}
             className="self-start"
           >
             <ToggleGroupItem value="contacted">Por contacto</ToggleGroupItem>
             <ToggleGroupItem value="gross">Bruto por conversion</ToggleGroupItem>
+            <ToggleGroupItem value="first">Primeras cargas</ToggleGroupItem>
           </ToggleGroup>
         </CardHeader>
         <CardContent className="h-[300px]">

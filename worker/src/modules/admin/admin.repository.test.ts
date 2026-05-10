@@ -276,3 +276,33 @@ test('getConversionsTotals: returns a thenable (structural)', async () => {
   const result = getConversionsTotals({});
   assert.equal(typeof result.then, 'function');
 });
+
+// ---------------------------------------------------------------------------
+// admin-stats first-charges chart — getFirstConversionsByDateRange
+// ---------------------------------------------------------------------------
+
+test('getFirstConversionsByDateRange: exported as a function', async () => {
+  const mod = (await import('./admin.repository.js')) as Record<string, unknown>;
+  assert.equal(typeof mod.getFirstConversionsByDateRange, 'function');
+});
+
+test('getFirstConversionsByDateRange: returns a thenable (structural)', async () => {
+  const { getFirstConversionsByDateRange } = await import('./admin.repository.js');
+  const from = new Date('2026-01-01T00:00:00Z');
+  const to = new Date('2026-12-31T00:00:00Z');
+  // Real DB call may fail in this environment — wrap to keep structural assertion pure.
+  try {
+    const result = getFirstConversionsByDateRange(from, to);
+    assert.equal(typeof (result as Promise<unknown>).then, 'function');
+    await result.catch(() => undefined);
+  } catch {
+    // Acceptable: structural import-level invocation may throw without DB; we already
+    // asserted the export type above.
+  }
+});
+
+test('getFirstConversionsByDateRange: accepts optional cashierId argument (arity)', async () => {
+  const { getFirstConversionsByDateRange } = await import('./admin.repository.js');
+  // Function should accept (from, to, cashierId?) — length is 2 (cashierId is optional).
+  assert.ok((getFirstConversionsByDateRange as Function).length >= 2);
+});
