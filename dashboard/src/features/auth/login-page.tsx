@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/features/auth/auth-context';
+import { BrandLogo, BrandAuthBackground } from '@/branding';
 
 const schema = z.object({
   username: z.string().min(1, 'Usuario obligatorio'),
@@ -57,14 +58,10 @@ export const LoginPage = () => {
 
   return (
     <div className='relative flex min-h-svh items-center justify-center px-4 py-8'>
-      <div className='absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,rgba(199,242,70,0.24),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(156,198,50,0.15),transparent_42%)]' />
+      <BrandAuthBackground />
       <Card className='w-full max-w-md shadow-lg'>
         <CardHeader className='gap-3'>
-          <img
-            src='/logo_con_nombre.png'
-            alt='Lemonbet'
-            className='h-9 w-auto object-contain'
-          />
+          <BrandLogo className='h-9 w-auto object-contain' />
           <CardTitle className='font-heading text-2xl'>
             Acceso al dashboard
           </CardTitle>

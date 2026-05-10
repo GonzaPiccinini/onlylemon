@@ -25,6 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/branding";
 import { useAuth } from "@/features/auth/auth-context";
 import {
   useCashierRuntimeState,
@@ -109,12 +110,7 @@ export const AppShell = () => {
       <aside className="sticky top-4 hidden h-[calc(100svh-2rem)] w-[250px] flex-col justify-between rounded-2xl border bg-sidebar/90 p-5 shadow-sm backdrop-blur md:flex">
         <div className="flex flex-col gap-6">
           <Link to={isAdminRole ? "/admin" : "/cashier"} className="block">
-            <img
-              src="/logo_con_nombre.png"
-              alt="Lemonbet"
-              className="h-8 w-auto object-contain"
-              loading="eager"
-            />
+            <BrandLogo className="h-8 w-auto object-contain" />
           </Link>
 
           <nav className="flex flex-col gap-2">
@@ -180,12 +176,7 @@ export const AppShell = () => {
                   className="block"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <img
-                    src="/logo_con_nombre.png"
-                    alt="Lemonbet"
-                    className="h-8 w-auto object-contain"
-                    loading="eager"
-                  />
+                  <BrandLogo className="h-8 w-auto object-contain" />
                 </Link>
 
                 <nav className="flex flex-col gap-2">
@@ -233,7 +224,7 @@ export const AppShell = () => {
                 </div>
               </SheetContent>
             </Sheet>
-            <img src="/logo_sin_nombre.png" alt="Lemonbet" className="size-8 object-contain" loading="eager" />
+            <BrandLogo variant="mark" className="size-8 object-contain" />
             <Badge variant="secondary">
               {user.role === "SUPER_ADMIN" ? "Super Admin" : user.role === "ADMIN" ? "Admin" : "Cajero"}
             </Badge>

@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authService } from "@/api/auth.service";
+import { BrandLogo, BrandAuthBackground } from "@/branding";
 import type { AuthSession } from "@/types/domain";
 
 const AUTH_STORAGE_KEY = "auth";
@@ -114,14 +115,10 @@ export const SetupPage = () => {
   if (pageState === "already-initialized") {
     return (
       <div className="relative flex min-h-svh items-center justify-center px-4 py-8">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,rgba(199,242,70,0.24),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(156,198,50,0.15),transparent_42%)]" />
+        <BrandAuthBackground />
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader className="gap-3">
-            <img
-              src="/logo_con_nombre.png"
-              alt="Lemonbet"
-              className="h-9 w-auto object-contain"
-            />
+            <BrandLogo className="h-9 w-auto object-contain" />
             <CardTitle className="font-heading text-2xl">Sistema ya inicializado</CardTitle>
             <CardDescription>
               El super admin ya fue creado. Podes{" "}
@@ -138,14 +135,10 @@ export const SetupPage = () => {
 
   return (
     <div className="relative flex min-h-svh items-center justify-center px-4 py-8">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,rgba(199,242,70,0.24),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(156,198,50,0.15),transparent_42%)]" />
+      <BrandAuthBackground />
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="gap-3">
-          <img
-            src="/logo_con_nombre.png"
-            alt="Lemonbet"
-            className="h-9 w-auto object-contain"
-          />
+          <BrandLogo className="h-9 w-auto object-contain" />
           <CardTitle className="font-heading text-2xl">Configuracion inicial</CardTitle>
           <CardDescription>
             Crea la cuenta del super administrador para comenzar a usar el sistema.
