@@ -605,15 +605,75 @@ export const getFundsSeriesService = async (query: DateRangeQuery) =>
     query,
   );
 
-export const listLeadsService = async (filters: LeadsFilterQuery) => {
-  const leads = await listLeads(filters);
-  const aggregateById = await getConversionsAggregateForLeads(
-    leads.map((lead) => lead.id),
-  );
-  return leads.map((lead) =>
+type DbLeadStatus = 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+type ListLeadsFn = (filters: {
+  statuses?: DbLeadStatus[];
+  cashierId?: string;
+  cashierIds?: string[];
+  adCode?: string;
+  code?: string;
+  phone?: string;
+}) => Promise<
+  Array<{
+    id: string;
+    code: string;
+    adCode: string | null;
+    status: DbLeadStatus;
+    phone: string | null;
+    metaPixelId: string;
+    contactedAt: Date | null;
+    createdAt: Date;
+    updateAt: Date;
+    cashier?: { id: string; user: { name: string; username: string } } | null;
+    conversions?: Array<{ createdAt: Date }>;
+  }>
+>;
+
+type GetConversionsAggregateFn = (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
+
+type PostFilterMode = 'none' | 'converted-strict' | 'recarga-only';
+
+export const listLeadsServiceImpl = async (
+  deps: { listLeads: ListLeadsFn; getConversionsAggregateForLeads: GetConversionsAggregateFn },
+  filters: { statuses?: string[]; cashierId?: string; cashierIds?: string[]; adCode?: string; code?: string; phone?: string },
+) => {
+  const requested = filters.statuses;
+  const requestedSet = new Set(requested ?? []);
+  const hasConverted = requestedSet.has('CONVERTED');
+  const hasRecarga = requestedSet.has('RECARGA');
+
+  // Normalize: translate RECARGA→CONVERTED and dedup for DB query
+  const dbStatuses = requested
+    ? (Array.from(new Set(requested.map((s) => (s === 'RECARGA' ? 'CONVERTED' : s)))) as DbLeadStatus[])
+    : undefined;
+
+  const leads = await deps.listLeads({ ...filters, statuses: dbStatuses });
+  const aggregateById = await deps.getConversionsAggregateForLeads(leads.map((lead) => lead.id));
+
+  // Determine post-filter mode
+  let mode: PostFilterMode = 'none';
+  if (hasRecarga && !hasConverted) mode = 'recarga-only';
+  else if (hasConverted && !hasRecarga) mode = 'converted-strict';
+
+  // Apply post-filter
+  const filtered =
+    mode === 'none'
+      ? leads
+      : leads.filter((lead) => {
+          if (lead.status !== 'CONVERTED') return true;
+          const count = aggregateById.get(lead.id)?.count ?? 0;
+          if (mode === 'converted-strict') return count <= 1;
+          // mode === 'recarga-only'
+          return count >= 2;
+        });
+
+  return filtered.map((lead) =>
     toLeadDto(lead, aggregateById.get(lead.id) ?? { count: 0, lastAt: null }),
   );
 };
+
+export const listLeadsService = async (filters: LeadsFilterQuery) =>
+  listLeadsServiceImpl({ listLeads, getConversionsAggregateForLeads }, filters);
 
 type GetLeadHistoryFn = (
   leadId: string,

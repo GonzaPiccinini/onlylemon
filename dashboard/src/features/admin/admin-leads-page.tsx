@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { LeadStatus } from '@/types/domain';
+import type { LeadFilterStatus } from '@/types/domain';
 import {
   buildFullStatusTimeline,
   leadDisplayStatus,
@@ -39,10 +39,11 @@ import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { PaginationControls } from '@/components/common/pagination-controls';
 
-const STATUS_OPTIONS: Array<{ label: string; value: LeadStatus }> = [
+const STATUS_OPTIONS: Array<{ label: string; value: LeadFilterStatus }> = [
   { label: 'No contactado', value: 'NOT_CONTACTED' },
   { label: 'Contactado', value: 'CONTACTED' },
   { label: 'Convertido', value: 'CONVERTED' },
+  { label: 'Recarga', value: 'RECARGA' },
 ];
 
 const COLUMN_COUNT = 7;
@@ -216,7 +217,7 @@ const FullTimeline = ({ leadId }: { leadId: string }) => {
 };
 
 export const AdminLeadsPage = () => {
-  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
+  const [statuses, setStatuses] = useState<LeadFilterStatus[]>([]);
   const [cashierIds, setCashierIds] = useState<string[]>([]);
   const [adCode, setAdCode] = useState('');
   const [code, setCode] = useState('');
@@ -312,7 +313,7 @@ export const AdminLeadsPage = () => {
                 }))}
                 value={statuses}
                 onChange={(next) => {
-                  setStatuses(next as LeadStatus[]);
+                  setStatuses(next as LeadFilterStatus[]);
                   setPage(1);
                 }}
                 placeholder="Todos los estados"

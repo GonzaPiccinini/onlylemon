@@ -48,7 +48,7 @@ export const dateRangeSchema = z.object({
 
 export const leadsFilterSchema = z.object({
   statuses: z
-    .array(z.enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED']))
+    .array(z.enum(['NOT_CONTACTED', 'CONTACTED', 'CONVERTED', 'RECARGA']))
     .optional(),
   cashierId: z.string().optional(),
   cashierIds: z.array(z.string()).optional(),
