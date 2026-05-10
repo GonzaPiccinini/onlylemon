@@ -19,6 +19,7 @@ export interface AuthSession {
 export type CashierStatus = "ACTIVE" | "DISABLED";
 export type LandingStatus = "ACTIVE" | "DISABLED";
 export type LeadStatus = "NOT_CONTACTED" | "CONTACTED" | "CONVERTED";
+export type LeadFilterStatus = LeadStatus | "RECARGA";
 
 export interface Landing {
   id: string;
@@ -203,7 +204,7 @@ export interface DateRangeFilters {
 }
 
 export interface LeadsFilters {
-  statuses?: LeadStatus[];
+  statuses?: LeadFilterStatus[];
   cashierId?: string;
   cashierIds?: string[];
   adCode?: string;
