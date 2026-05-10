@@ -41,10 +41,12 @@ test('createSuperAdmin is exported from auth.repository', async () => {
   assert.equal(typeof mod.createSuperAdmin, 'function');
 });
 
-test('createSuperAdmin: arity is 1 (accepts input object)', async () => {
+test('createSuperAdmin: arity is 2 (accepts input object and optional tx)', async () => {
   const mod = await import('./auth.repository.js') as Record<string, unknown>;
   const fn = mod.createSuperAdmin as (...args: unknown[]) => unknown;
-  assert.equal(fn.length, 1);
+  // After W1 refactor: createSuperAdmin(input, tx?) — arity is 2
+  // The tx parameter is optional but JS function.length counts all declared params.
+  assert.equal(fn.length, 2);
 });
 
 test('SetupConflictError is exported from auth.repository', async () => {

@@ -69,40 +69,48 @@ export const findCashierStatusByUserId = async (userId: string) => {
 // Setup flow helpers
 // ---------------------------------------------------------------------------
 
+type PrismaTx = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
 export const countSuperAdmins = (): Promise<number> =>
   prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
 
-export const createSuperAdmin = async (input: {
-  name: string;
-  username: string;
-  hashedPassword: string;
-}) =>
-  prisma.$transaction(
-    async (tx) => {
-      // RECHECK inside the transaction (race-safe with Serializable isolation)
-      const existing = await tx.user.count({ where: { role: 'SUPER_ADMIN' } });
-      if (existing > 0) {
-        throw new SetupConflictError();
-      }
+export const createSuperAdmin = async (
+  input: {
+    name: string;
+    username: string;
+    hashedPassword: string;
+  },
+  tx?: PrismaTx,
+): Promise<{ id: string; name: string; username: string; role: 'SUPER_ADMIN' }> => {
+  const run = async (client: PrismaTx) => {
+    // RECHECK inside the transaction (race-safe with Serializable isolation)
+    const existing = await client.user.count({ where: { role: 'SUPER_ADMIN' } });
+    if (existing > 0) {
+      throw new SetupConflictError();
+    }
 
-      const user = await tx.user.create({
-        data: {
-          name: input.name,
-          username: input.username,
-          password: input.hashedPassword,
-          role: 'SUPER_ADMIN',
-        },
-        select: { id: true, name: true, username: true, role: true },
-      });
+    const user = await client.user.create({
+      data: {
+        name: input.name,
+        username: input.username,
+        password: input.hashedPassword,
+        role: 'SUPER_ADMIN',
+      },
+      select: { id: true, name: true, username: true, role: true },
+    });
 
-      await tx.admin.create({
-        data: { userId: user.id },
-      });
+    await client.admin.create({
+      data: { userId: user.id },
+    });
 
-      return { id: user.id, name: user.name, username: user.username, role: user.role as 'SUPER_ADMIN' };
-    },
-    { isolationLevel: 'Serializable' },
-  );
+    return { id: user.id, name: user.name, username: user.username, role: user.role as 'SUPER_ADMIN' };
+  };
+
+  if (tx) {
+    return run(tx);
+  }
+  return prisma.$transaction(run, { isolationLevel: 'Serializable' });
+};
 
 export const findAdminStatusByUserId = async (userId: string) => {
   const admin = await prisma.admin.findUnique({
@@ -118,8 +126,6 @@ export const findAdminStatusByUserId = async (userId: string) => {
 // ---------------------------------------------------------------------------
 // Refresh token repository functions (B2.4)
 // ---------------------------------------------------------------------------
-
-type PrismaTx = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
 export const createRefreshToken = (
   input: { token: string; userId: string; expiresAt: Date },
