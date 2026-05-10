@@ -12,7 +12,10 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/gonzapiccinini/onlylemon
+  # IMAGE_PREFIX is computed per-step from github.repository (lowercased) so
+  # the same workflow works in upstream and in every fork without edits:
+  #   upstream:        ghcr.io/gonzapiccinini/onlylemon
+  #   fork acme:       ghcr.io/onlylemon-acme/onlylemon
   # Public URL baked into the dashboard SPA at build time.
   VITE_API_BASE_URL: https://app.onlylemon.app/api
 
@@ -34,13 +37,14 @@ jobs:
       - name: Compute image tags
         id: tags
         run: |
+          PREFIX="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "list=${{ env.IMAGE_PREFIX }}-worker:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "list=${PREFIX}-worker:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           else
             {
               echo "list<<EOF"
-              echo "${{ env.IMAGE_PREFIX }}-worker:sha-${{ github.sha }}"
-              echo "${{ env.IMAGE_PREFIX }}-worker:latest"
+              echo "${PREFIX}-worker:sha-${{ github.sha }}"
+              echo "${PREFIX}-worker:latest"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           fi
@@ -70,13 +74,14 @@ jobs:
       - name: Compute image tags
         id: tags
         run: |
+          PREFIX="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "list=${{ env.IMAGE_PREFIX }}-gateway:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "list=${PREFIX}-gateway:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           else
             {
               echo "list<<EOF"
-              echo "${{ env.IMAGE_PREFIX }}-gateway:sha-${{ github.sha }}"
-              echo "${{ env.IMAGE_PREFIX }}-gateway:latest"
+              echo "${PREFIX}-gateway:sha-${{ github.sha }}"
+              echo "${PREFIX}-gateway:latest"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           fi
@@ -106,13 +111,14 @@ jobs:
       - name: Compute image tags
         id: tags
         run: |
+          PREFIX="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "list=${{ env.IMAGE_PREFIX }}-dashboard:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "list=${PREFIX}-dashboard:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           else
             {
               echo "list<<EOF"
-              echo "${{ env.IMAGE_PREFIX }}-dashboard:sha-${{ github.sha }}"
-              echo "${{ env.IMAGE_PREFIX }}-dashboard:latest"
+              echo "${PREFIX}-dashboard:sha-${{ github.sha }}"
+              echo "${PREFIX}-dashboard:latest"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           fi
@@ -156,7 +162,8 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             export IMAGE_TAG="sha-$GITHUB_SHA"
-            echo "[deploy] pulling our images for tag $IMAGE_TAG"
+            export IMAGE_PREFIX="ghcr.io/$(echo "$REPO" | tr '[:upper:]' '[:lower:]')"
+            echo "[deploy] pulling $IMAGE_PREFIX-{worker,dashboard}:$IMAGE_TAG"
             # Only pull services we own. Third-party images (postgres, caddy,
             # alloy) stay on whatever the VPS already has.
             docker compose -f docker-compose.dashboard-vps.yml pull worker dashboard
@@ -204,7 +211,8 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             export IMAGE_TAG="sha-$GITHUB_SHA"
-            echo "[deploy] pulling our images for tag $IMAGE_TAG"
+            export IMAGE_PREFIX="ghcr.io/$(echo "$REPO" | tr '[:upper:]' '[:lower:]')"
+            echo "[deploy] pulling $IMAGE_PREFIX-gateway:$IMAGE_TAG"
             # Only pull services we own. Third-party images (waha, redis,
             # caddy, alloy) stay on whatever the VPS already has — WAHA Plus
             # in particular requires docker.io creds that live only on the VPS.
