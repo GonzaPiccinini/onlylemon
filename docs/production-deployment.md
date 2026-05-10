@@ -781,8 +781,20 @@ docker compose exec worker wget -qO- localhost:4000/metrics | head
 Después del bootstrap manual de Fase 8, todos los deploys subsiguientes los maneja el pipeline en `.github/workflows/`:
 
 - **`ci.yml`** — push a `main` o PR: lint/typecheck/test/build de los 3 servicios.
-- **`release.yml`** — push a `main`: buildea y pushea las 3 imágenes a `ghcr.io/gonzapiccinini/onlylemon-{worker,gateway,dashboard}:sha-<git-sha>` y `:latest`. Si la repo VAR `AUTO_DEPLOY=true`, hace SSH a cada VPS y corre `docker compose pull <servicio> && up -d`.
-- **`rollback.yml`** — `workflow_dispatch` manual. Recibe VPS + image tag (puede ser un SHA viejo o `rollback-pre-cicd`).
+- **`release.yml`** — buildea y pushea las 3 imágenes a `ghcr.io/gonzapiccinini/onlylemon-{worker,gateway,dashboard}`. Dispara con:
+  - **push a `main`** → tags `:sha-<git-sha>` + `:latest`. Si `AUTO_DEPLOY=true`, hace SSH a cada VPS y deploya.
+  - **push de tag `v*`** (ej. `v1.0.0`) → tag inmutable `:v1.0.0`. **No deploya** — los releases versionados son pull-based: cada VPS/fork actualiza su `docker-compose.*.yml` al tag deseado cuando quiera.
+- **`rollback.yml`** — `workflow_dispatch` manual. Recibe VPS + image tag (puede ser un SHA viejo, un tag `vX.Y.Z`, o `rollback-pre-cicd`).
+
+### Cortar un release versionado
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+# → workflow buildea ghcr.io/gonzapiccinini/onlylemon-{worker,gateway,dashboard}:v1.0.0
+```
+
+Forks/clientes fijan ese tag en sus compose files (`image: ghcr.io/.../onlylemon-worker:v1.0.0`) y deciden cuándo absorben el siguiente release haciendo `docker compose pull && up -d`.
 
 ### Setup del pipeline (una vez)
 
