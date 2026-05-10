@@ -31,13 +31,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute image tags
+        id: tags
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "list=${{ env.IMAGE_PREFIX }}-worker:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "list<<EOF"
+              echo "${{ env.IMAGE_PREFIX }}-worker:sha-${{ github.sha }}"
+              echo "${{ env.IMAGE_PREFIX }}-worker:latest"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: docker/build-push-action@v6
         with:
           context: ./worker
           push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}-worker:${{ github.ref_type == 'tag' && github.ref_name || format('sha-{0}', github.sha) }}
-            ${{ github.ref_type == 'tag' && '' || format('{0}-worker:latest', env.IMAGE_PREFIX) }}
+          tags: ${{ steps.tags.outputs.list }}
           cache-from: type=gha,scope=worker
           cache-to: type=gha,scope=worker,mode=max
 
@@ -55,13 +67,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute image tags
+        id: tags
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "list=${{ env.IMAGE_PREFIX }}-gateway:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "list<<EOF"
+              echo "${{ env.IMAGE_PREFIX }}-gateway:sha-${{ github.sha }}"
+              echo "${{ env.IMAGE_PREFIX }}-gateway:latest"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: docker/build-push-action@v6
         with:
           context: ./gateway
           push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}-gateway:${{ github.ref_type == 'tag' && github.ref_name || format('sha-{0}', github.sha) }}
-            ${{ github.ref_type == 'tag' && '' || format('{0}-gateway:latest', env.IMAGE_PREFIX) }}
+          tags: ${{ steps.tags.outputs.list }}
           cache-from: type=gha,scope=gateway
           cache-to: type=gha,scope=gateway,mode=max
 
@@ -79,15 +103,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute image tags
+        id: tags
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "list=${{ env.IMAGE_PREFIX }}-dashboard:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "list<<EOF"
+              echo "${{ env.IMAGE_PREFIX }}-dashboard:sha-${{ github.sha }}"
+              echo "${{ env.IMAGE_PREFIX }}-dashboard:latest"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: docker/build-push-action@v6
         with:
           context: ./dashboard
           build-args: |
             VITE_API_BASE_URL=${{ env.VITE_API_BASE_URL }}
           push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}-dashboard:${{ github.ref_type == 'tag' && github.ref_name || format('sha-{0}', github.sha) }}
-            ${{ github.ref_type == 'tag' && '' || format('{0}-dashboard:latest', env.IMAGE_PREFIX) }}
+          tags: ${{ steps.tags.outputs.list }}
           cache-from: type=gha,scope=dashboard
           cache-to: type=gha,scope=dashboard,mode=max
 
