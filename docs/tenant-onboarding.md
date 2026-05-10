@@ -2,7 +2,7 @@
 
 > Runbook interno: pasos para crear un fork nuevo y dejarlo corriendo en producción.
 >
-> **Audiencia**: el operador (Gonzalo). El cliente nunca toca este flujo ni el VPS.
+> **Audiencia**: el operador. El cliente nunca toca este flujo ni el VPS.
 >
 > Este doc es un **delta** sobre [`production-deployment.md`](./production-deployment.md). Lo común a todos los clientes (hardening, Tailscale, deploy, smoke tests) vive allá; acá solo lo que cambia **por cliente**.
 
@@ -18,15 +18,15 @@
 
 ## Datos del cliente — completar antes de arrancar
 
-| Dato | Ejemplo | Notas |
-|---|---|---|
-| Slug | `acme` | minúsculas, sin espacios — se usa en repo, GHCR labels, R2 prefix |
-| Dominio base | `acme.app` | TLD del cliente |
-| Subdominios | `app.acme.app`, `api.acme.app`, `waha.acme.app` | apuntan a VPS2/VPS1/VPS1 respectivamente |
-| Versión upstream a fijar | `v1.0.0` | tag inmutable en `ghcr.io/.../onlylemon-*:vX.Y.Z` |
-| Email del super admin | `gonza@acme.app` | se crea via bootstrap |
-| Meta Pixel ID + token | — | si el cliente lo tiene |
-| Branding | `logo.png`, `favicon.svg`, color primario | assets reales del cliente |
+| Dato                     | Ejemplo                                         | Notas                                                             |
+| ------------------------ | ----------------------------------------------- | ----------------------------------------------------------------- |
+| Slug                     | `acme`                                          | minúsculas, sin espacios — se usa en repo, GHCR labels, R2 prefix |
+| Dominio base             | `acme.app`                                      | TLD del cliente                                                   |
+| Subdominios              | `app.acme.app`, `api.acme.app`, `waha.acme.app` | apuntan a VPS2/VPS1/VPS1 respectivamente                          |
+| Versión upstream a fijar | `v1.0.0`                                        | tag inmutable en `ghcr.io/.../onlylemon-*:vX.Y.Z`                 |
+| Email del super admin    | `gonza@acme.app`                                | se crea via bootstrap                                             |
+| Meta Pixel ID + token    | —                                               | si el cliente lo tiene                                            |
+| Branding                 | `logo.png`, `favicon.svg`, color primario       | assets reales del cliente                                         |
 
 ---
 
@@ -92,7 +92,7 @@ Editar los compose para que apunten a un tag inmutable en vez de `:latest` o un 
 ```yaml
 # docker-compose.dashboard-vps.yml
 worker:
-  image: ghcr.io/gonzapiccinini/onlylemon-worker:v1.0.0   # ← fijar tag
+  image: ghcr.io/gonzapiccinini/onlylemon-worker:v1.0.0 # ← fijar tag
 dashboard:
   image: ghcr.io/gonzapiccinini/onlylemon-dashboard:v1.0.0
 ```
@@ -144,8 +144,8 @@ Seguir [`production-deployment.md`](./production-deployment.md) Fases 0-2 (prerr
 
 Cloudflare → zona `<dominio>.app`:
 
-- `app.<dominio>.app`  → A → IP pública dashboard-vps
-- `api.<dominio>.app`  → A → IP pública waha-vps
+- `app.<dominio>.app` → A → IP pública dashboard-vps
+- `api.<dominio>.app` → A → IP pública waha-vps
 - `waha.<dominio>.app` → A → IP pública waha-vps
 
 Esperar propagación (~2 min) antes de seguir. Caddy va a sacar TLS de Let's Encrypt en el primer arranque.
@@ -158,14 +158,14 @@ Esperar propagación (~2 min) antes de seguir. Caddy va a sacar TLS de Let's Enc
 
 Settings del repo del fork → Secrets and variables → Actions:
 
-| Secret | Valor |
-|---|---|
-| `DASHBOARD_VPS_HOST` | IP pública del VPS2 |
-| `DASHBOARD_VPS_USER` | `deploy` |
+| Secret                  | Valor                 |
+| ----------------------- | --------------------- |
+| `DASHBOARD_VPS_HOST`    | IP pública del VPS2   |
+| `DASHBOARD_VPS_USER`    | `deploy`              |
 | `DASHBOARD_VPS_SSH_KEY` | SSH key privada de CI |
-| `WAHA_VPS_HOST` | IP pública del VPS1 |
-| `WAHA_VPS_USER` | `deploy` |
-| `WAHA_VPS_SSH_KEY` | SSH key privada de CI |
+| `WAHA_VPS_HOST`         | IP pública del VPS1   |
+| `WAHA_VPS_USER`         | `deploy`              |
+| `WAHA_VPS_SSH_KEY`      | SSH key privada de CI |
 
 > Generar SSH key dedicada (`ssh-keygen -t ed25519 -f ~/.ssh/<slug>_ci -N ""`) y agregar la pública en `/home/deploy/.ssh/authorized_keys` de ambos VPS.
 
@@ -186,6 +186,7 @@ git clone git@github.com:GonzaPiccinini/onlylemon-<slug>.git ~/onlylemon
 ```
 
 Recordar:
+
 - Orden: VPS2 (Postgres + worker) primero, después VPS1 (Redis + gateway + waha)
 - Migraciones de Prisma corren solas al levantar el worker
 - El super admin se crea por el bootstrap inicial del worker — verificar logs
@@ -239,14 +240,14 @@ Correr los smoke tests de Fase 10 de production-deployment.md adaptando los host
 
 ## 12. Checklist final pre-handoff
 
-| Item | OK |
-|---|---|
-| Branding visual confirmado en `/login`, `/setup`, app shell |  |
-| HTTPS válido en los 3 subdominios |  |
-| Super admin creado y puede loguearse |  |
-| Webhook WAHA → gateway → worker → DB funciona end-to-end |  |
-| Sesión WhatsApp emparejada en WAHA |  |
-| Métricas y logs visibles en Grafana Cloud con label `tenant=<slug>` |  |
-| Primer backup en R2 verificado (test de restore en DB de prueba) |  |
-| `AUTO_DEPLOY=true` activado en el fork (solo después del primer deploy manual exitoso) |  |
-| Credenciales guardadas en password manager con slug del cliente |  |
+| Item                                                                                   | OK  |
+| -------------------------------------------------------------------------------------- | --- |
+| Branding visual confirmado en `/login`, `/setup`, app shell                            |     |
+| HTTPS válido en los 3 subdominios                                                      |     |
+| Super admin creado y puede loguearse                                                   |     |
+| Webhook WAHA → gateway → worker → DB funciona end-to-end                               |     |
+| Sesión WhatsApp emparejada en WAHA                                                     |     |
+| Métricas y logs visibles en Grafana Cloud con label `tenant=<slug>`                    |     |
+| Primer backup en R2 verificado (test de restore en DB de prueba)                       |     |
+| `AUTO_DEPLOY=true` activado en el fork (solo después del primer deploy manual exitoso) |     |
+| Credenciales guardadas en password manager con slug del cliente                        |     |
