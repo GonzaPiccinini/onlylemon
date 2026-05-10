@@ -646,6 +646,64 @@ docker compose exec worker sh
 
 ---
 
+## Fase 8b — Puerta pre-deploy: teléfonos de fallback por landing
+
+> Aplica cuando se deploya el cambio `lead-phone-fallback-chain` por primera vez (o en cualquier deploy que incluya la migración `add_landing_fallback_phone`).
+
+### Por qué es crítico
+
+El worker lanza `HTTP 500 FALLBACK_INVARIANT_VIOLATION` si los niveles 1 y 2 de la cadena de fallback fallan y la landing no tiene ningún teléfono de respaldo en la tabla `LandingFallbackPhone`. Este invariante se activa en producción la primera vez que un lead llega a una landing sin cajero en turno y sin cajeros WAHA conectados.
+
+### Orden estricto
+
+1. **Aplicar la migración de Prisma** (crea la tabla `LandingFallbackPhone`; es aditiva, el worker anterior la ignora):
+
+   ```bash
+   # Desde dashboard-vps, o via tunnel SSH (ver abajo)
+   cd worker && npx prisma migrate deploy
+   ```
+
+2. **Editar el seed** (`worker/src/scripts/seed-landing-fallbacks.ts`): completar el array `SEEDS` con `{ landingId, phone, label? }` para cada landing existente. Los teléfonos deben respetar el formato `^\+[1-9]\d{1,14}$` (E.164 estricto). El seed aborta antes de cualquier inserción si detecta un teléfono inválido.
+
+3. **Correr el seed** (idempotente — re-runs seguras):
+
+   ```bash
+   cd worker && npm run seed:fallbacks
+   ```
+
+4. **Verificar** (debe salir con código 0):
+
+   ```bash
+   cd worker && npm run audit:fallbacks
+   # Salida esperada: "Deploy gate: PASSED — 0 landings without fallbacks"
+   ```
+
+5. Recién después de que `audit:fallbacks` pase, **deployar el nuevo worker**.
+6. **Deployar el nuevo dashboard** (el formulario de creación de landing requiere ≥1 fallback).
+
+### Acceso a Postgres desde la laptop (tunnel SSH)
+
+Si necesitás correr el seed/audit desde tu máquina local apuntando a la DB de producción:
+
+```bash
+# Abrir tunnel
+ssh -L 5432:127.0.0.1:5432 deploy@<dashboard-vps-ip>
+
+# En PowerShell (otra terminal), setear la DATABASE_URL del VPS:
+$env:DATABASE_URL = "postgresql://onlylemon:<POSTGRES_PASSWORD>@localhost:5432/onlylemon"
+
+# Correr seed y audit
+cd worker
+npm run seed:fallbacks
+npm run audit:fallbacks
+```
+
+### Rollback
+
+Rollback de código únicamente (revertir al worker anterior). La tabla `LandingFallbackPhone` persiste en Postgres; el código anterior la ignora. No hay pérdida de datos.
+
+---
+
 ## Fase 9 — Checklist de seguridad MVP
 
 | Ítem | Fase |

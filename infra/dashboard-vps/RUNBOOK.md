@@ -20,6 +20,16 @@ If either command returns empty or a different value, check the Dockerfile (`ENV
 
 ---
 
+## Pre-deploy gate: landing fallback phones
+
+For any deploy that includes the `add_landing_fallback_phone` migration, a mandatory backfill gate must be completed **before** deploying the new worker image. The hard invariant is: every Landing must have ≥1 `LandingFallbackPhone` row. Missing rows cause `HTTP 500 FALLBACK_INVARIANT_VIOLATION` on `POST /api/leads` when no cashier is available.
+
+Strict deploy order: `prisma migrate deploy` → `npm run seed:fallbacks` → `npm run audit:fallbacks` (must exit 0) → deploy worker → deploy dashboard.
+
+Full procedure, SSH tunnel pattern, and rollback notes: [`docs/production-deployment.md` — Fase 8b](../../docs/production-deployment.md#fase-8b----puerta-pre-deploy-teléfonos-de-fallback-por-landing).
+
+---
+
 ## Postgres TZ policy
 
 Postgres is deliberately left without a `TZ` environment variable. **Do NOT add `TZ` to the postgres service** without first migrating all affected columns to `timestamptz`.

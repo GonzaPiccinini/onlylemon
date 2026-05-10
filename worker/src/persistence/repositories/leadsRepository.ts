@@ -96,6 +96,90 @@ export async function getActiveLandingCashierCandidatesByMetaPixelId(
   });
 }
 
+export type LandingCashierWaCandidate = {
+  cashierId: string;
+  sessionName: string;
+  whatsappPhoneNumber: string | null;
+};
+
+export async function getAllLinkedCashierCandidatesByMetaPixelId(
+  metaPixelId: string,
+): Promise<LandingCashierWaCandidate[] | null> {
+  const landing = await prisma.landing.findFirst({
+    where: {
+      metaPixelId,
+      status: 'ACTIVE',
+    },
+    select: {
+      cashiers: {
+        where: {
+          cashier: {
+            status: 'ACTIVE',
+            sessionName: {
+              not: null,
+            },
+          },
+        },
+        select: {
+          cashier: {
+            select: {
+              id: true,
+              sessionName: true,
+              whatsappPhoneNumber: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!landing) {
+    return null;
+  }
+
+  return landing.cashiers.flatMap((item) => {
+    const sessionName = item.cashier.sessionName;
+    if (!sessionName) {
+      return [];
+    }
+
+    return [
+      {
+        cashierId: item.cashier.id,
+        sessionName,
+        whatsappPhoneNumber: item.cashier.whatsappPhoneNumber,
+      },
+    ];
+  });
+}
+
+export type LandingFallbackPhoneRow = { id: string; phone: string };
+
+export async function getLandingFallbackPhonesByMetaPixelId(
+  metaPixelId: string,
+): Promise<LandingFallbackPhoneRow[] | null> {
+  const landing = await prisma.landing.findFirst({
+    where: {
+      metaPixelId,
+      status: 'ACTIVE',
+    },
+    select: {
+      fallbackPhones: {
+        select: {
+          id: true,
+          phone: true,
+        },
+      },
+    },
+  });
+
+  if (!landing) {
+    return null;
+  }
+
+  return landing.fallbackPhones;
+}
+
 export async function getContactedLeadCountByCashierForLanding(
   metaPixelId: string,
   cashierIds: string[],

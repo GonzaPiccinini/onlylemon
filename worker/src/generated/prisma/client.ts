@@ -82,6 +82,11 @@ export type Conversion = Prisma.ConversionModel
  */
 export type Landing = Prisma.LandingModel
 /**
+ * Model LandingFallbackPhone
+ * 
+ */
+export type LandingFallbackPhone = Prisma.LandingFallbackPhoneModel
+/**
  * Model CashierLanding
  * 
  */

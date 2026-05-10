@@ -12,10 +12,13 @@ Núcleo de negocio de OnlyLemon. Combina tres responsabilidades en un solo proce
 
 ## Responsabilidades
 
-- **Leads**: `POST /api/leads` crea un lead con un `code` único alfanumérico (8 chars, nanoid), asocia un cashier disponible para la landing (`metaPixelId`) y devuelve `{ code, number }`. Envía `Lead` a Meta Conversion API.
+- **Leads**: `POST /api/leads` crea un lead con un `code` único alfanumérico (8 chars, nanoid), selecciona un número de WhatsApp mediante una cadena de 3 niveles (ver más abajo) y devuelve `{ code, number }` con `number` **siempre no vacío**. Envía `Lead` a Meta Conversion API.
+  - **Nivel 1**: cajero "En turno" con WAHA `status === 'WORKING'` (algoritmo ponderado por déficit de tiempo).
+  - **Nivel 2**: cajero vinculado a la landing con `status === 'ACTIVE'` y WAHA `status === 'WORKING'` (sin filtro de turno).
+  - **Nivel 3**: número de fallback de la tabla `LandingFallbackPhone` (pool estático administrable por el admin). Invariante duro: cada Landing debe tener ≥1 fila en esta tabla; el worker lanza HTTP 500 (`FALLBACK_INVARIANT_VIOLATION`) si los niveles 1 y 2 fallan y la tabla está vacía para esa landing.
 - **Matching de código ↔ teléfono**: cuando llega un mensaje de WhatsApp (desde la cola `inbound`), busca el `code` en el body, valida TTL (`LEADS_CODE_TTL_HOURS`) y marca el lead como `CONTACTED`. Envía `Contact` a Meta.
 - **Auth**: login/logout con JWT (`JWT_SECRET`), soporte de roles `ADMIN` y `CASHIER`.
-- **Admin**: CRUD de cashiers, landings, asociación cashier↔landing, estadísticas (`/stats/summary`, `/stats/cashiers`, `/stats/funds-series`), listado de leads.
+- **Admin**: CRUD de cashiers, landings, asociación cashier↔landing, CRUD de teléfonos de fallback por landing (`/api/admin/landings/:id/fallback-phones`), estadísticas (`/stats/summary`, `/stats/cashiers`, `/stats/funds-series`), listado de leads.
 - **Cashier**: sesiones de trabajo, cola de leads (current/convert/skip), historial, estado runtime, vinculación de WhatsApp (via WAHA: request-code, QR, session status).
 - **Realtime**: SSE en `/api/realtime/cashier/runtime-state/stream` autenticado por JWT vía `?token=`. Heartbeat cada 20 s.
 - **Idempotencia**: tabla `ProcessedJob` evita reprocesar el mismo webhook (jobKey = `event:id`).
@@ -26,8 +29,8 @@ Núcleo de negocio de OnlyLemon. Combina tres responsabilidades en un solo proce
 ```
 worker/
 ├── prisma/
-│   ├── schema.prisma                 User, Admin, Cashier, Lead, Landing, CashierLanding,
-│   │                                 SessionActivity, ProcessedJob + enums
+│   ├── schema.prisma                 User, Admin, Cashier, Lead, Landing, LandingFallbackPhone,
+│   │                                 CashierLanding, SessionActivity, ProcessedJob + enums
 │   └── migrations/                   Histórico de migraciones Prisma
 ├── prisma.config.ts                  Datasource desde DATABASE_URL (dotenv)
 └── src/
@@ -68,6 +71,7 @@ worker/
 | `SessionActivity` | Turnos de trabajo del cashier (start/end). |
 | `Lead` | Lead generado por la landing (`code` único, `fbc`/`fbp`/`userAgent`, `metaPixelId`, `expiresAt`, `status`, `amount` al convertir, FK opcional a cashier). |
 | `Landing` | Sitio de tracking con `metaPixelId`/`metaAccessToken` propios. |
+| `LandingFallbackPhone` | Pool de teléfonos de respaldo 1→N desde `Landing`. Validación `^\+?[0-9]{8,15}$`. Constraint único `(landingId, phone)`. Cada landing debe tener ≥1 fila (invariante duro). |
 | `CashierLanding` | Muchos-a-muchos entre cashier y landing. |
 | `ProcessedJob` | Idempotencia: `jobKey` único por evento. |
 
@@ -109,6 +113,8 @@ npm run start            # node dist/app/server.js
 npm run typecheck        # tsc --noEmit
 npm run prisma:generate  # prisma generate → src/generated/prisma
 npm run test             # find src -name '*.test.ts' -print0 | xargs -0 tsx --test
+npm run seed:fallbacks   # poblar LandingFallbackPhone para todas las landings (idempotente; requerido pre-deploy)
+npm run audit:fallbacks  # verifica que todas las landings tengan ≥1 fallback; sale con código 1 si falla
 ```
 
 ## Desarrollo local
@@ -177,7 +183,7 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM \"User\" WHERE role='SUPER_ADMIN';
 
 | Método | Path | Descripción |
 |---|---|---|
-| POST | `/api/leads` | Crea un lead. Body: `{ fbc, fbp, userAgent, metaPixelId }`. Devuelve `{ code, number }`. Errores: `400` inválido, `404` landing no encontrada, `409` sin cashier disponible. |
+| POST | `/api/leads` | Crea un lead. Body: `{ fbc, fbp, userAgent, metaPixelId }`. Devuelve `{ code, number }` con `number` siempre no vacío (cadena de 3 niveles). Errores: `400` inválido, `404` landing no encontrada, `500` invariante de fallback violada (landing sin teléfonos de respaldo). |
 
 ### Auth
 
@@ -193,6 +199,7 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM \"User\" WHERE role='SUPER_ADMIN';
 
 Cashiers: `GET/POST /api/admin/cashiers`, `PUT /:id`, `PATCH /:id/disable|enable`, `GET/PUT /:id/landings`.
 Landings: `GET/POST /api/admin/landings`, `PUT /:id`, `PATCH /:id/disable|enable`.
+Fallback phones por landing: `GET /api/admin/landings/:id/fallback-phones`, `POST /api/admin/landings/:id/fallback-phones`, `PUT /api/admin/landings/:id/fallback-phones/:phoneId`, `DELETE /api/admin/landings/:id/fallback-phones/:phoneId`. El DELETE rechaza con `409 LAST_FALLBACK` si dejaría la landing sin respaldos.
 Stats: `GET /api/admin/stats/summary|cashiers|funds-series`.
 Leads: `GET /api/admin/leads`.
 

@@ -104,14 +104,29 @@ model Conversion {
 }
 
 model Landing {
-  id              String           @id @default(uuid())
+  id              String                 @id @default(uuid())
   url             String
-  metaPixelId     String           @unique
+  metaPixelId     String                 @unique
   metaAccessToken String
-  status          LandingStatus    @default(ACTIVE)
+  status          LandingStatus          @default(ACTIVE)
   cashiers        CashierLanding[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  fallbackPhones  LandingFallbackPhone[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+}
+
+model LandingFallbackPhone {
+  id        String   @id @default(uuid())
+  landingId String
+  landing   Landing  @relation(fields: [landingId], references: [id], onDelete: Cascade)
+  phone     String
+  label     String?
+  order     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([landingId, phone])
+  @@index([landingId])
 }
 
 model CashierLanding {

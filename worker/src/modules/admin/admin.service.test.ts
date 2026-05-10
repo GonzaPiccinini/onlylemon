@@ -1294,6 +1294,342 @@ test('listLeadsServiceImpl: undefined statuses applies no post-filter (regressio
   assert.equal(result.length, 2, 'All leads returned when no filter applied');
 });
 
+// ---------------------------------------------------------------------------
+// B5 — lead-phone-fallback-chain: admin service phone validation + CRUD
+// ---------------------------------------------------------------------------
+
+// ---- B5.1: phone validation — invalid phones throw InvalidPhoneFormatError ----
+
+test('B5.1: createLandingFallbackPhone with "123" throws InvalidPhoneFormatError', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const createFn = mod.createLandingFallbackPhoneService as (
+    landingId: string,
+    input: { phone: string; label?: string; order?: number },
+  ) => Promise<unknown>;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+
+  await assert.rejects(
+    () => createFn('landing-1', { phone: '123' }),
+    (err: unknown) => err instanceof InvalidPhoneFormatError,
+  );
+});
+
+test('B5.1: createLandingFallbackPhone with "+0123" throws InvalidPhoneFormatError (too short — 4 digits)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const createFn = mod.createLandingFallbackPhoneService as (
+    landingId: string,
+    input: { phone: string; label?: string; order?: number },
+  ) => Promise<unknown>;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+
+  await assert.rejects(
+    () => createFn('landing-1', { phone: '+0123' }),
+    (err: unknown) => err instanceof InvalidPhoneFormatError,
+  );
+});
+
+test('B5.1: createLandingFallbackPhone with "+abc" throws InvalidPhoneFormatError', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const createFn = mod.createLandingFallbackPhoneService as (
+    landingId: string,
+    input: { phone: string; label?: string; order?: number },
+  ) => Promise<unknown>;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+
+  await assert.rejects(
+    () => createFn('landing-1', { phone: '+abc' }),
+    (err: unknown) => err instanceof InvalidPhoneFormatError,
+  );
+});
+
+test('B5.1: createLandingFallbackPhone with trailing spaces throws InvalidPhoneFormatError', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const createFn = mod.createLandingFallbackPhoneService as (
+    landingId: string,
+    input: { phone: string; label?: string; order?: number },
+  ) => Promise<unknown>;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+
+  await assert.rejects(
+    () => createFn('landing-1', { phone: '  +5491155667788  ' }),
+    (err: unknown) => err instanceof InvalidPhoneFormatError,
+  );
+});
+
+test('B5.1: updateLandingFallbackPhone with invalid phone throws InvalidPhoneFormatError', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const updateFn = mod.updateLandingFallbackPhoneService as (
+    id: string,
+    patch: { phone?: string; label?: string | null; order?: number | null },
+  ) => Promise<unknown>;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+
+  await assert.rejects(
+    () => updateFn('phone-id-1', { phone: 'not-a-phone' }),
+    (err: unknown) => err instanceof InvalidPhoneFormatError,
+  );
+});
+
+// ---- B5.1: valid phones do NOT throw ----
+
+test('B5.1: validateE164 accepts "+5491155667788" (no throw)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validateE164 as (phone: string) => void;
+  // Should not throw
+  assert.doesNotThrow(() => validateFn('+5491155667788'));
+});
+
+test('B5.1: validateE164 accepts "+14155552671" (no throw)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validateE164 as (phone: string) => void;
+  assert.doesNotThrow(() => validateFn('+14155552671'));
+});
+
+test('B5.1: validatePhone accepts "5491155667788" without + prefix (no throw)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validatePhone as (phone: string) => void;
+  assert.doesNotThrow(() => validateFn('5491155667788'));
+});
+
+test('B5.1: validatePhone accepts "14155552671" without + prefix (no throw)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validatePhone as (phone: string) => void;
+  assert.doesNotThrow(() => validateFn('14155552671'));
+});
+
+// ---- B5.2: CRUD happy paths + edge cases ----
+
+test('B5.2: listLandingFallbackPhonesService is exported', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.listLandingFallbackPhonesService, 'function');
+});
+
+test('B5.2: createLandingFallbackPhoneService is exported', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.createLandingFallbackPhoneService, 'function');
+});
+
+test('B5.2: updateLandingFallbackPhoneService is exported', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.updateLandingFallbackPhoneService, 'function');
+});
+
+test('B5.2: deleteLandingFallbackPhoneService is exported', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  assert.equal(typeof mod.deleteLandingFallbackPhoneService, 'function');
+});
+
+test('B5.2: InvalidPhoneFormatError is exported and is an Error subclass', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const Ctor = mod.InvalidPhoneFormatError as new () => Error;
+  assert.equal(typeof Ctor, 'function');
+  const err = new Ctor();
+  assert.ok(err instanceof Error);
+  assert.equal(err.name, 'InvalidPhoneFormatError');
+});
+
+test('B5.2: LastFallbackError is exported and is an Error subclass', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const Ctor = mod.LastFallbackError as new () => Error;
+  assert.equal(typeof Ctor, 'function');
+  const err = new Ctor();
+  assert.ok(err instanceof Error);
+  assert.equal(err.name, 'LastFallbackError');
+});
+
+// B10.2 — exact message text assertion for LastFallbackError (service level)
+test('B10.2: LastFallbackError.message is exactly "Debes agregar otro respaldo antes de eliminar este"', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const Ctor = mod.LastFallbackError as new () => Error;
+  const err = new Ctor();
+  assert.equal(err.message, 'Debes agregar otro respaldo antes de eliminar este');
+});
+
+test('B5.2: deleteLandingFallbackPhoneService throws LastFallbackError when repo returns LAST_FALLBACK', async () => {
+  // Test the service logic by injecting a mock repo via the impl variant
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const deleteFnImpl = mod.deleteLandingFallbackPhoneServiceImpl as (
+    deps: {
+      deleteLandingFallbackPhoneIfNotLast: (id: string) => Promise<{ deleted: true } | { deleted: false; reason: 'LAST_FALLBACK' }>;
+    },
+    id: string,
+  ) => Promise<void>;
+  const LastFallbackError = mod.LastFallbackError as new () => Error;
+
+  const mockRepo = {
+    deleteLandingFallbackPhoneIfNotLast: async (_id: string) => ({ deleted: false as const, reason: 'LAST_FALLBACK' as const }),
+  };
+
+  await assert.rejects(
+    () => deleteFnImpl(mockRepo, 'phone-id-1'),
+    (err: unknown) => err instanceof LastFallbackError,
+  );
+});
+
+test('B5.2: deleteLandingFallbackPhoneServiceImpl resolves when repo returns deleted=true', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const deleteFnImpl = mod.deleteLandingFallbackPhoneServiceImpl as (
+    deps: {
+      deleteLandingFallbackPhoneIfNotLast: (id: string) => Promise<{ deleted: true } | { deleted: false; reason: 'LAST_FALLBACK' }>;
+    },
+    id: string,
+  ) => Promise<void>;
+
+  const mockRepo = {
+    deleteLandingFallbackPhoneIfNotLast: async (_id: string) => ({ deleted: true as const }),
+  };
+
+  // Should not throw
+  await assert.doesNotReject(() => deleteFnImpl(mockRepo, 'phone-id-1'));
+});
+
+test('B5.2: createLandingServiceImpl rejects empty fallbackPhones array', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const createLandingImpl = mod.createLandingServiceImpl as (
+    deps: {
+      createLandingWithFallbacks: (landing: { url: string; metaPixelId: string; metaAccessToken: string }, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<unknown>;
+    },
+    input: { url: string; metaPixelId: string; metaAccessToken: string; fallbackPhones: { phone: string; label?: string; order?: number }[] },
+  ) => Promise<unknown>;
+
+  const mockRepo = {
+    createLandingWithFallbacks: async () => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
+  };
+
+  await assert.rejects(
+    () => createLandingImpl(mockRepo, {
+      url: 'http://example.com',
+      metaPixelId: 'px-1',
+      metaAccessToken: 'token',
+      fallbackPhones: [],
+    }),
+    (err: unknown) => (err as Error).name === 'MissingFallbacksError',
+  );
+});
+
+test('B5.2: createLandingServiceImpl calls createLandingWithFallbacks with valid payload', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const createLandingImpl = mod.createLandingServiceImpl as (
+    deps: {
+      createLandingWithFallbacks: (landing: { url: string; metaPixelId: string; metaAccessToken: string }, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<{ id: string; url: string; metaPixelId: string; metaAccessToken: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
+    },
+    input: { url: string; metaPixelId: string; metaAccessToken: string; fallbackPhones: { phone: string; label?: string; order?: number }[] },
+  ) => Promise<unknown>;
+
+  let capturedLanding: unknown = null;
+  let capturedFallbacks: unknown = null;
+  const mockRepo = {
+    createLandingWithFallbacks: async (landing: unknown, fallbacks: unknown) => {
+      capturedLanding = landing;
+      capturedFallbacks = fallbacks;
+      return { id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() };
+    },
+  };
+
+  await createLandingImpl(mockRepo, {
+    url: 'http://example.com',
+    metaPixelId: 'px-1',
+    metaAccessToken: 'token',
+    fallbackPhones: [{ phone: '+5491155667788', label: 'Main' }],
+  });
+
+  assert.ok(capturedLanding !== null, 'createLandingWithFallbacks should be called');
+  assert.ok(Array.isArray(capturedFallbacks) && (capturedFallbacks as unknown[]).length === 1, 'Should pass 1 fallback');
+});
+
+test('B5.2: updateLandingServiceImpl rejects empty fallbackPhones array when provided', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const updateLandingImpl = mod.updateLandingServiceImpl as (
+    deps: {
+      updateLanding: (id: string, input: { url: string; metaPixelId: string; metaAccessToken?: string }) => Promise<{ id: string; url: string; metaPixelId: string; metaAccessToken: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
+      replaceLandingFallbacks: (landingId: string, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<void>;
+    },
+    landingId: string,
+    input: { url: string; metaPixelId: string; metaAccessToken?: string; fallbackPhones?: { phone: string; label?: string; order?: number }[] },
+  ) => Promise<unknown>;
+
+  const mockRepo = {
+    updateLanding: async (_id: string, _input: unknown) => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
+    replaceLandingFallbacks: async () => {},
+  };
+
+  await assert.rejects(
+    () => updateLandingImpl(mockRepo, 'landing-1', {
+      url: 'http://example.com',
+      metaPixelId: 'px-1',
+      fallbackPhones: [],
+    }),
+    (err: unknown) => (err as Error).name === 'MissingFallbacksError',
+  );
+});
+
+test('B5.2: updateLandingServiceImpl skips replaceLandingFallbacks when fallbackPhones is undefined', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const updateLandingImpl = mod.updateLandingServiceImpl as (
+    deps: {
+      updateLanding: (id: string, input: { url: string; metaPixelId: string; metaAccessToken?: string }) => Promise<{ id: string; url: string; metaPixelId: string; metaAccessToken: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
+      replaceLandingFallbacks: (landingId: string, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<void>;
+    },
+    landingId: string,
+    input: { url: string; metaPixelId: string; metaAccessToken?: string; fallbackPhones?: { phone: string; label?: string; order?: number }[] },
+  ) => Promise<unknown>;
+
+  let replaceCalled = false;
+  const mockRepo = {
+    updateLanding: async (_id: string, _input: unknown) => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
+    replaceLandingFallbacks: async () => { replaceCalled = true; },
+  };
+
+  await updateLandingImpl(mockRepo, 'landing-1', {
+    url: 'http://example.com',
+    metaPixelId: 'px-1',
+    // No fallbackPhones — PATCH semantics
+  });
+
+  assert.equal(replaceCalled, false, 'replaceLandingFallbacks should NOT be called when fallbackPhones is undefined');
+});
+
+// ---------------------------------------------------------------------------
+// B10.3 — phone format boundary cases (REQ-5: ^\+?[0-9]{8,15}$)
+// Cross-ref: B5.1 covers "+5491155667788", "+14155552671", "5491155667788", "14155552671" as valid.
+// B10.3 adds 3 more invalid edge cases not covered by B5.1.
+// ---------------------------------------------------------------------------
+
+test('B10.3: validatePhone accepts "+5491155667788" (valid, cross-ref B5.1)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validatePhone as (phone: string) => void;
+  assert.doesNotThrow(() => validateFn('+5491155667788'));
+});
+
+test('B10.3: validatePhone accepts "+14155552671" (valid, cross-ref B5.1)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validatePhone as (phone: string) => void;
+  assert.doesNotThrow(() => validateFn('+14155552671'));
+});
+
+test('B10.3: validatePhone rejects "+1234567" (too short — 7 digits < 8 minimum)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validatePhone as (phone: string) => void;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+  assert.throws(() => validateFn('+1234567'), (err: unknown) => err instanceof InvalidPhoneFormatError);
+});
+
+test('B10.3: validatePhone rejects "+1234567890123456" (too long — 16 digits > 15 maximum)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validatePhone as (phone: string) => void;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+  // 16 digits after + → exceeds max of 15
+  assert.throws(() => validateFn('+1234567890123456'), (err: unknown) => err instanceof InvalidPhoneFormatError);
+});
+
+test('B10.3: validatePhone rejects "5491155x67788" (contains non-digit character)', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown>;
+  const validateFn = mod.validatePhone as (phone: string) => void;
+  const InvalidPhoneFormatError = mod.InvalidPhoneFormatError as new () => Error;
+  assert.throws(() => validateFn('5491155x67788'), (err: unknown) => err instanceof InvalidPhoneFormatError);
+});
+
+// ---------------------------------------------------------------------------
 // Triangulation: every returned lead has numeric conversionsCount
 test('listLeadsServiceImpl: every returned lead has numeric conversionsCount field', async () => {
   const mod = await import('./admin.service.js') as Record<string, unknown> as {

@@ -7,6 +7,9 @@ import {
   createAdmin,
   createCashier,
   createLanding,
+  createLandingFallbackPhone,
+  createLandingWithFallbacks,
+  deleteLandingFallbackPhoneIfNotLast,
   disableCashier,
   enableCashier,
   findAdminById,
@@ -24,15 +27,18 @@ import {
   listCashiers,
   getCashierById,
   listConversionsAdmin,
+  listLandingFallbackPhonesByLandingId,
   listLandings,
   listLeads,
   replaceCashierLandings,
+  replaceLandingFallbacks,
   setAdminStatus,
   setLandingStatus,
   updateAdmin,
   updateAdminAccount,
   updateCashier,
   updateLanding,
+  updateLandingFallbackPhone,
 } from './admin.repository.js';
 import {
   finishCurrentSessionActivity,
@@ -712,27 +718,6 @@ export const listLandingsService = async () => {
   return landings.map(toLandingDto);
 };
 
-export const createLandingService = async (input: {
-  url: string;
-  metaPixelId: string;
-  metaAccessToken: string;
-}) => {
-  const landing = await createLanding(input);
-  return toLandingDto(landing);
-};
-
-export const updateLandingService = async (
-  landingId: string,
-  input: {
-    url: string;
-    metaPixelId: string;
-    metaAccessToken?: string;
-  },
-) => {
-  const landing = await updateLanding(landingId, input);
-  return toLandingDto(landing);
-};
-
 export const setLandingStatusService = async (
   landingId: string,
   status: 'ACTIVE' | 'DISABLED',
@@ -944,3 +929,216 @@ export const getAdminConversionsTotalsService = (
   filters: ConversionsAdminFilters,
 ): Promise<ConversionsTotalsDto> =>
   getAdminConversionsTotalsServiceImpl({ getConversionsTotals }, filters);
+
+// ---------------------------------------------------------------------------
+// B5.3 — Typed errors for LandingFallbackPhone domain
+// ---------------------------------------------------------------------------
+
+export class InvalidPhoneFormatError extends Error {
+  constructor(phone: string) {
+    super(`Invalid phone format: "${phone}"`);
+    this.name = 'InvalidPhoneFormatError';
+  }
+}
+
+export class LastFallbackError extends Error {
+  constructor() {
+    super('Debes agregar otro respaldo antes de eliminar este');
+    this.name = 'LastFallbackError';
+  }
+}
+
+export class MissingFallbacksError extends Error {
+  constructor() {
+    super('Debe agregar al menos un teléfono de respaldo');
+    this.name = 'MissingFallbacksError';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// B5.3 — validatePhone helper
+// ---------------------------------------------------------------------------
+
+const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
+
+export const validatePhone = (phone: string): void => {
+  if (!PHONE_REGEX.test(phone)) {
+    throw new InvalidPhoneFormatError(phone);
+  }
+};
+
+/** @deprecated Use validatePhone instead */
+export const validateE164 = validatePhone;
+
+// ---------------------------------------------------------------------------
+// B5.4 — LandingFallbackPhone DTO mapper
+// ---------------------------------------------------------------------------
+
+const toLandingFallbackPhoneDto = (row: {
+  id: string;
+  landingId: string;
+  phone: string;
+  label: string | null;
+  order: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) => ({
+  id: row.id,
+  landingId: row.landingId,
+  phone: row.phone,
+  label: row.label,
+  order: row.order,
+  createdAt: row.createdAt.toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
+});
+
+// ---------------------------------------------------------------------------
+// B5.4 — LandingFallbackPhone CRUD service functions
+// ---------------------------------------------------------------------------
+
+export const listLandingFallbackPhonesService = async (landingId: string) => {
+  const rows = await listLandingFallbackPhonesByLandingId(landingId);
+  return rows.map(toLandingFallbackPhoneDto);
+};
+
+export const createLandingFallbackPhoneService = async (
+  landingId: string,
+  input: { phone: string; label?: string; order?: number },
+) => {
+  validatePhone(input.phone);
+  const row = await createLandingFallbackPhone({ landingId, ...input });
+  return toLandingFallbackPhoneDto(row);
+};
+
+export const updateLandingFallbackPhoneService = async (
+  id: string,
+  patch: { phone?: string; label?: string | null; order?: number | null },
+) => {
+  if (patch.phone !== undefined) {
+    validatePhone(patch.phone);
+  }
+  const row = await updateLandingFallbackPhone(id, patch);
+  return toLandingFallbackPhoneDto(row);
+};
+
+// Impl variant for testability (injectable repo)
+export const deleteLandingFallbackPhoneServiceImpl = async (
+  deps: {
+    deleteLandingFallbackPhoneIfNotLast: (
+      id: string,
+    ) => Promise<{ deleted: true } | { deleted: false; reason: 'LAST_FALLBACK' }>;
+  },
+  id: string,
+): Promise<void> => {
+  const result = await deps.deleteLandingFallbackPhoneIfNotLast(id);
+  if (!result.deleted) {
+    throw new LastFallbackError();
+  }
+};
+
+export const deleteLandingFallbackPhoneService = async (id: string): Promise<void> =>
+  deleteLandingFallbackPhoneServiceImpl({ deleteLandingFallbackPhoneIfNotLast }, id);
+
+// ---------------------------------------------------------------------------
+// B5.5 — Extended createLanding / updateLanding with fallbackPhones
+// ---------------------------------------------------------------------------
+
+// Impl variant for testability (injectable repo)
+export const createLandingServiceImpl = async (
+  deps: {
+    createLandingWithFallbacks: (
+      landing: { url: string; metaPixelId: string; metaAccessToken: string },
+      fallbacks: { phone: string; label?: string; order?: number }[],
+    ) => Promise<{
+      id: string;
+      url: string;
+      metaPixelId: string;
+      metaAccessToken: string;
+      status: 'ACTIVE' | 'DISABLED';
+      createdAt: Date;
+      updatedAt: Date;
+    }>;
+  },
+  input: {
+    url: string;
+    metaPixelId: string;
+    metaAccessToken: string;
+    fallbackPhones: { phone: string; label?: string; order?: number }[];
+  },
+) => {
+  if (input.fallbackPhones.length === 0) {
+    throw new MissingFallbacksError();
+  }
+  for (const fp of input.fallbackPhones) {
+    validatePhone(fp.phone);
+  }
+  const landing = await deps.createLandingWithFallbacks(
+    { url: input.url, metaPixelId: input.metaPixelId, metaAccessToken: input.metaAccessToken },
+    input.fallbackPhones,
+  );
+  return toLandingDto(landing);
+};
+
+export const createLandingServiceWithFallbacks = async (input: {
+  url: string;
+  metaPixelId: string;
+  metaAccessToken: string;
+  fallbackPhones: { phone: string; label?: string; order?: number }[];
+}) => createLandingServiceImpl({ createLandingWithFallbacks }, input);
+
+// Impl variant for testability (injectable repo)
+export const updateLandingServiceImpl = async (
+  deps: {
+    updateLanding: (
+      id: string,
+      input: { url: string; metaPixelId: string; metaAccessToken?: string },
+    ) => Promise<{
+      id: string;
+      url: string;
+      metaPixelId: string;
+      metaAccessToken: string;
+      status: 'ACTIVE' | 'DISABLED';
+      createdAt: Date;
+      updatedAt: Date;
+    }>;
+    replaceLandingFallbacks: (
+      landingId: string,
+      fallbacks: { phone: string; label?: string; order?: number }[],
+    ) => Promise<void>;
+  },
+  landingId: string,
+  input: {
+    url: string;
+    metaPixelId: string;
+    metaAccessToken?: string;
+    fallbackPhones?: { phone: string; label?: string; order?: number }[];
+  },
+) => {
+  if (input.fallbackPhones !== undefined) {
+    if (input.fallbackPhones.length === 0) {
+      throw new MissingFallbacksError();
+    }
+    for (const fp of input.fallbackPhones) {
+      validatePhone(fp.phone);
+    }
+  }
+  const landing = await deps.updateLanding(landingId, {
+    url: input.url,
+    metaPixelId: input.metaPixelId,
+    metaAccessToken: input.metaAccessToken,
+  });
+  if (input.fallbackPhones !== undefined) {
+    await deps.replaceLandingFallbacks(landingId, input.fallbackPhones);
+  }
+  return toLandingDto(landing);
+};
+
+export const updateLandingServiceWithFallbacks = async (
+  landingId: string,
+  input: {
+    url: string;
+    metaPixelId: string;
+    metaAccessToken?: string;
+    fallbackPhones?: { phone: string; label?: string; order?: number }[];
+  },
+) => updateLandingServiceImpl({ updateLanding, replaceLandingFallbacks }, landingId, input);

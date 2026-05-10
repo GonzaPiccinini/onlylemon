@@ -42,7 +42,7 @@ type CreateLeadDependencies = {
       }
     | {
         ok: false;
-        reason: 'LANDING_NOT_FOUND' | 'NO_AVAILABLE_CASHIER';
+        reason: 'LANDING_NOT_FOUND' | 'FALLBACK_INVARIANT_VIOLATION';
       }
   >;
   getLeadByFbc: (fbc: string) => Promise<{ id: string } | null>;
@@ -120,6 +120,75 @@ function buildWorkingSessions(
   }));
 }
 
+// ---------------------------------------------------------------------------
+// B10.4 — `number` non-empty on HTTP 200 across all 3 levels (REQ-MOD-2)
+// Cross-ref B9.1/B9.2/B9.3:
+//   - B9.1 (L1): asserts number === '5491111111111' (non-empty; WAHA format without +)
+//   - B9.2 (L2): asserts number.length > 0 (non-empty; WAHA format without +)
+//   - B9.3 (L3): asserts /^\+[1-9]\d{1,14}$/ (stored E.164 with +)
+// Note: L1 and L2 return WAHA session phone numbers (no + prefix); L3 returns stored E.164.
+// REQ-MOD-2 is satisfied for non-emptiness; E.164 regex only applies to L3 (stored format).
+// Below we add explicit non-empty assertions at the selectCashierNumberForLandingWithDependencies level.
+// ---------------------------------------------------------------------------
+
+test('B10.4: L1 hit result number is non-empty string', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      { cashierId: 'cashier-1', sessionName: 'session-1', activeSince: new Date('2026-04-22T08:00:00.000Z') },
+    ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getSessions: async () => buildWorkingSessions({ name: 'session-1', number: '5491111111111' }),
+    getContactedLeadCountByCashierForLanding: async () => new Map([['cashier-1', 0]]),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.ok(result.ok === true, 'should return ok: true');
+  assert.ok(result.ok && result.number.length > 0, 'number must be non-empty on L1 hit');
+});
+
+test('B10.4: L2 hit result number is non-empty string', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
+      { cashierId: 'cashier-2', sessionName: 'session-2', whatsappPhoneNumber: null },
+    ],
+    getLandingFallbackPhonesByMetaPixelId: async () => [{ id: 'f1', phone: '+5490000000001' }],
+    getSessions: async () => buildWorkingSessions({ name: 'session-2', number: '5492222222222' }),
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.ok(result.ok === true, 'should return ok: true');
+  assert.ok(result.ok && result.number.length > 0, 'number must be non-empty on L2 hit');
+});
+
+test('B10.4: L3 hit result number is non-empty E.164 string', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [{ id: 'f1', phone: '+5491123456789' }],
+    getSessions: async () => [],
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.ok(result.ok === true, 'should return ok: true');
+  assert.ok(result.ok && result.number.length > 0, 'number must be non-empty on L3 hit');
+  assert.match(result.ok ? result.number : '', /^\+[1-9]\d{1,14}$/, 'L3 number must be E.164');
+});
+
+// ---------------------------------------------------------------------------
+
 test('createLeadWithDependencies rejects duplicate fbc before persisting', async () => {
   const { createLeadWithDependencies, LeadFbcConflictError } = await import(
     './service.js'
@@ -187,35 +256,141 @@ test('createLeadWithDependencies retries when unique collision happens on lead c
   assert.equal(collisions, 1);
 });
 
-test('createLeadWithDependencies creates the lead without cashier and returns empty number for landing fallback', async () => {
-  const { createLeadWithDependencies } = await import('./service.js');
+// B4.1 — regression anchor inversion: when L1+L2 yield nothing and L3 has ≥1 fallback,
+// selectCashierNumberForLandingWithDependencies returns that fallback's phone (non-empty E.164).
+// Previously this asserted number: ''. Now asserts non-empty E.164 from L3.
+test('selectCashierNumberForLandingWithDependencies returns L3 fallback phone when L1 and L2 yield no WAHA-WORKING candidates', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  let saveCalls = 0;
-  const deps = buildDependencies({
-    selectCashierNumberForLanding: async () => ({
-      ok: false,
-      reason: 'NO_AVAILABLE_CASHIER',
-    }),
-    saveLead: async ({ code }) => {
-      saveCalls += 1;
-      return {
-        id: 'lead-fallback',
-        code,
-        fbc: payload.fbc,
-        fbp: payload.fbp,
-        userAgent: payload.userAgent,
-        metaPixelId: payload.metaPixelId,
-      };
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [
+      { id: 'f1', phone: '+5491123456789' },
+    ],
+    getSessions: async () => [],
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, { ok: true, number: '+5491123456789' });
+  assert.match(result.ok ? result.number : '', /^\+[1-9]\d{1,14}$/);
+});
+
+// B4.2 — L2 selection: L1 has candidates but none WAHA-WORKING; L2 has one WAHA-WORKING candidate.
+test('selectCashierNumberForLandingWithDependencies selects L2 cashier when L1 has no WAHA-WORKING candidates but L2 does', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+      { cashierId: 'cashier-1', sessionName: 'session-1', activeSince: new Date('2026-04-22T08:00:00.000Z') },
+    ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
+      { cashierId: 'cashier-2', sessionName: 'session-2', whatsappPhoneNumber: null },
+    ],
+    getLandingFallbackPhonesByMetaPixelId: async () => [
+      { id: 'f1', phone: '+5499999999999' },
+    ],
+    getSessions: async () =>
+      // session-1 is NOT working; session-2 IS working
+      buildWorkingSessions({ name: 'session-2', number: '5492222222222' }),
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, { ok: true, number: '5492222222222' });
+});
+
+// B4.3 — L2→L3 fallthrough: L2 candidates exist but none are WAHA-WORKING → falls to L3.
+test('selectCashierNumberForLandingWithDependencies falls through to L3 when L2 candidates exist but none are WAHA-WORKING', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
+      { cashierId: 'cashier-2', sessionName: 'session-2', whatsappPhoneNumber: null },
+    ],
+    getLandingFallbackPhonesByMetaPixelId: async () => [
+      { id: 'f1', phone: '+5491111111111' },
+      { id: 'f2', phone: '+5492222222222' },
+      { id: 'f3', phone: '+5493333333333' },
+    ],
+    // session-2 is NOT in working sessions
+    getSessions: async () => [],
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    // getRandom = 0.4 → Math.floor(0.4 * 3) = 1 → index 1 → second phone
+    getRandom: () => 0.4,
+  });
+
+  assert.deepEqual(result, { ok: true, number: '+5492222222222' });
+});
+
+// B4.4 — L3 invariant violation: L1+L2 empty, L3 returns [] → FALLBACK_INVARIANT_VIOLATION.
+test('selectCashierNumberForLandingWithDependencies returns FALLBACK_INVARIANT_VIOLATION when L3 returns empty array', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getSessions: async () => [],
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
+  });
+
+  assert.deepEqual(result, { ok: false, reason: 'FALLBACK_INVARIANT_VIOLATION' });
+});
+
+// B4.5 — WAHA call reuse: getSessions called exactly once across L1→L2→L3 traversal.
+test('selectCashierNumberForLandingWithDependencies calls getSessions exactly once across L1→L2→L3 chain', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  let getSessionsCallCount = 0;
+
+  await selectCashierNumberForLandingWithDependencies('pixel-1', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [
+      { id: 'f1', phone: '+5491123456789' },
+    ],
+    getSessions: async () => {
+      getSessionsCallCount += 1;
+      return [];
     },
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
   });
 
-  const result = await createLeadWithDependencies(payload, deps);
+  assert.equal(getSessionsCallCount, 1);
+});
 
-  assert.deepEqual(result, {
-    code: 'ABCD1234',
-    number: '',
+// B4.6 — LANDING_NOT_FOUND short-circuit: L1 returns null → no further queries, no getSessions call.
+test('selectCashierNumberForLandingWithDependencies short-circuits with LANDING_NOT_FOUND when L1 returns null, without calling getSessions', async () => {
+  const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
+
+  let getSessionsCalled = false;
+  let getAllLinkedCalled = false;
+  let getFallbacksCalled = false;
+
+  const result = await selectCashierNumberForLandingWithDependencies('pixel-unknown', {
+    getActiveLandingCashierCandidatesByMetaPixelId: async () => null,
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => { getAllLinkedCalled = true; return []; },
+    getLandingFallbackPhonesByMetaPixelId: async () => { getFallbacksCalled = true; return []; },
+    getSessions: async () => { getSessionsCalled = true; return []; },
+    getContactedLeadCountByCashierForLanding: async () => new Map(),
+    getNow: () => new Date('2026-04-22T15:00:00.000Z'),
+    getRandom: () => 0,
   });
-  assert.equal(saveCalls, 1);
+
+  assert.deepEqual(result, { ok: false, reason: 'LANDING_NOT_FOUND' });
+  assert.equal(getSessionsCalled, false);
+  assert.equal(getAllLinkedCalled, false);
+  assert.equal(getFallbacksCalled, false);
 });
 
 test('createLeadWithDependencies does not treat fbc save errors as duplicate-check conflicts', async () => {
@@ -293,6 +468,8 @@ test('selectCashierNumberForLandingWithDependencies queries only the current Arg
         activeSince: new Date('2026-04-22T12:00:00.000Z'),
       },
     ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -345,6 +522,8 @@ test('selectCashierNumberForLandingWithDependencies excludes disconnected cashie
         activeSince: new Date('2026-04-22T12:00:00.000Z'),
       },
     ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
     getSessions: async () =>
       buildWorkingSessions({ name: 'session-2', number: '5492222222222' }),
     getContactedLeadCountByCashierForLanding: async (_metaPixelId, cashierIds) => {
@@ -380,6 +559,8 @@ test('selectCashierNumberForLandingWithDependencies prioritizes the highest fair
         activeSince: new Date('2026-04-22T11:30:00.000Z'),
       },
     ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -418,6 +599,8 @@ test('selectCashierNumberForLandingWithDependencies does not over-prioritize lat
         activeSince: new Date('2026-04-22T11:30:00.000Z'),
       },
     ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -461,6 +644,8 @@ test('selectCashierNumberForLandingWithDependencies distributes by active-time p
         activeSince: new Date('2026-04-22T14:00:00.000Z'),
       },
     ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -501,6 +686,8 @@ test('selectCashierNumberForLandingWithDependencies randomizes selection among t
         activeSince: new Date('2026-04-22T12:00:00.000Z'),
       },
     ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -551,6 +738,8 @@ test('selectCashierNumberForLandingWithDependencies clamps activity started befo
         activeSince: new Date('2026-04-22T04:00:00.000Z'),
       },
     ],
+    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByMetaPixelId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },

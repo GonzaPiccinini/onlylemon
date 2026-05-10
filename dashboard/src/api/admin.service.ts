@@ -10,10 +10,12 @@ import type {
   ConversionsFilters,
   ConversionsTotals,
   CreateAdminInput,
+  CreateLandingFallbackPhoneInput,
   CreateLandingInput,
   CreateCashierInput,
   DateRangeFilters,
   Landing,
+  LandingFallbackPhone,
   Lead,
   LeadHistoryPage,
   LeadsFilters,
@@ -21,6 +23,7 @@ import type {
   StatsSummary,
   UpdateAdminAccountInput,
   UpdateAdminInput,
+  UpdateLandingFallbackPhoneInput,
   UpdateLandingInput,
   UpdateCashierInput,
 } from "@/types/domain";
@@ -209,5 +212,39 @@ export const adminService = {
   async setAdminStatus(adminId: string, status: AdminStatus): Promise<AdminListItem> {
     const { data } = await http.patch<AdminListItem>(endpoints.admin.adminStatus(adminId), { status });
     return data;
+  },
+
+  async listLandingFallbackPhones(landingId: string): Promise<LandingFallbackPhone[]> {
+    const { data } = await http.get<LandingFallbackPhone[]>(
+      endpoints.admin.landingFallbackPhones(landingId),
+    );
+    return data;
+  },
+
+  async createLandingFallbackPhone(
+    landingId: string,
+    input: CreateLandingFallbackPhoneInput,
+  ): Promise<LandingFallbackPhone> {
+    const { data } = await http.post<LandingFallbackPhone>(
+      endpoints.admin.landingFallbackPhones(landingId),
+      input,
+    );
+    return data;
+  },
+
+  async updateLandingFallbackPhone(
+    landingId: string,
+    id: string,
+    patch: UpdateLandingFallbackPhoneInput,
+  ): Promise<LandingFallbackPhone> {
+    const { data } = await http.patch<LandingFallbackPhone>(
+      endpoints.admin.landingFallbackPhone(landingId, id),
+      patch,
+    );
+    return data;
+  },
+
+  async deleteLandingFallbackPhone(landingId: string, id: string): Promise<void> {
+    await http.delete(endpoints.admin.landingFallbackPhone(landingId, id));
   },
 };

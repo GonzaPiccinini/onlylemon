@@ -697,3 +697,136 @@ export const replaceCashierLandings = async (
       },
     });
   });
+
+// ---------------------------------------------------------------------------
+// LandingFallbackPhone CRUD — B2.4
+// ---------------------------------------------------------------------------
+
+export const listLandingFallbackPhonesByLandingId = (landingId: string) =>
+  prisma.landingFallbackPhone.findMany({
+    where: { landingId },
+    orderBy: [
+      { order: 'asc' },
+      { createdAt: 'asc' },
+    ],
+  });
+
+export const createLandingFallbackPhone = (input: {
+  landingId: string;
+  phone: string;
+  label?: string;
+  order?: number;
+}) =>
+  prisma.landingFallbackPhone.create({
+    data: {
+      landingId: input.landingId,
+      phone: input.phone,
+      label: input.label ?? null,
+      order: input.order ?? null,
+    },
+  });
+
+export const updateLandingFallbackPhone = (
+  id: string,
+  patch: { phone?: string; label?: string | null; order?: number | null },
+) =>
+  prisma.landingFallbackPhone.update({
+    where: { id },
+    data: {
+      ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+      ...(patch.label !== undefined ? { label: patch.label } : {}),
+      ...(patch.order !== undefined ? { order: patch.order } : {}),
+    },
+  });
+
+export const countLandingFallbackPhonesByLandingId = (landingId: string) =>
+  prisma.landingFallbackPhone.count({ where: { landingId } });
+
+export const deleteLandingFallbackPhoneIfNotLast = async (
+  id: string,
+): Promise<{ deleted: true } | { deleted: false; reason: 'LAST_FALLBACK' }> => {
+  return prisma.$transaction(
+    async (tx) => {
+      const row = await tx.landingFallbackPhone.findUniqueOrThrow({ where: { id } });
+      const count = await tx.landingFallbackPhone.count({
+        where: { landingId: row.landingId },
+      });
+      if (count <= 1) {
+        return { deleted: false as const, reason: 'LAST_FALLBACK' as const };
+      }
+      await tx.landingFallbackPhone.delete({ where: { id } });
+      return { deleted: true as const };
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+};
+
+export const createLandingWithFallbacks = async (
+  landing: { url: string; metaPixelId: string; metaAccessToken: string },
+  fallbacks: { phone: string; label?: string; order?: number }[],
+) =>
+  prisma.$transaction(async (tx) => {
+    const created = await tx.landing.create({
+      data: {
+        url: landing.url,
+        metaPixelId: landing.metaPixelId,
+        metaAccessToken: landing.metaAccessToken,
+      },
+    });
+
+    if (fallbacks.length > 0) {
+      await tx.landingFallbackPhone.createMany({
+        data: fallbacks.map((f) => ({
+          landingId: created.id,
+          phone: f.phone,
+          label: f.label ?? null,
+          order: f.order ?? null,
+        })),
+      });
+    }
+
+    return created;
+  });
+
+export const replaceLandingFallbacks = async (
+  landingId: string,
+  fallbacks: { phone: string; label?: string; order?: number }[],
+): Promise<void> => {
+  await prisma.$transaction(
+    async (tx) => {
+      const incomingPhones = fallbacks.map((f) => f.phone);
+
+      // Delete rows not in the new set
+      await tx.landingFallbackPhone.deleteMany({
+        where: {
+          landingId,
+          phone: { notIn: incomingPhones },
+        },
+      });
+
+      // Upsert each incoming fallback
+      for (const f of fallbacks) {
+        await tx.landingFallbackPhone.upsert({
+          where: { landingId_phone: { landingId, phone: f.phone } },
+          update: {
+            label: f.label ?? null,
+            order: f.order ?? null,
+          },
+          create: {
+            landingId,
+            phone: f.phone,
+            label: f.label ?? null,
+            order: f.order ?? null,
+          },
+        });
+      }
+
+      // Assert ≥1 fallback remains
+      const remaining = await tx.landingFallbackPhone.count({ where: { landingId } });
+      if (remaining < 1) {
+        throw new Error('REPLACE_WOULD_LEAVE_ZERO_FALLBACKS');
+      }
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+};

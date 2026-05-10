@@ -39,7 +39,7 @@ Diagramas y pasos detallados: [`docs/production-deployment.md`](./docs/productio
 
 ## Flujo de datos (happy path)
 
-1. La landing llama `POST /api/leads` en el `worker` con `fbc`, `fbp`, `userAgent`, `metaPixelId` → el worker genera un `code` único, selecciona un cashier elegible y devuelve `{ code, number }`.
+1. La landing llama `POST /api/leads` en el `worker` con `fbc`, `fbp`, `userAgent`, `metaPixelId` → el worker genera un `code` único, selecciona un número de WhatsApp mediante una cadena de 3 niveles (cajero en turno → cajero conectado → teléfono de fallback de la landing) y devuelve `{ code, number }` con `number` siempre no vacío.
 2. El usuario escribe al WhatsApp del cashier con ese `code`.
 3. WAHA dispara un webhook a `https://api.onlylemon.app/api/webhook` (autenticado con `x-webhook-token`).
 4. El `gateway` valida el token, valida el JSON, y encola el evento en BullMQ (`inbound`) con `attempts=3` y backoff exponencial.

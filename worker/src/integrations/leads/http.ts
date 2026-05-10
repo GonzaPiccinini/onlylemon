@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import {
   CreateLeadPayloadSchema,
+  FallbackInvariantViolationError,
   LeadFbcConflictError,
   createLead,
   mapLeadCodeToPhone,
@@ -10,9 +11,7 @@ import { leadsCreatedTotal, leadsMatchedTotal } from '../../lib/metrics.js';
 
 type HttpErrorResponse = {
   status: number;
-  body: {
-    message: string;
-  };
+  body: { message: string } | { error: string };
 };
 
 export function extractAdCodeFromQueryParam(
@@ -45,6 +44,15 @@ export function resolveCreateLeadHttpError(
     };
   }
 
+  if (error instanceof FallbackInvariantViolationError) {
+    return {
+      status: 500,
+      body: {
+        error: 'FALLBACK_INVARIANT_VIOLATION',
+      },
+    };
+  }
+
   if (!(error instanceof Error)) {
     return null;
   }
@@ -54,15 +62,6 @@ export function resolveCreateLeadHttpError(
       status: 404,
       body: {
         message: 'Landing not found or disabled',
-      },
-    };
-  }
-
-  if (error.message === 'NO_AVAILABLE_CASHIER') {
-    return {
-      status: 409,
-      body: {
-        message: 'No available cashier number for this landing',
       },
     };
   }

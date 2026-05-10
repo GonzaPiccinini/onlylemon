@@ -248,16 +248,40 @@ export interface UpdateCashierInput {
   password?: string;
 }
 
+export interface LandingFallbackPhone {
+  id: string;
+  landingId: string;
+  phone: string;
+  label: string | null;
+  order: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLandingFallbackPhoneInput {
+  phone: string;
+  label?: string;
+  order?: number;
+}
+
+export interface UpdateLandingFallbackPhoneInput {
+  phone?: string;
+  label?: string | null;
+  order?: number | null;
+}
+
 export interface CreateLandingInput {
   url: string;
   metaPixelId: string;
   metaAccessToken: string;
+  fallbackPhones: { phone: string; label?: string; order?: number }[];
 }
 
 export interface UpdateLandingInput {
   url: string;
   metaPixelId: string;
   metaAccessToken?: string;
+  fallbackPhones?: { phone: string; label?: string; order?: number }[];
 }
 
 export interface ConvertLeadInput {

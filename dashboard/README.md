@@ -6,6 +6,14 @@ Single-page application de OnlyLemon para **administradores** y **cajeros**. Con
 
 ## Features
 
+### Admin — Landings y teléfonos de fallback
+
+Cada fila de la tabla de landings en `/admin/landings` incluye un panel expandible con la lista de teléfonos de respaldo (`LandingFallbackPhone`) de esa landing: permite agregar, editar y eliminar números. El último número no puede eliminarse (el botón queda deshabilitado y el backend devuelve `409 LAST_FALLBACK`). El formulario de creación de landing requiere al menos un teléfono de fallback válido antes de habilitarse el botón de guardar; el formulario de edición no incluye esta sección (los fallbacks existentes se administran desde el panel expandible).
+
+### Admin — Filtro de leads: RECARGA
+
+La vista de leads en `/admin/leads` incluye el filtro **RECARGA** (compradores repetidos: leads con `status = CONVERTED` y más de una conversión). Es independiente del filtro **Convertido** (primera conversión). Seleccionar ambos juntos devuelve todos los leads convertidos sin distinción.
+
 ### Rutas
 
 ```
