@@ -1,4 +1,4 @@
-app.onlylemon.app {
+{$DASHBOARD_DOMAIN} {
     encode zstd gzip
 
     # SSE: deshabilitar buffering para Server-Sent Events
@@ -23,7 +23,7 @@ app.onlylemon.app {
         X-Frame-Options DENY
         X-Content-Type-Options nosniff
         Referrer-Policy strict-origin-when-cross-origin
-        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' wss://app.onlylemon.app https://app.onlylemon.app; font-src 'self' data:"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' wss://{$DASHBOARD_DOMAIN} https://{$DASHBOARD_DOMAIN}; font-src 'self' data:"
         -Server
     }
 }

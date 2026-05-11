@@ -17,7 +17,8 @@ env:
   #   upstream:        ghcr.io/gonzapiccinini/onlylemon
   #   fork acme:       ghcr.io/onlylemon-acme/onlylemon
   # Public URL baked into the dashboard SPA at build time.
-  VITE_API_BASE_URL: https://app.onlylemon.app/api
+  # Set per-repo in Settings → Variables → VITE_API_BASE_URL (e.g. https://app.<tenant>.app/api).
+  VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
 
 jobs:
   build-worker:

@@ -62,6 +62,8 @@ services:
       - '80:80'
       - '443:443'
       - '443:443/udp'
+    environment:
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN}
     volumes:
       - ./infra/dashboard-vps/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

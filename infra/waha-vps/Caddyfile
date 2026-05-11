@@ -1,4 +1,4 @@
-api.onlylemon.app {
+{$API_DOMAIN} {
     encode zstd gzip
 
     reverse_proxy gateway:3000
@@ -11,7 +11,7 @@ api.onlylemon.app {
     }
 }
 
-waha.onlylemon.app {
+{$WAHA_DOMAIN} {
     encode zstd gzip
 
     reverse_proxy waha:3000

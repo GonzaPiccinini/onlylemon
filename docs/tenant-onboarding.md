@@ -137,6 +137,12 @@ external_labels = {
 
 Sin esto no podés filtrar logs/métricas por cliente en Grafana Cloud.
 
+### 4.3 Dominios → variables en `.env` (no se tocan los Caddyfiles)
+
+Los Caddyfiles usan placeholders `{$DASHBOARD_DOMAIN}`, `{$API_DOMAIN}`, `{$WAHA_DOMAIN}` que se resuelven en runtime desde el `.env` del VPS. **No hay que editar los Caddyfiles por cliente** — el archivo es idéntico en upstream y en todos los forks.
+
+Lo único que cambia es el `.env` (ver §7.2).
+
 ---
 
 ## 5. Provisionar VPS
@@ -162,9 +168,11 @@ Esperar propagación (~2 min) antes de seguir. Caddy va a sacar TLS de Let's Enc
 
 ## 7. Configurar secrets del fork
 
-### 7.1 Secrets de GitHub Actions (en el fork, no en upstream)
+### 7.1 Secrets y variables de GitHub Actions (en el fork, no en upstream)
 
-Settings del repo del fork → Secrets and variables → Actions:
+Settings del repo del fork → Secrets and variables → Actions.
+
+**Secrets:**
 
 | Secret                  | Valor                 |
 | ----------------------- | --------------------- |
@@ -177,13 +185,36 @@ Settings del repo del fork → Secrets and variables → Actions:
 
 > Generar SSH key dedicada (`ssh-keygen -t ed25519 -f ~/.ssh/<slug>_ci -N ""`) y agregar la pública en `/home/deploy/.ssh/authorized_keys` de ambos VPS.
 
+**Variables (Settings → Variables):**
+
+| Variable             | Valor                                  | Notas                                                          |
+| -------------------- | -------------------------------------- | -------------------------------------------------------------- |
+| `VITE_API_BASE_URL`  | `https://app.<dominio>.app/api`        | Se hornea en el SPA en build-time; sin esta var, el SPA falla. |
+| `AUTO_DEPLOY`        | `false`                                | Cambiar a `true` después del primer deploy manual exitoso.     |
+
 ### 7.2 `.env` en cada VPS
 
-Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md). **Importante**: incluir `IMAGE_PREFIX` y `IMAGE_TAG` (ver §3):
+Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md).
+
+**Variables específicas del tenant** (las que cambian por cliente):
 
 ```env
+# Imagen — apunta al namespace del cliente
 IMAGE_PREFIX=ghcr.io/gonzapiccinini/onlylemon-<slug>
 IMAGE_TAG=v1.0.0
+
+# Dominios (los Caddyfiles los interpolan en runtime)
+# dashboard-vps:
+DASHBOARD_DOMAIN=app.<dominio>.app
+# waha-vps:
+API_DOMAIN=api.<dominio>.app
+WAHA_DOMAIN=waha.<dominio>.app
+```
+
+Si cualquiera de estas vars falta o tiene typo, Caddy no levanta o levanta sin TLS válido. Validá:
+
+```bash
+grep -E '^(IMAGE_PREFIX|IMAGE_TAG|DASHBOARD_DOMAIN|API_DOMAIN|WAHA_DOMAIN)=' .env
 ```
 
 `AUTO_DEPLOY` repo VAR: dejar en `false` hasta que el primer deploy manual esté ok.

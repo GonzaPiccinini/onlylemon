@@ -77,6 +77,9 @@ services:
       - '80:80'
       - '443:443'
       - '443:443/udp'
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+      WAHA_DOMAIN: ${WAHA_DOMAIN}
     volumes:
       - ./infra/waha-vps/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
