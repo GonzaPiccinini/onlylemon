@@ -43,8 +43,6 @@ export const envSchema = z.object({
     ),
   JWT_REFRESH_EXPIRES_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   CORS_ORIGIN: z.string().default('*'),
-  META_PIXEL_ID: z.string().optional(),
-  META_ACCESS_TOKEN: z.string().optional(),
   META_API_VERSION: z.string().default('v21.0'),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
@@ -57,6 +55,3 @@ if (validateSchema.error) {
 }
 
 export const config = validateSchema.data;
-
-export const hasMetaConversionConfig =
-  Boolean(config.META_PIXEL_ID) && Boolean(config.META_ACCESS_TOKEN);

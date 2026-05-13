@@ -97,9 +97,7 @@ Validadas con zod en `src/config/env.ts`. Si falta alguna, el proceso tira y no 
 | `WAHA_WEBHOOK_EVENTS` | sí | — | CSV de eventos que WAHA debe notificar (ej: `message,session.status`). |
 | `WAHA_WEBHOOK_TOKEN_HEADER` | sí | — | Nombre del header que WAHA envía al gateway. |
 | `WAHA_WEBHOOK_TOKEN_VALUE` | sí | — | Valor del token. Idéntico al que valida el gateway. |
-| `META_PIXEL_ID` | no | — | Pixel ID de Meta (fallback si la landing no tiene uno propio). |
-| `META_ACCESS_TOKEN` | no | — | Access token para Conversion API. |
-| `META_API_VERSION` | no | `v21.0` | Versión del Graph API de Meta. |
+| `META_API_VERSION` | no | `v21.0` | Versión del Graph API de Meta (las credenciales son por-landing en DB). |
 | `LOG_LEVEL` | no | `info` | `fatal\|error\|warn\|info\|debug\|trace`. |
 
 > Nota: el worker lee sus envs directamente desde `process.env`; no hay `.env.example` en el repo, tomar como referencia la tabla de arriba y/o `docker-compose.dashboard-vps.yml`.
@@ -320,7 +318,6 @@ docker compose -f docker-compose.dashboard-vps.yml exec worker \
 - `DATABASE_URL` nunca expuesto: Postgres bindeado a `127.0.0.1` en el host.
 - `BULLMQ_REDIS_URL` viaja por Tailscale (no por internet público).
 - `WAHA_API_KEY` y `WAHA_WEBHOOK_TOKEN_VALUE` rotables vía `.env`.
-- `META_ACCESS_TOKEN` opcional: si no existe, la integración se desactiva gracefully (`hasMetaConversionConfig`).
 - Container corre como non-root.
 
 ## Referencias

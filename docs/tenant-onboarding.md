@@ -119,10 +119,19 @@ ghcr.io/gonzapiccinini/onlylemon-<slug>-gateway:v1.0.0
 
 ### 4.1 Backups → R2 prefix propio
 
+Crear el prefix en el bucket compartido **antes** del primer deploy (desde tu máquina, con el remote `r2` ya configurado):
+
+```bash
+rclone mkdir r2:onlylemon-backup/<slug>/
+rclone lsd r2:onlylemon-backup/   # verificar que aparece el dir
+```
+
+Después, editar el script para que apunte ahí:
+
 ```bash
 edit infra/dashboard-vps/backup.sh
-# → cambiar bucket/prefix a:
-#   r2:onlylemon-backup-<slug>/
+# → cambiar destino a:
+#   r2:onlylemon-backup/<slug>/
 ```
 
 ### 4.2 Observabilidad → label de tenant
@@ -147,9 +156,10 @@ Lo único que cambia es el `.env` (ver §7.2).
 
 ## 5. Provisionar VPS
 
-Seguir [`production-deployment.md`](./production-deployment.md) Fases 0-2 (prerrequisitos + hardening + Tailscale). Recordar:
+Seguir [`production-deployment.md`](./production-deployment.md) Fases 0-4 (prerrequisitos + hardening + Docker + clone + Tailscale). Recordar:
 
 - 2 VPS por cliente (uno para `waha-vps`, otro para `dashboard-vps`)
+- En Fase 3 (clonar repo) usar el fork del cliente: `git@github.com:GonzaPiccinini/onlylemon-<slug>.git`
 - Tailscale auth keys → uno por VPS, anotar las IPs `100.x.x.x`
 
 ---
@@ -194,7 +204,7 @@ Settings del repo del fork → Secrets and variables → Actions.
 
 ### 7.2 `.env` en cada VPS
 
-Generar localmente y subir vía SCP (ver Fase 5 de production-deployment.md).
+Generar localmente y subir vía SCP (ver Fase 6 de production-deployment.md).
 
 **Variables específicas del tenant** (las que cambian por cliente):
 
@@ -223,13 +233,7 @@ grep -E '^(IMAGE_PREFIX|IMAGE_TAG|DASHBOARD_DOMAIN|API_DOMAIN|WAHA_DOMAIN)=' .en
 
 ## 8. Deploy inicial
 
-Seguir [`production-deployment.md`](./production-deployment.md) Fase 8 apuntando al fork del cliente (no al upstream):
-
-```bash
-git clone git@github.com:GonzaPiccinini/onlylemon-<slug>.git ~/onlylemon
-```
-
-Recordar:
+Seguir [`production-deployment.md`](./production-deployment.md) Fase 8 (el clone del fork ya lo hiciste en Fase 3 del flujo de producción). Recordar:
 
 - Orden: VPS2 (Postgres + worker) primero, después VPS1 (Redis + gateway + waha)
 - Migraciones de Prisma corren solas al levantar el worker
