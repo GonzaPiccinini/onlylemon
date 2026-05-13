@@ -4,10 +4,9 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import {
-  ChevronDownIcon,
-  ChevronRightIcon,
   MoreHorizontalIcon,
   PencilLineIcon,
+  PhoneIcon,
   PlusIcon,
   Trash2Icon,
   ToggleLeftIcon,
@@ -431,7 +430,7 @@ export const AdminLandingsPage = () => {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingLanding, setEditingLanding] = useState<Landing | null>(null);
-  const [expandedLandingId, setExpandedLandingId] = useState<string | null>(null);
+  const [fallbacksLanding, setFallbacksLanding] = useState<Landing | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -516,10 +515,6 @@ export const AdminLandingsPage = () => {
       metaPixelId: landing.metaPixelId,
       metaAccessToken: "",
     });
-  };
-
-  const toggleExpanded = (landingId: string) => {
-    setExpandedLandingId((prev) => (prev === landingId ? null : landingId));
   };
 
   const totalPages = Math.max(1, Math.ceil(landings.length / pageSize));
@@ -611,7 +606,6 @@ export const AdminLandingsPage = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-8" />
               <TableHead>URL</TableHead>
               <TableHead>Meta Pixel ID</TableHead>
               <TableHead>Meta Access Token</TableHead>
@@ -623,34 +617,15 @@ export const AdminLandingsPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7}>Cargando landings...</TableCell>
+                <TableCell colSpan={6}>Cargando landings...</TableCell>
               </TableRow>
             ) : landings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7}>No hay landings registradas.</TableCell>
+                <TableCell colSpan={6}>No hay landings registradas.</TableCell>
               </TableRow>
             ) : (
-              paginatedLandings.flatMap((landing) => {
-                const isExpanded = expandedLandingId === landing.id;
-                return [
-                  // Main row
+              paginatedLandings.map((landing) => (
                   <TableRow key={landing.id}>
-                    {/* B8.7 — chevron toggle */}
-                    <TableCell className="w-8 pr-0">
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        aria-label={isExpanded ? "Ocultar respaldos" : "Ver respaldos"}
-                        aria-expanded={isExpanded}
-                        onClick={() => toggleExpanded(landing.id)}
-                      >
-                        {isExpanded ? (
-                          <ChevronDownIcon className="size-4" />
-                        ) : (
-                          <ChevronRightIcon className="size-4" />
-                        )}
-                      </Button>
-                    </TableCell>
                     <TableCell>{landing.url}</TableCell>
                     <TableCell>{landing.metaPixelId}</TableCell>
                     <TableCell>
@@ -703,6 +678,13 @@ export const AdminLandingsPage = () => {
                                 </MenuPrimitive.Item>
                                 <MenuPrimitive.Item
                                   className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+                                  onClick={() => setFallbacksLanding(landing)}
+                                >
+                                  <PhoneIcon className="size-4" />
+                                  Números de respaldo
+                                </MenuPrimitive.Item>
+                                <MenuPrimitive.Item
+                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                                   onClick={() => toggleLanding(landing)}
                                 >
                                   {landing.status === "ACTIVE" ? (
@@ -718,20 +700,8 @@ export const AdminLandingsPage = () => {
                         </MenuPrimitive.Root>
                       </div>
                     </TableCell>
-                  </TableRow>,
-
-                  // B8.7 — Expanded fallback-phones panel row
-                  isExpanded ? (
-                    <TableRow key={`${landing.id}-fallbacks`} className="hover:bg-transparent">
-                      <TableCell colSpan={7} className="p-0">
-                        <div className="border-t bg-muted/30">
-                          <FallbackPhonesPanel landing={landing} />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : null,
-                ].filter(Boolean);
-              })
+                  </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -757,8 +727,8 @@ export const AdminLandingsPage = () => {
           <DialogHeader>
             <DialogTitle>Editar landing</DialogTitle>
             <DialogDescription>
-              Editá URL, Pixel ID o token. Los teléfonos de respaldo se gestionan desde el panel
-              expandible en la tabla.
+              Editá URL, Pixel ID o token. Los teléfonos de respaldo se gestionan desde la
+              acción "Números de respaldo".
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={updateForm.handleSubmit(onUpdate)} className="flex flex-col gap-4">
@@ -813,6 +783,26 @@ export const AdminLandingsPage = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fallback phones dialog */}
+      <Dialog
+        open={Boolean(fallbacksLanding)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFallbacksLanding(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Números de respaldo</DialogTitle>
+            <DialogDescription>
+              Gestioná los teléfonos de respaldo asociados a esta landing.
+            </DialogDescription>
+          </DialogHeader>
+          {fallbacksLanding && <FallbackPhonesPanel landing={fallbacksLanding} />}
         </DialogContent>
       </Dialog>
     </section>
