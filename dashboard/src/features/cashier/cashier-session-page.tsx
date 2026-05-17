@@ -77,7 +77,9 @@ interface SessionModalProps {
 }
 
 const SessionModal = ({ session, onClose }: SessionModalProps) => {
-  const [phoneNumber, setPhoneNumber] = useState(session.whatsappPhoneNumber ?? '');
+  const [phoneNumber, setPhoneNumber] = useState(
+    session.whatsappPhoneNumber ?? '',
+  );
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [qrValue, setQrValue] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(session.refreshCount);
@@ -100,21 +102,24 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
     }
   };
 
-  const applyArtifacts = useCallback((artifacts: {
-    pairingCode: string | null;
-    qr: string | null;
-    refreshCount: number;
-  }) => {
-    const normalizedQr =
-      artifacts.qr && !artifacts.qr.startsWith('data:')
-        ? `data:image/png;base64,${artifacts.qr}`
-        : artifacts.qr;
+  const applyArtifacts = useCallback(
+    (artifacts: {
+      pairingCode: string | null;
+      qr: string | null;
+      refreshCount: number;
+    }) => {
+      const normalizedQr =
+        artifacts.qr && !artifacts.qr.startsWith('data:')
+          ? `data:image/png;base64,${artifacts.qr}`
+          : artifacts.qr;
 
-    setPairingCode((current) => artifacts.pairingCode ?? current);
-    setQrValue((current) => normalizedQr ?? current);
-    setRefreshCount(artifacts.refreshCount);
-    setCountdown(REFRESH_INTERVAL_SECONDS);
-  }, []);
+      setPairingCode((current) => artifacts.pairingCode ?? current);
+      setQrValue((current) => normalizedQr ?? current);
+      setRefreshCount(artifacts.refreshCount);
+      setCountdown(REFRESH_INTERVAL_SECONDS);
+    },
+    [],
+  );
 
   const handleAutoRefresh = useCallback(async () => {
     try {
@@ -153,16 +158,22 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
     }
 
     try {
-      const data = await linkSession.mutateAsync({ sessionId: session.id, phoneNumber: phoneNumber.trim() });
+      const data = await linkSession.mutateAsync({
+        sessionId: session.id,
+        phoneNumber: phoneNumber.trim(),
+      });
       applyArtifacts(data);
       startTimer();
       toast.success('QR y codigo cargados');
     } catch (error) {
-      const apiMessage =
-        isAxiosError<{ message?: string; error?: string }>(error)
-          ? (error.response?.data?.message ?? error.response?.data?.error)
-          : null;
-      toast.error(apiMessage ?? 'No se pudieron solicitar credenciales de WhatsApp');
+      const apiMessage = isAxiosError<{ message?: string; error?: string }>(
+        error,
+      )
+        ? (error.response?.data?.message ?? error.response?.data?.error)
+        : null;
+      toast.error(
+        apiMessage ?? 'No se pudieron solicitar credenciales de WhatsApp',
+      );
     }
   };
 
@@ -192,54 +203,66 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   const needsQr = wahaStatus === 'SCAN_QR_CODE';
 
   return (
-    <DialogContent className='sm:max-w-md'>
+    <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle className='flex items-center gap-2'>
+        <DialogTitle className="flex items-center gap-2">
           WhatsApp Session
           <WahaStatusBadge status={wahaStatus} />
         </DialogTitle>
       </DialogHeader>
 
-      <div className='flex flex-col gap-4'>
-        <div className='flex flex-wrap gap-2 text-xs text-muted-foreground'>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           <span>ID: {session.id.slice(0, 8)}...</span>
           <span>Nombre: {session.sessionName}</span>
-          <span>Intentos: {refreshCount}/{REFRESH_CAP}</span>
+          <span>
+            Intentos: {refreshCount}/{REFRESH_CAP}
+          </span>
         </div>
 
         {isWorking ? (
-          <div className='rounded-lg border border-green-200 bg-green-50 p-3'>
-            <p className='text-sm font-medium text-green-800'>WhatsApp conectado correctamente</p>
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+            <p className="text-sm font-medium text-green-800">
+              WhatsApp conectado correctamente
+            </p>
             {session.whatsappPhoneNumber && (
-              <p className='text-xs text-green-600'>Telefono: {session.whatsappPhoneNumber}</p>
+              <p className="text-xs text-green-600">
+                Telefono: {session.whatsappPhoneNumber}
+              </p>
             )}
           </div>
         ) : (
           <>
-            <div className='flex flex-col gap-2 rounded-lg border p-3'>
-              <p className='text-sm font-medium'>Numero de telefono</p>
+            <div className="flex flex-col gap-2 rounded-lg border p-3">
+              <p className="text-sm font-medium">Numero de telefono</p>
               <Input
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder='Ej: 5491112345678'
+                placeholder="Ej: 5491112345678"
                 disabled={linkSession.isPending}
               />
             </div>
 
             {pairingCode && (
-              <div className='flex flex-col gap-1 rounded-lg border p-3'>
-                <p className='text-sm font-medium'>Codigo de vinculacion</p>
-                <p className='text-lg tracking-wide text-primary'>{pairingCode}</p>
+              <div className="flex flex-col gap-1 rounded-lg border p-3">
+                <p className="text-sm font-medium">Codigo de vinculacion</p>
+                <p className="text-lg tracking-wide text-primary">
+                  {pairingCode}
+                </p>
               </div>
             )}
 
             {(qrValue || needsQr) && (
-              <div className='flex flex-col gap-2 rounded-lg border p-3'>
-                <p className='text-sm font-medium'>QR</p>
+              <div className="flex flex-col gap-2 rounded-lg border p-3">
+                <p className="text-sm font-medium">QR</p>
                 {qrValue ? (
-                  <img src={qrValue} alt='QR WhatsApp' className='h-48 w-48 rounded-md border object-contain' />
+                  <img
+                    src={qrValue}
+                    alt="QR WhatsApp"
+                    className="h-48 w-48 rounded-md border object-contain"
+                  />
                 ) : (
-                  <div className='flex h-32 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground'>
+                  <div className="flex h-32 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
                     QR no disponible
                   </div>
                 )}
@@ -247,31 +270,37 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
             )}
 
             {(pairingCode || qrValue) && (
-              <p className='text-xs text-muted-foreground'>
+              <p className="text-xs text-muted-foreground">
                 {reachedAutoLimit
                   ? 'Limite de refrescos alcanzado. Presiona "Volver a cargar" cuando estes listo.'
                   : `Proximo refresco en ${countdown}s`}
               </p>
             )}
 
-            <div className='flex flex-wrap gap-2'>
+            <div className="flex flex-wrap gap-2">
               <Button
-                size='sm'
+                size="sm"
                 onClick={handleStartLink}
                 disabled={linkSession.isPending || refreshSession.isPending}
               >
-                <QrCodeIcon data-icon='inline-start' />
-                {linkSession.isPending ? 'Solicitando...' : 'Generar QR y codigo'}
+                <QrCodeIcon data-icon="inline-start" />
+                {linkSession.isPending
+                  ? 'Solicitando...'
+                  : 'Generar QR y codigo'}
               </Button>
 
               {reachedAutoLimit && (
                 <Button
-                  size='sm'
-                  variant='outline'
+                  size="sm"
+                  variant="outline"
                   onClick={handleManualReset}
-                  disabled={resetRefresh.isPending || linkSession.isPending || !phoneNumber.trim()}
+                  disabled={
+                    resetRefresh.isPending ||
+                    linkSession.isPending ||
+                    !phoneNumber.trim()
+                  }
                 >
-                  <RefreshCcwIcon data-icon='inline-start' />
+                  <RefreshCcwIcon data-icon="inline-start" />
                   Volver a cargar
                 </Button>
               )}
@@ -279,25 +308,36 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
           </>
         )}
 
-        <div className='border-t pt-3'>
+        <div className="border-t pt-3">
           {!showDeleteConfirm ? (
             <Button
-              size='sm'
-              variant='destructive'
+              size="sm"
+              variant="destructive"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={deleteSession.isPending}
             >
-              <Trash2Icon data-icon='inline-start' />
+              <Trash2Icon data-icon="inline-start" />
               Eliminar sesion
             </Button>
           ) : (
-            <div className='flex items-center gap-2'>
-              <p className='text-sm text-destructive'>¿Confirmar eliminacion?</p>
-              <Button size='sm' variant='destructive' onClick={handleDelete} disabled={deleteSession.isPending}>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-destructive">
+                ¿Confirmar eliminacion?
+              </p>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteSession.isPending}
+              >
                 {deleteSession.isPending ? 'Eliminando...' : 'Confirmar'}
               </Button>
-              <Button size='sm' variant='outline' onClick={() => setShowDeleteConfirm(false)}>
-                <XIcon data-icon='inline-start' />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                <XIcon data-icon="inline-start" />
                 Cancelar
               </Button>
             </div>
@@ -313,27 +353,34 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
 // ---------------------------------------------------------------------------
 
 export const CashierSessionPage = () => {
-  const { data: runtimeState, isLoading: runtimeLoading } = useCashierRuntimeState();
-  const { data: myWhatsappSessions = [], isLoading: mySessionsLoading } = useMySessions();
+  const { data: runtimeState, isLoading: runtimeLoading } =
+    useCashierRuntimeState();
+  const { data: myWhatsappSessions = [], isLoading: mySessionsLoading } =
+    useMySessions();
 
-  const { data: currentSession, isLoading: currentLoading } = useCurrentSession();
-  const { data: sessions = [], isLoading: sessionsLoading } = useCashierSessions();
+  const { data: currentSession, isLoading: currentLoading } =
+    useCurrentSession();
+  const { data: sessions = [], isLoading: sessionsLoading } =
+    useCashierSessions();
   const startSession = useStartSession();
   const finishSession = useFinishSession();
   const createMySession = useCreateMySession();
-  const [selectedSession, setSelectedSession] = useState<MyWhatsappSession | null>(null);
+  const [selectedSession, setSelectedSession] =
+    useState<MyWhatsappSession | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
   // Operate gate: at least 1 session WORKING (anyWorking)
   const anyWorking = runtimeState?.anyWorking ?? false;
-  const maxSessions = myWhatsappSessions.length > 0
-    ? myWhatsappSessions.length  // use count to infer cap comparison
-    : 0;
+  const maxSessions =
+    myWhatsappSessions.length > 0
+      ? myWhatsappSessions.length // use count to infer cap comparison
+      : 0;
 
   // Fetch cashier maxSessions from runtime state indirectly — we check if create is capped
   // by comparing count to the cap. We use the runtimeState sessions array length as a reference.
-  const runtimeSessionCount = runtimeState?.sessions?.length ?? myWhatsappSessions.length;
+  const runtimeSessionCount =
+    runtimeState?.sessions?.length ?? myWhatsappSessions.length;
 
   const handleStart = async () => {
     try {
@@ -360,10 +407,11 @@ export const CashierSessionPage = () => {
       toast.success('Nueva sesion creada');
       setSelectedSession(newSession);
     } catch (error) {
-      const apiMessage =
-        isAxiosError<{ message?: string; error?: string }>(error)
-          ? (error.response?.data?.message ?? error.response?.data?.error)
-          : null;
+      const apiMessage = isAxiosError<{ message?: string; error?: string }>(
+        error,
+      )
+        ? (error.response?.data?.message ?? error.response?.data?.error)
+        : null;
       if (isAxiosError(error) && error.response?.status === 409) {
         toast.error('Limite de sesiones alcanzado');
       } else {
@@ -379,13 +427,13 @@ export const CashierSessionPage = () => {
 
   if (runtimeLoading || mySessionsLoading) {
     return (
-      <section className='flex flex-col gap-4'>
+      <section className="flex flex-col gap-4">
         <PageHeader
-          title='Sesion y WhatsApp'
-          description='Cargando estado del cajero.'
+          title="Sesion y WhatsApp"
+          description="Cargando estado del cajero."
         />
         <Card>
-          <CardContent className='py-8 text-sm text-muted-foreground'>
+          <CardContent className="py-8 text-sm text-muted-foreground">
             Verificando estado...
           </CardContent>
         </Card>
@@ -394,16 +442,16 @@ export const CashierSessionPage = () => {
   }
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className="flex flex-col gap-4">
       <PageHeader
-        title='Sesion y WhatsApp'
-        description='Gestioná tus sesiones de WhatsApp e iniciá tu jornada de trabajo.'
+        title="Sesion y WhatsApp"
+        description="Gestioná tus sesiones de WhatsApp e iniciá tu jornada de trabajo."
       />
 
       {/* WhatsApp Sessions Panel */}
       <Card>
         <CardHeader>
-          <div className='flex items-start justify-between gap-2'>
+          <div className="flex items-start justify-between gap-2">
             <div>
               <CardTitle>Sesiones de WhatsApp</CardTitle>
               <CardDescription>
@@ -412,28 +460,32 @@ export const CashierSessionPage = () => {
               </CardDescription>
             </div>
             {runtimeState && (
-              <Badge variant='outline' className='shrink-0'>
+              <Badge variant="outline" className="shrink-0">
                 {runtimeSessionCount}/{runtimeState.maxSessions}
               </Badge>
             )}
           </div>
         </CardHeader>
-        <CardContent className='flex flex-col gap-3'>
+        <CardContent className="flex flex-col gap-3">
           {myWhatsappSessions.length === 0 ? (
-            <div className='flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground'>
-              <SmartphoneIcon className='size-8 opacity-40' />
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+              <SmartphoneIcon className="size-8 opacity-40" />
               <p>Todavía no tenés sesiones de WhatsApp.</p>
-              <p className='text-xs'>Creá una para empezar a recibir clientes.</p>
+              <p className="text-xs">
+                Creá una para empezar a recibir clientes.
+              </p>
             </div>
           ) : (
-            <ul className='flex flex-col gap-2'>
+            <ul className="flex flex-col gap-2">
               {myWhatsappSessions.map((ws) => {
                 const title = ws.whatsappPhoneNumber ?? 'Sin número vinculado';
                 const metaParts: string[] = [];
                 if (ws.whatsappPhoneNumber) {
                   metaParts.push(`Intentos ${ws.refreshCount}/3`);
                   if (ws.lastRefreshAt) {
-                    metaParts.push(`Último ${formatDateTime(ws.lastRefreshAt)}`);
+                    metaParts.push(
+                      `Último ${formatDateTime(ws.lastRefreshAt)}`,
+                    );
                   }
                 } else {
                   metaParts.push('Tocá para escanear el QR');
@@ -441,23 +493,23 @@ export const CashierSessionPage = () => {
                 return (
                   <li key={ws.id}>
                     <button
-                      type='button'
+                      type="button"
                       onClick={() => setSelectedSession(ws)}
-                      className='group flex w-full min-w-0 items-center gap-3 rounded-lg border bg-card p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                      className="group flex w-full min-w-0 items-center gap-3 rounded-lg border bg-card p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <div className='flex size-10 shrink-0 items-center justify-center rounded-full bg-muted'>
-                        <SmartphoneIcon className='size-5 text-muted-foreground' />
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <SmartphoneIcon className="size-5 text-muted-foreground" />
                       </div>
-                      <div className='flex min-w-0 flex-1 flex-col gap-1'>
-                        <p className='truncate text-sm font-medium'>{title}</p>
-                        <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <p className="truncate text-sm font-medium">{title}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <WahaStatusBadge status={ws.wahaStatus} />
-                          <span className='truncate text-xs text-muted-foreground'>
+                          <span className="truncate text-xs text-muted-foreground">
                             {metaParts.join(' · ')}
                           </span>
                         </div>
                       </div>
-                      <ChevronRightIcon className='size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground' />
+                      <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
                     </button>
                   </li>
                 );
@@ -465,10 +517,10 @@ export const CashierSessionPage = () => {
             </ul>
           )}
 
-          <div className='flex flex-wrap items-center gap-2'>
+          <div className="flex flex-wrap items-center gap-2">
             <Button
-              size='sm'
-              variant='outline'
+              size="sm"
+              variant="outline"
               onClick={handleCreateSession}
               disabled={
                 createMySession.isPending ||
@@ -477,12 +529,14 @@ export const CashierSessionPage = () => {
                   : false)
               }
             >
-              <PlusIcon data-icon='inline-start' />
-              {createMySession.isPending ? 'Creando...' : 'Conectar otro WhatsApp'}
+              <PlusIcon data-icon="inline-start" />
+              {createMySession.isPending
+                ? 'Creando...'
+                : 'Conectar otro WhatsApp'}
             </Button>
             {runtimeState &&
               runtimeSessionCount >= runtimeState.maxSessions && (
-                <Badge variant='outline' className='text-xs'>
+                <Badge variant="outline" className="text-xs">
                   Límite alcanzado
                 </Badge>
               )}
@@ -497,40 +551,46 @@ export const CashierSessionPage = () => {
           <CardDescription>
             Control en tiempo real de tu sesion activa.{' '}
             {!anyWorking && (
-              <span className='text-amber-600'>Necesitas al menos 1 WhatsApp WORKING para iniciar.</span>
+              <span className="text-amber-600">
+                Necesitas al menos 1 WhatsApp conectado para iniciar.
+              </span>
             )}
           </CardDescription>
         </CardHeader>
-        <CardContent className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
-          <div className='flex items-center gap-3'>
+        <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
             {currentLoading ? (
-              <Badge variant='outline'>Cargando...</Badge>
+              <Badge variant="outline">Cargando...</Badge>
             ) : currentSession?.isActive ? (
               <Badge>Sesion activa</Badge>
             ) : (
-              <Badge variant='outline'>Sin sesion activa</Badge>
+              <Badge variant="outline">Sin sesion activa</Badge>
             )}
             {currentSession?.startDate ? (
-              <p className='text-sm text-muted-foreground'>
+              <p className="text-sm text-muted-foreground">
                 Inicio: {formatDateTime(currentSession.startDate)}
               </p>
             ) : null}
           </div>
 
-          <div className='flex gap-2'>
+          <div className="flex gap-2">
             <Button
               onClick={handleStart}
-              disabled={Boolean(currentSession?.isActive) || startSession.isPending || !anyWorking}
+              disabled={
+                Boolean(currentSession?.isActive) ||
+                startSession.isPending ||
+                !anyWorking
+              }
             >
-              <PlayIcon data-icon='inline-start' />
+              <PlayIcon data-icon="inline-start" />
               Iniciar
             </Button>
             <Button
-              variant='outline'
+              variant="outline"
               onClick={handleFinish}
               disabled={!currentSession?.isActive || finishSession.isPending}
             >
-              <SquareIcon data-icon='inline-start' />
+              <SquareIcon data-icon="inline-start" />
               Finalizar
             </Button>
           </div>
@@ -541,7 +601,9 @@ export const CashierSessionPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Ultimas sesiones</CardTitle>
-          <CardDescription>Historial reciente de sesiones de trabajo.</CardDescription>
+          <CardDescription>
+            Historial reciente de sesiones de trabajo.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -580,7 +642,7 @@ export const CashierSessionPage = () => {
               )}
             </TableBody>
           </Table>
-          <div className='mt-3'>
+          <div className="mt-3">
             <PaginationControls
               page={normalizedPage}
               totalPages={totalPages}
@@ -591,7 +653,12 @@ export const CashierSessionPage = () => {
       </Card>
 
       {/* Per-session modal */}
-      <Dialog open={Boolean(selectedSession)} onOpenChange={(open) => { if (!open) setSelectedSession(null); }}>
+      <Dialog
+        open={Boolean(selectedSession)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedSession(null);
+        }}
+      >
         {selectedSession && (
           <SessionModal
             session={selectedSession}

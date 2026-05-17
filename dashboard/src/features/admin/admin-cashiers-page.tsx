@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import {
   CheckCircle2Icon,
+  LinkIcon,
   LogOutIcon,
   MoreHorizontalIcon,
   PencilLineIcon,
@@ -54,6 +55,7 @@ import {
 } from '@/features/admin/admin-hooks';
 import { PaginationControls } from '@/components/common/pagination-controls';
 import { AdminCashierSessionsPanel } from './admin-cashier-sessions-panel';
+import { AdminCashierLandingsPanel } from './admin-cashier-landings-panel';
 
 const createSchema = z.object({
   name: z.string().min(2, 'Nombre obligatorio'),
@@ -95,6 +97,7 @@ export const AdminCashiersPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingCashier, setEditingCashier] = useState<Cashier | null>(null);
   const [sessionsPanelCashier, setSessionsPanelCashier] = useState<Cashier | null>(null);
+  const [landingsPanelCashier, setLandingsPanelCashier] = useState<Cashier | null>(null);
 
   const createForm = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
@@ -389,6 +392,13 @@ export const AdminCashiersPage = () => {
                               </MenuPrimitive.Item>
                               <MenuPrimitive.Item
                                 className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                onClick={() => setLandingsPanelCashier(cashier)}
+                              >
+                                <LinkIcon className='size-4' />
+                                Asignar landings
+                              </MenuPrimitive.Item>
+                              <MenuPrimitive.Item
+                                className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
                                 onClick={() => openEditDialog(cashier)}
                               >
                                 <PencilLineIcon className='size-4' />
@@ -532,6 +542,28 @@ export const AdminCashiersPage = () => {
           </DialogHeader>
           {sessionsPanelCashier && (
             <AdminCashierSessionsPanel cashier={sessionsPanelCashier} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Landings assignment dialog */}
+      <Dialog
+        open={Boolean(landingsPanelCashier)}
+        onOpenChange={(open) => {
+          if (!open) setLandingsPanelCashier(null);
+        }}
+      >
+        <DialogContent className='w-[95vw] sm:max-w-[95vw] md:max-w-2xl'>
+          <DialogHeader>
+            <DialogTitle>
+              Asignar landings — {landingsPanelCashier?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Vincula cada sesion de WhatsApp con las landings que recibiran sus leads.
+            </DialogDescription>
+          </DialogHeader>
+          {landingsPanelCashier && (
+            <AdminCashierLandingsPanel cashier={landingsPanelCashier} />
           )}
         </DialogContent>
       </Dialog>

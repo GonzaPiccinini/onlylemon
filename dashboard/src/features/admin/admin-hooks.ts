@@ -17,7 +17,7 @@ import type {
 
 type ConversionsTotalsFilters = Omit<ConversionsFilters, "page" | "pageSize">;
 
-const adminKeys = {
+export const adminKeys = {
   cashiers: ["admin", "cashiers"] as const,
   cashierSessions: (cashierId: string) => ["admin", "cashiers", cashierId, "sessions"] as const,
   sessionLandings: (sessionId: string) => ["admin", "sessions", sessionId, "landings"] as const,

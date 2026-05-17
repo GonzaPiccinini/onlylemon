@@ -8,7 +8,6 @@ import {
   PencilLineIcon,
   PhoneIcon,
   PlusIcon,
-  SmartphoneIcon,
   Trash2Icon,
   ToggleLeftIcon,
   ToggleRightIcon,
@@ -17,7 +16,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -48,14 +46,11 @@ import {
 import type { Landing, LandingFallbackPhone } from "@/types/domain";
 import { formatDateTime } from "@/lib/format";
 import {
-  useAdminCashiers,
   useCreateLanding,
   useCreateLandingFallbackPhone,
   useDeleteLandingFallbackPhone,
   useLandingFallbackPhones,
-  useLandingSessions,
   useLandings,
-  useReplaceSessionLandings,
   useSetLandingStatus,
   useUpdateLanding,
   useUpdateLandingFallbackPhone,
@@ -424,123 +419,6 @@ const FallbackPhonesPanel = ({ landing }: FallbackPhonesPanelProps) => {
 };
 
 // ---------------------------------------------------------------------------
-// LandingSessionsPanel — F4: session binding UI for a landing
-// ---------------------------------------------------------------------------
-
-type LandingSessionsPanelProps = {
-  landing: Landing;
-};
-
-const LandingSessionsPanel = ({ landing }: LandingSessionsPanelProps) => {
-  const { data: boundSessions = [], isLoading: loadingBound } = useLandingSessions(landing.id);
-  const { data: cashiers = [], isLoading: loadingCashiers } = useAdminCashiers();
-  const replaceSessionLandings = useReplaceSessionLandings('');
-
-  // Collect all sessions across all cashiers
-  const allSessions = cashiers.flatMap((c) =>
-    c.sessions.map((s) => ({ ...s, cashierName: c.name })),
-  );
-
-  const boundSessionIds = new Set(boundSessions.map((s) => s.id));
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(boundSessionIds);
-
-  // Sync when boundSessions loads/changes
-  const [synced, setSynced] = useState(false);
-  if (!synced && !loadingBound) {
-    setSelectedIds(new Set(boundSessions.map((s) => s.id)));
-    setSynced(true);
-  }
-
-  const toggleSession = (sessionId: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(sessionId)) next.delete(sessionId);
-      else next.add(sessionId);
-      return next;
-    });
-  };
-
-  const handleSave = async () => {
-    // For each session, call replaceSessionLandings to bind/unbind this landing
-    const tasks: Promise<void>[] = [];
-    for (const session of allSessions) {
-      const wasSelected = boundSessionIds.has(session.id);
-      const isSelected = selectedIds.has(session.id);
-      if (wasSelected === isSelected) continue;
-
-      // Re-use the hook per-session
-      const currentLandings = await import('@/api/admin.service').then((m) =>
-        m.adminService.getSessionLandings(session.id)
-      );
-      const currentIds = currentLandings.map((l) => l.id);
-      const newIds = isSelected
-        ? [...new Set([...currentIds, landing.id])]
-        : currentIds.filter((id) => id !== landing.id);
-
-      tasks.push(
-        import('@/api/admin.service').then((m) =>
-          m.adminService.replaceSessionLandings(session.id, { landingIds: newIds })
-        ).then(() => undefined)
-      );
-    }
-
-    try {
-      await Promise.all(tasks);
-      toast.success('Sesiones actualizadas');
-    } catch {
-      toast.error('No se pudieron actualizar las sesiones');
-    }
-  };
-
-  if (loadingBound || loadingCashiers) {
-    return (
-      <div className='px-4 pb-3 pt-2 text-sm text-muted-foreground'>
-        Cargando sesiones...
-      </div>
-    );
-  }
-
-  return (
-    <div className='flex flex-col gap-4'>
-      <p className='text-sm text-muted-foreground'>
-        Selecciona las sesiones de WhatsApp que recibiran leads de esta landing.
-      </p>
-      {allSessions.length === 0 ? (
-        <p className='text-sm text-muted-foreground'>
-          No hay sesiones de WhatsApp disponibles. Crea cajeros con sesiones primero.
-        </p>
-      ) : (
-        <div className='flex max-h-[320px] flex-col gap-2 overflow-y-auto rounded-lg border p-3'>
-          {allSessions.map((session) => (
-            <label
-              key={session.id}
-              className='flex items-center gap-3 rounded-md border p-2 cursor-pointer hover:bg-accent/50'
-            >
-              <Checkbox
-                checked={selectedIds.has(session.id)}
-                onCheckedChange={() => toggleSession(session.id)}
-              />
-              <div className='min-w-0 flex-1'>
-                <p className='truncate text-sm font-medium font-mono'>{session.sessionName}</p>
-                <p className='text-xs text-muted-foreground'>
-                  Cajero: {session.cashierName}
-                  {session.whatsappPhoneNumber ? ` · ${session.whatsappPhoneNumber}` : ''}
-                </p>
-              </div>
-            </label>
-          ))}
-        </div>
-      )}
-      <DialogFooter>
-        <Button onClick={handleSave} disabled={replaceSessionLandings.isPending}>
-          {replaceSessionLandings.isPending ? 'Guardando...' : 'Guardar sesiones'}
-        </Button>
-      </DialogFooter>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
 // Main page component
 // ---------------------------------------------------------------------------
 
@@ -553,7 +431,6 @@ export const AdminLandingsPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingLanding, setEditingLanding] = useState<Landing | null>(null);
   const [fallbacksLanding, setFallbacksLanding] = useState<Landing | null>(null);
-  const [sessionsLanding, setSessionsLanding] = useState<Landing | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -808,13 +685,6 @@ export const AdminLandingsPage = () => {
                                 </MenuPrimitive.Item>
                                 <MenuPrimitive.Item
                                   className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                  onClick={() => setSessionsLanding(landing)}
-                                >
-                                  <SmartphoneIcon className="size-4" />
-                                  Sesiones vinculadas
-                                </MenuPrimitive.Item>
-                                <MenuPrimitive.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                                   onClick={() => toggleLanding(landing)}
                                 >
                                   {landing.status === "ACTIVE" ? (
@@ -936,25 +806,6 @@ export const AdminLandingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* F4: Sessions binding dialog */}
-      <Dialog
-        open={Boolean(sessionsLanding)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSessionsLanding(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Sesiones vinculadas</DialogTitle>
-            <DialogDescription>
-              Selecciona las sesiones de WhatsApp que recibirán leads de esta landing.
-            </DialogDescription>
-          </DialogHeader>
-          {sessionsLanding && <LandingSessionsPanel landing={sessionsLanding} />}
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };

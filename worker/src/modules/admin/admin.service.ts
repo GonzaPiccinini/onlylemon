@@ -196,7 +196,7 @@ type ListCashiersDeps = {
     status: string;
     maxSessions: number;
     createdAt: Date;
-    sessions: Array<{ sessionName: string }>;
+    sessions: Array<{ sessionName: string; whatsappPhoneNumber?: string | null }>;
     activity: Array<{ createdAt: Date }>;
   }>>;
   getSessions: () => Promise<Array<{ name: string; status: string }>>;
@@ -218,8 +218,13 @@ export const listCashiersServiceImpl = async (deps: ListCashiersDeps) => {
     const activeActivity = cashier.activity[0] ?? null;
     const hasActiveWorkSession = activeActivity !== null;
 
-    const workingSessionsCount = cashier.sessions.filter(
-      (s) => wahaStatusByName.get(s.sessionName) === 'WORKING',
+    const enrichedSessions = cashier.sessions.map((s) => ({
+      ...s,
+      wahaStatus: wahaStatusByName.get(s.sessionName) ?? 'STOPPED',
+    }));
+
+    const workingSessionsCount = enrichedSessions.filter(
+      (s) => s.wahaStatus === 'WORKING',
     ).length;
 
     // Legacy: canOperateLeads = ACTIVE + at least 1 WORKING session
@@ -232,7 +237,7 @@ export const listCashiersServiceImpl = async (deps: ListCashiersDeps) => {
       status: cashier.status,
       maxSessions: cashier.maxSessions,
       createdAt: cashier.createdAt,
-      sessions: cashier.sessions,
+      sessions: enrichedSessions,
       workingSessionsCount,
       hasActiveWorkSession,
       sessionStartedAt: activeActivity?.createdAt ?? null,

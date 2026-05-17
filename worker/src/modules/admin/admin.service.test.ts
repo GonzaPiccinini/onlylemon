@@ -1792,3 +1792,100 @@ test('listCashiersServiceImpl: does NOT call getSessions more than once (batch)'
 
   assert.equal(callCount, 1, 'getSessions must be called exactly once regardless of cashier count');
 });
+
+// ---------------------------------------------------------------------------
+// UX-refactor — listCashiersServiceImpl: sessions enriched with wahaStatus
+// ---------------------------------------------------------------------------
+
+test('listCashiersServiceImpl: each session is enriched with wahaStatus from WAHA map', async () => {
+  const { listCashiersServiceImpl } = await import('./admin.service.js') as {
+    listCashiersServiceImpl: (deps: {
+      listCashiers: () => Promise<unknown[]>;
+      getSessions: () => Promise<{ name: string; status: string }[]>;
+    }) => Promise<Array<Record<string, unknown>>>;
+  };
+
+  const cashiers = [
+    {
+      id: 'c1',
+      user: { name: 'Ana', username: 'ana' },
+      status: 'ACTIVE',
+      maxSessions: 2,
+      createdAt: new Date('2026-01-01'),
+      sessions: [
+        { sessionName: 'session-a1', whatsappPhoneNumber: '+549111' },
+        { sessionName: 'session-a2', whatsappPhoneNumber: null },
+      ],
+      activity: [],
+    },
+    {
+      id: 'c2',
+      user: { name: 'Bob', username: 'bob' },
+      status: 'ACTIVE',
+      maxSessions: 1,
+      createdAt: new Date('2026-01-02'),
+      sessions: [
+        { sessionName: 'session-b1', whatsappPhoneNumber: null },
+      ],
+      activity: [],
+    },
+  ];
+
+  const wahaSessions = [
+    { name: 'session-a1', status: 'WORKING' },
+    { name: 'session-a2', status: 'SCAN_QR_CODE' },
+    // session-b1 not in map → should default to 'STOPPED'
+  ];
+
+  const result = await listCashiersServiceImpl({
+    listCashiers: async () => cashiers,
+    getSessions: async () => wahaSessions,
+  });
+
+  const c1 = result.find((r) => r.id === 'c1');
+  const c2 = result.find((r) => r.id === 'c2');
+
+  assert.ok(c1, 'c1 should exist');
+  assert.ok(c2, 'c2 should exist');
+
+  const c1Sessions = c1?.sessions as Array<{ sessionName: string; wahaStatus: string }>;
+  const c2Sessions = c2?.sessions as Array<{ sessionName: string; wahaStatus: string }>;
+
+  const a1 = c1Sessions.find((s) => s.sessionName === 'session-a1');
+  const a2 = c1Sessions.find((s) => s.sessionName === 'session-a2');
+  const b1 = c2Sessions.find((s) => s.sessionName === 'session-b1');
+
+  assert.equal(a1?.wahaStatus, 'WORKING', 'session-a1 should be WORKING');
+  assert.equal(a2?.wahaStatus, 'SCAN_QR_CODE', 'session-a2 should be SCAN_QR_CODE');
+  assert.equal(b1?.wahaStatus, 'STOPPED', 'session-b1 not in WAHA map should default to STOPPED');
+});
+
+test('listCashiersServiceImpl: sessions default to STOPPED when WAHA throws', async () => {
+  const { listCashiersServiceImpl } = await import('./admin.service.js') as {
+    listCashiersServiceImpl: (deps: {
+      listCashiers: () => Promise<unknown[]>;
+      getSessions: () => Promise<{ name: string; status: string }[]>;
+    }) => Promise<Array<Record<string, unknown>>>;
+  };
+
+  const cashiers = [
+    {
+      id: 'c1',
+      user: { name: 'Ana', username: 'ana' },
+      status: 'ACTIVE',
+      maxSessions: 1,
+      createdAt: new Date('2026-01-01'),
+      sessions: [{ sessionName: 'session-a1', whatsappPhoneNumber: null }],
+      activity: [],
+    },
+  ];
+
+  const result = await listCashiersServiceImpl({
+    listCashiers: async () => cashiers,
+    getSessions: async () => { throw new Error('WAHA unreachable'); },
+  });
+
+  const c1 = result[0];
+  const sessions = c1?.sessions as Array<{ sessionName: string; wahaStatus: string }>;
+  assert.equal(sessions[0]?.wahaStatus, 'STOPPED', 'should default to STOPPED when WAHA fails');
+});
