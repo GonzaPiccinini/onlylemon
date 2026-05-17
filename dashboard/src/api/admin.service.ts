@@ -69,13 +69,6 @@ export const adminService = {
     await http.post(endpoints.admin.cashierFinishSession(cashierId));
   },
 
-  async replaceCashierLandings(cashierId: string, landingIds: string[]): Promise<Landing[]> {
-    const { data } = await http.put<Landing[]>(endpoints.admin.cashierLandings(cashierId), {
-      landingIds,
-    });
-    return data;
-  },
-
   async listLandings(): Promise<Landing[]> {
     const { data } = await http.get<Landing[]>(endpoints.admin.landings);
     return data;

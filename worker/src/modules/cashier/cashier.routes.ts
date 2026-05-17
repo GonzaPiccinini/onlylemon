@@ -18,9 +18,7 @@ import {
   startSessionHandler,
   updateAccountHandler,
   whatsappLinkCompleteHandler,
-  whatsappLinkRefreshHandler,
   whatsappLinkResetHandler,
-  whatsappLinkStartHandler,
   whatsappLinkStateHandler,
   whatsappLinkStatusHandler,
 } from './cashier.controller.js';
@@ -41,8 +39,6 @@ cashierRouter.get('/runtime-state', cashierRuntimeStateHandler);
 cashierRouter.patch('/account', updateAccountHandler);
 
 cashierRouter.get('/whatsapp/link-state', whatsappLinkStateHandler);
-cashierRouter.post('/whatsapp/link/start', whatsappLinkStartHandler);
-cashierRouter.post('/whatsapp/link/refresh', whatsappLinkRefreshHandler);
 cashierRouter.post('/whatsapp/link/reset', whatsappLinkResetHandler);
 cashierRouter.get('/whatsapp/link/status', whatsappLinkStatusHandler);
 cashierRouter.post('/whatsapp/link/complete', whatsappLinkCompleteHandler);

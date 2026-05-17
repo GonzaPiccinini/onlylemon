@@ -82,18 +82,6 @@ export const cashierService = {
     return data;
   },
 
-  async startWhatsappLink(phoneNumber: string): Promise<WhatsappLinkArtifacts> {
-    const { data } = await http.post<WhatsappLinkArtifacts>(endpoints.cashier.whatsappLinkStart, {
-      phoneNumber,
-    });
-    return data;
-  },
-
-  async refreshWhatsappLink(): Promise<WhatsappLinkArtifacts> {
-    const { data } = await http.post<WhatsappLinkArtifacts>(endpoints.cashier.whatsappLinkRefresh);
-    return data;
-  },
-
   async resetWhatsappLink(): Promise<void> {
     await http.post(endpoints.cashier.whatsappLinkReset);
   },

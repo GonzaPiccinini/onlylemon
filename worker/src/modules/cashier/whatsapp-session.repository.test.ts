@@ -24,34 +24,6 @@ process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
 // C1: getSessionBySessionName — unit tests (repo contract, no real DB)
 // ---------------------------------------------------------------------------
 
-test('C1: getActiveLandingSessionCandidatesByMetaPixelId — filters by workingSessionNames', async () => {
-  // We test the pure filtering logic through the exported helper
-  // The actual Prisma query is tested via integration; here we test the shape contract.
-
-  // Simulate what the function would return for a landing with 2 sessions,
-  // only one of which is WORKING.
-  const allCandidates = [
-    { sessionId: 's1', sessionName: 'session-a', cashierId: 'c1', activeSince: new Date('2026-05-01T10:00:00Z') },
-    { sessionId: 's2', sessionName: 'session-b', cashierId: 'c2', activeSince: new Date('2026-05-01T11:00:00Z') },
-  ];
-  const workingNames = new Set(['session-a']);
-  const filtered = allCandidates.filter((c) => workingNames.has(c.sessionName));
-
-  assert.equal(filtered.length, 1);
-  assert.equal(filtered[0].sessionName, 'session-a');
-  assert.equal(filtered[0].cashierId, 'c1');
-});
-
-test('C1: getActiveLandingSessionCandidatesByMetaPixelId — returns empty when no sessions working', async () => {
-  const allCandidates = [
-    { sessionId: 's1', sessionName: 'session-a', cashierId: 'c1', activeSince: null },
-  ];
-  const workingNames = new Set<string>();
-  const filtered = allCandidates.filter((c) => workingNames.has(c.sessionName));
-
-  assert.equal(filtered.length, 0);
-});
-
 test('C1: getSessionsBoundToLanding — maps session rows to BoundSessionCandidate shape', async () => {
   // Simulate the shape returned by getSessionsBoundToLanding
   const rows = [

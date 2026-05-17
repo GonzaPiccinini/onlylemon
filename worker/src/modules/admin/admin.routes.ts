@@ -20,13 +20,11 @@ import {
   getSessionLandingsHandler,
   listAdminConversionsHandler,
   listAdminsHandler,
-  listCashierLandingsHandler,
   listCashierSessionsHandler,
   listCashiersHandler,
   listLandingFallbackPhonesHandler,
   listLandingsHandler,
   listLeadsHandler,
-  replaceCashierLandingsHandler,
   replaceSessionLandingsHandler,
   setAdminStatusHandler,
   startWhatsappLinkForSessionAdminHandler,
@@ -68,9 +66,6 @@ adminRouter.post(
 adminRouter.get('/cashiers/:cashierId/whatsapp-sessions', listCashierSessionsHandler);
 // E2: create session for a cashier
 adminRouter.post('/cashiers/:cashierId/whatsapp-sessions', createCashierSessionHandler);
-adminRouter.get('/cashiers/:cashierId/landings', listCashierLandingsHandler);
-adminRouter.put('/cashiers/:cashierId/landings', replaceCashierLandingsHandler);
-
 // E3: delete a session
 adminRouter.delete('/whatsapp-sessions/:sessionId', deleteCashierSessionHandler);
 // E4a: get landings for a session

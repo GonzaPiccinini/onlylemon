@@ -15,7 +15,6 @@ import {
   enableCashier,
   findAdminById,
   getConversionsByLeadContactedDateRange,
-  getCashierLandings,
   getConversionsAggregateForLeads,
   getConversionsByDateRange,
   getFirstConversionsByDateRange,
@@ -31,7 +30,6 @@ import {
   listLandingFallbackPhonesByLandingId,
   listLandings,
   listLeads,
-  replaceCashierLandings,
   replaceLandingFallbacks,
   setAdminStatus,
   setLandingStatus,
@@ -770,11 +768,6 @@ export const setLandingStatusService = async (
   return toLandingDto(landing);
 };
 
-export const listCashierLandingsService = async (cashierId: string) => {
-  const items = await getCashierLandings(cashierId);
-  return items.map((item) => toLandingDto(item.landing));
-};
-
 export const updateAdminAccountService = async (
   userId: string,
   input: UpdateAdminAccountInput,
@@ -784,14 +777,6 @@ export const updateAdminAccountService = async (
     ...(input.password ? { password: hashPassword(input.password) } : {}),
   });
   return { id: updated.id, name: updated.name, username: updated.username };
-};
-
-export const replaceCashierLandingsService = async (
-  cashierId: string,
-  landingIds: string[],
-) => {
-  const items = await replaceCashierLandings(cashierId, landingIds);
-  return items.map((item) => toLandingDto(item.landing));
 };
 
 // ---------------------------------------------------------------------------

@@ -20,13 +20,11 @@ import {
   getCurrentSessionService,
   listCashierConversionsService,
   listMySessionsService,
-  refreshWhatsappLinkService,
   refreshWhatsappLinkForSessionService,
   resetWhatsappLinkService,
   resetWhatsappLinkForSessionService,
   listSessionsService,
   searchCashierLeadsService,
-  startWhatsappLinkService,
   startWhatsappLinkForSessionService,
   startSessionService,
   updateCashierAccountService,
@@ -221,98 +219,6 @@ export const whatsappLinkStateHandler = async (req: Request, res: Response) => {
 
   const data = await getWhatsappLinkStateService(cashierId);
   return res.status(200).json(data);
-};
-
-export const whatsappLinkStartHandler = async (req: Request, res: Response) => {
-  const cashierId = getCashierId(req);
-  if (!cashierId) {
-    return res.status(400).json({ error: 'Cashier profile not linked' });
-  }
-
-  const parsed = startWhatsappLinkSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({
-      error: 'Invalid payload',
-      details: parsed.error.flatten(),
-    });
-  }
-
-  try {
-    const data = await startWhatsappLinkService(cashierId, parsed.data.phoneNumber);
-    return res.status(200).json(data);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'WAHA_SESSION_NOT_READY') {
-      return res.status(409).json({
-        error: 'WAHA_SESSION_NOT_READY',
-        message: 'WhatsApp session is starting. Try again in a few seconds.',
-      });
-    }
-
-    if (error instanceof Error && error.message === 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE') {
-      return res.status(409).json({
-        error: 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE',
-        message: 'Could not generate QR or pairing code. Try again.',
-      });
-    }
-
-    if (error instanceof Error && error.message === 'WAHA_SESSION_FAILED') {
-      return res.status(409).json({
-        error: 'WAHA_SESSION_FAILED',
-        message: 'WhatsApp session failed to start. Try again.',
-      });
-    }
-
-    if (error instanceof Error && error.message.startsWith('WAHA_START_FAILED:')) {
-      return res.status(502).json({
-        error: 'WAHA_START_FAILED',
-        message: 'Could not start WhatsApp session in WAHA.',
-      });
-    }
-
-    if (error instanceof Error && error.message === 'WAHA_SESSION_NAME_TOO_LONG') {
-      return res.status(409).json({
-        error: 'WAHA_SESSION_NAME_TOO_LONG',
-        message: 'Generated WhatsApp session name is too long. Try again.',
-      });
-    }
-
-    return res.status(502).json({ error: 'Could not request whatsapp auth artifacts' });
-  }
-};
-
-export const whatsappLinkRefreshHandler = async (req: Request, res: Response) => {
-  const cashierId = getCashierId(req);
-  if (!cashierId) {
-    return res.status(400).json({ error: 'Cashier profile not linked' });
-  }
-
-  try {
-    const data = await refreshWhatsappLinkService(cashierId);
-    if (!data) {
-      return res.status(409).json({
-        error: 'MAX_REFRESH_REACHED',
-        message: 'Maximum refresh attempts reached. Use reset to continue.',
-      });
-    }
-
-    return res.status(200).json(data);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'PHONE_NUMBER_REQUIRED') {
-      return res.status(409).json({
-        error: 'PHONE_NUMBER_REQUIRED',
-        message: 'Phone number is required before requesting refresh.',
-      });
-    }
-
-    if (error instanceof Error && error.message === 'SESSION_NAME_REQUIRED') {
-      return res.status(409).json({
-        error: 'SESSION_NAME_REQUIRED',
-        message: 'Session is not initialized. Start link flow again.',
-      });
-    }
-
-    return res.status(502).json({ error: 'Could not refresh whatsapp auth artifacts' });
-  }
 };
 
 export const whatsappLinkResetHandler = async (req: Request, res: Response) => {

@@ -544,16 +544,6 @@ export const setLandingStatus = (
     data: { status },
   });
 
-export const getCashierLandings = (cashierId: string) =>
-  prisma.whatsappSessionLanding.findMany({
-    where: {
-      session: { cashierId },
-    },
-    include: {
-      landing: true,
-    },
-  });
-
 export const updateAdminAccount = (
   userId: string,
   input: { username?: string; password?: string },
@@ -703,70 +693,6 @@ export const getSessionsBoundToLandingId = (landingId: string) =>
       },
     },
     orderBy: { createdAt: 'asc' },
-  });
-
-export const replaceCashierLandings = async (
-  cashierId: string,
-  landingIds: string[],
-) =>
-  prisma.$transaction(async (tx) => {
-    // Validate cashier exists
-    await tx.cashier.findUniqueOrThrow({
-      where: { id: cashierId },
-    });
-
-    if (landingIds.length > 0) {
-      const existing = await tx.landing.findMany({
-        where: {
-          id: {
-            in: landingIds,
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (existing.length !== new Set(landingIds).size) {
-        throw new Error('Some landingIds do not exist');
-      }
-    }
-
-    // Get all sessions for this cashier and replace their landing bindings
-    const cashierSessions = await tx.whatsappSession.findMany({
-      where: { cashierId },
-      select: { id: true },
-    });
-
-    const sessionIds = cashierSessions.map((s) => s.id);
-
-    if (sessionIds.length > 0) {
-      await tx.whatsappSessionLanding.deleteMany({
-        where: {
-          sessionId: { in: sessionIds },
-        },
-      });
-
-      if (landingIds.length > 0) {
-        // Bind all sessions to the specified landings
-        const bindings = sessionIds.flatMap((sessionId) =>
-          landingIds.map((landingId) => ({ sessionId, landingId })),
-        );
-        await tx.whatsappSessionLanding.createMany({
-          data: bindings,
-          skipDuplicates: true,
-        });
-      }
-    }
-
-    return tx.whatsappSessionLanding.findMany({
-      where: {
-        session: { cashierId },
-      },
-      include: {
-        landing: true,
-      },
-    });
   });
 
 // ---------------------------------------------------------------------------

@@ -9,7 +9,6 @@ import {
   dateRangeSchema,
   leadHistoryQuerySchema,
   leadsFilterSchema,
-  replaceCashierLandingsSchema,
   replaceSessionLandingsSchema,
   setAdminStatusSchema,
   updateAdminAccountSchema,
@@ -39,13 +38,11 @@ import {
   LastFallbackError,
   listAdminConversionsService,
   listAdminsService,
-  listCashierLandingsService,
   listCashierSessionsService,
   listCashiersService,
   listLandingFallbackPhonesService,
   listLeadsService,
   listLandingsService,
-  replaceCashierLandingsService,
   setAdminStatusService,
   setLandingStatusService,
   SelfDisableError,
@@ -301,40 +298,6 @@ export const enableLandingHandler = async (req: Request, res: Response) => {
     return res.status(200).json(data);
   } catch {
     return res.status(404).json({ error: 'Landing not found' });
-  }
-};
-
-export const listCashierLandingsHandler = async (req: Request, res: Response) => {
-  try {
-    const data = await listCashierLandingsService(req.params.cashierId);
-    return res.status(200).json(data);
-  } catch {
-    return res.status(404).json({ error: 'Cashier not found' });
-  }
-};
-
-export const replaceCashierLandingsHandler = async (
-  req: Request,
-  res: Response,
-) => {
-  const parsed = replaceCashierLandingsSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({
-      error: 'Invalid payload',
-      details: parsed.error.flatten(),
-    });
-  }
-
-  try {
-    const data = await replaceCashierLandingsService(
-      req.params.cashierId,
-      parsed.data.landingIds,
-    );
-    return res.status(200).json(data);
-  } catch (error) {
-    return res.status(409).json({
-      error: error instanceof Error ? error.message : 'Could not replace landings',
-    });
   }
 };
 

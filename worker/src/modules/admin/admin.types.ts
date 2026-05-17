@@ -55,10 +55,6 @@ export const updateLandingSchema = z.object({
   fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required').optional(),
 });
 
-export const replaceCashierLandingsSchema = z.object({
-  landingIds: z.array(z.string().trim().min(1)),
-});
-
 // ---------------------------------------------------------------------------
 // WhatsappSession admin schemas (E2, E6)
 // ---------------------------------------------------------------------------

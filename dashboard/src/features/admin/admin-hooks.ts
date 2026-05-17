@@ -54,21 +54,6 @@ export const useCreateCashier = () => {
   });
 };
 
-export const useReplaceCashierLandings = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ cashierId, landingIds }: { cashierId: string; landingIds: string[] }) =>
-      adminService.replaceCashierLandings(cashierId, landingIds),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminKeys.cashiers }),
-        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
-      ]);
-    },
-  });
-};
-
 export const useUpdateCashier = () => {
   const queryClient = useQueryClient();
 

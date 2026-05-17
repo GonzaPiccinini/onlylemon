@@ -182,22 +182,6 @@ export const useWhatsappLinkState = () =>
     queryFn: cashierService.getWhatsappLinkState,
   });
 
-export const useStartWhatsappLink = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (phoneNumber: string) => cashierService.startWhatsappLink(phoneNumber),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkState });
-    },
-  });
-};
-
-export const useRefreshWhatsappLink = () =>
-  useMutation({
-    mutationFn: cashierService.refreshWhatsappLink,
-  });
-
 export const useResetWhatsappLink = () => {
   const queryClient = useQueryClient();
 
