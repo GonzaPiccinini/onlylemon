@@ -1,7 +1,8 @@
 import { hashPassword } from '../../utils/password.js';
+import { prisma } from '../../persistence/prisma/client.js';
 import type { UpdateAdminAccountInput, UpdateAdminInput } from './admin.types.js';
 import type { AdminStatus, Role } from '../../generated/prisma/client.js';
-import { deleteSession, getSessions } from '../../integrations/waha/client.js';
+import { getSessions } from '../../integrations/waha/client.js';
 import { emitCashierRuntimeStateChanged } from '../cashier/runtime-events.js';
 import {
   createAdmin,
@@ -39,11 +40,22 @@ import {
   updateCashier,
   updateLanding,
   updateLandingFallbackPhone,
+  updateCashierMaxSessions,
+  getSessionWithLandings,
+  replaceSessionLandings,
+  getSessionsBoundToLandingId,
 } from './admin.repository.js';
+import {
+  createSession,
+  deleteWhatsappSession,
+  listSessionsByCashier,
+  SESSION_CAP_REACHED,
+  SESSION_NOT_FOUND,
+} from '../cashier/whatsapp-session.service.js';
+import { _startWhatsappLinkForSessionUnsafe } from '../cashier/cashier.service.js';
 import {
   finishCurrentSessionActivity,
   getCurrentSessionActivity,
-  updateCashierWhatsappLink,
 } from '../cashier/cashier.repository.js';
 import type { ConversionsTotalsDto, DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
 import {
@@ -177,35 +189,60 @@ const buildWahaStatusByName = async (): Promise<Map<string, string>> => {
   }
 };
 
-export const listCashiersService = async () => {
-  const cashiers = await listCashiers();
-  const wahaStatusByName = await buildWahaStatusByName();
+type ListCashiersDeps = {
+  listCashiers: () => Promise<Array<{
+    id: string;
+    user: { name: string; username: string };
+    status: string;
+    maxSessions: number;
+    createdAt: Date;
+    sessions: Array<{ sessionName: string }>;
+    activity: Array<{ createdAt: Date }>;
+  }>>;
+  getSessions: () => Promise<Array<{ name: string; status: string }>>;
+};
+
+export const listCashiersServiceImpl = async (deps: ListCashiersDeps) => {
+  const cashiers = await deps.listCashiers();
+
+  let wahaStatusByName = new Map<string, string>();
+  try {
+    const wahaSessions = await deps.getSessions();
+    wahaStatusByName = new Map(wahaSessions.map((s) => [s.name, s.status]));
+  } catch {
+    // WAHA unavailable — degrade gracefully (workingSessionsCount = 0 for all)
+    console.warn('[admin] WAHA getSessions failed; workingSessionsCount degraded to 0');
+  }
 
   return cashiers.map((cashier) => {
     const activeActivity = cashier.activity[0] ?? null;
     const hasActiveWorkSession = activeActivity !== null;
-    const wahaStatus = cashier.sessionName
-      ? wahaStatusByName.get(cashier.sessionName) ?? 'UNLINKED'
-      : 'UNLINKED';
-    const canOperateLeads =
-      cashier.status === 'ACTIVE' &&
-      Boolean(cashier.sessionName) &&
-      wahaStatus === 'WORKING';
+
+    const workingSessionsCount = cashier.sessions.filter(
+      (s) => wahaStatusByName.get(s.sessionName) === 'WORKING',
+    ).length;
+
+    // Legacy: canOperateLeads = ACTIVE + at least 1 WORKING session
+    const canOperateLeads = cashier.status === 'ACTIVE' && workingSessionsCount > 0;
 
     return {
       id: cashier.id,
       name: cashier.user.name,
       username: cashier.user.username,
       status: cashier.status,
+      maxSessions: cashier.maxSessions,
       createdAt: cashier.createdAt,
-      landings: cashier.landings.map((entry) => toLandingDto(entry.landing)),
+      sessions: cashier.sessions,
+      workingSessionsCount,
       hasActiveWorkSession,
       sessionStartedAt: activeActivity?.createdAt ?? null,
-      wahaStatus,
       canOperateLeads,
     };
   });
 };
+
+export const listCashiersService = async () =>
+  listCashiersServiceImpl({ listCashiers, getSessions });
 
 export const createCashierService = async (input: {
   name: string;
@@ -217,13 +254,25 @@ export const createCashierService = async (input: {
     password: hashPassword(input.password),
   });
 
+  // B6: Auto-create 1 WhatsappSession after cashier row is created
+  const compactId = created.id.replace(/-/g, '');
+  const suffix = Date.now().toString(36);
+  const sessionName = `cashier-${compactId}-${suffix}`;
+  await prisma.whatsappSession.create({
+    data: {
+      cashierId: created.id,
+      sessionName,
+    },
+  });
+
   return {
     id: created.id,
     name: created.user.name,
     username: created.user.username,
     status: created.status,
+    maxSessions: created.maxSessions,
     createdAt: created.createdAt,
-    landings: [],
+    sessions: created.sessions,
   };
 };
 
@@ -244,32 +293,20 @@ export const updateCashierService = async (
     name: updated.user.name,
     username: updated.user.username,
     status: updated.status,
+    maxSessions: updated.maxSessions,
     createdAt: updated.createdAt,
-    landings: updated.landings.map((entry) => toLandingDto(entry.landing)),
+    sessions: updated.sessions,
   };
 };
 
 export const disableCashierService = async (cashierId: string) => {
   const now = new Date();
-  const cashier = await getCashierById(cashierId);
 
-  if (cashier?.sessionName) {
-    try {
-      await deleteSession(cashier.sessionName);
-    } catch {
-      // best effort cleanup on WAHA side
-    }
-  }
+  // B5: Cascade delete all WhatsappSessions (WAHA best-effort + DB always)
+  const { disableCashierSessions } = await import('../cashier/whatsapp-session.service.js');
+  await disableCashierSessions(cashierId);
 
-  await Promise.all([
-    finishCurrentSessionActivity(cashierId, now),
-    updateCashierWhatsappLink(cashierId, {
-      sessionName: null,
-      whatsappPhoneNumber: null,
-      whatsappLinkRefreshCount: 0,
-      whatsappLinkUpdatedAt: now,
-    }),
-  ]);
+  await finishCurrentSessionActivity(cashierId, now);
 
   const disabled = await disableCashier(cashierId);
   emitCashierRuntimeStateChanged(cashierId);
@@ -279,8 +316,9 @@ export const disableCashierService = async (cashierId: string) => {
     name: disabled.user.name,
     username: disabled.user.username,
     status: disabled.status,
+    maxSessions: disabled.maxSessions,
     createdAt: disabled.createdAt,
-    landings: disabled.landings.map((entry) => toLandingDto(entry.landing)),
+    sessions: disabled.sessions,
   };
 };
 
@@ -308,8 +346,9 @@ export const enableCashierService = async (cashierId: string) => {
     name: enabled.user.name,
     username: enabled.user.username,
     status: enabled.status,
+    maxSessions: enabled.maxSessions,
     createdAt: enabled.createdAt,
-    landings: enabled.landings.map((entry) => toLandingDto(entry.landing)),
+    sessions: enabled.sessions,
   };
 };
 
@@ -1142,3 +1181,169 @@ export const updateLandingServiceWithFallbacks = async (
     fallbackPhones?: { phone: string; label?: string; order?: number }[];
   },
 ) => updateLandingServiceImpl({ updateLanding, replaceLandingFallbacks }, landingId, input);
+
+// ---------------------------------------------------------------------------
+// E — WhatsappSession admin services
+// ---------------------------------------------------------------------------
+
+export class SessionCapReachedError extends Error {
+  constructor() {
+    super(SESSION_CAP_REACHED);
+    this.name = 'SessionCapReachedError';
+  }
+}
+
+export class SessionNotFoundError extends Error {
+  constructor() {
+    super(SESSION_NOT_FOUND);
+    this.name = 'SessionNotFoundError';
+  }
+}
+
+/**
+ * E1 — List sessions for a cashier (with live WAHA status).
+ */
+export const listCashierSessionsService = async (cashierId: string) => {
+  const cashier = await getCashierById(cashierId);
+  if (!cashier) {
+    return null;
+  }
+  const sessions = await listSessionsByCashier(cashierId);
+  const wahaStatusByName = await buildWahaStatusByName();
+
+  return sessions.map((s) => ({
+    id: s.id,
+    cashierId: s.cashierId,
+    sessionName: s.sessionName,
+    whatsappPhoneNumber: s.whatsappPhoneNumber,
+    refreshCount: s.refreshCount,
+    lastRefreshAt: s.lastRefreshAt,
+    wahaStatus: wahaStatusByName.get(s.sessionName) ?? 'STOPPED',
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+  }));
+};
+
+/**
+ * E2 — Create new session for a cashier (enforces maxSessions).
+ */
+export const createCashierSessionService = async (cashierId: string) => {
+  const cashier = await getCashierById(cashierId);
+  if (!cashier) {
+    return null;
+  }
+  try {
+    const session = await createSession(cashierId);
+    emitCashierRuntimeStateChanged(cashierId);
+    return session;
+  } catch (error) {
+    if (error instanceof Error && error.message === SESSION_CAP_REACHED) {
+      throw new SessionCapReachedError();
+    }
+    throw error;
+  }
+};
+
+/**
+ * E3 — Delete a session (WAHA best-effort + DB).
+ */
+export const deleteCashierSessionService = async (sessionId: string) => {
+  // Capture cashierId BEFORE delete so we can notify the owner's SSE stream
+  const session = await prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    select: { cashierId: true },
+  });
+  try {
+    const result = await deleteWhatsappSession(sessionId);
+    if (session) {
+      emitCashierRuntimeStateChanged(session.cashierId);
+    }
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === SESSION_NOT_FOUND) {
+      throw new SessionNotFoundError();
+    }
+    throw error;
+  }
+};
+
+/**
+ * E4a — Get landings for a session.
+ */
+export const getSessionLandingsService = async (sessionId: string) => {
+  const session = await getSessionWithLandings(sessionId);
+  if (!session) {
+    return null;
+  }
+  return session.landings.map((wsl) => toLandingDto(wsl.landing));
+};
+
+/**
+ * E4b — Replace landings for a session (full-replace semantics).
+ */
+export const replaceSessionLandingsService = async (
+  sessionId: string,
+  landingIds: string[],
+) => {
+  const session = await getSessionWithLandings(sessionId);
+  if (!session) {
+    return null;
+  }
+  const updated = await replaceSessionLandings(sessionId, landingIds);
+  return updated.map((wsl) => toLandingDto(wsl.landing));
+};
+
+/**
+ * E5 (landing side) — Get sessions bound to a landing.
+ */
+export const getLandingSessionsService = async (landingId: string) => {
+  const landing = await prisma.landing.findUnique({ where: { id: landingId } });
+  if (!landing) {
+    return null;
+  }
+  const sessions = await getSessionsBoundToLandingId(landingId);
+  const wahaStatusByName = await buildWahaStatusByName();
+  return sessions.map((s) => ({
+    id: s.id,
+    cashierId: s.cashierId,
+    sessionName: s.sessionName,
+    whatsappPhoneNumber: s.whatsappPhoneNumber,
+    wahaStatus: wahaStatusByName.get(s.sessionName) ?? 'STOPPED',
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+  }));
+};
+
+/**
+ * E6 — Update cashier maxSessions (PATCH /admin/cashiers/:id).
+ */
+export const updateCashierMaxSessionsService = async (
+  cashierId: string,
+  maxSessions: number,
+) => {
+  const updated = await updateCashierMaxSessions(cashierId, maxSessions);
+  if (!updated) {
+    return null;
+  }
+  return {
+    id: updated.id,
+    name: updated.user.name,
+    username: updated.user.username,
+    status: updated.status,
+    maxSessions: updated.maxSessions,
+    createdAt: updated.createdAt,
+    sessions: updated.sessions,
+  };
+};
+
+/**
+ * Admin "Generar QR ahora" — POST /admin/whatsapp-sessions/:sessionId/link
+ * Mirrors the cashier startWhatsappLinkForSessionService but WITHOUT ownership check.
+ * Admins can initiate the WhatsApp QR/pairing flow for any session.
+ */
+export const startWhatsappLinkForSessionAdminService = async (
+  sessionId: string,
+  phoneNumber: string,
+) => {
+  return _startWhatsappLinkForSessionUnsafe(sessionId, phoneNumber);
+};

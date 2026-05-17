@@ -10,9 +10,11 @@ import {
   leadHistoryQuerySchema,
   leadsFilterSchema,
   replaceCashierLandingsSchema,
+  replaceSessionLandingsSchema,
   setAdminStatusSchema,
   updateAdminAccountSchema,
   updateAdminSchema,
+  updateCashierMaxSessionsSchema,
   updateCashierSchema,
   updateLandingFallbackPhoneSchema,
   updateLandingSchema,
@@ -38,6 +40,7 @@ import {
   listAdminConversionsService,
   listAdminsService,
   listCashierLandingsService,
+  listCashierSessionsService,
   listCashiersService,
   listLandingFallbackPhonesService,
   listLeadsService,
@@ -51,7 +54,17 @@ import {
   updateCashierService,
   updateLandingFallbackPhoneService,
   updateLandingServiceWithFallbacks,
+  createCashierSessionService,
+  deleteCashierSessionService,
+  getSessionLandingsService,
+  replaceSessionLandingsService,
+  getLandingSessionsService,
+  updateCashierMaxSessionsService,
+  startWhatsappLinkForSessionAdminService,
+  SessionCapReachedError,
+  SessionNotFoundError,
 } from './admin.service.js';
+import { startWhatsappLinkSchema } from '../cashier/cashier.types.js';
 
 export const updateAdminAccountHandler = async (req: Request, res: Response) => {
   const parsed = updateAdminAccountSchema.safeParse(req.body);
@@ -572,3 +585,148 @@ export const deleteLandingFallbackPhoneHandlerImpl =
 export const deleteLandingFallbackPhoneHandler = deleteLandingFallbackPhoneHandlerImpl({
   deleteFn: deleteLandingFallbackPhoneService,
 });
+
+// ---------------------------------------------------------------------------
+// E — WhatsappSession admin handlers
+// ---------------------------------------------------------------------------
+
+/**
+ * E1 — GET /cashiers/:cashierId/sessions
+ * Lists all sessions for a cashier with live WAHA status.
+ */
+export const listCashierSessionsHandler = async (req: Request, res: Response) => {
+  const data = await listCashierSessionsService(req.params.cashierId);
+  if (data === null) {
+    return res.status(404).json({ error: 'Cashier not found' });
+  }
+  return res.status(200).json(data);
+};
+
+/**
+ * E2 — POST /cashiers/:cashierId/sessions
+ * Creates a new session for a cashier. Returns 409 if at cap.
+ */
+export const createCashierSessionHandler = async (req: Request, res: Response) => {
+  try {
+    const data = await createCashierSessionService(req.params.cashierId);
+    if (data === null) {
+      return res.status(404).json({ error: 'Cashier not found' });
+    }
+    return res.status(201).json(data);
+  } catch (error) {
+    if (error instanceof SessionCapReachedError) {
+      return res.status(409).json({ error: 'SESSION_CAP_REACHED', message: 'Cashier is at max sessions limit' });
+    }
+    return res.status(500).json({ error: 'Could not create session' });
+  }
+};
+
+/**
+ * E3 — DELETE /sessions/:sessionId
+ * Deletes a session (WAHA best-effort + DB).
+ */
+export const deleteCashierSessionHandler = async (req: Request, res: Response) => {
+  try {
+    await deleteCashierSessionService(req.params.sessionId);
+    return res.status(204).send();
+  } catch (error) {
+    if (error instanceof SessionNotFoundError) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    return res.status(500).json({ error: 'Could not delete session' });
+  }
+};
+
+/**
+ * E4a — GET /sessions/:sessionId/landings
+ * Lists landings bound to a session.
+ */
+export const getSessionLandingsHandler = async (req: Request, res: Response) => {
+  const data = await getSessionLandingsService(req.params.sessionId);
+  if (data === null) {
+    return res.status(404).json({ error: 'Session not found' });
+  }
+  return res.status(200).json(data);
+};
+
+/**
+ * E4b — PUT /sessions/:sessionId/landings
+ * Full-replace landings for a session.
+ */
+export const replaceSessionLandingsHandler = async (req: Request, res: Response) => {
+  const parsed = replaceSessionLandingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  const data = await replaceSessionLandingsService(req.params.sessionId, parsed.data.landingIds);
+  if (data === null) {
+    return res.status(404).json({ error: 'Session not found' });
+  }
+  return res.status(200).json(data);
+};
+
+/**
+ * E5 (landing side) — GET /landings/:landingId/sessions
+ * Lists sessions bound to a landing.
+ */
+export const getLandingSessionsHandler = async (req: Request, res: Response) => {
+  const data = await getLandingSessionsService(req.params.landingId);
+  if (data === null) {
+    return res.status(404).json({ error: 'Landing not found' });
+  }
+  return res.status(200).json(data);
+};
+
+/**
+ * E6 — PATCH /cashiers/:cashierId (maxSessions only)
+ * Updates maxSessions for a cashier.
+ */
+export const updateCashierMaxSessionsHandler = async (req: Request, res: Response) => {
+  const parsed = updateCashierMaxSessionsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  const data = await updateCashierMaxSessionsService(req.params.cashierId, parsed.data.maxSessions);
+  if (data === null) {
+    return res.status(404).json({ error: 'Cashier not found' });
+  }
+  return res.status(200).json(data);
+};
+
+/**
+ * Admin "Generar QR ahora" — POST /admin/whatsapp-sessions/:sessionId/link
+ * Initiates WhatsApp QR/pairing flow for any session (no ownership check).
+ * Error mapping mirrors the cashier linkMySessionHandler.
+ */
+export const startWhatsappLinkForSessionAdminHandler = async (req: Request, res: Response) => {
+  const { sessionId } = req.params;
+
+  const parsed = startWhatsappLinkSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const data = await startWhatsappLinkForSessionAdminService(sessionId, parsed.data.phoneNumber);
+    return res.status(200).json(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SESSION_NOT_FOUND') {
+      return res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    }
+    if (error instanceof Error && error.message === 'WAHA_SESSION_NOT_READY') {
+      return res.status(409).json({ error: 'WAHA_SESSION_NOT_READY', message: 'WhatsApp session is starting. Try again in a few seconds.' });
+    }
+    if (error instanceof Error && error.message === 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE') {
+      return res.status(409).json({ error: 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE', message: 'Could not generate QR or pairing code. Try again.' });
+    }
+    if (error instanceof Error && error.message === 'WAHA_SESSION_FAILED') {
+      return res.status(409).json({ error: 'WAHA_SESSION_FAILED', message: 'WhatsApp session failed to start. Try again.' });
+    }
+    return res.status(502).json({ error: 'Could not start whatsapp link for session' });
+  }
+};

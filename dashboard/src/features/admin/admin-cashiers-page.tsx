@@ -9,7 +9,7 @@ import {
   MoreHorizontalIcon,
   PencilLineIcon,
   PlusIcon,
-  TagsIcon,
+  SmartphoneIcon,
   UserX2Icon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,7 +34,6 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -43,7 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Cashier, WahaStatus } from '@/types/domain';
+import type { Cashier } from '@/types/domain';
 import { formatDateTime } from '@/lib/format';
 import {
   useAdminCashiers,
@@ -51,11 +50,10 @@ import {
   useDisableCashier,
   useEnableCashier,
   useFinishCashierWorkSession,
-  useLandings,
-  useReplaceCashierLandings,
   useUpdateCashier,
 } from '@/features/admin/admin-hooks';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { AdminCashierSessionsPanel } from './admin-cashier-sessions-panel';
 
 const createSchema = z.object({
   name: z.string().min(2, 'Nombre obligatorio'),
@@ -77,18 +75,6 @@ const updateSchema = z.object({
 type CreateValues = z.infer<typeof createSchema>;
 type UpdateValues = z.infer<typeof updateSchema>;
 
-const WAHA_STATUS_LABELS: Record<WahaStatus, string> = {
-  WORKING: 'Conectado',
-  SCAN_QR_CODE: 'Escaneando QR',
-  STARTING: 'Iniciando',
-  STOPPED: 'Detenido',
-  FAILED: 'Error',
-  UNLINKED: 'Sin vincular',
-};
-
-const wahaStatusLabel = (status: WahaStatus | undefined): string =>
-  status ? WAHA_STATUS_LABELS[status] : WAHA_STATUS_LABELS.UNLINKED;
-
 const operationalState = (
   cashier: Cashier,
 ): { label: string; variant: 'default' | 'outline' } =>
@@ -98,22 +84,17 @@ const operationalState = (
 
 export const AdminCashiersPage = () => {
   const { data: cashiers = [], isLoading } = useAdminCashiers();
-  const { data: landings = [] } = useLandings();
   const createCashier = useCreateCashier();
   const disableCashier = useDisableCashier();
   const enableCashier = useEnableCashier();
   const finishCashierWorkSession = useFinishCashierWorkSession();
   const updateCashier = useUpdateCashier();
-  const replaceCashierLandings = useReplaceCashierLandings();
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingCashier, setEditingCashier] = useState<Cashier | null>(null);
-  const [assigningCashier, setAssigningCashier] = useState<Cashier | null>(
-    null,
-  );
-  const [selectedLandingIds, setSelectedLandingIds] = useState<string[]>([]);
+  const [sessionsPanelCashier, setSessionsPanelCashier] = useState<Cashier | null>(null);
 
   const createForm = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
@@ -159,6 +140,7 @@ export const AdminCashiersPage = () => {
         cashierId: editingCashier.id,
         input: payload,
       });
+
       toast.success('Cajero actualizado');
       setEditingCashier(null);
     } catch {
@@ -206,36 +188,6 @@ export const AdminCashiersPage = () => {
   const normalizedPage = Math.min(page, totalPages);
   const start = (normalizedPage - 1) * pageSize;
   const paginatedCashiers = cashiers.slice(start, start + pageSize);
-
-  const openLandingDialog = (cashier: Cashier) => {
-    setAssigningCashier(cashier);
-    setSelectedLandingIds(cashier.landings.map((landing) => landing.id));
-  };
-
-  const toggleLandingSelection = (landingId: string) => {
-    setSelectedLandingIds((current) =>
-      current.includes(landingId)
-        ? current.filter((id) => id !== landingId)
-        : [...current, landingId],
-    );
-  };
-
-  const saveLandingAssociation = async () => {
-    if (!assigningCashier) {
-      return;
-    }
-
-    try {
-      await replaceCashierLandings.mutateAsync({
-        cashierId: assigningCashier.id,
-        landingIds: selectedLandingIds,
-      });
-      toast.success('Landings actualizadas');
-      setAssigningCashier(null);
-    } catch {
-      toast.error('No se pudieron actualizar las landings');
-    }
-  };
 
   return (
     <section className='flex flex-col gap-4'>
@@ -333,7 +285,7 @@ export const AdminCashiersPage = () => {
               <TableHead>Nombre</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Turno</TableHead>
-              <TableHead>Landings</TableHead>
+              <TableHead>Sesiones WhatsApp</TableHead>
               <TableHead>Creado</TableHead>
               <TableHead className='text-right'>Acciones</TableHead>
             </TableRow>
@@ -371,31 +323,34 @@ export const AdminCashiersPage = () => {
                     {(() => {
                       const state = operationalState(cashier);
                       return (
-                        <div className='flex flex-col gap-0.5'>
-                          <Badge variant={state.variant} className='w-fit'>
-                            {state.label}
-                          </Badge>
-                          <span className='text-xs text-muted-foreground'>
-                            WhatsApp: {wahaStatusLabel(cashier.wahaStatus)}
-                          </span>
-                        </div>
+                        <Badge variant={state.variant} className='w-fit'>
+                          {state.label}
+                        </Badge>
                       );
                     })()}
                   </TableCell>
                   <TableCell>
-                    <div className='flex flex-wrap gap-1'>
-                      {cashier.landings.length === 0 ? (
-                        <span className='text-xs text-muted-foreground'>
-                          Sin landings
-                        </span>
-                      ) : (
-                        cashier.landings.map((landing) => (
-                          <Badge key={landing.id} variant='secondary'>
-                            {landing.url}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
+                    {(() => {
+                      const wc = cashier.workingSessionsCount ?? 0;
+                      const sc = cashier.sessions.length;
+                      return (
+                        <div className='flex flex-col gap-0.5'>
+                          <div className='flex items-center gap-1'>
+                            {wc > 0 ? (
+                              <CheckCircle2Icon className='size-3.5 shrink-0 text-green-500' />
+                            ) : (
+                              <span className='size-3.5 shrink-0 rounded-full bg-muted-foreground/30 inline-block' />
+                            )}
+                            <span className='text-sm font-medium'>
+                              {wc} conectada{wc !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <span className='text-xs text-muted-foreground'>
+                            {sc} creada{sc !== 1 ? 's' : ''} · max {cashier.maxSessions}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>{formatDateTime(cashier.createdAt)}</TableCell>
                   <TableCell className='text-right'>
@@ -427,10 +382,10 @@ export const AdminCashiersPage = () => {
                             >
                               <MenuPrimitive.Item
                                 className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
-                                onClick={() => openLandingDialog(cashier)}
+                                onClick={() => setSessionsPanelCashier(cashier)}
                               >
-                                <TagsIcon className='size-4' />
-                                Landings
+                                <SmartphoneIcon className='size-4' />
+                                Sesiones WhatsApp
                               </MenuPrimitive.Item>
                               <MenuPrimitive.Item
                                 className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
@@ -486,6 +441,7 @@ export const AdminCashiersPage = () => {
         </div>
       </div>
 
+      {/* Edit cashier dialog */}
       <Dialog
         open={Boolean(editingCashier)}
         onOpenChange={(open) => {
@@ -498,7 +454,7 @@ export const AdminCashiersPage = () => {
           <DialogHeader>
             <DialogTitle>Editar cajero</DialogTitle>
             <DialogDescription>
-              Actualiza nombre y usuario para este cajero.
+              Actualiza nombre y usuario del cajero.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -558,55 +514,25 @@ export const AdminCashiersPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Sessions panel dialog */}
       <Dialog
-        open={Boolean(assigningCashier)}
+        open={Boolean(sessionsPanelCashier)}
         onOpenChange={(open) => {
-          if (!open) {
-            setAssigningCashier(null);
-          }
+          if (!open) setSessionsPanelCashier(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className='w-[95vw] sm:max-w-[95vw] md:max-w-2xl'>
           <DialogHeader>
-            <DialogTitle>Asociar landings</DialogTitle>
+            <DialogTitle>
+              Sesiones WhatsApp — {sessionsPanelCashier?.name}
+            </DialogTitle>
             <DialogDescription>
-              Define 0 o mas landings para el cajero seleccionado.
+              Administra las sesiones de WhatsApp de este cajero.
             </DialogDescription>
           </DialogHeader>
-          <div className='flex max-h-[320px] flex-col gap-3 overflow-y-auto rounded-lg border p-3'>
-            {landings.map((landing) => (
-              <label
-                key={landing.id}
-                className='flex items-start gap-3 rounded-md border p-3'
-              >
-                <Checkbox
-                  checked={selectedLandingIds.includes(landing.id)}
-                  onCheckedChange={() => toggleLandingSelection(landing.id)}
-                />
-                <div className='min-w-0'>
-                  <p className='truncate text-sm font-medium'>{landing.url}</p>
-                  <p className='text-xs text-muted-foreground'>
-                    Pixel: {landing.metaPixelId}
-                  </p>
-                </div>
-                <Badge
-                  variant={landing.status === 'ACTIVE' ? 'default' : 'outline'}
-                >
-                  {landing.status === 'ACTIVE' ? 'Activa' : 'Deshabilitada'}
-                </Badge>
-              </label>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={saveLandingAssociation}
-              disabled={replaceCashierLandings.isPending}
-            >
-              {replaceCashierLandings.isPending
-                ? 'Guardando...'
-                : 'Guardar asociaciones'}
-            </Button>
-          </DialogFooter>
+          {sessionsPanelCashier && (
+            <AdminCashierSessionsPanel cashier={sessionsPanelCashier} />
+          )}
         </DialogContent>
       </Dialog>
     </section>

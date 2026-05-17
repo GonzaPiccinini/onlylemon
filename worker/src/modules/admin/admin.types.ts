@@ -59,6 +59,20 @@ export const replaceCashierLandingsSchema = z.object({
   landingIds: z.array(z.string().trim().min(1)),
 });
 
+// ---------------------------------------------------------------------------
+// WhatsappSession admin schemas (E2, E6)
+// ---------------------------------------------------------------------------
+
+export const updateCashierMaxSessionsSchema = z.object({
+  maxSessions: z.number().int().min(1),
+});
+
+export type UpdateCashierMaxSessionsInput = z.infer<typeof updateCashierMaxSessionsSchema>;
+
+export const replaceSessionLandingsSchema = z.object({
+  landingIds: z.array(z.string().trim().min(1)),
+});
+
 export const updateAdminAccountSchema = z
   .object({
     username: z.string().trim().min(3).optional(),

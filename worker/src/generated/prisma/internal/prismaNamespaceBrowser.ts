@@ -60,7 +60,8 @@ export const ModelName = {
   Conversion: 'Conversion',
   Landing: 'Landing',
   LandingFallbackPhone: 'LandingFallbackPhone',
-  CashierLanding: 'CashierLanding',
+  WhatsappSession: 'WhatsappSession',
+  WhatsappSessionLanding: 'WhatsappSessionLanding',
   ProcessedJob: 'ProcessedJob'
 } as const
 
@@ -118,10 +119,7 @@ export type AdminScalarFieldEnum = (typeof AdminScalarFieldEnum)[keyof typeof Ad
 export const CashierScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  sessionName: 'sessionName',
-  whatsappPhoneNumber: 'whatsappPhoneNumber',
-  whatsappLinkRefreshCount: 'whatsappLinkRefreshCount',
-  whatsappLinkUpdatedAt: 'whatsappLinkUpdatedAt',
+  maxSessions: 'maxSessions',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -195,12 +193,26 @@ export const LandingFallbackPhoneScalarFieldEnum = {
 export type LandingFallbackPhoneScalarFieldEnum = (typeof LandingFallbackPhoneScalarFieldEnum)[keyof typeof LandingFallbackPhoneScalarFieldEnum]
 
 
-export const CashierLandingScalarFieldEnum = {
+export const WhatsappSessionScalarFieldEnum = {
+  id: 'id',
   cashierId: 'cashierId',
+  sessionName: 'sessionName',
+  whatsappPhoneNumber: 'whatsappPhoneNumber',
+  refreshCount: 'refreshCount',
+  lastRefreshAt: 'lastRefreshAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WhatsappSessionScalarFieldEnum = (typeof WhatsappSessionScalarFieldEnum)[keyof typeof WhatsappSessionScalarFieldEnum]
+
+
+export const WhatsappSessionLandingScalarFieldEnum = {
+  sessionId: 'sessionId',
   landingId: 'landingId'
 } as const
 
-export type CashierLandingScalarFieldEnum = (typeof CashierLandingScalarFieldEnum)[keyof typeof CashierLandingScalarFieldEnum]
+export type WhatsappSessionLandingScalarFieldEnum = (typeof WhatsappSessionLandingScalarFieldEnum)[keyof typeof WhatsappSessionLandingScalarFieldEnum]
 
 
 export const ProcessedJobScalarFieldEnum = {

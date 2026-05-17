@@ -46,19 +46,16 @@ model Admin {
 }
 
 model Cashier {
-  id                       String            @id @default(uuid())
-  user                     User              @relation(fields: [userId], references: [id])
-  userId                   String            @unique
-  sessionName              String?           @unique
-  whatsappPhoneNumber      String?
-  whatsappLinkRefreshCount Int               @default(0)
-  whatsappLinkUpdatedAt    DateTime?
-  status                   CashierStatus     @default(ACTIVE)
-  activity                 SessionActivity[]
-  leads                    Lead[]
-  landings                 CashierLanding[]
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime          @updatedAt
+  id          String            @id @default(uuid())
+  user        User              @relation(fields: [userId], references: [id])
+  userId      String            @unique
+  maxSessions Int               @default(1)
+  status      CashierStatus     @default(ACTIVE)
+  activity    SessionActivity[]
+  leads       Lead[]
+  sessions    WhatsappSession[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@map("Cashier")
 }
@@ -104,15 +101,15 @@ model Conversion {
 }
 
 model Landing {
-  id              String                 @id @default(uuid())
+  id              String                   @id @default(uuid())
   url             String
-  metaPixelId     String                 @unique
+  metaPixelId     String                   @unique
   metaAccessToken String
-  status          LandingStatus          @default(ACTIVE)
-  cashiers        CashierLanding[]
+  status          LandingStatus            @default(ACTIVE)
+  sessions        WhatsappSessionLanding[]
   fallbackPhones  LandingFallbackPhone[]
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
 }
 
 model LandingFallbackPhone {
@@ -129,15 +126,32 @@ model LandingFallbackPhone {
   @@index([landingId])
 }
 
-model CashierLanding {
-  cashierId String
-  cashier   Cashier @relation(fields: [cashierId], references: [id])
-  landingId String
-  landing   Landing @relation(fields: [landingId], references: [id])
+model WhatsappSession {
+  id                  String                   @id @default(uuid())
+  cashierId           String
+  cashier             Cashier                  @relation(fields: [cashierId], references: [id])
+  sessionName         String                   @unique
+  whatsappPhoneNumber String?
+  refreshCount        Int                      @default(0)
+  lastRefreshAt       DateTime?
+  landings            WhatsappSessionLanding[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
-  @@id([cashierId, landingId])
   @@index([cashierId])
+  @@map("WhatsappSession")
+}
+
+model WhatsappSessionLanding {
+  sessionId String
+  session   WhatsappSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  landingId String
+  landing   Landing         @relation(fields: [landingId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, landingId])
+  @@index([sessionId])
   @@index([landingId])
+  @@map("WhatsappSessionLanding")
 }
 
 model ProcessedJob {

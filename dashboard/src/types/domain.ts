@@ -31,13 +31,27 @@ export interface Landing {
   updatedAt: string;
 }
 
+export interface WhatsappSession {
+  id: string;
+  cashierId: string;
+  sessionName: string;
+  whatsappPhoneNumber: string | null;
+  refreshCount: number;
+  lastRefreshAt: string | null;
+  wahaStatus?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Cashier {
   id: string;
   name: string;
   username: string;
   status: CashierStatus;
   createdAt: string;
-  landings: Landing[];
+  maxSessions: number;
+  sessions: WhatsappSession[];
+  workingSessionsCount?: number;
   hasActiveWorkSession?: boolean;
   sessionStartedAt?: string | null;
   wahaStatus?: WahaStatus;
@@ -85,13 +99,45 @@ export type WahaStatus =
   | 'WORKING'
   | 'FAILED';
 
+export interface CashierWhatsappSessionState {
+  id: string;
+  sessionName: string;
+  status: string;
+  phone: string | null;
+  refreshCount: number;
+  lastRefreshAt: string | null;
+}
+
 export interface CashierRuntimeState {
   cashierId: string;
   cashierStatus: CashierStatus;
+  maxSessions: number;
+  // Multi-session fields (new)
+  sessions: CashierWhatsappSessionState[];
+  anyWorking: boolean;
+  // Legacy single-session fields (backward compat)
   sessionName: string;
   wahaStatus: WahaStatus;
   canOperateLeads: boolean;
   hasActiveWorkSession: boolean;
+}
+
+export interface MyWhatsappSession {
+  id: string;
+  sessionName: string;
+  whatsappPhoneNumber: string | null;
+  wahaStatus: string;
+  refreshCount: number;
+  lastRefreshAt: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WhatsappSessionStatus {
+  status: string;
+  linked: boolean;
+  sessionName: string;
+  phone: string | null;
 }
 
 export interface LeadStatusTimelineEntry {
@@ -246,6 +292,14 @@ export interface UpdateCashierInput {
   name: string;
   username: string;
   password?: string;
+}
+
+export interface UpdateCashierMaxSessionsInput {
+  maxSessions: number;
+}
+
+export interface ReplaceSessionLandingsInput {
+  landingIds: string[];
 }
 
 export interface LandingFallbackPhone {

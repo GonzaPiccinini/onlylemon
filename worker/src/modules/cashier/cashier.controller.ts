@@ -9,18 +9,25 @@ import {
 import {
   completeWhatsappLinkService,
   createConversionService,
+  createMySessionService,
+  deleteMySessionService,
   enforceCashierCanOperateLeadsService,
   finishSessionService,
   getCashierRuntimeStateService,
   getWhatsappLinkStateService,
   getWhatsappLinkStatusService,
+  getWhatsappLinkStatusForSessionService,
   getCurrentSessionService,
   listCashierConversionsService,
+  listMySessionsService,
   refreshWhatsappLinkService,
+  refreshWhatsappLinkForSessionService,
   resetWhatsappLinkService,
+  resetWhatsappLinkForSessionService,
   listSessionsService,
   searchCashierLeadsService,
   startWhatsappLinkService,
+  startWhatsappLinkForSessionService,
   startSessionService,
   updateCashierAccountService,
 } from './cashier.service.js';
@@ -357,5 +364,172 @@ export const whatsappLinkCompleteHandler = async (req: Request, res: Response) =
     return res.status(200).json(data);
   } catch {
     return res.status(502).json({ error: 'Could not complete whatsapp link' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Batch 5 — Per-session cashier-scoped handlers (/cashier/me/sessions/*)
+// ---------------------------------------------------------------------------
+
+export const listMySessionsHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const data = await listMySessionsService(cashierId);
+  return res.status(200).json(data);
+};
+
+export const createMySessionHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  try {
+    const data = await createMySessionService(cashierId);
+    return res.status(201).json(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SESSION_CAP_REACHED') {
+      return res.status(409).json({ error: 'SESSION_CAP_REACHED', message: 'Maximum sessions reached for this cashier.' });
+    }
+    return res.status(502).json({ error: 'Could not create session' });
+  }
+};
+
+export const deleteMySessionHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const { id: sessionId } = req.params;
+
+  try {
+    const data = await deleteMySessionService(cashierId, sessionId);
+    return res.status(200).json(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SESSION_NOT_FOUND') {
+      return res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    }
+    if (error instanceof Error && error.message === 'SESSION_NOT_OWNED') {
+      return res.status(403).json({ error: 'SESSION_NOT_OWNED', message: 'This session does not belong to you.' });
+    }
+    return res.status(502).json({ error: 'Could not delete session' });
+  }
+};
+
+export const linkMySessionHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const { id: sessionId } = req.params;
+
+  const parsed = startWhatsappLinkSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid payload',
+      details: parsed.error.flatten(),
+    });
+  }
+
+  try {
+    const data = await startWhatsappLinkForSessionService(cashierId, sessionId, parsed.data.phoneNumber);
+    return res.status(200).json(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SESSION_NOT_FOUND') {
+      return res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    }
+    if (error instanceof Error && error.message === 'SESSION_NOT_OWNED') {
+      return res.status(403).json({ error: 'SESSION_NOT_OWNED' });
+    }
+    if (error instanceof Error && error.message === 'WAHA_SESSION_NOT_READY') {
+      return res.status(409).json({ error: 'WAHA_SESSION_NOT_READY', message: 'WhatsApp session is starting. Try again in a few seconds.' });
+    }
+    if (error instanceof Error && error.message === 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE') {
+      return res.status(409).json({ error: 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE', message: 'Could not generate QR or pairing code. Try again.' });
+    }
+    if (error instanceof Error && error.message === 'WAHA_SESSION_FAILED') {
+      return res.status(409).json({ error: 'WAHA_SESSION_FAILED', message: 'WhatsApp session failed to start. Try again.' });
+    }
+    return res.status(502).json({ error: 'Could not start whatsapp link for session' });
+  }
+};
+
+export const refreshMySessionHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const { id: sessionId } = req.params;
+
+  try {
+    const data = await refreshWhatsappLinkForSessionService(cashierId, sessionId);
+    if (!data) {
+      return res.status(409).json({ error: 'MAX_REFRESH_REACHED', message: 'Maximum refresh attempts reached. Use reset to continue.' });
+    }
+    return res.status(200).json(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SESSION_NOT_FOUND') {
+      return res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    }
+    if (error instanceof Error && error.message === 'SESSION_NOT_OWNED') {
+      return res.status(403).json({ error: 'SESSION_NOT_OWNED' });
+    }
+    if (error instanceof Error && error.message === 'PHONE_NUMBER_REQUIRED') {
+      return res.status(409).json({ error: 'PHONE_NUMBER_REQUIRED', message: 'Phone number is required before requesting refresh.' });
+    }
+    if (error instanceof Error && error.message === 'SESSION_NAME_REQUIRED') {
+      return res.status(409).json({ error: 'SESSION_NAME_REQUIRED', message: 'Session is not initialized. Start link flow again.' });
+    }
+    return res.status(502).json({ error: 'Could not refresh whatsapp session' });
+  }
+};
+
+export const resetMySessionRefreshHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const { id: sessionId } = req.params;
+
+  try {
+    await resetWhatsappLinkForSessionService(cashierId, sessionId);
+    return res.status(204).send();
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SESSION_NOT_FOUND') {
+      return res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    }
+    if (error instanceof Error && error.message === 'SESSION_NOT_OWNED') {
+      return res.status(403).json({ error: 'SESSION_NOT_OWNED' });
+    }
+    return res.status(502).json({ error: 'Could not reset refresh counter' });
+  }
+};
+
+export const getMySessionStatusHandler = async (req: Request, res: Response) => {
+  const cashierId = getCashierId(req);
+  if (!cashierId) {
+    return res.status(400).json({ error: 'Cashier profile not linked' });
+  }
+
+  const { id: sessionId } = req.params;
+
+  try {
+    const data = await getWhatsappLinkStatusForSessionService(cashierId, sessionId);
+    return res.status(200).json(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SESSION_NOT_FOUND') {
+      return res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    }
+    if (error instanceof Error && error.message === 'SESSION_NOT_OWNED') {
+      return res.status(403).json({ error: 'SESSION_NOT_OWNED' });
+    }
+    return res.status(502).json({ error: 'Could not get session status' });
   }
 };

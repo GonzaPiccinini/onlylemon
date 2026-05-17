@@ -3,8 +3,10 @@ import {
   cashierStatsHandler,
   createAdminHandler,
   createCashierHandler,
+  createCashierSessionHandler,
   createLandingHandler,
   createLandingFallbackPhoneHandler,
+  deleteCashierSessionHandler,
   deleteLandingFallbackPhoneHandler,
   disableCashierHandler,
   enableCashierHandler,
@@ -13,22 +15,28 @@ import {
   finishCashierWorkSessionHandler,
   fundsSeriesHandler,
   getAdminConversionsTotalsHandler,
+  getLandingSessionsHandler,
   getLeadHistoryHandler,
+  getSessionLandingsHandler,
   listAdminConversionsHandler,
   listAdminsHandler,
-  listLeadsHandler,
   listCashierLandingsHandler,
+  listCashierSessionsHandler,
   listCashiersHandler,
   listLandingFallbackPhonesHandler,
   listLandingsHandler,
+  listLeadsHandler,
   replaceCashierLandingsHandler,
+  replaceSessionLandingsHandler,
   setAdminStatusHandler,
+  startWhatsappLinkForSessionAdminHandler,
   summaryHandler,
   updateAdminAccountHandler,
   updateAdminHandler,
+  updateCashierHandler,
+  updateCashierMaxSessionsHandler,
   updateLandingHandler,
   updateLandingFallbackPhoneHandler,
-  updateCashierHandler,
 } from './admin.controller.js';
 import { requireAuth, requireRole } from '../security/auth.middleware.js';
 
@@ -48,20 +56,37 @@ adminRouter.patch('/account', updateAdminAccountHandler);
 adminRouter.get('/cashiers', listCashiersHandler);
 adminRouter.post('/cashiers', createCashierHandler);
 adminRouter.put('/cashiers/:cashierId', updateCashierHandler);
+// E6: PATCH /cashiers/:cashierId to update maxSessions
+adminRouter.patch('/cashiers/:cashierId', updateCashierMaxSessionsHandler);
 adminRouter.patch('/cashiers/:cashierId/disable', disableCashierHandler);
 adminRouter.patch('/cashiers/:cashierId/enable', enableCashierHandler);
 adminRouter.post(
   '/cashiers/:cashierId/sessions/finish',
   finishCashierWorkSessionHandler,
 );
+// E1: list sessions for a cashier
+adminRouter.get('/cashiers/:cashierId/whatsapp-sessions', listCashierSessionsHandler);
+// E2: create session for a cashier
+adminRouter.post('/cashiers/:cashierId/whatsapp-sessions', createCashierSessionHandler);
 adminRouter.get('/cashiers/:cashierId/landings', listCashierLandingsHandler);
 adminRouter.put('/cashiers/:cashierId/landings', replaceCashierLandingsHandler);
+
+// E3: delete a session
+adminRouter.delete('/whatsapp-sessions/:sessionId', deleteCashierSessionHandler);
+// E4a: get landings for a session
+adminRouter.get('/whatsapp-sessions/:sessionId/landings', getSessionLandingsHandler);
+// E4b: replace landings for a session
+adminRouter.put('/whatsapp-sessions/:sessionId/landings', replaceSessionLandingsHandler);
+// Admin "Generar QR ahora": initiate QR/pairing flow for any session
+adminRouter.post('/whatsapp-sessions/:sessionId/link', startWhatsappLinkForSessionAdminHandler);
 
 adminRouter.get('/landings', listLandingsHandler);
 adminRouter.post('/landings', createLandingHandler);
 adminRouter.put('/landings/:landingId', updateLandingHandler);
 adminRouter.patch('/landings/:landingId/disable', disableLandingHandler);
 adminRouter.patch('/landings/:landingId/enable', enableLandingHandler);
+// E5: get sessions bound to a landing (for landing-side binding UI)
+adminRouter.get('/landings/:landingId/sessions', getLandingSessionsHandler);
 
 // Fallback phones CRUD [REQ-3, REQ-4, REQ-5, REQ-6]
 adminRouter.get('/landings/:landingId/fallback-phones', listLandingFallbackPhonesHandler);

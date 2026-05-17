@@ -3,10 +3,17 @@ import { requireAuth, requireRole } from '../security/auth.middleware.js';
 import {
   cashierRuntimeStateHandler,
   createConversionHandler,
+  createMySessionHandler,
   currentSessionHandler,
+  deleteMySessionHandler,
   finishSessionHandler,
+  getMySessionStatusHandler,
+  linkMySessionHandler,
   listCashierConversionsHandler,
+  listMySessionsHandler,
   listSessionsHandler,
+  refreshMySessionHandler,
+  resetMySessionRefreshHandler,
   searchCashierLeadsHandler,
   startSessionHandler,
   updateAccountHandler,
@@ -39,3 +46,12 @@ cashierRouter.post('/whatsapp/link/refresh', whatsappLinkRefreshHandler);
 cashierRouter.post('/whatsapp/link/reset', whatsappLinkResetHandler);
 cashierRouter.get('/whatsapp/link/status', whatsappLinkStatusHandler);
 cashierRouter.post('/whatsapp/link/complete', whatsappLinkCompleteHandler);
+
+// Batch 5 — per-session cashier-scoped routes
+cashierRouter.get('/me/sessions', listMySessionsHandler);
+cashierRouter.post('/me/sessions', createMySessionHandler);
+cashierRouter.delete('/me/sessions/:id', deleteMySessionHandler);
+cashierRouter.post('/me/sessions/:id/link', linkMySessionHandler);
+cashierRouter.post('/me/sessions/:id/refresh', refreshMySessionHandler);
+cashierRouter.post('/me/sessions/:id/reset-refresh', resetMySessionRefreshHandler);
+cashierRouter.get('/me/sessions/:id/status', getMySessionStatusHandler);

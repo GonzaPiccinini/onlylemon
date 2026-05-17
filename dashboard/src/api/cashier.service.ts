@@ -6,12 +6,14 @@ import type {
   Conversion,
   ConvertLeadInput,
   Lead,
+  MyWhatsappSession,
   PaginatedResult,
   Session,
   UpdateCashierAccountInput,
   WhatsappLinkArtifacts,
   WhatsappLinkState,
   WhatsappLinkStatus,
+  WhatsappSessionStatus,
 } from "@/types/domain";
 
 export const cashierService = {
@@ -105,6 +107,42 @@ export const cashierService = {
     const { data } = await http.post<WhatsappLinkStatus>(endpoints.cashier.whatsappLinkComplete, {
       sessionName,
     });
+    return data;
+  },
+
+  // Batch 5 — per-session cashier endpoints
+  async listMySessions(): Promise<MyWhatsappSession[]> {
+    const { data } = await http.get<MyWhatsappSession[]>(endpoints.cashier.mySessions);
+    return data;
+  },
+
+  async createMySession(): Promise<MyWhatsappSession> {
+    const { data } = await http.post<MyWhatsappSession>(endpoints.cashier.mySessions);
+    return data;
+  },
+
+  async deleteMySession(sessionId: string): Promise<void> {
+    await http.delete(endpoints.cashier.mySession(sessionId));
+  },
+
+  async linkMySession(sessionId: string, phoneNumber: string): Promise<WhatsappLinkArtifacts> {
+    const { data } = await http.post<WhatsappLinkArtifacts>(endpoints.cashier.mySessionLink(sessionId), {
+      phoneNumber,
+    });
+    return data;
+  },
+
+  async refreshMySession(sessionId: string): Promise<WhatsappLinkArtifacts> {
+    const { data } = await http.post<WhatsappLinkArtifacts>(endpoints.cashier.mySessionRefresh(sessionId));
+    return data;
+  },
+
+  async resetMySessionRefresh(sessionId: string): Promise<void> {
+    await http.post(endpoints.cashier.mySessionResetRefresh(sessionId));
+  },
+
+  async getMySessionStatus(sessionId: string): Promise<WhatsappSessionStatus> {
+    const { data } = await http.get<WhatsappSessionStatus>(endpoints.cashier.mySessionStatus(sessionId));
     return data;
   },
 };

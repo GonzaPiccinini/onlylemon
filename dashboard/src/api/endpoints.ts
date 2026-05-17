@@ -16,6 +16,11 @@ export const endpoints = {
     cashierFinishSession: (cashierId: string) =>
       `/admin/cashiers/${cashierId}/sessions/finish`,
     cashierLandings: (cashierId: string) => `/admin/cashiers/${cashierId}/landings`,
+    cashierWhatsappSessions: (cashierId: string) => `/admin/cashiers/${cashierId}/whatsapp-sessions`,
+    whatsappSession: (sessionId: string) => `/admin/whatsapp-sessions/${sessionId}`,
+    whatsappSessionLandings: (sessionId: string) => `/admin/whatsapp-sessions/${sessionId}/landings`,
+    linkCashierSession: (sessionId: string) => `/admin/whatsapp-sessions/${sessionId}/link`,
+    landingSessions: (landingId: string) => `/admin/landings/${landingId}/sessions`,
     landings: "/admin/landings",
     landingById: (landingId: string) => `/admin/landings/${landingId}`,
     landingDisable: (landingId: string) => `/admin/landings/${landingId}/disable`,
@@ -51,5 +56,12 @@ export const endpoints = {
     whatsappLinkReset: "/cashier/whatsapp/link/reset",
     whatsappLinkStatus: "/cashier/whatsapp/link/status",
     whatsappLinkComplete: "/cashier/whatsapp/link/complete",
+    // Batch 5 — per-session cashier endpoints
+    mySessions: "/cashier/me/sessions",
+    mySession: (sessionId: string) => `/cashier/me/sessions/${sessionId}`,
+    mySessionLink: (sessionId: string) => `/cashier/me/sessions/${sessionId}/link`,
+    mySessionRefresh: (sessionId: string) => `/cashier/me/sessions/${sessionId}/refresh`,
+    mySessionResetRefresh: (sessionId: string) => `/cashier/me/sessions/${sessionId}/reset-refresh`,
+    mySessionStatus: (sessionId: string) => `/cashier/me/sessions/${sessionId}/status`,
   },
 };

@@ -1,4 +1,5 @@
 import { LeadStatus } from '../../generated/prisma/client.js';
+import { prisma } from '../../persistence/prisma/client.js';
 import { sendMetaConversion } from '../../integrations/leads/conversion.js';
 import { getLandingByMetaPixelId } from '../admin/admin.repository.js';
 import {
@@ -15,7 +16,6 @@ import {
   findLeadByIdForCashier,
   finishSessionActivity,
   getCashierById,
-  getCashierBySessionName,
   getCashierSession,
   getCurrentSessionActivity,
   listConversionsForCashier,
@@ -23,9 +23,7 @@ import {
   searchLeadsForCashier,
   startSessionActivity,
   updateCashierAccount,
-  updateCashierWhatsappLink,
 } from './cashier.repository.js';
-import { prisma } from '../../persistence/prisma/client.js';
 import { hashPassword } from '../../utils/password.js';
 import { emitCashierRuntimeStateChanged } from './runtime-events.js';
 import { logger } from '../../lib/logger.js';
@@ -33,19 +31,21 @@ import {
   leadsConvertedTotal,
   leadConversionAmountArs,
 } from '../../lib/metrics.js';
+import {
+  createSession as createWhatsappSession,
+  deleteWhatsappSession,
+  listSessionsByCashier,
+  REFRESH_CAP,
+  SESSION_CAP_REACHED,
+} from './whatsapp-session.service.js';
+
+export const SESSION_NOT_OWNED = 'SESSION_NOT_OWNED';
 
 const WHATSAPP_LINK_MAX_REFRESH = 3;
-const rotatingCashiers = new Set<string>();
 const WAHA_SESSION_READY_TIMEOUT_MS = 20000;
 const WAHA_SESSION_READY_POLL_MS = 750;
 const WAHA_MAX_SESSION_NAME_LENGTH = 54;
 
-const NON_OPERATIONAL_WAHA_STATUSES = new Set([
-  'UNLINKED',
-  'STOPPED',
-  'SCAN_QR_CODE',
-  'FAILED',
-]);
 
 const toSessionDto = (item: {
   id: string;
@@ -152,23 +152,47 @@ export const getCashierRuntimeStateService = async (cashierId: string) => {
 
   const current = await getCurrentSessionActivity(cashier.id);
 
-  const sessionName = cashier.sessionName ?? '';
-  let wahaStatus = 'UNLINKED';
-  if (cashier.sessionName) {
-    try {
-      const session = await getSession(cashier.sessionName);
-      wahaStatus = session?.status ?? 'UNLINKED';
-    } catch {
-      wahaStatus = 'UNLINKED';
-    }
-  }
+  // Multi-session: fetch all sessions and get live WAHA status for each
+  const dbSessions = await listSessionsByCashier(cashier.id);
 
-  const canOperateLeads =
-    cashier.status === 'ACTIVE' && Boolean(cashier.sessionName) && wahaStatus === 'WORKING';
+  const sessionStatuses = await Promise.all(
+    dbSessions.map(async (s) => {
+      let wahaStatus = 'STOPPED';
+      if (s.sessionName) {
+        try {
+          const wahaSession = await getSession(s.sessionName);
+          wahaStatus = wahaSession?.status ?? 'STOPPED';
+        } catch {
+          wahaStatus = 'STOPPED';
+        }
+      }
+      return {
+        id: s.id,
+        sessionName: s.sessionName,
+        status: wahaStatus,
+        phone: s.whatsappPhoneNumber ?? null,
+        refreshCount: s.refreshCount,
+        lastRefreshAt: s.lastRefreshAt ?? null,
+      };
+    }),
+  );
+
+  const anyWorking = sessionStatuses.some((s) => s.status === 'WORKING');
+  const canOperateLeads = cashier.status === 'ACTIVE' && anyWorking;
+
+  // Legacy fields (backward compat for any remaining consumers)
+  const firstSession = sessionStatuses[0] ?? null;
+  const sessionName = firstSession?.sessionName ?? '';
+  const wahaStatus = firstSession?.status ?? 'STOPPED';
 
   return {
     cashierId: cashier.id,
     cashierStatus: cashier.status,
+    maxSessions: cashier.maxSessions,
+    // Multi-session fields (new)
+    sessions: sessionStatuses,
+    anyWorking,
+    // Legacy single-session fields (kept for backward compat)
     sessionName,
     wahaStatus,
     canOperateLeads,
@@ -184,9 +208,9 @@ export const enforceCashierCanOperateLeadsService = async (cashierId: string) =>
       reason:
         runtime.cashierStatus !== 'ACTIVE'
           ? 'CASHIER_DISABLED'
-          : runtime.wahaStatus === 'UNLINKED'
-            ? 'WHATSAPP_NOT_LINKED'
-            : 'WHATSAPP_NOT_WORKING',
+          : !runtime.anyWorking
+            ? 'WHATSAPP_NOT_WORKING'
+            : 'WHATSAPP_NOT_LINKED',
       runtime,
     };
   }
@@ -197,69 +221,18 @@ export const enforceCashierCanOperateLeadsService = async (cashierId: string) =>
   };
 };
 
+/**
+ * B4 — processWhatsappSessionStatusService
+ * Delegates to whatsapp-session.service for the full implementation.
+ */
 export const processWhatsappSessionStatusService = async (
   sessionName: string,
   status: string,
   occurredAt: Date,
 ) => {
-  const cashier = await getCashierBySessionName(sessionName);
-  if (!cashier) {
-    return {
-      matched: false as const,
-    };
-  }
-
-  const nonOperational = NON_OPERATIONAL_WAHA_STATUSES.has(status);
-  if (nonOperational) {
-    await finishCurrentSessionActivity(cashier.id, occurredAt);
-  }
-
-  const shouldRotate = status === 'FAILED' || status === 'STOPPED';
-  let rotated = false;
-  let nextSessionName: string | null = null;
-
-  if (shouldRotate && !rotatingCashiers.has(cashier.id)) {
-    rotatingCashiers.add(cashier.id);
-
-    try {
-      const previousSessionName = cashier.sessionName;
-
-      await deleteSession(previousSessionName ?? sessionName);
-      await updateCashierWhatsappLink(cashier.id, {
-        sessionName: null,
-        whatsappPhoneNumber: null,
-        whatsappLinkRefreshCount: 0,
-        whatsappLinkUpdatedAt: occurredAt,
-      });
-
-      rotated = true;
-      nextSessionName = null;
-    } catch (error) {
-      logger.error({
-        event: 'waha_rotation_failed',
-        cashierId: cashier.id,
-        sessionName,
-        status,
-        err: error,
-      });
-    } finally {
-      rotatingCashiers.delete(cashier.id);
-    }
-  }
-
-  const currentState = await getCashierById(cashier.id);
-  if (!currentState?.sessionName || currentState.sessionName === sessionName) {
-    emitCashierRuntimeStateChanged(cashier.id);
-  }
-
-  return {
-    matched: true as const,
-    cashierId: cashier.id,
-    status,
-    nonOperational,
-    rotated,
-    nextSessionName,
-  };
+  const { processWhatsappSessionStatusService: processSessionStatus } =
+    await import('./whatsapp-session.service.js');
+  return processSessionStatus(sessionName, status, occurredAt);
 };
 
 export const startSessionService = async (cashierId: string) => {
@@ -400,7 +373,9 @@ const requestWhatsappAuthArtifacts = async (
 
 export const getWhatsappLinkStateService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
-  const sessionName = cashier.sessionName ?? '';
+  // Use first session for legacy single-session link state view
+  const firstSession = cashier.sessions[0] ?? null;
+  const sessionName = firstSession?.sessionName ?? '';
 
   let wahaStatus: string | null = null;
   if (sessionName) {
@@ -413,9 +388,9 @@ export const getWhatsappLinkStateService = async (cashierId: string) => {
   }
 
   return {
-    needsLink: !cashier.sessionName || !cashier.whatsappPhoneNumber,
+    needsLink: !firstSession || !firstSession.whatsappPhoneNumber,
     sessionName,
-    refreshCount: cashier.whatsappLinkRefreshCount,
+    refreshCount: firstSession?.refreshCount ?? 0,
     maxRefresh: WHATSAPP_LINK_MAX_REFRESH,
     status: wahaStatus ?? 'UNLINKED',
   };
@@ -430,18 +405,44 @@ export const startWhatsappLinkService = async (
   const sessionName = buildWhatsappSessionName(cashier.id);
   assertValidSessionName(sessionName);
 
+  // Get or use first existing session
+  const existingSession = cashier.sessions[0] ?? null;
+
   try {
-    if (cashier.sessionName) {
-      await deleteSession(cashier.sessionName);
+    if (existingSession?.sessionName) {
+      try {
+        await deleteSession(existingSession.sessionName);
+      } catch {
+        // best effort
+      }
     }
 
     const artifacts = await requestWhatsappAuthArtifacts(sessionName, normalizedPhone);
-    await updateCashierWhatsappLink(cashier.id, {
-      sessionName,
-      whatsappPhoneNumber: normalizedPhone,
-      whatsappLinkRefreshCount: 0,
-      whatsappLinkUpdatedAt: new Date(),
+
+    // Upsert the WhatsappSession row
+    await prisma.whatsappSession.upsert({
+      where: { sessionName },
+      update: {
+        whatsappPhoneNumber: normalizedPhone,
+        refreshCount: 0,
+        lastRefreshAt: new Date(),
+      },
+      create: {
+        cashierId,
+        sessionName,
+        whatsappPhoneNumber: normalizedPhone,
+        refreshCount: 0,
+        lastRefreshAt: new Date(),
+      },
     });
+
+    // Remove the old session row if it had a different name
+    if (existingSession && existingSession.sessionName !== sessionName) {
+      await prisma.whatsappSession.deleteMany({
+        where: { cashierId, sessionName: existingSession.sessionName },
+      });
+    }
+
     emitCashierRuntimeStateChanged(cashier.id);
 
     return {
@@ -456,13 +457,6 @@ export const startWhatsappLinkService = async (
     } catch {
       // best effort cleanup
     }
-
-    await updateCashierWhatsappLink(cashier.id, {
-      sessionName: null,
-      whatsappPhoneNumber: null,
-      whatsappLinkRefreshCount: 0,
-      whatsappLinkUpdatedAt: new Date(),
-    });
     emitCashierRuntimeStateChanged(cashier.id);
     throw error;
   }
@@ -470,28 +464,32 @@ export const startWhatsappLinkService = async (
 
 export const refreshWhatsappLinkService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
-  if (!cashier.sessionName) {
+  const firstSession = cashier.sessions[0] ?? null;
+
+  if (!firstSession?.sessionName) {
     throw new Error('SESSION_NAME_REQUIRED');
   }
 
-  if (!cashier.whatsappPhoneNumber) {
+  if (!firstSession.whatsappPhoneNumber) {
     throw new Error('PHONE_NUMBER_REQUIRED');
   }
 
-  if (cashier.whatsappLinkRefreshCount >= WHATSAPP_LINK_MAX_REFRESH) {
+  if (firstSession.refreshCount >= WHATSAPP_LINK_MAX_REFRESH) {
     return null;
   }
 
-  const nextCount = cashier.whatsappLinkRefreshCount + 1;
-  await updateCashierWhatsappLink(cashierId, {
-    whatsappLinkRefreshCount: nextCount,
-    whatsappLinkUpdatedAt: new Date(),
+  const nextCount = firstSession.refreshCount + 1;
+  await prisma.whatsappSession.update({
+    where: { id: firstSession.id },
+    data: {
+      refreshCount: nextCount,
+      lastRefreshAt: new Date(),
+    },
   });
 
-  const sessionName = cashier.sessionName;
   const artifacts = await requestWhatsappAuthArtifacts(
-    sessionName,
-    cashier.whatsappPhoneNumber,
+    firstSession.sessionName,
+    firstSession.whatsappPhoneNumber,
   );
   emitCashierRuntimeStateChanged(cashier.id);
 
@@ -504,16 +502,19 @@ export const refreshWhatsappLinkService = async (cashierId: string) => {
 };
 
 export const resetWhatsappLinkService = async (cashierId: string) => {
-  await updateCashierWhatsappLink(cashierId, {
-    whatsappLinkRefreshCount: 0,
-    whatsappLinkUpdatedAt: new Date(),
+  // Reset refreshCount on all sessions for this cashier
+  await prisma.whatsappSession.updateMany({
+    where: { cashierId },
+    data: { refreshCount: 0, lastRefreshAt: new Date() },
   });
   emitCashierRuntimeStateChanged(cashierId);
 };
 
 export const getWhatsappLinkStatusService = async (cashierId: string) => {
   const cashier = await getCashierSession(cashierId);
-  const sessionName = cashier.sessionName ?? '';
+  const firstSession = cashier.sessions[0] ?? null;
+  const sessionName = firstSession?.sessionName ?? '';
+
   if (!sessionName) {
     return {
       sessionName,
@@ -522,17 +523,8 @@ export const getWhatsappLinkStatusService = async (cashierId: string) => {
     };
   }
 
-  const session = await getSession(sessionName);
-  const status = session?.status ?? 'UNLINKED';
-
-  if (status === 'WORKING' && !cashier.sessionName) {
-    await updateCashierWhatsappLink(cashierId, {
-      sessionName,
-      whatsappLinkRefreshCount: 0,
-      whatsappLinkUpdatedAt: new Date(),
-    });
-    emitCashierRuntimeStateChanged(cashierId);
-  }
+  const wahaSession = await getSession(sessionName);
+  const status = wahaSession?.status ?? 'UNLINKED';
 
   return {
     sessionName,
@@ -545,22 +537,24 @@ export const completeWhatsappLinkService = async (
   cashierId: string,
   sessionName: string,
 ) => {
-  const session = await getSession(sessionName);
-  if (!session || session.status !== 'WORKING') {
+  const wahaSession = await getSession(sessionName);
+  if (!wahaSession || wahaSession.status !== 'WORKING') {
     return null;
   }
 
-  await updateCashierWhatsappLink(cashierId, {
-    sessionName,
-    whatsappLinkRefreshCount: 0,
-    whatsappLinkUpdatedAt: new Date(),
+  // Upsert the WhatsappSession row to ensure it exists and has refreshCount reset
+  await prisma.whatsappSession.upsert({
+    where: { sessionName },
+    update: { refreshCount: 0, lastRefreshAt: new Date() },
+    create: { cashierId, sessionName, refreshCount: 0 },
   });
+
   emitCashierRuntimeStateChanged(cashierId);
 
   return {
     linked: true,
     sessionName,
-    status: session.status,
+    status: wahaSession.status,
   };
 };
 
@@ -758,4 +752,287 @@ export const listCashierConversionsService = async (
   }));
 
   return { items, total, page, pageSize };
+};
+
+// ---------------------------------------------------------------------------
+// Batch 5 — Per-session cashier-scoped services
+// ---------------------------------------------------------------------------
+
+/**
+ * P5.3 — listMySessionsService
+ * Lists all WhatsappSessions for the calling cashier with live WAHA status.
+ */
+export const listMySessionsService = async (cashierId: string) => {
+  const dbSessions = await listSessionsByCashier(cashierId);
+
+  return Promise.all(
+    dbSessions.map(async (s) => {
+      let wahaStatus = 'STOPPED';
+      if (s.sessionName) {
+        try {
+          const wahaSession = await getSession(s.sessionName);
+          wahaStatus = wahaSession?.status ?? 'STOPPED';
+        } catch {
+          wahaStatus = 'STOPPED';
+        }
+      }
+      return {
+        id: s.id,
+        sessionName: s.sessionName,
+        whatsappPhoneNumber: s.whatsappPhoneNumber,
+        wahaStatus,
+        refreshCount: s.refreshCount,
+        lastRefreshAt: s.lastRefreshAt,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+      };
+    }),
+  );
+};
+
+/**
+ * P5.4 — createMySessionService
+ * Creates a new WhatsappSession for the calling cashier.
+ * Enforces maxSessions cap.
+ */
+export const createMySessionService = async (cashierId: string) => {
+  // Delegates to whatsapp-session.service createSession (which checks the cap)
+  const session = await createWhatsappSession(cashierId);
+  emitCashierRuntimeStateChanged(cashierId);
+  return {
+    id: session.id,
+    sessionName: session.sessionName,
+    whatsappPhoneNumber: session.whatsappPhoneNumber,
+    refreshCount: session.refreshCount,
+    lastRefreshAt: session.lastRefreshAt,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+  };
+};
+
+/**
+ * P5.5 — deleteMySessionService
+ * Deletes a specific WhatsappSession — must belong to the requesting cashier.
+ */
+export const deleteMySessionService = async (cashierId: string, sessionId: string) => {
+  // Verify ownership before deleting
+  const session = await prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, cashierId: true, sessionName: true },
+  });
+
+  if (!session) {
+    throw new Error('SESSION_NOT_FOUND');
+  }
+
+  if (session.cashierId !== cashierId) {
+    throw new Error(SESSION_NOT_OWNED);
+  }
+
+  const result = await deleteWhatsappSession(sessionId);
+  emitCashierRuntimeStateChanged(cashierId);
+  return result;
+};
+
+/**
+ * Shared core for starting the WhatsApp QR/pairing flow for a specific session.
+ * Does NOT perform ownership checks — callers are responsible for authorization.
+ * Exported so the admin module can reuse it without duplicating WAHA call logic.
+ */
+export const _startWhatsappLinkForSessionUnsafe = async (
+  sessionId: string,
+  phoneNumber: string,
+) => {
+  const session = await prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, cashierId: true, sessionName: true, whatsappPhoneNumber: true, refreshCount: true },
+  });
+
+  if (!session) {
+    throw new Error('SESSION_NOT_FOUND');
+  }
+
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+  try {
+    // Delete existing WAHA session first (best-effort) if it exists
+    if (session.sessionName) {
+      try {
+        await deleteSession(session.sessionName);
+      } catch {
+        // best effort
+      }
+    }
+
+    const artifacts = await requestWhatsappAuthArtifacts(session.sessionName, normalizedPhone);
+
+    // Update the session with the phone and reset refresh count
+    await prisma.whatsappSession.update({
+      where: { id: sessionId },
+      data: {
+        whatsappPhoneNumber: normalizedPhone,
+        refreshCount: 0,
+        lastRefreshAt: new Date(),
+      },
+    });
+
+    emitCashierRuntimeStateChanged(session.cashierId);
+
+    return {
+      ...artifacts,
+      refreshCount: 0,
+      maxRefresh: REFRESH_CAP,
+      nextRefreshInSeconds: 45,
+    };
+  } catch (error) {
+    emitCashierRuntimeStateChanged(session.cashierId);
+    throw error;
+  }
+};
+
+/**
+ * P5.6 — startWhatsappLinkForSessionService
+ * Starts QR/pairing flow for a specific WhatsappSession.
+ * Session must belong to the requesting cashier (ownership enforced here).
+ */
+export const startWhatsappLinkForSessionService = async (
+  cashierId: string,
+  sessionId: string,
+  phoneNumber: string,
+) => {
+  // Ownership check: verify session belongs to the cashier before delegating
+  const session = await prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    select: { cashierId: true },
+  });
+
+  if (!session) {
+    throw new Error('SESSION_NOT_FOUND');
+  }
+
+  if (session.cashierId !== cashierId) {
+    throw new Error(SESSION_NOT_OWNED);
+  }
+
+  return _startWhatsappLinkForSessionUnsafe(sessionId, phoneNumber);
+};
+
+/**
+ * P5.7 — refreshWhatsappLinkForSessionService
+ * Refreshes QR/pairing for a specific session. Cap=3 per session.
+ */
+export const refreshWhatsappLinkForSessionService = async (
+  cashierId: string,
+  sessionId: string,
+) => {
+  const session = await prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, cashierId: true, sessionName: true, whatsappPhoneNumber: true, refreshCount: true },
+  });
+
+  if (!session) {
+    throw new Error('SESSION_NOT_FOUND');
+  }
+
+  if (session.cashierId !== cashierId) {
+    throw new Error(SESSION_NOT_OWNED);
+  }
+
+  if (!session.sessionName) {
+    throw new Error('SESSION_NAME_REQUIRED');
+  }
+
+  if (!session.whatsappPhoneNumber) {
+    throw new Error('PHONE_NUMBER_REQUIRED');
+  }
+
+  if (session.refreshCount >= REFRESH_CAP) {
+    return null; // caller maps to MAX_REFRESH_REACHED
+  }
+
+  const nextCount = session.refreshCount + 1;
+  await prisma.whatsappSession.update({
+    where: { id: sessionId },
+    data: { refreshCount: nextCount, lastRefreshAt: new Date() },
+  });
+
+  const artifacts = await requestWhatsappAuthArtifacts(session.sessionName, session.whatsappPhoneNumber);
+  emitCashierRuntimeStateChanged(cashierId);
+
+  return {
+    ...artifacts,
+    refreshCount: nextCount,
+    maxRefresh: REFRESH_CAP,
+    nextRefreshInSeconds: 45,
+  };
+};
+
+/**
+ * P5.8 — resetWhatsappLinkForSessionService
+ * Resets refreshCount to 0 for a specific session.
+ */
+export const resetWhatsappLinkForSessionService = async (
+  cashierId: string,
+  sessionId: string,
+) => {
+  const session = await prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, cashierId: true },
+  });
+
+  if (!session) {
+    throw new Error('SESSION_NOT_FOUND');
+  }
+
+  if (session.cashierId !== cashierId) {
+    throw new Error(SESSION_NOT_OWNED);
+  }
+
+  await prisma.whatsappSession.update({
+    where: { id: sessionId },
+    data: { refreshCount: 0, lastRefreshAt: new Date() },
+  });
+
+  emitCashierRuntimeStateChanged(cashierId);
+};
+
+/**
+ * P5.9 — getWhatsappLinkStatusForSessionService
+ * Returns live WAHA status for a specific session.
+ */
+export const getWhatsappLinkStatusForSessionService = async (
+  cashierId: string,
+  sessionId: string,
+) => {
+  const session = await prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, cashierId: true, sessionName: true, whatsappPhoneNumber: true },
+  });
+
+  if (!session) {
+    throw new Error('SESSION_NOT_FOUND');
+  }
+
+  if (session.cashierId !== cashierId) {
+    throw new Error(SESSION_NOT_OWNED);
+  }
+
+  if (!session.sessionName) {
+    return { status: 'STOPPED', linked: false, sessionName: '', phone: session.whatsappPhoneNumber };
+  }
+
+  let status = 'STOPPED';
+  try {
+    const wahaSession = await getSession(session.sessionName);
+    status = wahaSession?.status ?? 'STOPPED';
+  } catch {
+    status = 'STOPPED';
+  }
+
+  return {
+    status,
+    linked: status === 'WORKING',
+    sessionName: session.sessionName,
+    phone: session.whatsappPhoneNumber,
+  };
 };

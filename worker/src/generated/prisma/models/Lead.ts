@@ -547,6 +547,10 @@ export type LeadUncheckedUpdateManyWithoutCashierNestedInput = {
   deleteMany?: Prisma.LeadScalarWhereInput | Prisma.LeadScalarWhereInput[]
 }
 
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
+}
+
 export type EnumLeadStatusFieldUpdateOperationsInput = {
   set?: $Enums.LeadStatus
 }

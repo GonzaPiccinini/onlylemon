@@ -198,7 +198,7 @@ export type LandingWhereInput = {
   status?: Prisma.EnumLandingStatusFilter<"Landing"> | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
-  cashiers?: Prisma.CashierLandingListRelationFilter
+  sessions?: Prisma.WhatsappSessionLandingListRelationFilter
   fallbackPhones?: Prisma.LandingFallbackPhoneListRelationFilter
 }
 
@@ -210,7 +210,7 @@ export type LandingOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  cashiers?: Prisma.CashierLandingOrderByRelationAggregateInput
+  sessions?: Prisma.WhatsappSessionLandingOrderByRelationAggregateInput
   fallbackPhones?: Prisma.LandingFallbackPhoneOrderByRelationAggregateInput
 }
 
@@ -225,7 +225,7 @@ export type LandingWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumLandingStatusFilter<"Landing"> | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
-  cashiers?: Prisma.CashierLandingListRelationFilter
+  sessions?: Prisma.WhatsappSessionLandingListRelationFilter
   fallbackPhones?: Prisma.LandingFallbackPhoneListRelationFilter
 }, "id" | "metaPixelId">
 
@@ -263,7 +263,7 @@ export type LandingCreateInput = {
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
-  cashiers?: Prisma.CashierLandingCreateNestedManyWithoutLandingInput
+  sessions?: Prisma.WhatsappSessionLandingCreateNestedManyWithoutLandingInput
   fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
 }
 
@@ -275,7 +275,7 @@ export type LandingUncheckedCreateInput = {
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
-  cashiers?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutLandingInput
+  sessions?: Prisma.WhatsappSessionLandingUncheckedCreateNestedManyWithoutLandingInput
   fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
 }
 
@@ -287,7 +287,7 @@ export type LandingUpdateInput = {
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  cashiers?: Prisma.CashierLandingUpdateManyWithoutLandingNestedInput
+  sessions?: Prisma.WhatsappSessionLandingUpdateManyWithoutLandingNestedInput
   fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
 }
 
@@ -299,7 +299,7 @@ export type LandingUncheckedUpdateInput = {
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  cashiers?: Prisma.CashierLandingUncheckedUpdateManyWithoutLandingNestedInput
+  sessions?: Prisma.WhatsappSessionLandingUncheckedUpdateManyWithoutLandingNestedInput
   fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedUpdateManyWithoutLandingNestedInput
 }
 
@@ -386,18 +386,18 @@ export type LandingUpdateOneRequiredWithoutFallbackPhonesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.LandingUpdateToOneWithWhereWithoutFallbackPhonesInput, Prisma.LandingUpdateWithoutFallbackPhonesInput>, Prisma.LandingUncheckedUpdateWithoutFallbackPhonesInput>
 }
 
-export type LandingCreateNestedOneWithoutCashiersInput = {
-  create?: Prisma.XOR<Prisma.LandingCreateWithoutCashiersInput, Prisma.LandingUncheckedCreateWithoutCashiersInput>
-  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutCashiersInput
+export type LandingCreateNestedOneWithoutSessionsInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutSessionsInput, Prisma.LandingUncheckedCreateWithoutSessionsInput>
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutSessionsInput
   connect?: Prisma.LandingWhereUniqueInput
 }
 
-export type LandingUpdateOneRequiredWithoutCashiersNestedInput = {
-  create?: Prisma.XOR<Prisma.LandingCreateWithoutCashiersInput, Prisma.LandingUncheckedCreateWithoutCashiersInput>
-  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutCashiersInput
-  upsert?: Prisma.LandingUpsertWithoutCashiersInput
+export type LandingUpdateOneRequiredWithoutSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutSessionsInput, Prisma.LandingUncheckedCreateWithoutSessionsInput>
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutSessionsInput
+  upsert?: Prisma.LandingUpsertWithoutSessionsInput
   connect?: Prisma.LandingWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.LandingUpdateToOneWithWhereWithoutCashiersInput, Prisma.LandingUpdateWithoutCashiersInput>, Prisma.LandingUncheckedUpdateWithoutCashiersInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LandingUpdateToOneWithWhereWithoutSessionsInput, Prisma.LandingUpdateWithoutSessionsInput>, Prisma.LandingUncheckedUpdateWithoutSessionsInput>
 }
 
 export type LandingCreateWithoutFallbackPhonesInput = {
@@ -408,7 +408,7 @@ export type LandingCreateWithoutFallbackPhonesInput = {
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
-  cashiers?: Prisma.CashierLandingCreateNestedManyWithoutLandingInput
+  sessions?: Prisma.WhatsappSessionLandingCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUncheckedCreateWithoutFallbackPhonesInput = {
@@ -419,7 +419,7 @@ export type LandingUncheckedCreateWithoutFallbackPhonesInput = {
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
-  cashiers?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutLandingInput
+  sessions?: Prisma.WhatsappSessionLandingUncheckedCreateNestedManyWithoutLandingInput
 }
 
 export type LandingCreateOrConnectWithoutFallbackPhonesInput = {
@@ -446,7 +446,7 @@ export type LandingUpdateWithoutFallbackPhonesInput = {
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  cashiers?: Prisma.CashierLandingUpdateManyWithoutLandingNestedInput
+  sessions?: Prisma.WhatsappSessionLandingUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingUncheckedUpdateWithoutFallbackPhonesInput = {
@@ -457,10 +457,10 @@ export type LandingUncheckedUpdateWithoutFallbackPhonesInput = {
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  cashiers?: Prisma.CashierLandingUncheckedUpdateManyWithoutLandingNestedInput
+  sessions?: Prisma.WhatsappSessionLandingUncheckedUpdateManyWithoutLandingNestedInput
 }
 
-export type LandingCreateWithoutCashiersInput = {
+export type LandingCreateWithoutSessionsInput = {
   id?: string
   url: string
   metaPixelId: string
@@ -471,7 +471,7 @@ export type LandingCreateWithoutCashiersInput = {
   fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
 }
 
-export type LandingUncheckedCreateWithoutCashiersInput = {
+export type LandingUncheckedCreateWithoutSessionsInput = {
   id?: string
   url: string
   metaPixelId: string
@@ -482,23 +482,23 @@ export type LandingUncheckedCreateWithoutCashiersInput = {
   fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
 }
 
-export type LandingCreateOrConnectWithoutCashiersInput = {
+export type LandingCreateOrConnectWithoutSessionsInput = {
   where: Prisma.LandingWhereUniqueInput
-  create: Prisma.XOR<Prisma.LandingCreateWithoutCashiersInput, Prisma.LandingUncheckedCreateWithoutCashiersInput>
+  create: Prisma.XOR<Prisma.LandingCreateWithoutSessionsInput, Prisma.LandingUncheckedCreateWithoutSessionsInput>
 }
 
-export type LandingUpsertWithoutCashiersInput = {
-  update: Prisma.XOR<Prisma.LandingUpdateWithoutCashiersInput, Prisma.LandingUncheckedUpdateWithoutCashiersInput>
-  create: Prisma.XOR<Prisma.LandingCreateWithoutCashiersInput, Prisma.LandingUncheckedCreateWithoutCashiersInput>
+export type LandingUpsertWithoutSessionsInput = {
+  update: Prisma.XOR<Prisma.LandingUpdateWithoutSessionsInput, Prisma.LandingUncheckedUpdateWithoutSessionsInput>
+  create: Prisma.XOR<Prisma.LandingCreateWithoutSessionsInput, Prisma.LandingUncheckedCreateWithoutSessionsInput>
   where?: Prisma.LandingWhereInput
 }
 
-export type LandingUpdateToOneWithWhereWithoutCashiersInput = {
+export type LandingUpdateToOneWithWhereWithoutSessionsInput = {
   where?: Prisma.LandingWhereInput
-  data: Prisma.XOR<Prisma.LandingUpdateWithoutCashiersInput, Prisma.LandingUncheckedUpdateWithoutCashiersInput>
+  data: Prisma.XOR<Prisma.LandingUpdateWithoutSessionsInput, Prisma.LandingUncheckedUpdateWithoutSessionsInput>
 }
 
-export type LandingUpdateWithoutCashiersInput = {
+export type LandingUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -509,7 +509,7 @@ export type LandingUpdateWithoutCashiersInput = {
   fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
 }
 
-export type LandingUncheckedUpdateWithoutCashiersInput = {
+export type LandingUncheckedUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -526,12 +526,12 @@ export type LandingUncheckedUpdateWithoutCashiersInput = {
  */
 
 export type LandingCountOutputType = {
-  cashiers: number
+  sessions: number
   fallbackPhones: number
 }
 
 export type LandingCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  cashiers?: boolean | LandingCountOutputTypeCountCashiersArgs
+  sessions?: boolean | LandingCountOutputTypeCountSessionsArgs
   fallbackPhones?: boolean | LandingCountOutputTypeCountFallbackPhonesArgs
 }
 
@@ -548,8 +548,8 @@ export type LandingCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exte
 /**
  * LandingCountOutputType without action
  */
-export type LandingCountOutputTypeCountCashiersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.CashierLandingWhereInput
+export type LandingCountOutputTypeCountSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WhatsappSessionLandingWhereInput
 }
 
 /**
@@ -568,7 +568,7 @@ export type LandingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  cashiers?: boolean | Prisma.Landing$cashiersArgs<ExtArgs>
+  sessions?: boolean | Prisma.Landing$sessionsArgs<ExtArgs>
   fallbackPhones?: boolean | Prisma.Landing$fallbackPhonesArgs<ExtArgs>
   _count?: boolean | Prisma.LandingCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["landing"]>
@@ -605,7 +605,7 @@ export type LandingSelectScalar = {
 
 export type LandingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "url" | "metaPixelId" | "metaAccessToken" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["landing"]>
 export type LandingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  cashiers?: boolean | Prisma.Landing$cashiersArgs<ExtArgs>
+  sessions?: boolean | Prisma.Landing$sessionsArgs<ExtArgs>
   fallbackPhones?: boolean | Prisma.Landing$fallbackPhonesArgs<ExtArgs>
   _count?: boolean | Prisma.LandingCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -615,7 +615,7 @@ export type LandingIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 export type $LandingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Landing"
   objects: {
-    cashiers: Prisma.$CashierLandingPayload<ExtArgs>[]
+    sessions: Prisma.$WhatsappSessionLandingPayload<ExtArgs>[]
     fallbackPhones: Prisma.$LandingFallbackPhonePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1020,7 +1020,7 @@ readonly fields: LandingFieldRefs;
  */
 export interface Prisma__LandingClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  cashiers<T extends Prisma.Landing$cashiersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$cashiersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CashierLandingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sessions<T extends Prisma.Landing$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsappSessionLandingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   fallbackPhones<T extends Prisma.Landing$fallbackPhonesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$fallbackPhonesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LandingFallbackPhonePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1451,27 +1451,27 @@ export type LandingDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
 }
 
 /**
- * Landing.cashiers
+ * Landing.sessions
  */
-export type Landing$cashiersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Landing$sessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the CashierLanding
+   * Select specific fields to fetch from the WhatsappSessionLanding
    */
-  select?: Prisma.CashierLandingSelect<ExtArgs> | null
+  select?: Prisma.WhatsappSessionLandingSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the CashierLanding
+   * Omit specific fields from the WhatsappSessionLanding
    */
-  omit?: Prisma.CashierLandingOmit<ExtArgs> | null
+  omit?: Prisma.WhatsappSessionLandingOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.CashierLandingInclude<ExtArgs> | null
-  where?: Prisma.CashierLandingWhereInput
-  orderBy?: Prisma.CashierLandingOrderByWithRelationInput | Prisma.CashierLandingOrderByWithRelationInput[]
-  cursor?: Prisma.CashierLandingWhereUniqueInput
+  include?: Prisma.WhatsappSessionLandingInclude<ExtArgs> | null
+  where?: Prisma.WhatsappSessionLandingWhereInput
+  orderBy?: Prisma.WhatsappSessionLandingOrderByWithRelationInput | Prisma.WhatsappSessionLandingOrderByWithRelationInput[]
+  cursor?: Prisma.WhatsappSessionLandingWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.CashierLandingScalarFieldEnum | Prisma.CashierLandingScalarFieldEnum[]
+  distinct?: Prisma.WhatsappSessionLandingScalarFieldEnum | Prisma.WhatsappSessionLandingScalarFieldEnum[]
 }
 
 /**

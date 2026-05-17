@@ -8,17 +8,10 @@ export const getCashierSession = (cashierId: string) =>
     where: { id: cashierId },
     include: {
       user: true,
-    },
-  });
-
-export const getCashierBySessionName = (sessionName: string) =>
-  prisma.cashier.findFirst({
-    where: {
-      sessionName,
-    },
-    select: {
-      id: true,
-      sessionName: true,
+      sessions: {
+        orderBy: { createdAt: 'asc' },
+        take: 1,
+      },
     },
   });
 
@@ -27,30 +20,13 @@ export const getCashierById = (cashierId: string) =>
     where: { id: cashierId },
     select: {
       id: true,
-      sessionName: true,
       status: true,
+      maxSessions: true,
       user: {
         select: {
           name: true,
         },
       },
-    },
-  });
-
-export const updateCashierWhatsappLink = (
-  cashierId: string,
-  input: {
-    sessionName?: string | null;
-    whatsappPhoneNumber?: string | null;
-    whatsappLinkRefreshCount?: number;
-    whatsappLinkUpdatedAt?: Date | null;
-  },
-) =>
-  prisma.cashier.update({
-    where: { id: cashierId },
-    data: input,
-    include: {
-      user: true,
     },
   });
 
