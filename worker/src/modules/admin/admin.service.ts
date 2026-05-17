@@ -39,6 +39,7 @@ import {
   updateLanding,
   updateLandingFallbackPhone,
   updateCashierMaxSessions,
+  countCashierSessions,
   getSessionWithLandings,
   replaceSessionLandings,
   getSessionsBoundToLandingId,
@@ -1190,6 +1191,17 @@ export class SessionNotFoundError extends Error {
   }
 }
 
+export const MAX_SESSIONS_BELOW_CURRENT = 'MAX_SESSIONS_BELOW_CURRENT';
+
+export class MaxSessionsBelowCurrentError extends Error {
+  readonly currentCount: number;
+  constructor(currentCount: number) {
+    super(MAX_SESSIONS_BELOW_CURRENT);
+    this.name = 'MaxSessionsBelowCurrentError';
+    this.currentCount = currentCount;
+  }
+}
+
 /**
  * E1 — List sessions for a cashier (with live WAHA status).
  */
@@ -1311,10 +1323,15 @@ export const updateCashierMaxSessionsService = async (
   cashierId: string,
   maxSessions: number,
 ) => {
+  const currentCount = await countCashierSessions(cashierId);
+  if (maxSessions < currentCount) {
+    throw new MaxSessionsBelowCurrentError(currentCount);
+  }
   const updated = await updateCashierMaxSessions(cashierId, maxSessions);
   if (!updated) {
     return null;
   }
+  emitCashierRuntimeStateChanged(cashierId);
   return {
     id: updated.id,
     name: updated.user.name,

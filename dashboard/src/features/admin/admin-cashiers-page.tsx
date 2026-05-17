@@ -100,8 +100,12 @@ export const AdminCashiersPage = () => {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingCashier, setEditingCashier] = useState<Cashier | null>(null);
-  const [sessionsPanelCashier, setSessionsPanelCashier] =
-    useState<Cashier | null>(null);
+  const [sessionsPanelCashierId, setSessionsPanelCashierId] =
+    useState<string | null>(null);
+  const sessionsPanelCashier =
+    sessionsPanelCashierId
+      ? cashiers.find((c) => c.id === sessionsPanelCashierId) ?? null
+      : null;
   const [landingsPanelCashier, setLandingsPanelCashier] =
     useState<Cashier | null>(null);
 
@@ -394,7 +398,7 @@ export const AdminCashiersPage = () => {
                             >
                               <MenuPrimitive.Item
                                 className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                onClick={() => setSessionsPanelCashier(cashier)}
+                                onClick={() => setSessionsPanelCashierId(cashier.id)}
                               >
                                 <SmartphoneIcon className="size-4" />
                                 Gestionar sesiones de WhatsApp
@@ -539,7 +543,7 @@ export const AdminCashiersPage = () => {
       <Dialog
         open={Boolean(sessionsPanelCashier)}
         onOpenChange={(open) => {
-          if (!open) setSessionsPanelCashier(null);
+          if (!open) setSessionsPanelCashierId(null);
         }}
       >
         <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-2xl">

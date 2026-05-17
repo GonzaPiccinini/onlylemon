@@ -365,8 +365,19 @@ export const CashierSessionPage = () => {
   const startSession = useStartSession();
   const finishSession = useFinishSession();
   const createMySession = useCreateMySession();
-  const [selectedSession, setSelectedSession] =
-    useState<MyWhatsappSession | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null,
+  );
+  const selectedSession = selectedSessionId
+    ? myWhatsappSessions.find((s) => s.id === selectedSessionId) ?? null
+    : null;
+  // If the selected session disappears (deleted by admin or elsewhere), close
+  // the modal so the cashier isn't stuck on a stale screen.
+  useEffect(() => {
+    if (selectedSessionId && !selectedSession) {
+      setSelectedSessionId(null);
+    }
+  }, [selectedSessionId, selectedSession]);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -405,7 +416,7 @@ export const CashierSessionPage = () => {
     try {
       const newSession = await createMySession.mutateAsync();
       toast.success('Nueva sesion creada');
-      setSelectedSession(newSession);
+      setSelectedSessionId(newSession.id);
     } catch (error) {
       const apiMessage = isAxiosError<{ message?: string; error?: string }>(
         error,
@@ -494,7 +505,7 @@ export const CashierSessionPage = () => {
                   <li key={ws.id}>
                     <button
                       type="button"
-                      onClick={() => setSelectedSession(ws)}
+                      onClick={() => setSelectedSessionId(ws.id)}
                       className="group flex w-full min-w-0 items-center gap-3 rounded-lg border bg-card p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -656,14 +667,14 @@ export const CashierSessionPage = () => {
       <Dialog
         open={Boolean(selectedSession)}
         onOpenChange={(open) => {
-          if (!open) setSelectedSession(null);
+          if (!open) setSelectedSessionId(null);
         }}
       >
         {selectedSession && (
           <SessionModal
             session={selectedSession}
             cashierMaxSessions={maxSessions}
-            onClose={() => setSelectedSession(null)}
+            onClose={() => setSelectedSessionId(null)}
           />
         )}
       </Dialog>

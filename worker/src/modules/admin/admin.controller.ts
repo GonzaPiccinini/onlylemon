@@ -60,6 +60,7 @@ import {
   startWhatsappLinkForSessionAdminService,
   SessionCapReachedError,
   SessionNotFoundError,
+  MaxSessionsBelowCurrentError,
 } from './admin.service.js';
 import { startWhatsappLinkSchema } from '../cashier/cashier.types.js';
 
@@ -651,11 +652,22 @@ export const updateCashierMaxSessionsHandler = async (req: Request, res: Respons
     return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
   }
 
-  const data = await updateCashierMaxSessionsService(req.params.cashierId, parsed.data.maxSessions);
-  if (data === null) {
-    return res.status(404).json({ error: 'Cashier not found' });
+  try {
+    const data = await updateCashierMaxSessionsService(req.params.cashierId, parsed.data.maxSessions);
+    if (data === null) {
+      return res.status(404).json({ error: 'Cashier not found' });
+    }
+    return res.status(200).json(data);
+  } catch (error) {
+    if (error instanceof MaxSessionsBelowCurrentError) {
+      return res.status(409).json({
+        error: 'MAX_SESSIONS_BELOW_CURRENT',
+        message: `El cajero tiene ${error.currentCount} sesion${error.currentCount === 1 ? '' : 'es'} creada${error.currentCount === 1 ? '' : 's'}. Eliminá las necesarias antes de bajar el límite.`,
+        currentCount: error.currentCount,
+      });
+    }
+    throw error;
   }
-  return res.status(200).json(data);
 };
 
 /**

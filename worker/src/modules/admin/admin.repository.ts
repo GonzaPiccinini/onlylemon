@@ -629,6 +629,12 @@ export const setAdminStatus = (adminId: string, status: 'ACTIVE' | 'DISABLED') =
 // ---------------------------------------------------------------------------
 
 /**
+ * E6 — Count sessions for a cashier.
+ */
+export const countCashierSessions = (cashierId: string) =>
+  prisma.whatsappSession.count({ where: { cashierId } });
+
+/**
  * E6 — Update cashier maxSessions.
  */
 export const updateCashierMaxSessions = async (cashierId: string, maxSessions: number) => {

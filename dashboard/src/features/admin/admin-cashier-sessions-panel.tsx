@@ -273,7 +273,15 @@ const MaxSessionsEditor = ({ cashierId, maxSessions, currentCount }: MaxSessions
       await updateMaxSessions.mutateAsync({ cashierId, input: { maxSessions: parsed } });
       toast.success('Limite actualizado');
       setEditing(false);
-    } catch {
+    } catch (error) {
+      if (isAxiosError<{ error?: string; message?: string }>(error)) {
+        const code = error.response?.data?.error;
+        const msg = error.response?.data?.message;
+        if (code === 'MAX_SESSIONS_BELOW_CURRENT' && msg) {
+          toast.error(msg);
+          return;
+        }
+      }
       toast.error('No se pudo actualizar el limite');
     }
   };
