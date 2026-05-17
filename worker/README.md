@@ -18,8 +18,8 @@ Núcleo de negocio de OnlyLemon. Combina tres responsabilidades en un solo proce
   - **Nivel 3**: número de fallback de la tabla `LandingFallbackPhone` (pool estático administrable por el admin). Invariante duro: cada Landing debe tener ≥1 fila en esta tabla; el worker lanza HTTP 500 (`FALLBACK_INVARIANT_VIOLATION`) si los niveles 1 y 2 fallan y la tabla está vacía para esa landing.
 - **Matching de código ↔ teléfono**: cuando llega un mensaje de WhatsApp (desde la cola `inbound`), busca el `code` en el body, valida TTL (`LEADS_CODE_TTL_HOURS`) y marca el lead como `CONTACTED`. Envía `Contact` a Meta.
 - **Auth**: login/logout con JWT (`JWT_SECRET`), soporte de roles `ADMIN` y `CASHIER`.
-- **Admin**: CRUD de cashiers, landings, asociación cashier↔landing, CRUD de teléfonos de fallback por landing (`/api/admin/landings/:id/fallback-phones`), estadísticas (`/stats/summary`, `/stats/cashiers`, `/stats/funds-series`), listado de leads.
-- **Cashier**: sesiones de trabajo, cola de leads (current/convert/skip), historial, estado runtime, vinculación de WhatsApp (via WAHA: request-code, QR, session status).
+- **Admin**: CRUD de cashiers, landings, CRUD de WhatsApp sessions por cashier, binding session↔landing (M:N), CRUD de teléfonos de fallback por landing (`/api/admin/landings/:id/fallback-phones`), estadísticas (`/stats/summary`, `/stats/cashiers`, `/stats/funds-series`), listado de leads.
+- **Cashier**: sesiones de trabajo, cola de leads (current/convert/skip), historial, estado runtime, gestión multi-WhatsApp por sesión (crear/borrar/QR/refresh) acotada por `Cashier.maxSessions`.
 - **Realtime**: SSE en `/api/realtime/cashier/runtime-state/stream` autenticado por JWT vía `?token=`. Heartbeat cada 20 s.
 - **Idempotencia**: tabla `ProcessedJob` evita reprocesar el mismo webhook (jobKey = `event:id`).
 - **Observabilidad**: `/metrics` Prometheus + logs pino.
@@ -30,7 +30,8 @@ Núcleo de negocio de OnlyLemon. Combina tres responsabilidades en un solo proce
 worker/
 ├── prisma/
 │   ├── schema.prisma                 User, Admin, Cashier, Lead, Landing, LandingFallbackPhone,
-│   │                                 CashierLanding, SessionActivity, ProcessedJob + enums
+│   │                                 WhatsappSession, WhatsappSessionLanding,
+│   │                                 SessionActivity, ProcessedJob + enums
 │   └── migrations/                   Histórico de migraciones Prisma
 ├── prisma.config.ts                  Datasource desde DATABASE_URL (dotenv)
 └── src/
@@ -67,12 +68,13 @@ worker/
 |---|---|
 | `User` | Usuario base (admin o cashier). `username` único, password hasheado, `role`. |
 | `Admin` | 1-1 con `User`. |
-| `Cashier` | 1-1 con `User`. Contiene sesión de WAHA (`sessionName`), teléfono vinculado, estado (`ACTIVE`/`DISABLED`), contador de refresh de QR. |
+| `Cashier` | 1-1 con `User`. Estado (`ACTIVE`/`DISABLED`) y `maxSessions` (cap configurable de sesiones WhatsApp simultáneas, default 1). Sus sesiones viven en `WhatsappSession`. |
 | `SessionActivity` | Turnos de trabajo del cashier (start/end). |
 | `Lead` | Lead generado por la landing (`code` único, `fbc`/`fbp`/`userAgent`, `metaPixelId`, `expiresAt`, `status`, `amount` al convertir, FK opcional a cashier). |
 | `Landing` | Sitio de tracking con `metaPixelId`/`metaAccessToken` propios. |
 | `LandingFallbackPhone` | Pool de teléfonos de respaldo 1→N desde `Landing`. Validación `^\+?[0-9]{8,15}$`. Constraint único `(landingId, phone)`. Cada landing debe tener ≥1 fila (invariante duro). |
-| `CashierLanding` | Muchos-a-muchos entre cashier y landing. |
+| `WhatsappSession` | Sesión WAHA por cashier. `sessionName` único, `whatsappPhoneNumber`, `refreshCount`, `lastRefreshAt`. WAHA `status` se consulta live, no se persiste. Acotada por `Cashier.maxSessions`. |
+| `WhatsappSessionLanding` | Join M:N entre `WhatsappSession` y `Landing`. Una sesión puede atender múltiples landings y una landing puede tener múltiples sesiones (de cualquier cajero). `onDelete: Cascade` en ambos lados. |
 | `ProcessedJob` | Idempotencia: `jobKey` único por evento. |
 
 Enums: `Role(ADMIN\|CASHIER\|SUPER_ADMIN)`, `CashierStatus(ACTIVE\|DISABLED)`, `AdminStatus(ACTIVE\|DISABLED)`, `LandingStatus(ACTIVE\|DISABLED)`, `LeadStatus(NOT_CONTACTED\|CONTACTED\|CONVERTED\|EXPIRED)`.
@@ -195,7 +197,9 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM \"User\" WHERE role='SUPER_ADMIN';
 
 ### Admin (`requireRole('ADMIN', 'SUPER_ADMIN')`)
 
-Cashiers: `GET/POST /api/admin/cashiers`, `PUT /:id`, `PATCH /:id/disable|enable`, `GET/PUT /:id/landings`.
+Cashiers: `GET/POST /api/admin/cashiers`, `PUT /:cashierId`, `PATCH /:cashierId` (maxSessions), `PATCH /:cashierId/disable|enable`, `POST /:cashierId/sessions/finish`.
+WhatsApp sessions: `GET/POST /api/admin/cashiers/:cashierId/whatsapp-sessions`, `DELETE /api/admin/whatsapp-sessions/:sessionId`, `POST /api/admin/whatsapp-sessions/:sessionId/link` (admin "Generar QR ahora").
+Session↔Landing binding: `GET/PUT /api/admin/whatsapp-sessions/:sessionId/landings` (full-replace, M:N), `GET /api/admin/landings/:landingId/sessions`.
 Landings: `GET/POST /api/admin/landings`, `PUT /:id`, `PATCH /:id/disable|enable`.
 Fallback phones por landing: `GET /api/admin/landings/:id/fallback-phones`, `POST /api/admin/landings/:id/fallback-phones`, `PUT /api/admin/landings/:id/fallback-phones/:phoneId`, `DELETE /api/admin/landings/:id/fallback-phones/:phoneId`. El DELETE rechaza con `409 LAST_FALLBACK` si dejaría la landing sin respaldos.
 Stats: `GET /api/admin/stats/summary|cashiers|funds-series`.
@@ -212,7 +216,8 @@ Leads: `GET /api/admin/leads`.
 Sesiones: `GET /api/cashier/sessions`, `GET /sessions/current`, `POST /sessions/start|finish`.
 Cola de leads: `GET /leads/queue/current`, `POST /leads/:leadId/convert|skip`, `GET /leads`.
 Runtime: `GET /runtime-state`, `PATCH /account`.
-WhatsApp (WAHA): `GET /whatsapp/link-state|link/status`, `POST /whatsapp/link/start|refresh|reset|complete`.
+WhatsApp legacy (single-session, mantiene reset/complete del flow viejo): `GET /whatsapp/link-state|link/status`, `POST /whatsapp/link/reset|complete`.
+WhatsApp multi-session (acotado por `Cashier.maxSessions`): `GET /me/sessions`, `POST /me/sessions`, `DELETE /me/sessions/:id`, `POST /me/sessions/:id/link|refresh|reset-refresh`, `GET /me/sessions/:id/status`.
 
 ### Realtime (SSE)
 
