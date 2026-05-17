@@ -69,9 +69,13 @@ const updateSchema = z.object({
   password: z
     .string()
     .optional()
-    .refine((value) => value === undefined || value.trim() === '' || value.trim().length >= 6, {
-      message: 'Minimo 6 caracteres',
-    }),
+    .refine(
+      (value) =>
+        value === undefined || value.trim() === '' || value.trim().length >= 6,
+      {
+        message: 'Minimo 6 caracteres',
+      },
+    ),
 });
 
 type CreateValues = z.infer<typeof createSchema>;
@@ -96,8 +100,10 @@ export const AdminCashiersPage = () => {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingCashier, setEditingCashier] = useState<Cashier | null>(null);
-  const [sessionsPanelCashier, setSessionsPanelCashier] = useState<Cashier | null>(null);
-  const [landingsPanelCashier, setLandingsPanelCashier] = useState<Cashier | null>(null);
+  const [sessionsPanelCashier, setSessionsPanelCashier] =
+    useState<Cashier | null>(null);
+  const [landingsPanelCashier, setLandingsPanelCashier] =
+    useState<Cashier | null>(null);
 
   const createForm = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
@@ -136,7 +142,9 @@ export const AdminCashiersPage = () => {
       const payload = {
         name: values.name,
         username: values.username,
-        ...(values.password?.trim() ? { password: values.password.trim() } : {}),
+        ...(values.password?.trim()
+          ? { password: values.password.trim() }
+          : {}),
       };
 
       await updateCashier.mutateAsync({
@@ -193,14 +201,14 @@ export const AdminCashiersPage = () => {
   const paginatedCashiers = cashiers.slice(start, start + pageSize);
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className="flex flex-col gap-4">
       <PageHeader
-        title='Gestion de cajeros'
-        description='Administra altas, ediciones y estado operativo de los cajeros.'
+        title="Gestion de cajeros"
+        description="Administra altas, ediciones y estado operativo de los cajeros."
         actions={
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger render={<Button />}>
-              <PlusIcon data-icon='inline-start' />
+              <PlusIcon data-icon="inline-start" />
               Nuevo cajero
             </DialogTrigger>
             <DialogContent>
@@ -213,16 +221,16 @@ export const AdminCashiersPage = () => {
               </DialogHeader>
               <form
                 onSubmit={createForm.handleSubmit(onCreate)}
-                className='flex flex-col gap-4'
+                className="flex flex-col gap-4"
               >
                 <FieldGroup>
                   <Field
                     data-invalid={Boolean(createForm.formState.errors.name)}
                   >
-                    <FieldLabel htmlFor='create-name'>Nombre</FieldLabel>
+                    <FieldLabel htmlFor="create-name">Nombre</FieldLabel>
                     <FieldContent>
                       <Input
-                        id='create-name'
+                        id="create-name"
                         aria-invalid={Boolean(createForm.formState.errors.name)}
                         {...createForm.register('name')}
                       />
@@ -233,10 +241,10 @@ export const AdminCashiersPage = () => {
                   <Field
                     data-invalid={Boolean(createForm.formState.errors.username)}
                   >
-                    <FieldLabel htmlFor='create-username'>Usuario</FieldLabel>
+                    <FieldLabel htmlFor="create-username">Usuario</FieldLabel>
                     <FieldContent>
                       <Input
-                        id='create-username'
+                        id="create-username"
                         aria-invalid={Boolean(
                           createForm.formState.errors.username,
                         )}
@@ -251,11 +259,11 @@ export const AdminCashiersPage = () => {
                   <Field
                     data-invalid={Boolean(createForm.formState.errors.password)}
                   >
-                    <FieldLabel htmlFor='create-password'>Password</FieldLabel>
+                    <FieldLabel htmlFor="create-password">Password</FieldLabel>
                     <FieldContent>
                       <Input
-                        id='create-password'
-                        type='password'
+                        id="create-password"
+                        type="password"
                         aria-invalid={Boolean(
                           createForm.formState.errors.password,
                         )}
@@ -269,7 +277,7 @@ export const AdminCashiersPage = () => {
                 </FieldGroup>
 
                 <DialogFooter>
-                  <Button type='submit' disabled={createCashier.isPending}>
+                  <Button type="submit" disabled={createCashier.isPending}>
                     {createCashier.isPending
                       ? 'Guardando...'
                       : 'Guardar cajero'}
@@ -281,16 +289,16 @@ export const AdminCashiersPage = () => {
         }
       />
 
-      <div className='rounded-2xl border bg-card p-3 shadow-sm md:p-4'>
+      <div className="rounded-2xl border bg-card p-3 shadow-sm md:p-4">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Turno</TableHead>
-              <TableHead>Sesiones WhatsApp</TableHead>
+              <TableHead>Sesiones de WhatsApp</TableHead>
               <TableHead>Creado</TableHead>
-              <TableHead className='text-right'>Acciones</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -302,13 +310,13 @@ export const AdminCashiersPage = () => {
               <TableRow>
                 <TableCell colSpan={6}>No hay cajeros registrados.</TableCell>
               </TableRow>
-             ) : (
-               paginatedCashiers.map((cashier) => (
+            ) : (
+              paginatedCashiers.map((cashier) => (
                 <TableRow key={cashier.id}>
                   <TableCell>
-                    <div className='flex flex-col gap-0.5'>
+                    <div className="flex flex-col gap-0.5">
                       <span>{cashier.name}</span>
-                      <span className='text-xs text-muted-foreground'>
+                      <span className="text-xs text-muted-foreground">
                         Usuario: {cashier.username}
                       </span>
                     </div>
@@ -326,7 +334,7 @@ export const AdminCashiersPage = () => {
                     {(() => {
                       const state = operationalState(cashier);
                       return (
-                        <Badge variant={state.variant} className='w-fit'>
+                        <Badge variant={state.variant} className="w-fit">
                           {state.label}
                         </Badge>
                       );
@@ -337,44 +345,45 @@ export const AdminCashiersPage = () => {
                       const wc = cashier.workingSessionsCount ?? 0;
                       const sc = cashier.sessions.length;
                       return (
-                        <div className='flex flex-col gap-0.5'>
-                          <div className='flex items-center gap-1'>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1">
                             {wc > 0 ? (
-                              <CheckCircle2Icon className='size-3.5 shrink-0 text-green-500' />
+                              <CheckCircle2Icon className="size-3.5 shrink-0 text-green-500" />
                             ) : (
-                              <span className='size-3.5 shrink-0 rounded-full bg-muted-foreground/30 inline-block' />
+                              <span className="size-3.5 shrink-0 rounded-full bg-muted-foreground/30 inline-block" />
                             )}
-                            <span className='text-sm font-medium'>
+                            <span className="text-sm font-medium">
                               {wc} conectada{wc !== 1 ? 's' : ''}
                             </span>
                           </div>
-                          <span className='text-xs text-muted-foreground'>
-                            {sc} creada{sc !== 1 ? 's' : ''} · max {cashier.maxSessions}
+                          <span className="text-xs text-muted-foreground">
+                            {sc} creada{sc !== 1 ? 's' : ''} · max{' '}
+                            {cashier.maxSessions}
                           </span>
                         </div>
                       );
                     })()}
                   </TableCell>
                   <TableCell>{formatDateTime(cashier.createdAt)}</TableCell>
-                  <TableCell className='text-right'>
-                    <div className='flex justify-end'>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end">
                       <MenuPrimitive.Root>
                         <MenuPrimitive.Trigger
                           render={
                             <Button
-                              variant='outline'
-                              size='sm'
-                              aria-label='Acciones'
+                              variant="outline"
+                              size="sm"
+                              aria-label="Acciones"
                             />
                           }
                         >
-                          <MoreHorizontalIcon className='size-4' />
+                          <MoreHorizontalIcon className="size-4" />
                         </MenuPrimitive.Trigger>
                         <MenuPrimitive.Portal>
                           <MenuPrimitive.Positioner
                             sideOffset={4}
-                            align='end'
-                            className='z-50'
+                            align="end"
+                            className="z-50"
                           >
                             <MenuPrimitive.Popup
                               className={cn(
@@ -384,50 +393,52 @@ export const AdminCashiersPage = () => {
                               )}
                             >
                               <MenuPrimitive.Item
-                                className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                                 onClick={() => setSessionsPanelCashier(cashier)}
                               >
-                                <SmartphoneIcon className='size-4' />
-                                Sesiones WhatsApp
+                                <SmartphoneIcon className="size-4" />
+                                Gestionar sesiones de WhatsApp
                               </MenuPrimitive.Item>
                               <MenuPrimitive.Item
-                                className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                                 onClick={() => setLandingsPanelCashier(cashier)}
                               >
-                                <LinkIcon className='size-4' />
+                                <LinkIcon className="size-4" />
                                 Asignar landings
                               </MenuPrimitive.Item>
                               <MenuPrimitive.Item
-                                className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                                 onClick={() => openEditDialog(cashier)}
                               >
-                                <PencilLineIcon className='size-4' />
+                                <PencilLineIcon className="size-4" />
                                 Editar
                               </MenuPrimitive.Item>
                               {cashier.hasActiveWorkSession ? (
                                 <MenuPrimitive.Item
-                                  className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                                   disabled={finishCashierWorkSession.isPending}
-                                  onClick={() => onFinishWorkSession(cashier.id)}
+                                  onClick={() =>
+                                    onFinishWorkSession(cashier.id)
+                                  }
                                 >
-                                  <LogOutIcon className='size-4' />
+                                  <LogOutIcon className="size-4" />
                                   Cerrar turno
                                 </MenuPrimitive.Item>
                               ) : null}
                               {cashier.status === 'ACTIVE' ? (
                                 <MenuPrimitive.Item
-                                  className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-destructive outline-none transition-colors hover:bg-destructive/10 hover:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive'
+                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-destructive outline-none transition-colors hover:bg-destructive/10 hover:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
                                   onClick={() => onDisable(cashier.id)}
                                 >
-                                  <UserX2Icon className='size-4' />
+                                  <UserX2Icon className="size-4" />
                                   Deshabilitar
                                 </MenuPrimitive.Item>
                               ) : (
                                 <MenuPrimitive.Item
-                                  className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground'
+                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                                   onClick={() => onEnable(cashier.id)}
                                 >
-                                  <CheckCircle2Icon className='size-4' />
+                                  <CheckCircle2Icon className="size-4" />
                                   Activar
                                 </MenuPrimitive.Item>
                               )}
@@ -442,7 +453,7 @@ export const AdminCashiersPage = () => {
             )}
           </TableBody>
         </Table>
-        <div className='mt-3'>
+        <div className="mt-3">
           <PaginationControls
             page={normalizedPage}
             totalPages={totalPages}
@@ -469,14 +480,14 @@ export const AdminCashiersPage = () => {
           </DialogHeader>
           <form
             onSubmit={updateForm.handleSubmit(onUpdate)}
-            className='flex flex-col gap-4'
+            className="flex flex-col gap-4"
           >
             <FieldGroup>
               <Field data-invalid={Boolean(updateForm.formState.errors.name)}>
-                <FieldLabel htmlFor='edit-name'>Nombre</FieldLabel>
+                <FieldLabel htmlFor="edit-name">Nombre</FieldLabel>
                 <FieldContent>
                   <Input
-                    id='edit-name'
+                    id="edit-name"
                     aria-invalid={Boolean(updateForm.formState.errors.name)}
                     {...updateForm.register('name')}
                   />
@@ -486,10 +497,10 @@ export const AdminCashiersPage = () => {
               <Field
                 data-invalid={Boolean(updateForm.formState.errors.username)}
               >
-                <FieldLabel htmlFor='edit-username'>Usuario</FieldLabel>
+                <FieldLabel htmlFor="edit-username">Usuario</FieldLabel>
                 <FieldContent>
                   <Input
-                    id='edit-username'
+                    id="edit-username"
                     aria-invalid={Boolean(updateForm.formState.errors.username)}
                     {...updateForm.register('username')}
                   />
@@ -499,15 +510,15 @@ export const AdminCashiersPage = () => {
               <Field
                 data-invalid={Boolean(updateForm.formState.errors.password)}
               >
-                <FieldLabel htmlFor='edit-password'>Nueva password</FieldLabel>
+                <FieldLabel htmlFor="edit-password">Nueva password</FieldLabel>
                 <FieldContent>
                   <Input
-                    id='edit-password'
-                    type='password'
+                    id="edit-password"
+                    type="password"
                     aria-invalid={Boolean(updateForm.formState.errors.password)}
                     {...updateForm.register('password')}
                   />
-                  <p className='text-xs text-muted-foreground'>
+                  <p className="text-xs text-muted-foreground">
                     Deja este campo vacio para conservar la password actual.
                   </p>
                   <FieldError errors={[updateForm.formState.errors.password]} />
@@ -516,7 +527,7 @@ export const AdminCashiersPage = () => {
             </FieldGroup>
 
             <DialogFooter>
-              <Button type='submit' disabled={updateCashier.isPending}>
+              <Button type="submit" disabled={updateCashier.isPending}>
                 {updateCashier.isPending ? 'Guardando...' : 'Actualizar'}
               </Button>
             </DialogFooter>
@@ -531,7 +542,7 @@ export const AdminCashiersPage = () => {
           if (!open) setSessionsPanelCashier(null);
         }}
       >
-        <DialogContent className='w-[95vw] sm:max-w-[95vw] md:max-w-2xl'>
+        <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               Sesiones WhatsApp — {sessionsPanelCashier?.name}
@@ -553,13 +564,14 @@ export const AdminCashiersPage = () => {
           if (!open) setLandingsPanelCashier(null);
         }}
       >
-        <DialogContent className='w-[95vw] sm:max-w-[95vw] md:max-w-2xl'>
+        <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               Asignar landings — {landingsPanelCashier?.name}
             </DialogTitle>
             <DialogDescription>
-              Vincula cada sesion de WhatsApp con las landings que recibiran sus leads.
+              Vincula cada sesion de WhatsApp con las landings que recibiran sus
+              leads.
             </DialogDescription>
           </DialogHeader>
           {landingsPanelCashier && (

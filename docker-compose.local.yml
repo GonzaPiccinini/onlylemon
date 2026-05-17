@@ -56,7 +56,7 @@ services:
       LEADS_CODE_TTL_HOURS: 48
       JWT_SECRET: dev-jwt-secret-change-me-please
       JWT_REFRESH_SECRET: dev-jwt-refresh-secret-change-me-please-now
-      CORS_ORIGIN: http://localhost:8080
+      CORS_ORIGIN: 'http://localhost:8080,http://192.168.100.79:8080'
       WAHA_BASE_URL: http://waha:3000
       WAHA_API_KEY: dev-waha-key
       WAHA_WEBHOOK_URL: http://gateway:3000/api/webhook
@@ -66,7 +66,7 @@ services:
       LOG_LEVEL: debug
       TZ: America/Argentina/Buenos_Aires
     ports:
-      - '127.0.0.1:4000:4000'
+      - '0.0.0.0:4000:4000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,11 +102,11 @@ services:
     build:
       context: ./dashboard
       args:
-        VITE_API_BASE_URL: http://localhost:4000/api
+        VITE_API_BASE_URL: http://192.168.100.79:4000/api
     container_name: onlylemon-dashboard-local
     restart: unless-stopped
     ports:
-      - '127.0.0.1:8080:80'
+      - '0.0.0.0:8080:80'
     depends_on: [worker]
     networks: [local]
 
