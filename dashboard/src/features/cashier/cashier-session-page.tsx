@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import {
   ChevronRightIcon,
+  CheckIcon,
   PlayIcon,
   QrCodeIcon,
   RefreshCcwIcon,
@@ -221,15 +222,20 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
         </div>
 
         {isWorking ? (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-            <p className="text-sm font-medium text-green-800">
-              WhatsApp conectado correctamente
-            </p>
-            {session.whatsappPhoneNumber && (
-              <p className="text-xs text-green-600">
-                Telefono: {session.whatsappPhoneNumber}
+          <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3">
+            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-500/30">
+              <CheckIcon className="size-4" strokeWidth={3} />
+            </div>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <p className="text-sm font-medium leading-tight">
+                Conectado a WhatsApp
               </p>
-            )}
+              {session.whatsappPhoneNumber && (
+                <p className="truncate font-mono text-xs text-muted-foreground">
+                  +{session.whatsappPhoneNumber}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <>
