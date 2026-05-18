@@ -192,6 +192,12 @@ export function createAutoConversionService(deps: AutoConversionDeps): {
     let resolvedAmount: number | null = null;
     let resolvedLeadCode: string | null = null;
 
+    // S3 refs of media WAHA re-uploaded while we walked back past them but
+    // didn't end up selecting (cashier-sent media, non-image/pdf types, or
+    // the candidate when conversion failed). Cleaned up in the finally block
+    // regardless of flow outcome so the bucket doesn't accumulate orphans.
+    const passedOverRefs: { Bucket: string; Key: string }[] = [];
+
     try {
       // Step 4: Budget check (throws BudgetExceededError if over cap)
       await budgetCheckAndIncrement(cashierId);
@@ -224,13 +230,16 @@ export function createAutoConversionService(deps: AutoConversionDeps): {
         if (!candidate.hasMedia || !candidate.media) {
           continue;
         }
-        // Item #3: skip media sent by the cashier themselves (fromMe=true).
-        // Only consider media sent BY the client (fromMe=false or undefined).
-        if (candidate.fromMe === true) {
-          continue;
-        }
 
         const { mimetype, url, s3 } = candidate.media;
+
+        // Item #3: skip media sent by the cashier themselves (fromMe=true).
+        // Only consider media sent BY the client (fromMe=false or undefined).
+        // WAHA re-stored this in R2 while we walked past — track it for cleanup.
+        if (candidate.fromMe === true) {
+          if (s3) passedOverRefs.push(s3);
+          continue;
+        }
 
         // Accept both image/* and application/pdf (Pase 3: PDF support)
         if (mimetype.startsWith('image/') || mimetype === 'application/pdf') {
@@ -240,6 +249,10 @@ export function createAutoConversionService(deps: AutoConversionDeps): {
           selectedMediaS3 = s3 ?? null;
           break;
         }
+
+        // Non-eligible mimetype (audio/video/sticker/…). WAHA re-stored it
+        // while we walked past — track it for cleanup.
+        if (s3) passedOverRefs.push(s3);
       }
 
       if (!selectedMediaUrl || !selectedMimetype) {
@@ -399,6 +412,22 @@ export function createAutoConversionService(deps: AutoConversionDeps): {
         });
       }
       // DO NOT rethrow — job must succeed for BullMQ
+    } finally {
+      // Cleanup: delete every media WAHA re-uploaded while we walked past it
+      // but didn't end up selecting (cashier-sent media, non-image/pdf types).
+      // Failures are non-fatal; conversion outcome is already settled.
+      for (const ref of passedOverRefs) {
+        try {
+          await deleteReceipt(ref.Bucket, ref.Key);
+        } catch (cleanupErr) {
+          logger.warn({
+            event: 'auto_conversion_passed_over_delete_failed',
+            bucket: ref.Bucket,
+            key: ref.Key,
+            err: String(cleanupErr),
+          });
+        }
+      }
     }
   }
 

@@ -1033,3 +1033,160 @@ test('walk-back: respects lookbackLimit cap', async () => {
   assert.deepEqual(requestedLimits, [1, 2, 3, 4, 5], 'must cap at lookbackLimit');
   assert.equal(sendTextCalls.length, 1, 'NoImageFound reply sent');
 });
+
+// ---------------------------------------------------------------------------
+// Walk-back cleanup: delete passed-over media (cashier-sent, non-image/pdf)
+// ---------------------------------------------------------------------------
+
+test('cleanup: cashier-sent media passed over during walk-back is deleted from R2', async () => {
+  // Scenario: cashier sent an image (fromMe=true), then the client sent a
+  // receipt, then the cashier triggered. Walk-back must clean up the cashier
+  // image that WAHA re-uploaded while passing over it.
+  const cashierImageS3 = { Bucket: 'r2', Key: 'media/cashier-image' };
+  const receiptS3 = { Bucket: 'r2', Key: 'media/receipt' };
+  const history: WahaMessage[] = [
+    makeMsg('msg-trigger', { fromMe: true }),
+    {
+      id: 'msg-cashier-image',
+      timestamp: Date.now(),
+      fromMe: true,
+      body: '',
+      hasMedia: true,
+      media: { url: 'http://cashier.jpg', mimetype: 'image/jpeg', s3: cashierImageS3 },
+    },
+    {
+      id: 'msg-receipt',
+      timestamp: Date.now(),
+      fromMe: false,
+      body: '',
+      hasMedia: true,
+      media: { url: IMAGE_URL, mimetype: IMAGE_MIMETYPE, s3: receiptS3 },
+    },
+  ];
+  const deleteCalls: { bucket: string; key: string }[] = [];
+
+  const { deps, createConversionCalls } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => history.slice(0, opts.limit),
+    deleteReceipt: async (bucket: string, key: string) => {
+      deleteCalls.push({ bucket, key });
+    },
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.equal(createConversionCalls.length, 1);
+  // Both the cashier image (passed-over) and the receipt (success-path) must be deleted.
+  const deletedKeys = deleteCalls.map((c) => c.key).sort();
+  assert.deepEqual(deletedKeys, ['media/cashier-image', 'media/receipt']);
+});
+
+test('cleanup: non-eligible media (video/audio) passed over is deleted from R2', async () => {
+  const videoS3 = { Bucket: 'r2', Key: 'media/video' };
+  const receiptS3 = { Bucket: 'r2', Key: 'media/receipt' };
+  const history: WahaMessage[] = [
+    makeMsg('msg-trigger', { fromMe: true }),
+    {
+      id: 'msg-video',
+      timestamp: Date.now(),
+      fromMe: false,
+      body: '',
+      hasMedia: true,
+      media: { url: 'http://v.mp4', mimetype: 'video/mp4', s3: videoS3 },
+    },
+    {
+      id: 'msg-receipt',
+      timestamp: Date.now(),
+      fromMe: false,
+      body: '',
+      hasMedia: true,
+      media: { url: IMAGE_URL, mimetype: IMAGE_MIMETYPE, s3: receiptS3 },
+    },
+  ];
+  const deleteCalls: { bucket: string; key: string }[] = [];
+
+  const { deps, createConversionCalls } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => history.slice(0, opts.limit),
+    deleteReceipt: async (bucket: string, key: string) => {
+      deleteCalls.push({ bucket, key });
+    },
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.equal(createConversionCalls.length, 1);
+  const deletedKeys = deleteCalls.map((c) => c.key).sort();
+  assert.deepEqual(deletedKeys, ['media/receipt', 'media/video']);
+});
+
+test('cleanup: passed-over refs are deleted even when conversion fails', async () => {
+  const cashierImageS3 = { Bucket: 'r2', Key: 'media/cashier-image' };
+  const history: WahaMessage[] = [
+    makeMsg('msg-trigger', { fromMe: true }),
+    {
+      id: 'msg-cashier-image',
+      timestamp: Date.now(),
+      fromMe: true,
+      body: '',
+      hasMedia: true,
+      media: { url: 'http://cashier.jpg', mimetype: 'image/jpeg', s3: cashierImageS3 },
+    },
+    // No receipt → flow fails with NoImageFound
+  ];
+  const deleteCalls: { bucket: string; key: string }[] = [];
+
+  const { deps, sendTextCalls, createConversionCalls } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => history.slice(0, opts.limit),
+    deleteReceipt: async (bucket: string, key: string) => {
+      deleteCalls.push({ bucket, key });
+    },
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.equal(createConversionCalls.length, 0);
+  assert.equal(sendTextCalls.length, 1, 'error reply sent');
+  assert.deepEqual(deleteCalls, [{ bucket: 'r2', key: 'media/cashier-image' }]);
+});
+
+test('cleanup: passed-over delete failure is non-fatal and logged', async () => {
+  const cashierImageS3 = { Bucket: 'r2', Key: 'media/cashier-image' };
+  const receiptS3 = { Bucket: 'r2', Key: 'media/receipt' };
+  const history: WahaMessage[] = [
+    makeMsg('msg-trigger', { fromMe: true }),
+    {
+      id: 'msg-cashier-image',
+      timestamp: Date.now(),
+      fromMe: true,
+      body: '',
+      hasMedia: true,
+      media: { url: 'http://cashier.jpg', mimetype: 'image/jpeg', s3: cashierImageS3 },
+    },
+    {
+      id: 'msg-receipt',
+      timestamp: Date.now(),
+      fromMe: false,
+      body: '',
+      hasMedia: true,
+      media: { url: IMAGE_URL, mimetype: IMAGE_MIMETYPE, s3: receiptS3 },
+    },
+  ];
+
+  const { deps, createConversionCalls, warnLogs } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => history.slice(0, opts.limit),
+    deleteReceipt: async (_bucket: string, key: string) => {
+      if (key === 'media/cashier-image') throw new Error('boom');
+    },
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.equal(createConversionCalls.length, 1, 'conversion still succeeds');
+  const sawWarn = warnLogs.some((args) =>
+    JSON.stringify(args).includes('auto_conversion_passed_over_delete_failed'),
+  );
+  assert.ok(sawWarn, 'passed-over cleanup failure must be logged as warn');
+});
