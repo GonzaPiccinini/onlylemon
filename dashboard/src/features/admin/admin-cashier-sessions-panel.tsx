@@ -87,6 +87,18 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, session.id]);
 
+  // Auto-close when the session becomes WORKING while the dialog is open.
+  // Continuing to refresh the QR / pairing code against an already-linked
+  // session can ask WAHA to relink and break the active connection.
+  useEffect(() => {
+    if (!open) return;
+    if (session.wahaStatus !== 'WORKING') return;
+    stopTimer();
+    toast.success('WhatsApp conectado correctamente');
+    onClose();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, session.wahaStatus]);
+
   const applyArtifacts = useCallback((data: WhatsappLinkArtifacts) => {
     const normalizedQr =
       data.qr && !data.qr.startsWith('data:')
