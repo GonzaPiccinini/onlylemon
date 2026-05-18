@@ -9,6 +9,7 @@ import {
 import {
   completeWhatsappLinkService,
   createConversionService,
+  getConversionAmountLimits,
   createMySessionService,
   deleteMySessionService,
   enforceCashierCanOperateLeadsService,
@@ -117,6 +118,18 @@ export const createConversionHandler = async (req: Request, res: Response) => {
     });
   }
 
+  const limits = await getConversionAmountLimits();
+  if (limits.min > 0 && parsed.data.amount < limits.min) {
+    return res.status(400).json({
+      error: `El monto minimo es ${limits.min}`,
+    });
+  }
+  if (limits.max > 0 && parsed.data.amount > limits.max) {
+    return res.status(400).json({
+      error: `El monto maximo es ${limits.max}`,
+    });
+  }
+
   const result = await createConversionService(
     cashierId,
     req.params.leadId,
@@ -142,6 +155,11 @@ export const createConversionHandler = async (req: Request, res: Response) => {
   // DUPLICATE is not expected from the manual CAPI path (no sourceMessageId),
   // but handle it defensively — treat as a 409 conflict.
   return res.status(409).json({ error: 'Conversion already recorded' });
+};
+
+export const getConversionLimitsHandler = async (_req: Request, res: Response) => {
+  const limits = await getConversionAmountLimits();
+  return res.status(200).json(limits);
 };
 
 export const searchCashierLeadsHandler = async (req: Request, res: Response) => {

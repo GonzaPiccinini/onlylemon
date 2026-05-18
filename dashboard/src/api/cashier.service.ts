@@ -68,6 +68,13 @@ export const cashierService = {
     return data;
   },
 
+  async getConversionLimits(): Promise<{ min: number; max: number }> {
+    const { data } = await http.get<{ min: number; max: number }>(
+      endpoints.cashier.conversionLimits,
+    );
+    return data;
+  },
+
   async getRuntimeState(): Promise<CashierRuntimeState> {
     const { data } = await http.get<CashierRuntimeState>(endpoints.cashier.runtimeState);
     return data;

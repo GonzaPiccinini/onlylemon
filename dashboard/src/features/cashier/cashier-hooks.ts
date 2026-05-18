@@ -9,6 +9,7 @@ const cashierKeys = {
   sessions: ["cashier", "sessions"] as const,
   currentSession: ["cashier", "current-session"] as const,
   runtimeState: ["cashier", "runtime-state"] as const,
+  conversionLimits: ["cashier", "conversion-limits"] as const,
   searchLeads: (q: string) => ["cashier", "leads", "search", q] as const,
   conversions: (filters: CashierConversionsFilters) => ["cashier", "conversions", filters] as const,
   whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
@@ -59,6 +60,13 @@ export const useFinishSession = () => {
     },
   });
 };
+
+export const useCashierConversionLimits = () =>
+  useQuery({
+    queryKey: cashierKeys.conversionLimits,
+    queryFn: cashierService.getConversionLimits,
+    staleTime: 60_000,
+  });
 
 export const useCashierRuntimeState = (enabled = true) =>
   useQuery({

@@ -48,6 +48,7 @@ export const endpoints = {
     sessionFinish: "/cashier/sessions/finish",
     createConversion: (leadId: string) => `/cashier/leads/${leadId}/convert`,
     searchLeads: "/cashier/leads/search",
+    conversionLimits: "/cashier/conversion-limits",
     conversions: "/cashier/conversions",
     runtimeState: "/cashier/runtime-state",
     account: "/cashier/account",

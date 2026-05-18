@@ -2,18 +2,28 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createConversionSchema, cashierConversionsFilterSchema } from './cashier.types.js';
 
-test('createConversionSchema rejects amounts lower than 3000', () => {
-  const parsed = createConversionSchema.safeParse({ amount: 2999 });
+test('createConversionSchema rejects zero', () => {
+  const parsed = createConversionSchema.safeParse({ amount: 0 });
   assert.equal(parsed.success, false);
 });
 
-test('createConversionSchema accepts amount equal to 3000', () => {
-  const parsed = createConversionSchema.safeParse({ amount: 3000 });
+test('createConversionSchema rejects negative amounts', () => {
+  const parsed = createConversionSchema.safeParse({ amount: -100 });
+  assert.equal(parsed.success, false);
+});
+
+test('createConversionSchema rejects non-integer amounts', () => {
+  const parsed = createConversionSchema.safeParse({ amount: 100.5 });
+  assert.equal(parsed.success, false);
+});
+
+test('createConversionSchema accepts positive integer amount', () => {
+  const parsed = createConversionSchema.safeParse({ amount: 7500 });
   assert.equal(parsed.success, true);
 });
 
-test('createConversionSchema accepts amounts greater than 3000', () => {
-  const parsed = createConversionSchema.safeParse({ amount: 7500 });
+test('createConversionSchema accepts low positive amounts (range enforced at controller layer)', () => {
+  const parsed = createConversionSchema.safeParse({ amount: 100 });
   assert.equal(parsed.success, true);
 });
 

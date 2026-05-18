@@ -68,6 +68,7 @@ type GenericGetDeps = {
 
 type GenericUpdateDeps = {
   upsertSettingFn: (key: string, value: string) => Promise<void>;
+  getSettingFn: (key: string) => Promise<string>;
 };
 
 function isValidSettingKey(key: string): key is SettingKey {
@@ -97,8 +98,33 @@ export const makeUpdateSettingHandler =
         details: parsed.error.flatten(),
       });
     }
-    await deps.upsertSettingFn(key, parsed.data.value);
-    return res.status(200).json({ value: parsed.data.value });
+
+    const newValue = parsed.data.value;
+    const isMin = key === SETTING_KEYS.AUTO_CONVERSION_MIN_AMOUNT;
+    const isMax = key === SETTING_KEYS.AUTO_CONVERSION_MAX_AMOUNT;
+
+    if (isMin || isMax) {
+      const newAmount = Number.parseInt(newValue, 10);
+      if (Number.isFinite(newAmount) && newAmount > 0) {
+        const counterpartKey = isMin
+          ? SETTING_KEYS.AUTO_CONVERSION_MAX_AMOUNT
+          : SETTING_KEYS.AUTO_CONVERSION_MIN_AMOUNT;
+        const counterpartRaw = await deps.getSettingFn(counterpartKey);
+        const counterpart = Number.parseInt(counterpartRaw, 10);
+        if (Number.isFinite(counterpart) && counterpart > 0) {
+          const minAmount = isMin ? newAmount : counterpart;
+          const maxAmount = isMax ? newAmount : counterpart;
+          if (minAmount > maxAmount) {
+            return res.status(400).json({
+              error: 'El monto mínimo no puede ser mayor al máximo',
+            });
+          }
+        }
+      }
+    }
+
+    await deps.upsertSettingFn(key, newValue);
+    return res.status(200).json({ value: newValue });
   };
 
 // ---------------------------------------------------------------------------
@@ -119,4 +145,5 @@ export const getSettingHandler = makeGetSettingHandler({
 
 export const updateSettingHandler = makeUpdateSettingHandler({
   upsertSettingFn: upsertSetting,
+  getSettingFn: getSetting,
 });

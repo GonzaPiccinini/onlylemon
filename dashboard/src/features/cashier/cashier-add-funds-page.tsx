@@ -23,26 +23,51 @@ import {
   useSearchCashierLeads,
   useCreateConversion,
   useCashierRuntimeState,
+  useCashierConversionLimits,
 } from '@/features/cashier/cashier-hooks';
 import { leadStatusLabel } from '@/lib/lead-status';
 import { toApiError } from '@/api/http';
 import type { Lead } from '@/types/domain';
 
-const schema = z.object({
-  amount: z
-    .string()
-    .trim()
-    .min(1, 'El monto es obligatorio')
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 3000, {
-      message: 'El monto minimo es 3000',
-    }),
-});
+const buildAmountSchema = (limits: { min: number; max: number }) =>
+  z.object({
+    amount: z
+      .string()
+      .trim()
+      .min(1, 'El monto es obligatorio')
+      .superRefine((value, ctx) => {
+        const num = Number(value);
+        if (Number.isNaN(num) || !Number.isInteger(num) || num <= 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Debe ser un numero entero positivo',
+          });
+          return;
+        }
+        if (limits.min > 0 && num < limits.min) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `El monto minimo es ${limits.min}`,
+          });
+        }
+        if (limits.max > 0 && num > limits.max) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `El monto maximo es ${limits.max}`,
+          });
+        }
+      }),
+  });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = { amount: string };
+
+const formatARS = (n: number) => new Intl.NumberFormat('es-AR').format(n);
 
 export const CashierAddFundsPage = () => {
   const navigate = useNavigate();
   const { data: runtimeState } = useCashierRuntimeState();
+  const { data: limitsData } = useCashierConversionLimits();
+  const limits = limitsData ?? { min: 0, max: 0 };
   const [query, setQuery] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -74,12 +99,21 @@ export const CashierAddFundsPage = () => {
   const { data: searchResults = [], isFetching: searching } =
     useSearchCashierLeads(debouncedQ);
 
+  const amountSchema = useMemo(() => buildAmountSchema(limits), [limits.min, limits.max]);
+
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(amountSchema),
     defaultValues: {
       amount: '',
     },
+    mode: 'onChange',
   });
+
+  useEffect(() => {
+    if (form.formState.isDirty || form.formState.isSubmitted) {
+      void form.trigger('amount');
+    }
+  }, [limits.min, limits.max, form]);
 
   const canSubmit = useMemo(
     () => Boolean(selectedLead) && !createConversion.isPending,
@@ -247,14 +281,21 @@ export const CashierAddFundsPage = () => {
                   <Input
                     id='amount'
                     type='number'
-                    min={3000}
+                    min={limits.min > 0 ? limits.min : 1}
+                    max={limits.max > 0 ? limits.max : undefined}
                     step={1}
                     placeholder='Ingresa el monto'
                     aria-invalid={Boolean(form.formState.errors.amount)}
                     {...form.register('amount')}
                   />
                   <FieldDescription>
-                    Valor reportado de conversion. Minimo 3000.
+                    {limits.min > 0 && limits.max > 0
+                      ? `Rango permitido: $ ${formatARS(limits.min)} – $ ${formatARS(limits.max)} ARS.`
+                      : limits.min > 0
+                        ? `Monto minimo: $ ${formatARS(limits.min)} ARS.`
+                        : limits.max > 0
+                          ? `Monto maximo: $ ${formatARS(limits.max)} ARS.`
+                          : 'Valor reportado de conversion.'}
                   </FieldDescription>
                   <FieldError errors={[form.formState.errors.amount]} />
                 </FieldContent>

@@ -38,6 +38,28 @@ import {
   REFRESH_CAP,
   SESSION_CAP_REACHED,
 } from './whatsapp-session.service.js';
+import { getSetting } from '../system-settings/service.js';
+import { SETTING_KEYS } from '../system-settings/keys.js';
+
+const parseAmountSetting = (raw: string): number => {
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/**
+ * Returns the admin-configured min/max conversion amount limits.
+ * 0 on either field means "disabled" (no bound on that side).
+ * Inject `getSettingFn` for unit testing; defaults to the live system-settings service.
+ */
+export const getConversionAmountLimits = async (
+  getSettingFn: (key: string) => Promise<string> = getSetting,
+): Promise<{ min: number; max: number }> => {
+  const [minRaw, maxRaw] = await Promise.all([
+    getSettingFn(SETTING_KEYS.AUTO_CONVERSION_MIN_AMOUNT),
+    getSettingFn(SETTING_KEYS.AUTO_CONVERSION_MAX_AMOUNT),
+  ]);
+  return { min: parseAmountSetting(minRaw), max: parseAmountSetting(maxRaw) };
+};
 
 export const SESSION_NOT_OWNED = 'SESSION_NOT_OWNED';
 

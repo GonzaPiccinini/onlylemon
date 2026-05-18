@@ -312,6 +312,7 @@ test('generic PUT handler: valid key and value → 200', async () => {
       savedKey = key;
       savedValue = value;
     },
+    getSettingFn: async () => '0',
   });
 
   const req = makeReq({ params: { key: 'auto_conversion_min_amount' }, body: { value: '5000' } });
@@ -330,6 +331,7 @@ test('generic PUT handler: invalid key → 404', async () => {
 
   const handler = mod.makeUpdateSettingHandler({
     upsertSettingFn: async () => {},
+    getSettingFn: async () => '',
   });
 
   const req = makeReq({ params: { key: 'not_a_real_key' }, body: { value: 'some-value' } });
@@ -345,6 +347,7 @@ test('generic PUT handler: missing value field → 400', async () => {
 
   const handler = mod.makeUpdateSettingHandler({
     upsertSettingFn: async () => {},
+    getSettingFn: async () => '',
   });
 
   const req = makeReq({ params: { key: 'auto_conversion_min_amount' }, body: {} });
@@ -363,4 +366,157 @@ test('controller exports makeGetSettingHandler', async () => {
 test('controller exports makeUpdateSettingHandler', async () => {
   const mod = await import('./controller.js');
   assert.equal(typeof mod.makeUpdateSettingHandler, 'function');
+});
+
+// ---------------------------------------------------------------------------
+// Cross-validation: min cannot be greater than max (0 = disabled, skips check)
+// ---------------------------------------------------------------------------
+
+test('generic PUT min: rejects when new min > existing max (both > 0)', async () => {
+  const mod = await import('./controller.js');
+
+  let upserted = false;
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {
+      upserted = true;
+    },
+    getSettingFn: async (key: string) =>
+      key === 'auto_conversion_max_amount' ? '5000' : '',
+  });
+
+  const req = makeReq({
+    params: { key: 'auto_conversion_min_amount' },
+    body: { value: '6000' },
+  });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(upserted, false);
+});
+
+test('generic PUT max: rejects when new max < existing min (both > 0)', async () => {
+  const mod = await import('./controller.js');
+
+  let upserted = false;
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {
+      upserted = true;
+    },
+    getSettingFn: async (key: string) =>
+      key === 'auto_conversion_min_amount' ? '5000' : '',
+  });
+
+  const req = makeReq({
+    params: { key: 'auto_conversion_max_amount' },
+    body: { value: '4000' },
+  });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(upserted, false);
+});
+
+test('generic PUT min: allows when equal to existing max', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {},
+    getSettingFn: async (key: string) =>
+      key === 'auto_conversion_max_amount' ? '5000' : '',
+  });
+
+  const req = makeReq({
+    params: { key: 'auto_conversion_min_amount' },
+    body: { value: '5000' },
+  });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+});
+
+test('generic PUT min: allows when existing max is 0 (disabled)', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {},
+    getSettingFn: async (key: string) =>
+      key === 'auto_conversion_max_amount' ? '0' : '',
+  });
+
+  const req = makeReq({
+    params: { key: 'auto_conversion_min_amount' },
+    body: { value: '99999' },
+  });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+});
+
+test('generic PUT max: allows when existing min is 0 (disabled)', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {},
+    getSettingFn: async (key: string) =>
+      key === 'auto_conversion_min_amount' ? '0' : '',
+  });
+
+  const req = makeReq({
+    params: { key: 'auto_conversion_max_amount' },
+    body: { value: '100' },
+  });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+});
+
+test('generic PUT min: setting min to 0 always allowed (disables minimum)', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {},
+    getSettingFn: async (key: string) =>
+      key === 'auto_conversion_max_amount' ? '100' : '',
+  });
+
+  const req = makeReq({
+    params: { key: 'auto_conversion_min_amount' },
+    body: { value: '0' },
+  });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+});
+
+test('generic PUT: non-amount key skips cross-validation', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {},
+    getSettingFn: async () => {
+      throw new Error('should not be called for non-amount keys');
+    },
+  });
+
+  const req = makeReq({
+    params: { key: 'auto_conversion_trigger_phrase' },
+    body: { value: 'hola' },
+  });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
 });

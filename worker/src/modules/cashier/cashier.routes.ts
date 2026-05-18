@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from '../security/auth.middleware.js';
 import {
   cashierRuntimeStateHandler,
   createConversionHandler,
+  getConversionLimitsHandler,
   createMySessionHandler,
   currentSessionHandler,
   deleteMySessionHandler,
@@ -33,6 +34,7 @@ cashierRouter.post('/sessions/start', startSessionHandler);
 cashierRouter.post('/sessions/finish', finishSessionHandler);
 
 cashierRouter.get('/leads/search', searchCashierLeadsHandler);
+cashierRouter.get('/conversion-limits', getConversionLimitsHandler);
 cashierRouter.post('/leads/:leadId/convert', createConversionHandler);
 cashierRouter.get('/conversions', listCashierConversionsHandler);
 cashierRouter.get('/runtime-state', cashierRuntimeStateHandler);
