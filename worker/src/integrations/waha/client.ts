@@ -1,10 +1,17 @@
 import { config } from '../../config/env.js';
 
-type WahaMessage = {
+export type WahaMessage = {
   id: string;
-  timestamp: number;
-  fromMe: boolean;
+  timestamp?: number;
+  from?: string;
+  fromMe?: boolean;
   body: string;
+  hasMedia?: boolean;
+  media?: {
+    url: string;
+    mimetype: string;
+    s3?: { Bucket: string; Key: string };
+  };
 };
 
 type WahaSession = {
@@ -43,10 +50,11 @@ export type SessionsList = {
     }[];
     debug: boolean;
   };
+  /** me is null/undefined when the session hasn't connected yet */
   me: {
-    id: string;
-    pushname: string;
-  };
+    id?: string;
+    pushname?: string;
+  } | null;
   engine: {
     engine: string;
   };
@@ -194,7 +202,7 @@ export async function createSessionIfNotExists(
     .map((event) => event.trim())
     .filter(Boolean);
   const events = Array.from(
-    new Set([...configuredEvents, 'message', 'session.status']),
+    new Set([...configuredEvents, 'message.any', 'session.status']),
   );
 
   await wahaCallJson('/api/sessions', {
@@ -209,9 +217,13 @@ export async function createSessionIfNotExists(
       },
       gows: {
         storage: {
-          messages: false,
+          // GOWS must persist messages and chats so the auto-conversion OCR
+          // flow can walk back through chat history via getChatMessages and
+          // find the most recent receipt image. Groups and labels are not
+          // needed by any worker flow.
+          messages: true,
+          chats: true,
           groups: false,
-          chats: false,
           labels: false,
         },
       },
@@ -324,4 +336,63 @@ export async function getNumberByLid(session: string, chatId: string) {
 
 export async function deleteSession(sessionName: string): Promise<void> {
   await wahaDelete(`/api/sessions/${sessionName}`);
+}
+
+export async function sendText(
+  session: string,
+  chatId: string,
+  text: string,
+): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/sendText`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ session, chatId, text }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendText failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Returns the cashier's own WhatsApp JID (`me.id`) for the given session.
+ * Returns null if the session is not found or hasn't connected (me is null/undefined).
+ *
+ * Used by auto-conversion/service.ts (Item #2) to direct error replies to the
+ * cashier's own chat instead of the client's chat.
+ */
+export async function getOwnChatId(sessionName: string): Promise<string | null> {
+  const sessions = await getSessions();
+  const session = sessions.find((s) => s.name === sessionName);
+  return session?.me?.id ?? null;
+}
+
+export async function downloadMedia(
+  url: string,
+): Promise<{ buffer: Buffer; mimetype: string }> {
+  // WAHA Plus with S3 proxy returns URLs like
+  // `http://localhost:3000/api/s3/...` because it advertises its own external
+  // address; from inside this container `localhost` doesn't reach WAHA. Rewrite
+  // the origin to the configured WAHA base URL when we detect the proxy prefix.
+  const rewritten = url.replace(
+    /^https?:\/\/(localhost|127\.0\.0\.1):3000/,
+    config.WAHA_BASE_URL,
+  );
+  const response = await fetch(rewritten, {
+    method: 'GET',
+    headers: {
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA downloadMedia failed with status ${response.status}`);
+  }
+
+  const mimetype = response.headers.get('content-type') ?? 'application/octet-stream';
+  const bytes = await response.arrayBuffer();
+  return { buffer: Buffer.from(bytes), mimetype };
 }

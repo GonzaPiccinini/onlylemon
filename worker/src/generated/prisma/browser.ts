@@ -77,3 +77,8 @@ export type WhatsappSessionLanding = Prisma.WhatsappSessionLandingModel
  * 
  */
 export type ProcessedJob = Prisma.ProcessedJobModel
+/**
+ * Model SystemSetting
+ * 
+ */
+export type SystemSetting = Prisma.SystemSettingModel

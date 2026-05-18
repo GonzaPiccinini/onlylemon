@@ -290,4 +290,29 @@ export const adminService = {
     );
     return data;
   },
+
+  // ---------------------------------------------------------------------------
+  // System Settings — Generic key/value
+  // ---------------------------------------------------------------------------
+
+  async getSetting(key: string): Promise<{ value: string }> {
+    const { data } = await http.get<{ value: string }>(endpoints.admin.settingByKey(key));
+    return data;
+  },
+
+  async updateSetting(key: string, value: string): Promise<{ value: string }> {
+    const { data } = await http.put<{ value: string }>(endpoints.admin.settingByKey(key), {
+      value,
+    });
+    return data;
+  },
+
+  // Thin wrappers for backwards compatibility
+  async getAutoConversionTrigger(): Promise<{ value: string }> {
+    return adminService.getSetting('auto_conversion_trigger_phrase');
+  },
+
+  async updateAutoConversionTrigger(input: { value: string }): Promise<{ value: string }> {
+    return adminService.updateSetting('auto_conversion_trigger_phrase', input.value);
+  },
 };

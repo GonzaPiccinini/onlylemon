@@ -37,6 +37,7 @@ import {
   updateLandingFallbackPhoneHandler,
 } from './admin.controller.js';
 import { requireAuth, requireRole } from '../security/auth.middleware.js';
+import { systemSettingsRouter } from '../system-settings/routes.js';
 
 export const adminRouter = Router();
 
@@ -97,3 +98,6 @@ adminRouter.get('/leads/:id/history', getLeadHistoryHandler);
 adminRouter.get('/conversions', listAdminConversionsHandler);
 // Must precede any future /conversions/:id dynamic route
 adminRouter.get('/conversions/totals', getAdminConversionsTotalsHandler);
+
+// System settings — mounted under /settings; inherits admin auth guard above
+adminRouter.use('/settings', systemSettingsRouter);

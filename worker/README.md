@@ -96,11 +96,19 @@ Validadas con zod en `src/config/env.ts`. Si falta alguna, el proceso tira y no 
 | `WAHA_BASE_URL` | sí | — | URL del WAHA (prod: `https://waha.onlylemon.app`). |
 | `WAHA_API_KEY` | sí | — | API key de WAHA. |
 | `WAHA_WEBHOOK_URL` | sí | — | URL pública del gateway (`https://api.onlylemon.app/api/webhook`). Usada al crear sesiones en WAHA. |
-| `WAHA_WEBHOOK_EVENTS` | sí | — | CSV de eventos que WAHA debe notificar (ej: `message,session.status`). |
+| `WAHA_WEBHOOK_EVENTS` | no | `message.any,session.status` | CSV de eventos que WAHA debe notificar. Usar `message.any` (no `message`) para capturar todos los mensajes incluyendo los propios (`fromMe=true`). |
 | `WAHA_WEBHOOK_TOKEN_HEADER` | sí | — | Nombre del header que WAHA envía al gateway. |
 | `WAHA_WEBHOOK_TOKEN_VALUE` | sí | — | Valor del token. Idéntico al que valida el gateway. |
 | `META_API_VERSION` | no | `v21.0` | Versión del Graph API de Meta (las credenciales son por-landing en DB). |
+| `META_DRY_RUN` | no | `false` | Si `true`, **NO** envía eventos a Meta CAPI: logea el payload a INFO y retorna éxito. Para QA E2E sin contaminar datos reales. |
 | `LOG_LEVEL` | no | `info` | `fatal\|error\|warn\|info\|debug\|trace`. |
+| `OPENAI_API_KEY` | no* | — | API key de OpenAI. *Requerida en runtime si la feature de auto-conversión OCR está activa (trigger phrase configurado). Sin esta key el cliente lanza error en el momento de la llamada. |
+| `OPENAI_MODEL` | no | `gpt-4o-mini` | Modelo de OpenAI a usar para extracción OCR. |
+| `AUTO_OCR_DAILY_LIMIT` | no | `100` | Límite diario de llamadas OCR por cashier (resets a las 00:00 UTC). |
+| `R2_ACCESS_KEY_ID` | no | — | Access key ID de Cloudflare R2 (o S3 compatible). Si no está configurada, el borrado del comprobante tras conversión exitosa se omite (log warn, no falla el job). |
+| `R2_SECRET_ACCESS_KEY` | no | — | Secret access key de Cloudflare R2. Requerida junto con `R2_ACCESS_KEY_ID` y `R2_ENDPOINT` para el auto-borrado. |
+| `R2_ENDPOINT` | no | — | URL del endpoint R2 (ej: `https://<accountId>.r2.cloudflarestorage.com`). Requerido para el auto-borrado. |
+| `R2_REGION` | no | `auto` | Región del bucket R2/S3. Para Cloudflare R2 usar `auto`. |
 
 > Nota: el worker lee sus envs directamente desde `process.env`; no hay `.env.example` en el repo, tomar como referencia la tabla de arriba y/o `docker-compose.dashboard-vps.yml`.
 
@@ -241,6 +249,50 @@ El `jobKey` para idempotencia combina `event` + `id` (o session+status+timestamp
 - `session.status` → `processWhatsappSessionStatusService` actualiza el estado del enlace de WhatsApp del cashier.
 
 Reintentos: gobernados por el gateway al encolar (`attempts=3`, backoff exponencial 1 s).
+
+## Auto-conversión desde WhatsApp (OCR)
+
+Cuando un cajero envía el mensaje de disparo configurado desde la sesión WAHA, el worker detecta el evento `message.any` (con `fromMe=true`) y ejecuta el flujo de auto-conversión:
+
+1. Lee el disparador desde `SystemSetting.auto_conversion_trigger_phrase` (Admin → Configuración).
+2. Camina el historial reciente del chat (últimos 20 mensajes) buscando el adjunto más reciente (imagen **o PDF**).
+3. Descarga el adjunto. Si es un PDF, renderiza la **página 1** a PNG antes del OCR (via `pdf-to-png-converter` + `@napi-rs/canvas`, sin dependencias nativas del sistema).
+4. Llama a OpenAI Vision (modelo `gpt-4o-mini`) para extraer el monto en ARS desde la imagen/PNG.
+5. Busca el lead en estado `CONTACTED` cuyo teléfono coincida (normalización de dígitos).
+6. Crea la conversión con `source='AUTO_OCR'` y `sourceMessageId` para idempotencia.
+
+**Formatos de comprobante soportados**: imágenes (JPG, PNG, WEBP, y otros `image/*`) y PDFs (solo página 1). Videos, audios y stickers no están soportados.
+
+**Variables de entorno requeridas**
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `OPENAI_API_KEY` | — | API key de OpenAI. Requerida si la feature está activa. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Modelo Vision para extracción OCR. |
+| `AUTO_OCR_DAILY_LIMIT` | `100` | Límite de llamadas OCR por cajero por día UTC. |
+
+**Configuración (SystemSetting keys)** — endpoint genérico `GET/PUT /api/admin/settings/:key` (ADMIN).
+Desde el dashboard: Admin → Configuración.
+
+| Key | Tipo | Default | Descripción |
+|---|---|---|---|
+| `auto_conversion_trigger_phrase` | string | — | Frase que activa el flujo (case-insensitive). Vacío = deshabilitado. |
+| `auto_conversion_min_amount` | número como string | `""` / `0` | Monto mínimo ARS. Si OCR detecta un monto menor, la conversión no se crea. `0` = sin mínimo. |
+| `auto_conversion_max_amount` | número como string | `""` / `0` | Monto máximo ARS. Si OCR detecta un monto mayor, la conversión no se crea. `0` = sin máximo. |
+
+Nota: el servidor no valida `min <= max`; asegúrate de configurarlos correctamente desde el dashboard.
+
+**Suscripción WAHA** — el worker requiere el evento `message.any` (no `message`) para recibir mensajes propios (`fromMe=true`). Para sincronizar sesiones existentes:
+
+```bash
+npm run reconcile:waha-webhooks
+```
+
+**Idempotencia** — doble capa: `ProcessedJob` (jobKey) + índice parcial único `(cashierId, sourceMessageId)`. Los duplicados se silencian (sin reply, job succeed).
+
+**Modos de fallo** — si OCR o la búsqueda de lead fallan, el worker responde al cajero con un mensaje en español explicando el error (imagen no encontrada, monto ilegible, lead no encontrado, límite diario excedido, etc.) y el job se marca como completado (no se reintenta).
+
+**Fuera de alcance (v1.1)** — PDFs multi-página (solo se OCRea la página 1), disparadores por landing/cajero distintos, retry UI, confirmación manual.
 
 ## Métricas expuestas en `/metrics`
 

@@ -1,20 +1,45 @@
 import { Job } from 'bullmq';
 import { z } from 'zod';
-import { mapLeadsToPhone } from '../../integrations/leads/http.js';
-import { validateJobIdempotency } from '../../modules/idempotency/idempotency.service.js';
-import { processWhatsappSessionStatusService } from '../../modules/cashier/cashier.service.js';
-import { logger } from '../../lib/logger.js';
-import { bullmqJobDurationSeconds, bullmqJobsTotal } from '../../lib/metrics.js';
+import { SETTING_KEYS } from '../../modules/system-settings/keys.js';
 
+// ---------------------------------------------------------------------------
+// Schemas
+// ---------------------------------------------------------------------------
+
+/**
+ * H2 — Extended InboundMessageSchema with optional media payload fields.
+ * Locked shape per design-clarifications:
+ *   payload.fromMe: boolean (optional, absent in legacy WAHA events)
+ *   payload.hasMedia: boolean (optional)
+ *   payload.media: { url, mimetype, s3: { bucket, key } } (optional, nullable)
+ *
+ * body is optional/nullable to tolerate media-only messages from WAHA.
+ * passthrough() allows future WAHA fields without schema breakage.
+ */
 const InboundMessageSchema = z.object({
   id: z.string().min(1).optional(),
   event: z.enum(['message', 'message.any']).optional(),
   session: z.string().min(1),
-  payload: z.object({
-    id: z.string().min(1),
-    from: z.string().min(1),
-    body: z.string().optional().default(''),
-  }),
+  payload: z
+    .object({
+      id: z.string().min(1),
+      from: z.string().min(1),
+      body: z.string().optional().nullable().default(''),
+      fromMe: z.boolean().optional(),
+      hasMedia: z.boolean().optional(),
+      media: z
+        .object({
+          url: z.string(),
+          mimetype: z.string(),
+          s3: z.object({
+            Bucket: z.string(),
+            Key: z.string(),
+          }),
+        })
+        .optional()
+        .nullable(),
+    })
+    .passthrough(),
 });
 
 const InboundSessionStatusSchema = z.object({
@@ -52,62 +77,217 @@ const InboundJobSchema = z.union([
   InboundSessionStatusSchema,
 ]);
 
-export async function processInboundJob(job: Job) {
-  const startedAt = process.hrtime.bigint();
-  const eventType = job.name;
+// ---------------------------------------------------------------------------
+// Injectable deps type (for testing)
+// ---------------------------------------------------------------------------
 
-  try {
-    const parsedData = InboundJobSchema.safeParse(job.data);
-    if (parsedData.error) {
-      logger.error(
-        { jobId: job.id, eventType, err: parsedData.error.message },
-        'job_parse_error',
-      );
-      bullmqJobsTotal.labels('parse_error', eventType).inc();
-      return;
+export type InboundProcessorDeps = {
+  handleCashierTriggerMessage: (payload: {
+    sessionName: string;
+    chatId: string;
+    messageId: string;
+    body: string;
+    fromMe: boolean;
+  }) => Promise<void>;
+  mapLeadsToPhone: (session: string, from: string, body: string) => Promise<void>;
+  validateJobIdempotency: (jobKey: string, processorName: string) => Promise<boolean>;
+  processWhatsappSessionStatusService: (
+    session: string,
+    status: string,
+    timestamp: Date,
+  ) => Promise<unknown>;
+  /** Returns the current trigger phrase, or '' when not configured */
+  getSetting: (key: string) => Promise<string>;
+  logger: {
+    info: (...args: unknown[]) => void;
+    warn: (...args: unknown[]) => void;
+    error: (...args: unknown[]) => void;
+  };
+  metrics: {
+    jobsTotal: { labels: (...args: string[]) => { inc: () => void } };
+    jobDurationSeconds: { labels: (...args: string[]) => { observe: (v: number) => void } };
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Factory (for testing with injectable deps)
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a processor function bound to the given deps.
+ * The default `processInboundJob` export uses real production deps.
+ * Tests inject mocks via this factory — no module-level imports of env-dependent
+ * collaborators needed in tests.
+ */
+export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) => Promise<void> {
+  return async function processJob(job: Job): Promise<void> {
+    const startedAt = process.hrtime.bigint();
+    const eventType = job.name;
+
+    try {
+      const parsedData = InboundJobSchema.safeParse(job.data);
+      if (parsedData.error) {
+        deps.logger.error(
+          { jobId: job.id, eventType, err: parsedData.error.message },
+          'job_parse_error',
+        );
+        deps.metrics.jobsTotal.labels('parse_error', eventType).inc();
+        return;
+      }
+
+      const data = parsedData.data;
+      const jobKey = data.id
+        ? `${data.event ?? 'message'}:${data.id}`
+        : data.event === 'session.status'
+          ? `${data.session}:${data.payload.status}:${data.timestamp ?? Date.now()}`
+          : `${data.session}:${data.payload.id}`;
+
+      const isFirstProcessing = await deps.validateJobIdempotency(jobKey, 'inbound_processor');
+
+      if (!isFirstProcessing) {
+        deps.logger.info({ jobId: job.id, jobKey, eventType }, 'job_duplicate_skipped');
+        deps.metrics.jobsTotal.labels('duplicate', eventType).inc();
+        return;
+      }
+
+      if (data.event === 'session.status') {
+        const latestTimestamp =
+          data.payload.statuses?.at(-1)?.timestamp ??
+          data.timestamp ??
+          Date.now();
+
+        await deps.processWhatsappSessionStatusService(
+          data.session,
+          data.payload.status,
+          new Date(latestTimestamp),
+        );
+      } else {
+        // H3 — Auto-conversion branch
+        // For message / message.any events: check if this is a cashier outbound
+        // trigger message that should route to handleCashierTriggerMessage.
+        if (data.payload.fromMe === true) {
+          const triggerPhrase = await deps.getSetting(SETTING_KEYS.AUTO_CONVERSION_TRIGGER_PHRASE);
+          const triggerNormalized = triggerPhrase.trim().toLowerCase();
+          const bodyNormalized = (data.payload.body ?? '').trim().toLowerCase();
+
+          if (triggerNormalized.length > 0 && bodyNormalized === triggerNormalized) {
+            // Outbound trigger match — delegate to auto-conversion service.
+            // Defensive try/catch: Batch 6 already catches all known errors internally,
+            // but we add one final guard to prevent BullMQ infinite retries.
+            try {
+              // WAHA returns `payload.from` as a LID (e.g.
+              // `37830675939455@lid`) when the chat is addressed via LID. The
+              // real phone JID lives in different fields depending on engine:
+              //   NOWEB: `payload._data.key.remoteJidAlt`
+              //   GOWS (outbound): `payload._data.Info.RecipientAlt`
+              //   GOWS (inbound):  `payload._data.Info.SenderAlt`
+              // We only branch on outbound (fromMe=true) so RecipientAlt is
+              // what we want; fall back to the legacy NOWEB path and finally
+              // to `payload.from`.
+              const payloadAny = data.payload as Record<string, unknown>;
+              const dataAny = payloadAny._data as
+                | {
+                    Info?: { RecipientAlt?: string; SenderAlt?: string };
+                    key?: { remoteJidAlt?: string };
+                  }
+                | undefined;
+              const resolvedChatId =
+                dataAny?.Info?.RecipientAlt ??
+                dataAny?.key?.remoteJidAlt ??
+                data.payload.from;
+              await deps.handleCashierTriggerMessage({
+                sessionName: data.session,
+                chatId: resolvedChatId,
+                messageId: data.payload.id,
+                body: data.payload.body ?? '',
+                fromMe: true,
+              });
+            } catch (autoConvErr) {
+              deps.logger.error(
+                { jobId: job.id, eventType, err: autoConvErr },
+                'auto_conversion_unexpected_processor_error',
+              );
+            }
+
+            const durationSeconds =
+              Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+            deps.metrics.jobDurationSeconds.labels(eventType).observe(durationSeconds);
+            return;
+          }
+        }
+
+        // Existing path: inbound messages OR outbound messages that don't match trigger
+        await deps.mapLeadsToPhone(data.session, data.payload.from, data.payload.body ?? '');
+      }
+
+      const durationSeconds =
+        Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+      deps.metrics.jobDurationSeconds.labels(eventType).observe(durationSeconds);
+    } catch (error) {
+      const durationSeconds =
+        Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+      deps.metrics.jobDurationSeconds.labels(eventType).observe(durationSeconds);
+
+      deps.logger.error({ jobId: job.id, eventType, err: error }, 'job_processing_error');
+      throw error;
     }
+  };
+}
 
-    const data = parsedData.data;
-    const jobKey = data.id
-      ? `${data.event ?? 'message'}:${data.id}`
-      : data.event === 'session.status'
-        ? `${data.session}:${data.payload.status}:${data.timestamp ?? Date.now()}`
-        : `${data.session}:${data.payload.id}`;
-    const isFirstProcessing = await validateJobIdempotency(
-      jobKey,
-      'inbound_processor',
-    );
+// ---------------------------------------------------------------------------
+// Module-level default export (real production deps — lazy loaded)
+// ---------------------------------------------------------------------------
 
-    if (!isFirstProcessing) {
-      logger.info({ jobId: job.id, jobKey, eventType }, 'job_duplicate_skipped');
-      bullmqJobsTotal.labels('duplicate', eventType).inc();
-      return;
-    }
+/**
+ * Real production processor — lazily assembles deps on first call.
+ * Lazy loading avoids pulling env.ts / prisma at module parse time, which
+ * would break test isolation (same technique used in auto-conversion/service.ts).
+ */
+let _realProcessor: ((job: Job) => Promise<void>) | null = null;
 
-    if (data.event === 'session.status') {
-      const latestTimestamp =
-        data.payload.statuses?.at(-1)?.timestamp ??
-        data.timestamp ??
-        Date.now();
+async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
+  if (_realProcessor) return _realProcessor;
 
-      await processWhatsappSessionStatusService(
-        data.session,
-        data.payload.status,
-        new Date(latestTimestamp),
-      );
-    } else {
-      await mapLeadsToPhone(data.session, data.payload.from, data.payload.body);
-    }
+  const [
+    { mapLeadsToPhone },
+    { validateJobIdempotency },
+    { processWhatsappSessionStatusService },
+    { handleCashierTriggerMessage },
+    { getSetting },
+    { logger },
+    { bullmqJobDurationSeconds, bullmqJobsTotal },
+  ] = await Promise.all([
+    import('../../integrations/leads/http.js'),
+    import('../../modules/idempotency/idempotency.service.js'),
+    import('../../modules/cashier/cashier.service.js'),
+    import('../../modules/auto-conversion/service.js'),
+    import('../../modules/system-settings/service.js'),
+    import('../../lib/logger.js'),
+    import('../../lib/metrics.js'),
+  ]);
 
-    const durationSeconds =
-      Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
-    bullmqJobDurationSeconds.labels(eventType).observe(durationSeconds);
-  } catch (error) {
-    const durationSeconds =
-      Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
-    bullmqJobDurationSeconds.labels(eventType).observe(durationSeconds);
+  const realDeps: InboundProcessorDeps = {
+    handleCashierTriggerMessage,
+    mapLeadsToPhone,
+    validateJobIdempotency,
+    processWhatsappSessionStatusService,
+    getSetting,
+    logger: {
+      info: (...args) => logger.info(...(args as Parameters<typeof logger.info>)),
+      warn: (...args) => logger.warn(...(args as Parameters<typeof logger.warn>)),
+      error: (...args) => logger.error(...(args as Parameters<typeof logger.error>)),
+    },
+    metrics: {
+      jobsTotal: bullmqJobsTotal,
+      jobDurationSeconds: bullmqJobDurationSeconds,
+    },
+  };
 
-    logger.error({ jobId: job.id, eventType, err: error }, 'job_processing_error');
-    throw error;
-  }
+  _realProcessor = createInboundProcessor(realDeps);
+  return _realProcessor;
+}
+
+export async function processInboundJob(job: Job): Promise<void> {
+  const processor = await getRealProcessor();
+  return processor(job);
 }

@@ -14,6 +14,7 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   ArrowRightLeftIcon,
+  SettingsIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ const adminLinks: ShellLink[] = [
   { to: "/admin/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/admin/landings", label: "Landings", icon: TagsIcon },
   { to: "/admin/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
+  { to: "/admin/settings", label: "Configuracion", icon: SettingsIcon },
 ];
 
 // Extra links visible only to SUPER_ADMIN

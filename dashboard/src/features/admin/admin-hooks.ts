@@ -18,6 +18,7 @@ import type {
 type ConversionsTotalsFilters = Omit<ConversionsFilters, "page" | "pageSize">;
 
 export const adminKeys = {
+  autoConversionTrigger: ["admin", "auto-conversion-trigger"] as const,
   cashiers: ["admin", "cashiers"] as const,
   cashierSessions: (cashierId: string) => ["admin", "cashiers", cashierId, "sessions"] as const,
   sessionLandings: (sessionId: string) => ["admin", "sessions", sessionId, "landings"] as const,
@@ -351,3 +352,36 @@ export const useLinkAdminCashierSession = (cashierId: string) => {
     },
   });
 };
+
+// ---------------------------------------------------------------------------
+// System Settings — Generic hook factories
+// ---------------------------------------------------------------------------
+
+export const adminSettingKey = (key: string) => ["admin", "settings", key] as const;
+
+export const useSetting = (key: string) =>
+  useQuery({
+    queryKey: adminSettingKey(key),
+    queryFn: () => adminService.getSetting(key),
+  });
+
+export const useUpdateSetting = (key: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (value: string) => adminService.updateSetting(key, value),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminSettingKey(key) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// System Settings — Specific hooks (thin wrappers over generic)
+// ---------------------------------------------------------------------------
+
+export const useAutoConversionTrigger = () => useSetting('auto_conversion_trigger_phrase');
+export const useUpdateAutoConversionTrigger = () => useUpdateSetting('auto_conversion_trigger_phrase');
+export const useAutoConversionMinAmount = () => useSetting('auto_conversion_min_amount');
+export const useUpdateAutoConversionMinAmount = () => useUpdateSetting('auto_conversion_min_amount');
+export const useAutoConversionMaxAmount = () => useSetting('auto_conversion_max_amount');
+export const useUpdateAutoConversionMaxAmount = () => useUpdateSetting('auto_conversion_max_amount');

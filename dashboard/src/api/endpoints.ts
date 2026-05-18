@@ -38,6 +38,8 @@ export const endpoints = {
       `/admin/landings/${landingId}/fallback-phones`,
     landingFallbackPhone: (landingId: string, id: string) =>
       `/admin/landings/${landingId}/fallback-phones/${id}`,
+    autoConversionTriggerPhrase: "/admin/settings/auto-conversion-trigger-phrase",
+    settingByKey: (key: string) => `/admin/settings/${key}`,
   },
   cashier: {
     sessions: "/cashier/sessions",

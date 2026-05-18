@@ -27,7 +27,7 @@ export const envSchema = z.object({
   WAHA_API_KEY: z.string(),
   WAHA_BASE_URL: z.string(),
   WAHA_WEBHOOK_URL: z.string(),
-  WAHA_WEBHOOK_EVENTS: z.string(),
+  WAHA_WEBHOOK_EVENTS: z.string().default('message.any,session.status'),
   WAHA_WEBHOOK_TOKEN_HEADER: z.string(),
   WAHA_WEBHOOK_TOKEN_VALUE: z.string(),
   JWT_SECRET: z.string().min(16),
@@ -44,9 +44,22 @@ export const envSchema = z.object({
   JWT_REFRESH_EXPIRES_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   CORS_ORIGIN: z.string().default('*'),
   META_API_VERSION: z.string().default('v21.0'),
+  META_DRY_RUN: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),
+  // OpenAI / Auto-OCR (optional at startup — runtime check in openai/client.ts)
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default('gpt-4o-mini'),
+  AUTO_OCR_DAILY_LIMIT: z.coerce.number().int().positive().default(100),
+  // R2 / S3 (optional — auto-delete of validated receipts after successful conversion)
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_ENDPOINT: z.string().optional(),
+  R2_REGION: z.string().default('auto'),
 });
 
 export const validateSchema = envSchema.safeParse(process.env);

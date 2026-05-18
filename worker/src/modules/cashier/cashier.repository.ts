@@ -84,15 +84,35 @@ export const findLeadByIdForCashier = (leadId: string, cashierId: string) =>
 type PrismaTx = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
 /**
- * M2.1 — Insert a Conversion row inside a transaction.
+ * M2.1 / G2 — Insert a Conversion row inside a transaction.
  * The caller is responsible for opening the transaction.
+ *
+ * Extended (Batch 7) to accept optional `source`, `sourceMessageId`, and `cashierId`.
+ * - source: 'MANUAL' (default) or 'AUTO_OCR'
+ * - sourceMessageId: message ID for idempotency (partial unique enforced in DB)
+ * - cashierId: denormalized from lead.cashierId (caller must pass it — repo does not denormalize)
+ *
+ * The repo does NOT catch P2002 — that is the service's responsibility (it has
+ * the context to decide whether to return DUPLICATE or rethrow).
  */
 export const createConversion = (
   tx: PrismaTx,
-  data: { leadId: string; amount: number | Prisma.Decimal },
+  data: {
+    leadId: string;
+    amount: number | Prisma.Decimal;
+    source?: string;
+    sourceMessageId?: string | null;
+    cashierId?: string | null;
+  },
 ) =>
   tx.conversion.create({
-    data: { leadId: data.leadId, amount: data.amount },
+    data: {
+      leadId: data.leadId,
+      amount: data.amount,
+      ...(data.source !== undefined ? { source: data.source } : {}),
+      ...(data.sourceMessageId !== undefined ? { sourceMessageId: data.sourceMessageId } : {}),
+      ...(data.cashierId !== undefined ? { cashierId: data.cashierId } : {}),
+    },
   });
 
 /**

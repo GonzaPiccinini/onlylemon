@@ -14,6 +14,16 @@ Cada fila de la tabla de landings en `/admin/landings` incluye un panel expandib
 
 La vista de leads en `/admin/leads` incluye el filtro **RECARGA** (compradores repetidos: leads con `status = CONVERTED` y más de una conversión). Es independiente del filtro **Convertido** (primera conversión). Seleccionar ambos juntos devuelve todos los leads convertidos sin distinción.
 
+### Admin — Disparador de conversión automática
+
+La página `/admin/settings` (Admin → Configuración) permite configurar la frase de disparo para la auto-conversión OCR.
+
+- **Campo**: texto libre, 1–200 caracteres (mismo límite que el worker). Validación client-side vía Zod.
+- **Guardar**: llama a `PUT /api/admin/settings/auto-conversion-trigger-phrase`. El botón se deshabilita si el valor es igual al ya guardado (evita PUTs sin cambios).
+- **Estado de carga**: skeleton mientras el GET inicial se resuelve; toast de éxito/error con Sonner tras el PUT.
+- **Deshabilitar la feature**: eliminar la fila de la DB directamente (no hay UI para esto en v1). Mientras no exista la fila, el worker no procesa el evento de auto-conversión.
+- **Ver conversiones generadas**: las conversiones creadas automáticamente aparecen en la lista de conversiones habitual. El campo `source` (`AUTO_OCR` vs `MANUAL`) no se expone en la UI del dashboard en v1.
+
 ### Rutas
 
 ```
@@ -23,6 +33,7 @@ La vista de leads en `/admin/leads` incluye el filtro **RECARGA** (compradores r
 /admin/stats                 Estadísticas (ADMIN)
 /admin/landings              Landings (ADMIN)
 /admin/leads                 Leads (ADMIN)
+/admin/settings              Configuración — disparador de auto-conversión OCR (ADMIN)
 /cashier                     Sesión activa + cola de leads (CASHIER)
 /cashier/add-funds           Conversión de lead / carga de saldo (CASHIER)
 /cashier/history             Historial (CASHIER)

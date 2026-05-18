@@ -135,7 +135,13 @@ export const createConversionHandler = async (req: Request, res: Response) => {
     return res.status(422).json({ error: 'Lead phone is required' });
   }
 
-  return res.status(201).json({ conversion: result.conversion });
+  if (result.kind === 'CREATED') {
+    return res.status(201).json({ conversion: result.conversion });
+  }
+
+  // DUPLICATE is not expected from the manual CAPI path (no sourceMessageId),
+  // but handle it defensively — treat as a 409 conflict.
+  return res.status(409).json({ error: 'Conversion already recorded' });
 };
 
 export const searchCashierLeadsHandler = async (req: Request, res: Response) => {

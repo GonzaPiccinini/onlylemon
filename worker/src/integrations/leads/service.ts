@@ -189,7 +189,11 @@ export async function selectCashierNumberForLandingWithDependencies(
       continue;
     }
 
-    const number = session.me.id.split('@')[0] ?? '';
+    const meId = session.me?.id;
+    if (!meId) {
+      continue;
+    }
+    const number = meId.split('@')[0] ?? '';
     if (!number) {
       continue;
     }

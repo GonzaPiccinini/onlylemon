@@ -473,45 +473,97 @@ export const updateCashierAccountService = async (
   };
 };
 
+// ---------------------------------------------------------------------------
+// Batch 7 — createConversionService extended signature
+// ---------------------------------------------------------------------------
+
+type CreateConversionOptions = {
+  /** Conversion source. Defaults to 'MANUAL' when not provided. */
+  source?: 'MANUAL' | 'AUTO_OCR';
+  /** WAHA message ID for idempotency (enforced via partial unique in DB). Default null. */
+  sourceMessageId?: string | null;
+};
+
+type CreateConversionResult =
+  | { kind: 'CREATED'; conversion: { id: string; leadId: string; amount: unknown; createdAt: Date } }
+  | { kind: 'DUPLICATE'; sourceMessageId: string | null }
+  | { kind: 'NOT_FOUND' }
+  | { kind: 'INVALID_STATUS' }
+  | { kind: 'PHONE_REQUIRED' };
+
 /**
- * M2.2 — createConversionService
+ * M2.2 / G3 — createConversionService
  *
  * Insert a Conversion row for the given lead.
  * - Validates cashier ownership.
  * - Validates lead status IN (CONTACTED, CONVERTED).
  * - Validates phone presence.
- * - Inserts Conversion + flips lead status to CONVERTED (idempotent) in a transaction.
+ * - Inserts Conversion (with optional source/sourceMessageId/cashierId) +
+ *   flips lead status to CONVERTED (idempotent) in a transaction.
  * - Dispatches Meta Purchase + tier events outside the transaction.
+ * - On P2002 (partial unique violation for AUTO_OCR dedup): returns {kind:'DUPLICATE'}.
+ *   Meta CAPI is NOT fired and lead status is NOT changed on DUPLICATE.
+ *
+ * Backward-compatible: callers that pass no options get source='MANUAL', sourceMessageId=null.
+ * Return shape changed from {kind:'OK'} → {kind:'CREATED'} — all callers updated in Batch 7.
  */
 export const createConversionService = async (
   cashierId: string,
   leadId: string,
   amount: number,
-) => {
+  options: CreateConversionOptions = {},
+): Promise<CreateConversionResult> => {
+  const { source = 'MANUAL', sourceMessageId = null } = options;
+
   const lead = await findLeadByIdForCashier(leadId, cashierId);
   if (!lead) {
-    return { kind: 'NOT_FOUND' as const };
+    return { kind: 'NOT_FOUND' };
   }
 
   if (lead.status !== 'CONTACTED' && lead.status !== 'CONVERTED') {
-    return { kind: 'INVALID_STATUS' as const };
+    return { kind: 'INVALID_STATUS' };
   }
 
   if (!lead.phone) {
-    return { kind: 'PHONE_REQUIRED' as const };
+    return { kind: 'PHONE_REQUIRED' };
   }
 
-  const [conversion] = await prisma.$transaction(async (tx) => {
-    const created = await createConversion(tx as Parameters<typeof createConversion>[0], {
-      leadId,
-      amount,
+  // Denormalize cashierId from the lead (same cashier after ownership check,
+  // but using lead.cashierId explicitly keeps the repo field accurate).
+  const denormalizedCashierId = lead.cashierId ?? cashierId;
+
+  let conversion: Awaited<ReturnType<typeof createConversion>>;
+
+  try {
+    conversion = await prisma.$transaction(async (tx) => {
+      const created = await createConversion(tx as Parameters<typeof createConversion>[0], {
+        leadId,
+        amount,
+        source,
+        sourceMessageId,
+        cashierId: denormalizedCashierId,
+      });
+      await tx.lead.update({
+        where: { id: leadId },
+        data: { status: 'CONVERTED' },
+      });
+      return created;
     });
-    await tx.lead.update({
-      where: { id: leadId },
-      data: { status: 'CONVERTED' },
-    });
-    return [created];
-  });
+  } catch (err) {
+    const e = err as { code?: string };
+    if (e?.code === 'P2002') {
+      // Partial unique (cashierId, sourceMessageId) WHERE sourceMessageId IS NOT NULL hit.
+      // This is an idempotent duplicate — not an error. Do NOT fire Meta CAPI.
+      logger.info({
+        event: 'auto_conversion_duplicate',
+        leadId,
+        cashierId,
+        sourceMessageId,
+      });
+      return { kind: 'DUPLICATE', sourceMessageId };
+    }
+    throw err;
+  }
 
   leadsConvertedTotal.labels(lead.metaPixelId).inc();
   leadConversionAmountArs.labels(lead.metaPixelId).observe(amount);
@@ -521,6 +573,7 @@ export const createConversionService = async (
     cashierId,
     metaPixelId: lead.metaPixelId,
     amount,
+    source,
   });
 
   const landing = await getLandingByMetaPixelId(lead.metaPixelId);
@@ -533,7 +586,7 @@ export const createConversionService = async (
     });
 
     return {
-      kind: 'OK' as const,
+      kind: 'CREATED',
       conversion: {
         id: conversion.id,
         leadId: conversion.leadId,
@@ -586,7 +639,7 @@ export const createConversionService = async (
   }
 
   return {
-    kind: 'OK' as const,
+    kind: 'CREATED',
     conversion: {
       id: conversion.id,
       leadId: conversion.leadId,

@@ -62,7 +62,8 @@ export const ModelName = {
   LandingFallbackPhone: 'LandingFallbackPhone',
   WhatsappSession: 'WhatsappSession',
   WhatsappSessionLanding: 'WhatsappSessionLanding',
-  ProcessedJob: 'ProcessedJob'
+  ProcessedJob: 'ProcessedJob',
+  SystemSetting: 'SystemSetting'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -161,6 +162,9 @@ export const ConversionScalarFieldEnum = {
   id: 'id',
   leadId: 'leadId',
   amount: 'amount',
+  source: 'source',
+  cashierId: 'cashierId',
+  sourceMessageId: 'sourceMessageId',
   createdAt: 'createdAt'
 } as const
 
@@ -223,6 +227,15 @@ export const ProcessedJobScalarFieldEnum = {
 } as const
 
 export type ProcessedJobScalarFieldEnum = (typeof ProcessedJobScalarFieldEnum)[keyof typeof ProcessedJobScalarFieldEnum]
+
+
+export const SystemSettingScalarFieldEnum = {
+  key: 'key',
+  value: 'value',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SystemSettingScalarFieldEnum = (typeof SystemSettingScalarFieldEnum)[keyof typeof SystemSettingScalarFieldEnum]
 
 
 export const SortOrder = {
