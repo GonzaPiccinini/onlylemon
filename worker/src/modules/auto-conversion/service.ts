@@ -196,25 +196,41 @@ export function createAutoConversionService(deps: AutoConversionDeps): {
       // Step 4: Budget check (throws BudgetExceededError if over cap)
       await budgetCheckAndIncrement(cashierId);
 
-      // Step 5: Fetch recent messages and find the most recent image
-      const messages = await fetchChatMessages(sessionName, chatId, { limit: lookbackLimit });
-
+      // Step 5: Walk back incrementally to find the first eligible receipt.
+      //
+      // We expand the page size one message at a time (limit=1, 2, 3, …) and
+      // inspect only the newly-visible (oldest in page) message on each pass.
+      // WAHA re-ensures S3 storage for every media message in the response when
+      // downloadMedia=true; fetching the full lookback window in a single call
+      // would force WAHA to re-upload media that we deleted from R2 after past
+      // successful conversions. Walking back stops as soon as the most recent
+      // unprocessed receipt is found, so already-cleaned receipts further back
+      // in history are never re-touched in the common case.
       let selectedMediaUrl: string | null = null;
       let selectedMimetype: string | null = null;
       let selectedMediaS3: { Bucket: string; Key: string } | null = null;
 
-      for (const msg of messages) {
-        if (!msg.hasMedia || !msg.media) {
+      for (let limit = 1; limit <= lookbackLimit; limit++) {
+        const page = await fetchChatMessages(sessionName, chatId, { limit });
+        if (page.length < limit) {
+          // No more history to inspect.
+          break;
+        }
+        // The newly-visible message in this page (oldest entry) — assuming
+        // WAHA returns newest-first, which matches the iteration semantics
+        // the previous implementation relied on.
+        const candidate = page[limit - 1];
+
+        if (!candidate.hasMedia || !candidate.media) {
           continue;
         }
-
         // Item #3: skip media sent by the cashier themselves (fromMe=true).
         // Only consider media sent BY the client (fromMe=false or undefined).
-        if (msg.fromMe === true) {
+        if (candidate.fromMe === true) {
           continue;
         }
 
-        const { mimetype, url, s3 } = msg.media;
+        const { mimetype, url, s3 } = candidate.media;
 
         // Accept both image/* and application/pdf (Pase 3: PDF support)
         if (mimetype.startsWith('image/') || mimetype === 'application/pdf') {

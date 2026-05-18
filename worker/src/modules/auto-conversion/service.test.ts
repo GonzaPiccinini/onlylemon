@@ -930,3 +930,106 @@ test('service module exports handleCashierTriggerMessage (module-level default w
   const mod = await import('./service.js');
   assert.equal(typeof mod.handleCashierTriggerMessage, 'function');
 });
+
+// ---------------------------------------------------------------------------
+// Walk-back lookback: avoid re-uploading old receipts to R2
+// ---------------------------------------------------------------------------
+
+test('walk-back: expands limit one at a time until candidate is found', async () => {
+  // history (newest-first): trigger (fromMe=true) → text "ok" → receipt image
+  // Walk-back should request limit=1, 2, 3 and stop at the receipt.
+  const history: WahaMessage[] = [
+    makeMsg('msg-trigger', { fromMe: true }),
+    makeMsg('msg-text', { hasMedia: false }),
+    makeMsg('msg-receipt', { hasMedia: true, mimetype: IMAGE_MIMETYPE, url: IMAGE_URL }),
+    makeMsg('msg-old-receipt', { hasMedia: true, mimetype: IMAGE_MIMETYPE, url: 'http://old.jpg' }),
+    ...makeTextMessages(10),
+  ];
+  const requestedLimits: number[] = [];
+
+  let downloadCount = 0;
+  const { deps, createConversionCalls } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => {
+      requestedLimits.push(opts.limit);
+      return history.slice(0, opts.limit);
+    },
+    downloadMedia: async () => {
+      downloadCount++;
+      return { buffer: Buffer.from('fake'), mimetype: IMAGE_MIMETYPE };
+    },
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.deepEqual(requestedLimits, [1, 2, 3], 'must walk back limit=1,2,3 and stop');
+  assert.equal(createConversionCalls.length, 1, 'conversion created from the first receipt');
+  assert.equal(downloadCount, 1, 'only the chosen media is downloaded');
+});
+
+test('walk-back: never expands past first candidate (older receipts not touched)', async () => {
+  // The receipt is at position [1] (right after the trigger). Walk-back should
+  // stop at limit=2 even though older converted receipts exist further back.
+  const history: WahaMessage[] = [
+    makeMsg('msg-trigger', { fromMe: true }),
+    makeMsg('msg-new-receipt', { hasMedia: true, mimetype: IMAGE_MIMETYPE, url: IMAGE_URL }),
+    makeMsg('msg-converted-receipt-1', { hasMedia: true, mimetype: IMAGE_MIMETYPE, url: 'http://r1.jpg' }),
+    makeMsg('msg-converted-receipt-2', { hasMedia: true, mimetype: IMAGE_MIMETYPE, url: 'http://r2.jpg' }),
+  ];
+  const requestedLimits: number[] = [];
+
+  const { deps, createConversionCalls } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => {
+      requestedLimits.push(opts.limit);
+      return history.slice(0, opts.limit);
+    },
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.deepEqual(requestedLimits, [1, 2], 'must stop at limit=2 (first candidate found)');
+  assert.equal(createConversionCalls.length, 1);
+});
+
+test('walk-back: stops when history is exhausted (length < limit)', async () => {
+  // No receipts in the entire history → must request once per available message
+  // and then break (when the page returns fewer messages than requested).
+  const history: WahaMessage[] = makeTextMessages(3);
+  const requestedLimits: number[] = [];
+
+  const { deps, sendTextCalls, createConversionCalls } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => {
+      requestedLimits.push(opts.limit);
+      return history.slice(0, opts.limit);
+    },
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  // limits 1, 2, 3 each return enough; limit=4 returns only 3 → break
+  assert.deepEqual(requestedLimits, [1, 2, 3, 4]);
+  assert.equal(createConversionCalls.length, 0);
+  // NoImageFoundError reply
+  assert.equal(sendTextCalls.length, 1);
+});
+
+test('walk-back: respects lookbackLimit cap', async () => {
+  const history: WahaMessage[] = makeTextMessages(30); // never any media
+  const requestedLimits: number[] = [];
+
+  const { deps, sendTextCalls } = makeDeps({
+    fetchChatMessages: async (_s, _c, opts) => {
+      requestedLimits.push(opts.limit);
+      return history.slice(0, opts.limit);
+    },
+    lookbackLimit: 5,
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.deepEqual(requestedLimits, [1, 2, 3, 4, 5], 'must cap at lookbackLimit');
+  assert.equal(sendTextCalls.length, 1, 'NoImageFound reply sent');
+});
