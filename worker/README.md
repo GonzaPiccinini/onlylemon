@@ -223,6 +223,7 @@ Leads: `GET /api/admin/leads`.
 
 Sesiones: `GET /api/cashier/sessions`, `GET /sessions/current`, `POST /sessions/start|finish`.
 Cola de leads: `GET /leads/queue/current`, `POST /leads/:leadId/convert|skip`, `GET /leads`.
+Conversión manual: `GET /conversion-limits` (devuelve `{min, max}` desde los SystemSettings; `0` = sin bound). `POST /leads/:leadId/convert` re-valida el monto contra esos límites y rechaza con `400`.
 Runtime: `GET /runtime-state`, `PATCH /account`.
 WhatsApp legacy (single-session, mantiene reset/complete del flow viejo): `GET /whatsapp/link-state|link/status`, `POST /whatsapp/link/reset|complete`.
 WhatsApp multi-session (acotado por `Cashier.maxSessions`): `GET /me/sessions`, `POST /me/sessions`, `DELETE /me/sessions/:id`, `POST /me/sessions/:id/link|refresh|reset-refresh`, `GET /me/sessions/:id/status`.
@@ -255,11 +256,14 @@ Reintentos: gobernados por el gateway al encolar (`attempts=3`, backoff exponenc
 Cuando un cajero envía el mensaje de disparo configurado desde la sesión WAHA, el worker detecta el evento `message.any` (con `fromMe=true`) y ejecuta el flujo de auto-conversión:
 
 1. Lee el disparador desde `SystemSetting.auto_conversion_trigger_phrase` (Admin → Configuración).
-2. Camina el historial reciente del chat (últimos 20 mensajes) buscando el adjunto más reciente (imagen **o PDF**).
-3. Descarga el adjunto. Si es un PDF, renderiza la **página 1** a PNG antes del OCR (via `pdf-to-png-converter` + `@napi-rs/canvas`, sin dependencias nativas del sistema).
+2. Camina el historial del chat con un **walk-back incremental** (`limit=1, 2, 3, …` hasta tope `lookbackLimit=20`) y se detiene en el primer adjunto elegible — imagen `image/*` o PDF, enviado por el cliente (`fromMe=false`). Hacerlo de a un mensaje a la vez evita que WAHA re-ensure-S3 todo el rango de lookback en una sola llamada y vuelva a subir a R2 los recibos ya borrados de conversiones anteriores.
+3. Descarga el adjunto elegido. Si es un PDF, renderiza la **página 1** a PNG antes del OCR (via `pdf-to-png-converter` + `@napi-rs/canvas`, sin dependencias nativas del sistema).
 4. Llama a OpenAI Vision (modelo `gpt-4o-mini`) para extraer el monto en ARS desde la imagen/PNG.
-5. Busca el lead en estado `CONTACTED` cuyo teléfono coincida (normalización de dígitos).
-6. Crea la conversión con `source='AUTO_OCR'` y `sourceMessageId` para idempotencia.
+5. Valida `min ≤ monto ≤ max` contra los SystemSettings (saltea cada bound cuando es `0`).
+6. Busca el lead en estado `CONTACTED` cuyo teléfono coincida (normalización de dígitos).
+7. Crea la conversión con `source='AUTO_OCR'` y `sourceMessageId` para idempotencia.
+
+**Limpieza de R2** — tras una conversión `CREATED` (no `DUPLICATE`) el worker borra del bucket el recibo procesado. Además, en el `finally` del flujo se borran los archivos que WAHA hubiera re-subido durante el walk-back y no fueron seleccionados (media del cajero, audios, videos, stickers, etc.). Las fallas de borrado son no-fatales y se loggean como `warn` (`auto_conversion_receipt_delete_failed`, `auto_conversion_passed_over_delete_failed`).
 
 **Formatos de comprobante soportados**: imágenes (JPG, PNG, WEBP, y otros `image/*`) y PDFs (solo página 1). Videos, audios y stickers no están soportados.
 
@@ -280,7 +284,9 @@ Desde el dashboard: Admin → Configuración.
 | `auto_conversion_min_amount` | número como string | `""` / `0` | Monto mínimo ARS. Si OCR detecta un monto menor, la conversión no se crea. `0` = sin mínimo. |
 | `auto_conversion_max_amount` | número como string | `""` / `0` | Monto máximo ARS. Si OCR detecta un monto mayor, la conversión no se crea. `0` = sin máximo. |
 
-Nota: el servidor no valida `min <= max`; asegúrate de configurarlos correctamente desde el dashboard.
+**Validación cruzada `min ≤ max`** — el `PUT /api/admin/settings/:key` rechaza con `400` cualquier intento de fijar `min > max` cuando ambos valores son `> 0`. Setear cualquiera de los dos en `0` (deshabilitado) lo exime de la regla.
+
+**Compartido con la conversión manual** — el endpoint `GET /api/cashier/conversion-limits` expone estos mismos límites al panel del cajero, y `POST /api/cashier/leads/:leadId/convert` los aplica server-side (rechazo con `400` si el monto cae fuera del rango). Así la UI manual y el flujo OCR validan contra los mismos números.
 
 **Suscripción WAHA** — el worker requiere el evento `message.any` (no `message`) para recibir mensajes propios (`fromMe=true`). Para sincronizar sesiones existentes:
 
