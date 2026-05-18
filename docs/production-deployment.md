@@ -255,6 +255,17 @@ WAHA_LOG_FORMAT=JSON
 WAHA_LOG_LEVEL=info
 WAHA_PRINT_QR=false
 
+# WAHA media storage (auto-conversion OCR) — comprobantes guardados en R2
+# El worker borra el objeto cuando la conversión se crea exitosamente.
+WAHA_MEDIA_STORAGE=S3
+WAHA_S3_BUCKET=onlylemon-receipts
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_REGION=auto
+WHATSAPP_FILES_MIMETYPES=image/jpeg,image/png,application/pdf
+WHATSAPP_FILES_LIFETIME=7200
+
 # Grafana Cloud
 GRAFANA_PROM_URL=https://prometheus-prod-XX.grafana.net/api/prom/push
 GRAFANA_PROM_USER=...
@@ -289,6 +300,18 @@ JWT_SECRET=...
 JWT_REFRESH_SECRET=...
 CORS_ORIGIN=https://app.onlylemon.app
 LOG_LEVEL=info
+# Meta CAPI: false en prod (true silencia el envío y rompe la atribución).
+META_DRY_RUN=false
+
+# Auto-conversion OCR (worker)
+OPENAI_API_KEY=sk-proj-...
+OPENAI_MODEL=gpt-4o-mini
+AUTO_OCR_DAILY_LIMIT=100
+# Cloudflare R2 — el worker borra los recibos post-conversión.
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_REGION=auto
 
 # WAHA (consumido por el worker)
 WAHA_API_KEY=...
