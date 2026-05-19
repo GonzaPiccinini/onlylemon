@@ -278,6 +278,53 @@ test('scenario 3b: body matches trigger phrase case-insensitively → flow proce
 });
 
 // ---------------------------------------------------------------------------
+// Scenario 3c: multiple phrases — body matches any phrase in the newline list
+// ---------------------------------------------------------------------------
+
+test('scenario 3c: multi-phrase trigger → body matches second phrase → flow proceeds', async () => {
+  const { deps, sendTextCalls, createConversionCalls } = makeDeps({
+    getTriggerPhrase: async () => 'fichas cargadas!\nprocesar\nlisto',
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage({
+    ...DEFAULT_PAYLOAD,
+    body: '  PROCESAR  ',
+  });
+
+  assert.equal(sendTextCalls.length, 0, 'no error reply on success');
+  assert.equal(createConversionCalls.length, 1, 'conversion created via second phrase');
+});
+
+test('scenario 3d: multi-phrase trigger → body matches none → silent', async () => {
+  const { deps, sendTextCalls, fetchMessagesCalls } = makeDeps({
+    getTriggerPhrase: async () => 'fichas cargadas!\nprocesar',
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage({
+    ...DEFAULT_PAYLOAD,
+    body: 'algo distinto',
+  });
+
+  assert.equal(sendTextCalls.length, 0);
+  assert.equal(fetchMessagesCalls, 0);
+});
+
+test('scenario 3e: trigger setting with only whitespace/newlines → feature disabled', async () => {
+  const { deps, sendTextCalls, budgetCalls, fetchMessagesCalls } = makeDeps({
+    getTriggerPhrase: async () => '   \n  \n',
+  });
+  const service = createAutoConversionService(deps);
+
+  await service.handleCashierTriggerMessage(DEFAULT_PAYLOAD);
+
+  assert.equal(sendTextCalls.length, 0);
+  assert.equal(budgetCalls.length, 0);
+  assert.equal(fetchMessagesCalls, 0);
+});
+
+// ---------------------------------------------------------------------------
 // Scenario 4: session not mapped to a cashier → silent
 // ---------------------------------------------------------------------------
 

@@ -1,10 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
-import { ZapIcon, WalletIcon, CheckCircle2Icon, CircleDashedIcon } from 'lucide-react';
+import { ZapIcon, WalletIcon, CheckCircle2Icon, CircleDashedIcon, XIcon } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -37,14 +37,29 @@ import {
 // Schemas
 // ---------------------------------------------------------------------------
 
+const MAX_PHRASE_LEN = 200;
+const MAX_TOTAL_LEN = 2000;
+
 const triggerSchema = z.object({
-  value: z
-    .string()
-    .min(1, 'La frase no puede estar vacia')
-    .max(200, 'Maximo 200 caracteres'),
+  phrases: z
+    .array(z.string().min(1).max(MAX_PHRASE_LEN))
+    .min(1, 'Agrega al menos una frase')
+    .refine(
+      (arr) => arr.join('\n').length <= MAX_TOTAL_LEN,
+      `Las frases superan ${MAX_TOTAL_LEN} caracteres en total`,
+    ),
 });
 
 type TriggerFormValues = z.infer<typeof triggerSchema>;
+
+const parsePhrases = (raw: string): string[] =>
+  raw
+    .split('\n')
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+const arraysEqual = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((v, i) => v === b[i]);
 
 const amountsSchema = z
   .object({
@@ -89,32 +104,77 @@ const TriggerPhraseSection = () => {
   const { data, isLoading } = useAutoConversionTrigger();
   const updateTrigger = useUpdateAutoConversionTrigger();
 
+  const serverPhrases = useMemo(() => parsePhrases(data?.value ?? ''), [data?.value]);
+
   const form = useForm<TriggerFormValues>({
     resolver: zodResolver(triggerSchema),
-    defaultValues: { value: '' },
+    defaultValues: { phrases: [] },
+    mode: 'onChange',
   });
+
+  const [draft, setDraft] = useState('');
 
   useEffect(() => {
     if (data !== undefined) {
-      form.reset({ value: data.value });
+      form.reset({ phrases: serverPhrases });
+      setDraft('');
     }
-  }, [data, form]);
+  }, [data, serverPhrases, form]);
 
-  const currentValue = form.watch('value');
-  const serverValue = data?.value ?? '';
-  const isDirty = currentValue !== serverValue;
-  const isActive = Boolean(serverValue);
+  const currentPhrases = form.watch('phrases') ?? [];
+  const isDirty = !arraysEqual(currentPhrases, serverPhrases);
+  const isActive = serverPhrases.length > 0;
 
-  const onSubmit = async (values: TriggerFormValues) => {
-    try {
-      await updateTrigger.mutateAsync(values.value);
-      toast.success('Frase actualizada');
-    } catch (error) {
-      toast.error(extractServerMessage(error) ?? 'No se pudo guardar la frase');
+  const addPhrase = (raw: string) => {
+    const phrase = raw.trim();
+    if (!phrase) return;
+    if (phrase.length > MAX_PHRASE_LEN) {
+      toast.error(`Maximo ${MAX_PHRASE_LEN} caracteres por frase`);
+      return;
+    }
+    const lower = phrase.toLowerCase();
+    if (currentPhrases.some((p) => p.toLowerCase() === lower)) {
+      setDraft('');
+      return;
+    }
+    form.setValue('phrases', [...currentPhrases, phrase], {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setDraft('');
+  };
+
+  const removePhrase = (index: number) => {
+    const next = currentPhrases.filter((_, i) => i !== index);
+    form.setValue('phrases', next, { shouldDirty: true, shouldValidate: true });
+  };
+
+  const onDraftKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addPhrase(draft);
+    } else if (e.key === 'Backspace' && draft.length === 0 && currentPhrases.length > 0) {
+      removePhrase(currentPhrases.length - 1);
     }
   };
 
-  const onReset = () => form.reset({ value: serverValue });
+  const onSubmit = async (values: TriggerFormValues) => {
+    if (draft.trim().length > 0) {
+      addPhrase(draft);
+      return;
+    }
+    try {
+      await updateTrigger.mutateAsync(values.phrases.join('\n'));
+      toast.success('Frases actualizadas');
+    } catch (error) {
+      toast.error(extractServerMessage(error) ?? 'No se pudo guardar las frases');
+    }
+  };
+
+  const onReset = () => {
+    form.reset({ phrases: serverPhrases });
+    setDraft('');
+  };
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
@@ -123,12 +183,12 @@ const TriggerPhraseSection = () => {
           <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
             <ZapIcon className="size-4" />
           </div>
-          <h3 className="font-medium leading-tight">Frase disparadora</h3>
+          <h3 className="font-medium leading-tight">Frases disparadoras</h3>
           {!isLoading && (
             <Badge variant={isActive ? 'default' : 'outline'} className="ml-auto shrink-0">
               {isActive ? (
                 <>
-                  <CheckCircle2Icon /> Activo
+                  <CheckCircle2Icon /> Activo ({serverPhrases.length})
                 </>
               ) : (
                 <>
@@ -139,8 +199,9 @@ const TriggerPhraseSection = () => {
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Texto que el cajero envia en el chat para crear automaticamente la conversion
-          a partir del ultimo comprobante adjunto.
+          Cualquiera de estas frases que el cajero envie en el chat dispara automaticamente
+          la conversion a partir del ultimo comprobante adjunto. Presiona Enter o coma para
+          agregar.
         </p>
       </div>
 
@@ -152,18 +213,61 @@ const TriggerPhraseSection = () => {
       ) : (
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-3">
           <FieldGroup>
-            <Field data-invalid={Boolean(form.formState.errors.value)}>
+            <Field data-invalid={Boolean(form.formState.errors.phrases)}>
               <FieldLabel htmlFor="auto-conversion-trigger-phrase" className="sr-only">
-                Frase disparadora
+                Frases disparadoras
               </FieldLabel>
               <FieldContent>
-                <Input
-                  id="auto-conversion-trigger-phrase"
-                  placeholder="Ej: procesar"
-                  {...form.register('value')}
-                  aria-invalid={Boolean(form.formState.errors.value)}
+                <div
+                  className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 data-[invalid=true]:border-destructive data-[invalid=true]:ring-destructive/20"
+                  data-invalid={Boolean(form.formState.errors.phrases)}
+                  onClick={(e) => {
+                    const target = e.currentTarget.querySelector<HTMLInputElement>('input');
+                    target?.focus();
+                  }}
+                >
+                  {currentPhrases.map((phrase, i) => (
+                    <Badge
+                      key={`${phrase}-${i}`}
+                      variant="secondary"
+                      className="h-6 gap-1 pr-1"
+                    >
+                      <span className="truncate max-w-[16rem]">{phrase}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePhrase(i);
+                        }}
+                        className="grid size-4 place-items-center rounded-full hover:bg-foreground/10"
+                        aria-label={`Quitar ${phrase}`}
+                      >
+                        <XIcon className="size-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <input
+                    id="auto-conversion-trigger-phrase"
+                    type="text"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={onDraftKeyDown}
+                    onBlur={() => {
+                      if (draft.trim().length > 0) addPhrase(draft);
+                    }}
+                    placeholder={
+                      currentPhrases.length === 0 ? 'Ej: procesar' : 'Agregar otra frase...'
+                    }
+                    className="min-w-[10ch] flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                <FieldError
+                  errors={[
+                    form.formState.errors.phrases?.message
+                      ? { message: form.formState.errors.phrases.message }
+                      : undefined,
+                  ]}
                 />
-                <FieldError errors={[form.formState.errors.value]} />
               </FieldContent>
             </Field>
           </FieldGroup>
@@ -176,7 +280,7 @@ const TriggerPhraseSection = () => {
                 disabled={updateTrigger.isPending}
                 className="flex-1 sm:flex-none"
               >
-                {updateTrigger.isPending ? 'Guardando...' : 'Guardar frase'}
+                {updateTrigger.isPending ? 'Guardando...' : 'Guardar frases'}
               </Button>
               <Button
                 type="button"

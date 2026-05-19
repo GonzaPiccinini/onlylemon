@@ -23,7 +23,7 @@ import type { SettingKey } from './keys.js';
 // ---------------------------------------------------------------------------
 
 const updateTriggerPhraseSchema = z.object({
-  value: z.string().min(1).max(200),
+  value: z.string().min(1).max(2000),
 });
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,10 @@ export const makeUpdateSettingHandler =
     if (!isValidSettingKey(key)) {
       return res.status(404).json({ error: `Unknown setting key: ${key}` });
     }
-    const parsed = z.object({ value: z.string().min(1).max(200) }).safeParse(req.body);
+    // Trigger phrase may hold multiple phrases separated by newlines, so it
+    // gets a more generous max length than numeric settings.
+    const maxLen = key === SETTING_KEYS.AUTO_CONVERSION_TRIGGER_PHRASE ? 2000 : 200;
+    const parsed = z.object({ value: z.string().min(1).max(maxLen) }).safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Invalid payload',

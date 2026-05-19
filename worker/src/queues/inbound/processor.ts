@@ -167,10 +167,15 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
         // trigger message that should route to handleCashierTriggerMessage.
         if (data.payload.fromMe === true) {
           const triggerPhrase = await deps.getSetting(SETTING_KEYS.AUTO_CONVERSION_TRIGGER_PHRASE);
-          const triggerNormalized = triggerPhrase.trim().toLowerCase();
+          // The setting may hold one or more phrases separated by newlines.
+          // Match if the body equals (case-insensitively, after trim) any phrase.
+          const triggerPhrases = triggerPhrase
+            .split('\n')
+            .map((p) => p.trim().toLowerCase())
+            .filter((p) => p.length > 0);
           const bodyNormalized = (data.payload.body ?? '').trim().toLowerCase();
 
-          if (triggerNormalized.length > 0 && bodyNormalized === triggerNormalized) {
+          if (triggerPhrases.length > 0 && triggerPhrases.includes(bodyNormalized)) {
             // Outbound trigger match — delegate to auto-conversion service.
             // Defensive try/catch: Batch 6 already catches all known errors internally,
             // but we add one final guard to prevent BullMQ infinite retries.

@@ -157,17 +157,23 @@ export function createAutoConversionService(deps: AutoConversionDeps): {
       return;
     }
 
-    // Step 2: Trigger phrase match — case-insensitive, after trim
+    // Step 2: Trigger phrase match — case-insensitive, after trim.
+    // The setting stores one or more phrases separated by newlines. The message
+    // body must equal (case-insensitively, after trim) any one of them.
     const triggerPhrase = await getTriggerPhrase();
-    if (!triggerPhrase) {
+    const phrases = triggerPhrase
+      .split('\n')
+      .map((p) => p.trim().toLowerCase())
+      .filter((p) => p.length > 0);
+
+    if (phrases.length === 0) {
       // Feature disabled
       return;
     }
 
     const bodyNormalized = body.trim().toLowerCase();
-    const phraseNormalized = triggerPhrase.trim().toLowerCase();
 
-    if (bodyNormalized !== phraseNormalized) {
+    if (!phrases.includes(bodyNormalized)) {
       return;
     }
 
