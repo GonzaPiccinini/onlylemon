@@ -174,17 +174,17 @@ test('PUT handler: empty value → 400', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// PUT — invalid: value > 200 chars → 400
+// PUT — invalid: value > 2000 chars → 400 (multi-phrase support raised the cap)
 // ---------------------------------------------------------------------------
 
-test('PUT handler: value longer than 200 chars → 400', async () => {
+test('PUT handler: value longer than 2000 chars → 400', async () => {
   const mod = await import('./controller.js');
 
   const handler = mod.makeUpdateAutoConversionTriggerHandler({
     upsertSettingFn: async () => {},
   });
 
-  const req = makeReq({ body: { value: 'a'.repeat(201) } });
+  const req = makeReq({ body: { value: 'a'.repeat(2001) } });
   const res = makeRes();
 
   await handler(req, res);

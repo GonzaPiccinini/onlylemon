@@ -113,7 +113,7 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
     try {
       const data = await linkSession.mutateAsync({ sessionId: session.id, phoneNumber: phoneNumber.trim() });
       applyArtifacts(data);
-    } catch (error) {
+    } catch {
       stopTimer();
       toast.error('Se alcanzo el limite de refrescos automaticos');
     }

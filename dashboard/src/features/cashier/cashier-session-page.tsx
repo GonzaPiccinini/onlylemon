@@ -378,12 +378,12 @@ export const CashierSessionPage = () => {
     ? myWhatsappSessions.find((s) => s.id === selectedSessionId) ?? null
     : null;
   // If the selected session disappears (deleted by admin or elsewhere), close
-  // the modal so the cashier isn't stuck on a stale screen.
-  useEffect(() => {
-    if (selectedSessionId && !selectedSession) {
-      setSelectedSessionId(null);
-    }
-  }, [selectedSessionId, selectedSession]);
+  // the modal so the cashier isn't stuck on a stale screen. Clear during
+  // render (not in an effect) — React batches this with the current render
+  // and avoids the cascading re-render lint warning.
+  if (selectedSessionId && !selectedSession) {
+    setSelectedSessionId(null);
+  }
   const [page, setPage] = useState(1);
   const pageSize = 10;
 

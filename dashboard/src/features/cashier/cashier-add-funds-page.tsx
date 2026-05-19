@@ -99,7 +99,7 @@ export const CashierAddFundsPage = () => {
   const { data: searchResults = [], isFetching: searching } =
     useSearchCashierLeads(debouncedQ);
 
-  const amountSchema = useMemo(() => buildAmountSchema(limits), [limits.min, limits.max]);
+  const amountSchema = useMemo(() => buildAmountSchema(limits), [limits]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(amountSchema),
