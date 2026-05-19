@@ -230,9 +230,9 @@ const TriggerPhraseSection = () => {
                     <Badge
                       key={`${phrase}-${i}`}
                       variant="secondary"
-                      className="h-6 gap-1 pr-1"
+                      className="h-auto min-h-6 gap-1 py-0.5 pr-1"
                     >
-                      <span className="truncate max-w-[16rem]">{phrase}</span>
+                      <span className="whitespace-normal break-words">{phrase}</span>
                       <button
                         type="button"
                         onClick={(e) => {
