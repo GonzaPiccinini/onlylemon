@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createConversionSchema = z.object({
-  amount: z.coerce.number().min(3000),
+  amount: z.coerce.number().int().positive(),
 });
 
 

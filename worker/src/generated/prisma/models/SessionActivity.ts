@@ -337,6 +337,10 @@ export type SessionActivityUncheckedUpdateManyWithoutCashierNestedInput = {
   deleteMany?: Prisma.SessionActivityScalarWhereInput | Prisma.SessionActivityScalarWhereInput[]
 }
 
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
 export type SessionActivityCreateWithoutCashierInput = {
   id?: string
   createdAt?: Date | string

@@ -1,0 +1,3 @@
+# Root-level secrets consumed by docker-compose.local.yml
+.env
+.env.local

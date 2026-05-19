@@ -44,6 +44,22 @@ services:
       WAHA_LOG_LEVEL: ${WAHA_LOG_LEVEL}
 
       WAHA_PRINT_QR: ${WAHA_PRINT_QR}
+
+      # ── Media storage (S3/R2) — comprobantes para auto-conversion OCR ──
+      # El worker borra el objeto post-conversión (selectedMediaS3 → deleteReceipt),
+      # y los archivos passed-over también se limpian en el finally del flujo.
+      WAHA_MEDIA_STORAGE: ${WAHA_MEDIA_STORAGE:-S3}
+      WAHA_S3_REGION: ${R2_REGION:-auto}
+      WAHA_S3_BUCKET: ${WAHA_S3_BUCKET}
+      WAHA_S3_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      WAHA_S3_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      WAHA_S3_ENDPOINT: ${R2_ENDPOINT}
+      WAHA_S3_FORCE_PATH_STYLE: 'True'
+      WAHA_S3_PROXY_FILES: 'True'
+      WAHA_DOWNLOAD_MEDIA: 'True'
+      WHATSAPP_DOWNLOAD_MEDIA: 'True'
+      WHATSAPP_FILES_MIMETYPES: ${WHATSAPP_FILES_MIMETYPES:-image/jpeg,image/png,application/pdf}
+      WHATSAPP_FILES_LIFETIME: ${WHATSAPP_FILES_LIFETIME:-7200}
     volumes:
       - waha_data:/app/.sessions
     networks: [backend]

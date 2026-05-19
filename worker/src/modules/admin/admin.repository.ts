@@ -5,11 +5,7 @@ export const listCashiers = () =>
   prisma.cashier.findMany({
     include: {
       user: true,
-      landings: {
-        include: {
-          landing: true,
-        },
-      },
+      sessions: true,
       activity: {
         where: { endedAt: null },
         orderBy: { createdAt: 'desc' },
@@ -39,15 +35,10 @@ export const createCashier = async (input: {
     return tx.cashier.create({
       data: {
         userId: user.id,
-        sessionName: null,
       },
       include: {
         user: true,
-        landings: {
-          include: {
-            landing: true,
-          },
-        },
+        sessions: true,
       },
     });
   });
@@ -75,11 +66,7 @@ export const updateCashier = async (
       where: { id: cashierId },
       include: {
         user: true,
-        landings: {
-          include: {
-            landing: true,
-          },
-        },
+        sessions: true,
       },
     });
   });
@@ -92,11 +79,7 @@ export const disableCashier = (cashierId: string) =>
     },
     include: {
       user: true,
-      landings: {
-        include: {
-          landing: true,
-        },
-      },
+      sessions: true,
     },
   });
 
@@ -108,11 +91,7 @@ export const enableCashier = (cashierId: string) =>
     },
     include: {
       user: true,
-      landings: {
-        include: {
-          landing: true,
-        },
-      },
+      sessions: true,
     },
   });
 
@@ -129,7 +108,15 @@ export const getCashierById = (cashierId: string) =>
     where: { id: cashierId },
     select: {
       id: true,
-      sessionName: true,
+      status: true,
+      maxSessions: true,
+      user: {
+        select: {
+          name: true,
+          username: true,
+        },
+      },
+      sessions: true,
     },
   });
 
@@ -557,16 +544,6 @@ export const setLandingStatus = (
     data: { status },
   });
 
-export const getCashierLandings = (cashierId: string) =>
-  prisma.cashierLanding.findMany({
-    where: {
-      cashierId,
-    },
-    include: {
-      landing: true,
-    },
-  });
-
 export const updateAdminAccount = (
   userId: string,
   input: { username?: string; password?: string },
@@ -647,55 +624,81 @@ export const setAdminStatus = (adminId: string, status: 'ACTIVE' | 'DISABLED') =
     include: { user: { select: { id: true, name: true, username: true, role: true } } },
   });
 
-export const replaceCashierLandings = async (
-  cashierId: string,
+// ---------------------------------------------------------------------------
+// E — WhatsappSession admin repository helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * E6 — Count sessions for a cashier.
+ */
+export const countCashierSessions = (cashierId: string) =>
+  prisma.whatsappSession.count({ where: { cashierId } });
+
+/**
+ * E6 — Update cashier maxSessions.
+ */
+export const updateCashierMaxSessions = async (cashierId: string, maxSessions: number) => {
+  const cashier = await prisma.cashier.findUnique({ where: { id: cashierId } });
+  if (!cashier) return null;
+  return prisma.cashier.update({
+    where: { id: cashierId },
+    data: { maxSessions },
+    include: {
+      user: true,
+      sessions: true,
+    },
+  });
+};
+
+/**
+ * E4a — Get a session with its landing bindings.
+ */
+export const getSessionWithLandings = (sessionId: string) =>
+  prisma.whatsappSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      landings: {
+        include: {
+          landing: true,
+        },
+      },
+    },
+  });
+
+/**
+ * E4b — Full-replace landings for a session.
+ */
+export const replaceSessionLandings = async (
+  sessionId: string,
   landingIds: string[],
 ) =>
   prisma.$transaction(async (tx) => {
-    await tx.cashier.findUniqueOrThrow({
-      where: { id: cashierId },
+    await tx.whatsappSessionLanding.deleteMany({
+      where: { sessionId },
     });
-
     if (landingIds.length > 0) {
-      const existing = await tx.landing.findMany({
-        where: {
-          id: {
-            in: landingIds,
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (existing.length !== new Set(landingIds).size) {
-        throw new Error('Some landingIds do not exist');
-      }
-    }
-
-    await tx.cashierLanding.deleteMany({
-      where: {
-        cashierId,
-      },
-    });
-
-    if (landingIds.length > 0) {
-      await tx.cashierLanding.createMany({
-        data: landingIds.map((landingId) => ({
-          cashierId,
-          landingId,
-        })),
+      await tx.whatsappSessionLanding.createMany({
+        data: landingIds.map((landingId) => ({ sessionId, landingId })),
+        skipDuplicates: true,
       });
     }
-
-    return tx.cashierLanding.findMany({
-      where: {
-        cashierId,
-      },
-      include: {
-        landing: true,
-      },
+    return tx.whatsappSessionLanding.findMany({
+      where: { sessionId },
+      include: { landing: true },
     });
+  });
+
+/**
+ * E5 (landing side) — Get all sessions bound to a landing.
+ */
+export const getSessionsBoundToLandingId = (landingId: string) =>
+  prisma.whatsappSession.findMany({
+    where: {
+      landings: {
+        some: { landingId },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
   });
 
 // ---------------------------------------------------------------------------

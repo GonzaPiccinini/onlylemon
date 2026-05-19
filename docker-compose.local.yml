@@ -5,6 +5,9 @@
 # Postgres corre dentro del compose con su propio volumen (`pg_data`) y se expone en
 # 127.0.0.1:5432. `prisma migrate deploy` corre al iniciar el worker; sobre una DB
 # clonada de prod debería ser no-op.
+#
+# Secretos (OpenAI, R2/S3) viven en `.env` en la raíz del repo y se inyectan vía
+# `${VAR}` aquí abajo. Ver `.env.example` para la lista de claves requeridas.
 
 services:
   postgres:
@@ -56,17 +59,23 @@ services:
       LEADS_CODE_TTL_HOURS: 48
       JWT_SECRET: dev-jwt-secret-change-me-please
       JWT_REFRESH_SECRET: dev-jwt-refresh-secret-change-me-please-now
-      CORS_ORIGIN: http://localhost:8080
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
       WAHA_BASE_URL: http://waha:3000
       WAHA_API_KEY: dev-waha-key
       WAHA_WEBHOOK_URL: http://gateway:3000/api/webhook
-      WAHA_WEBHOOK_EVENTS: message,session.status
+      WAHA_WEBHOOK_EVENTS: message.any,session.status
       WAHA_WEBHOOK_TOKEN_HEADER: x-webhook-token
       WAHA_WEBHOOK_TOKEN_VALUE: dev-token
       LOG_LEVEL: debug
       TZ: America/Argentina/Buenos_Aires
+      META_DRY_RUN: 'true'
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_ENDPOINT: ${R2_ENDPOINT}
+      R2_REGION: ${R2_REGION:-auto}
     ports:
-      - '127.0.0.1:4000:4000'
+      - '0.0.0.0:4000:4000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,11 +111,11 @@ services:
     build:
       context: ./dashboard
       args:
-        VITE_API_BASE_URL: http://localhost:4000/api
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000/api}
     container_name: onlylemon-dashboard-local
     restart: unless-stopped
     ports:
-      - '127.0.0.1:8080:80'
+      - '0.0.0.0:8080:80'
     depends_on: [worker]
     networks: [local]
 
@@ -117,9 +126,21 @@ services:
     profiles: [waha]
     environment:
       WAHA_API_KEY: dev-waha-key
-      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WHATSAPP_DEFAULT_ENGINE: GOWS
       WAHA_PRINT_QR: 'true'
       WAHA_LOG_LEVEL: info
+      WAHA_MEDIA_STORAGE: S3
+      WAHA_S3_REGION: ${R2_REGION:-auto}
+      WAHA_S3_BUCKET: ${WAHA_S3_BUCKET:-onlylemon-receipts}
+      WAHA_S3_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      WAHA_S3_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      WAHA_S3_ENDPOINT: ${R2_ENDPOINT}
+      WAHA_S3_FORCE_PATH_STYLE: 'True'
+      WAHA_S3_PROXY_FILES: 'True'
+      WAHA_DOWNLOAD_MEDIA: 'True'
+      WHATSAPP_DOWNLOAD_MEDIA: 'True'
+      WHATSAPP_FILES_MIMETYPES: 'image/jpeg,image/png,application/pdf'
+      WHATSAPP_FILES_LIFETIME: '7200'
     ports:
       - '127.0.0.1:3001:3000'
     volumes:

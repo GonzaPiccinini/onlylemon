@@ -1,8 +1,13 @@
 import { LeadStatus } from '../../generated/prisma/client.js';
 import { prisma } from '../prisma/client.js';
 
+/**
+ * C2 — L1 candidate shape: sessions of En-turno ACTIVE cashiers bound to landing.
+ * WORKING status filtering is done by the caller using live WAHA getSessions().
+ */
 export type LandingCashierCandidate = {
   cashierId: string;
+  sessionId?: string;
   sessionName: string;
   activeSince: Date | null;
 };
@@ -29,6 +34,10 @@ export async function saveLead(data: CreateLeadData) {
   });
 }
 
+/**
+ * C2 — L1 query: sessions bound to a landing whose cashier is ACTIVE and En turno (open SessionActivity).
+ * Returns null when the landing is not found.
+ */
 export async function getActiveLandingCashierCandidatesByMetaPixelId(
   metaPixelId: string,
 ): Promise<LandingCashierCandidate[] | null> {
@@ -38,35 +47,33 @@ export async function getActiveLandingCashierCandidatesByMetaPixelId(
       status: 'ACTIVE',
     },
     select: {
-      cashiers: {
+      sessions: {
         where: {
-          cashier: {
-            status: 'ACTIVE',
-            sessionName: {
-              not: null,
-            },
-            activity: {
-              some: {
-                endedAt: null,
+          session: {
+            cashier: {
+              status: 'ACTIVE',
+              activity: {
+                some: {
+                  endedAt: null,
+                },
               },
             },
           },
         },
         select: {
-          cashier: {
+          session: {
             select: {
               id: true,
               sessionName: true,
-              activity: {
-                where: {
-                  endedAt: null,
-                },
-                orderBy: {
-                  createdAt: 'desc',
-                },
-                take: 1,
+              cashierId: true,
+              cashier: {
                 select: {
-                  createdAt: true,
+                  activity: {
+                    where: { endedAt: null },
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true },
+                  },
                 },
               },
             },
@@ -80,26 +87,22 @@ export async function getActiveLandingCashierCandidatesByMetaPixelId(
     return null;
   }
 
-  return landing.cashiers.flatMap((item) => {
-    const sessionName = item.cashier.sessionName;
-    if (!sessionName) {
-      return [];
-    }
-
-    return [
-      {
-        cashierId: item.cashier.id,
-        sessionName,
-        activeSince: item.cashier.activity[0]?.createdAt ?? null,
-      },
-    ];
-  });
+  return landing.sessions.map((item) => ({
+    cashierId: item.session.cashierId,
+    sessionId: item.session.id,
+    sessionName: item.session.sessionName,
+    activeSince: item.session.cashier.activity[0]?.createdAt ?? null,
+  }));
 }
 
+/**
+ * C3 — L2 candidate shape: all sessions of ACTIVE cashiers bound to landing.
+ * Caller filters by live WAHA WORKING set.
+ */
 export type LandingCashierWaCandidate = {
   cashierId: string;
+  sessionId?: string;
   sessionName: string;
-  whatsappPhoneNumber: string | null;
 };
 
 export async function getAllLinkedCashierCandidatesByMetaPixelId(
@@ -111,21 +114,20 @@ export async function getAllLinkedCashierCandidatesByMetaPixelId(
       status: 'ACTIVE',
     },
     select: {
-      cashiers: {
+      sessions: {
         where: {
-          cashier: {
-            status: 'ACTIVE',
-            sessionName: {
-              not: null,
+          session: {
+            cashier: {
+              status: 'ACTIVE',
             },
           },
         },
         select: {
-          cashier: {
+          session: {
             select: {
               id: true,
               sessionName: true,
-              whatsappPhoneNumber: true,
+              cashierId: true,
             },
           },
         },
@@ -137,20 +139,11 @@ export async function getAllLinkedCashierCandidatesByMetaPixelId(
     return null;
   }
 
-  return landing.cashiers.flatMap((item) => {
-    const sessionName = item.cashier.sessionName;
-    if (!sessionName) {
-      return [];
-    }
-
-    return [
-      {
-        cashierId: item.cashier.id,
-        sessionName,
-        whatsappPhoneNumber: item.cashier.whatsappPhoneNumber,
-      },
-    ];
-  });
+  return landing.sessions.map((item) => ({
+    cashierId: item.session.cashierId,
+    sessionId: item.session.id,
+    sessionName: item.session.sessionName,
+  }));
 }
 
 export type LandingFallbackPhoneRow = { id: string; phone: string };

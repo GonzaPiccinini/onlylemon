@@ -13,7 +13,7 @@ import {
   markLeadAsContacted,
   saveLead,
 } from '../../persistence/repositories/leadsRepository.js';
-import { getCashierBySessionName } from '../../modules/cashier/cashier.repository.js';
+import { getSessionBySessionName } from '../../modules/cashier/whatsapp-session.repository.js';
 import { getLandingByMetaPixelId } from '../../modules/admin/admin.repository.js';
 import { getSessions } from '../waha/client.js';
 import { sendContactEvent, sendLeadEvent } from './conversion.js';
@@ -180,7 +180,7 @@ export async function selectCashierNumberForLandingWithDependencies(
     };
   }
 
-  // Single WAHA call — shared across L1, L2, and L3 (REQ-2)
+  // Single WAHA call — shared across L1, L2, and L3
   const sessions = await dependencies.getSessions();
   const workingSessionNumbers = new Map<string, string>();
 
@@ -189,7 +189,11 @@ export async function selectCashierNumberForLandingWithDependencies(
       continue;
     }
 
-    const number = session.me.id.split('@')[0] ?? '';
+    const meId = session.me?.id;
+    if (!meId) {
+      continue;
+    }
+    const number = meId.split('@')[0] ?? '';
     if (!number) {
       continue;
     }
@@ -197,34 +201,17 @@ export async function selectCashierNumberForLandingWithDependencies(
     workingSessionNumbers.set(session.name, number);
   }
 
-  // Level 1: on-shift cashiers (open SessionActivity) that are WAHA-WORKING
-  const eligible = candidates
-    .map((candidate) => ({
-      cashierId: candidate.cashierId,
-      activeSince: candidate.activeSince,
-      number: workingSessionNumbers.get(candidate.sessionName) ?? null,
-    }))
-    .filter(
-      (
-        item,
-      ): item is {
-        cashierId: string;
-        activeSince: Date | null;
-        number: string;
-      } => Boolean(item.number),
-    );
+  // D1: Level 1 — En-turno cashiers with WORKING sessions bound to landing.
+  // Pivot: candidates are now sessions (not cashiers). Each session has a cashierId.
+  // Filter by WORKING set, then group by cashier for deficit algorithm.
+  const l1Eligible = candidates.filter((c) => workingSessionNumbers.has(c.sessionName));
 
-  if (eligible.length === 0) {
-    // Level 2: any ACTIVE cashier with sessionName linked to this landing that is WAHA-WORKING
+  if (l1Eligible.length === 0) {
+    // D2: Level 2 — any ACTIVE cashier session bound to landing that is WAHA-WORKING
     const l2Candidates = await dependencies.getAllLinkedCashierCandidatesByMetaPixelId(metaPixelId);
 
     if (l2Candidates && l2Candidates.length > 0) {
-      const l2Eligible = l2Candidates
-        .map((candidate) => ({
-          cashierId: candidate.cashierId,
-          number: workingSessionNumbers.get(candidate.sessionName) ?? null,
-        }))
-        .filter((item): item is { cashierId: string; number: string } => Boolean(item.number));
+      const l2Eligible = l2Candidates.filter((c) => workingSessionNumbers.has(c.sessionName));
 
       if (l2Eligible.length > 0) {
         const l2Selected = l2Eligible[
@@ -232,12 +219,12 @@ export async function selectCashierNumberForLandingWithDependencies(
             Math.floor(dependencies.getRandom() * l2Eligible.length),
             l2Eligible.length - 1,
           )
-        ];
-        return { ok: true, number: l2Selected.number };
+        ]!;
+        return { ok: true, number: workingSessionNumbers.get(l2Selected.sessionName)! };
       }
     }
 
-    // Level 3: fallback phones for this landing (random uniform pick)
+    // D3: Level 3 — fallback phones for this landing (random uniform pick), unchanged
     const fallbackPhones = await dependencies.getLandingFallbackPhonesByMetaPixelId(metaPixelId);
 
     if (!fallbackPhones || fallbackPhones.length === 0) {
@@ -249,46 +236,52 @@ export async function selectCashierNumberForLandingWithDependencies(
         Math.floor(dependencies.getRandom() * fallbackPhones.length),
         fallbackPhones.length - 1,
       )
-    ];
+    ]!;
     return { ok: true, number: l3Selected.phone };
   }
 
+  // D1: Deficit algorithm at cashier level — group l1Eligible sessions by cashierId
   const now = dependencies.getNow();
   const todayKey = formatArgentinaDayKey(now);
   const startOfDay = argentinaDayStartUtc(todayKey);
   const startOfNextDay = argentinaDayEndUtcExclusive(todayKey);
 
+  // Unique cashierIds for this eligible set
+  const eligibleCashierIds = [...new Set(l1Eligible.map((c) => c.cashierId))];
+
   const countsByCashier = await dependencies.getContactedLeadCountByCashierForLanding(
     metaPixelId,
-    eligible.map((item) => item.cashierId),
+    eligibleCashierIds,
     startOfDay,
     startOfNextDay,
   );
 
-  const eligibleWithStats = eligible.map((item) => {
-    const activeStart = item.activeSince
-      ? new Date(Math.max(item.activeSince.getTime(), startOfDay.getTime()))
+  // Compute per-cashier stats (take earliest activeSince among the cashier's eligible sessions)
+  const cashierStats = eligibleCashierIds.map((cashierId) => {
+    const cashierSessions = l1Eligible.filter((c) => c.cashierId === cashierId);
+    const activeSince = cashierSessions.reduce(
+      (earliest: Date | null, c) =>
+        c.activeSince && (!earliest || c.activeSince < earliest) ? c.activeSince : earliest,
+      null,
+    );
+    const activeStart = activeSince
+      ? new Date(Math.max(activeSince.getTime(), startOfDay.getTime()))
       : startOfDay;
     const activeMs = Math.max(now.getTime() - activeStart.getTime(), MIN_ACTIVE_MS);
 
     return {
-      ...item,
+      cashierId,
       activeMs,
-      countToday: countsByCashier.get(item.cashierId) ?? 0,
+      countToday: countsByCashier.get(cashierId) ?? 0,
+      sessions: cashierSessions,
     };
   });
 
-  const totalActiveMs = eligibleWithStats.reduce(
-    (sum, item) => sum + item.activeMs,
-    0,
-  );
-  const totalLeadsToday = eligibleWithStats.reduce(
-    (sum, item) => sum + item.countToday,
-    0,
-  );
+  const totalActiveMs = cashierStats.reduce((sum, item) => sum + item.activeMs, 0);
+  const totalLeadsToday = cashierStats.reduce((sum, item) => sum + item.countToday, 0);
   const totalLeadsAfterNext = totalLeadsToday + 1;
 
-  const scored = eligibleWithStats.map((item) => {
+  const scored = cashierStats.map((item) => {
     const timeShare = item.activeMs / totalActiveMs;
     const expectedLeadsAfterNext = timeShare * totalLeadsAfterNext;
 
@@ -303,21 +296,32 @@ export async function selectCashierNumberForLandingWithDependencies(
     Number.NEGATIVE_INFINITY,
   );
 
-  const topCandidates = scored.filter(
+  const topCashiers = scored.filter(
     (item) => item.deficit >= highestDeficit - DEFICIT_TIE_EPSILON,
   );
 
-  const selected =
-    topCandidates[
+  // Pick a random winning cashier (tie-break)
+  const winnerCashier =
+    topCashiers[
       Math.min(
-        Math.floor(dependencies.getRandom() * topCandidates.length),
-        topCandidates.length - 1,
+        Math.floor(dependencies.getRandom() * topCashiers.length),
+        topCashiers.length - 1,
       )
-    ];
+    ]!;
+
+  // D1: From the winning cashier's WORKING sessions, pick one uniformly at random
+  const winnerSessions = winnerCashier.sessions;
+  const selectedSession =
+    winnerSessions[
+      Math.min(
+        Math.floor(dependencies.getRandom() * winnerSessions.length),
+        winnerSessions.length - 1,
+      )
+    ]!;
 
   return {
     ok: true,
-    number: selected.number,
+    number: workingSessionNumbers.get(selectedSession.sessionName)!,
   };
 }
 
@@ -510,10 +514,12 @@ export async function mapLeadCodeToPhone(
 
   const now = new Date();
 
-  const cashier = await getCashierBySessionName(session);
-  if (!cashier) {
+  // D4: Use getSessionBySessionName (C1) instead of getCashierBySessionName
+  const whatsappSession = await getSessionBySessionName(session);
+  if (!whatsappSession) {
     return 'SESSION_NOT_MAPPED';
   }
+  const cashierId = whatsappSession.cashier.id;
 
   try {
     const { pn } = await getNumberByLid(session, chatId);
@@ -526,7 +532,7 @@ export async function mapLeadCodeToPhone(
     const updatedRows = await markLeadAsContacted(
       lead.id,
       phone,
-      cashier.id,
+      cashierId,
       now,
     );
 

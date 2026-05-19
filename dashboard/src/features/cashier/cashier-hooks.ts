@@ -3,15 +3,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cashierService } from "@/api/cashier.service";
 import { env } from "@/config/env";
 import type { CashierConversionsFilters, CashierRuntimeState, ConvertLeadInput } from "@/types/domain";
+import type { MyWhatsappSession, WhatsappLinkArtifacts, WhatsappSessionStatus } from "@/types/domain";
 
 const cashierKeys = {
   sessions: ["cashier", "sessions"] as const,
   currentSession: ["cashier", "current-session"] as const,
   runtimeState: ["cashier", "runtime-state"] as const,
+  conversionLimits: ["cashier", "conversion-limits"] as const,
   searchLeads: (q: string) => ["cashier", "leads", "search", q] as const,
   conversions: (filters: CashierConversionsFilters) => ["cashier", "conversions", filters] as const,
   whatsappLinkState: ["cashier", "whatsapp-link-state"] as const,
   whatsappLinkStatus: ["cashier", "whatsapp-link-status"] as const,
+  // Batch 5 — per-session
+  mySessions: ["cashier", "me", "sessions"] as const,
+  mySessionStatus: (sessionId: string) => ["cashier", "me", "sessions", sessionId, "status"] as const,
 };
 
 export const useCashierSessions = () =>
@@ -56,12 +61,21 @@ export const useFinishSession = () => {
   });
 };
 
+export const useCashierConversionLimits = () =>
+  useQuery({
+    queryKey: cashierKeys.conversionLimits,
+    queryFn: cashierService.getConversionLimits,
+    staleTime: 60_000,
+  });
+
 export const useCashierRuntimeState = (enabled = true) =>
   useQuery({
     queryKey: cashierKeys.runtimeState,
     queryFn: cashierService.getRuntimeState,
     enabled,
-    refetchInterval: 5_000,
+    // SSE pushes updates; this is just a safety-net refetch in case the
+    // stream drops and the reconnect hasn't fired yet.
+    refetchInterval: 60_000,
   });
 
 export const useCashierRuntimeStateStream = (
@@ -92,9 +106,32 @@ export const useCashierRuntimeStateStream = (
           linked: payload.wahaStatus === "WORKING",
         });
 
-        const sessionChanged = previous?.sessionName !== payload.sessionName;
-        if (sessionChanged) {
+        // Sync mySessions list directly from the SSE payload (no extra HTTP).
+        // Field mapping: status → wahaStatus, phone → whatsappPhoneNumber.
+        queryClient.setQueryData(
+          cashierKeys.mySessions,
+          payload.sessions.map((s) => ({
+            id: s.id,
+            sessionName: s.sessionName,
+            whatsappPhoneNumber: s.phone,
+            wahaStatus: s.status,
+            refreshCount: s.refreshCount,
+            lastRefreshAt: s.lastRefreshAt,
+          })),
+        );
+
+        // Detect changes that the runtime payload alone can't represent
+        const sessionNameChanged = previous?.sessionName !== payload.sessionName;
+        const workSessionChanged =
+          previous?.hasActiveWorkSession !== payload.hasActiveWorkSession;
+
+        if (sessionNameChanged) {
           void queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkState });
+        }
+        if (workSessionChanged) {
+          // The runtime-state has only the boolean; refetch full Session DTO
+          void queryClient.invalidateQueries({ queryKey: cashierKeys.currentSession });
+          void queryClient.invalidateQueries({ queryKey: cashierKeys.sessions });
         }
       } catch {
         void queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState });
@@ -153,22 +190,6 @@ export const useWhatsappLinkState = () =>
     queryFn: cashierService.getWhatsappLinkState,
   });
 
-export const useStartWhatsappLink = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (phoneNumber: string) => cashierService.startWhatsappLink(phoneNumber),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: cashierKeys.whatsappLinkState });
-    },
-  });
-};
-
-export const useRefreshWhatsappLink = () =>
-  useMutation({
-    mutationFn: cashierService.refreshWhatsappLink,
-  });
-
 export const useResetWhatsappLink = () => {
   const queryClient = useQueryClient();
 
@@ -200,3 +221,77 @@ export const useCompleteWhatsappLink = () => {
     },
   });
 };
+
+// ---------------------------------------------------------------------------
+// Batch 5 — per-session hooks
+// ---------------------------------------------------------------------------
+
+export const useMySessions = () =>
+  useQuery<MyWhatsappSession[]>({
+    queryKey: cashierKeys.mySessions,
+    queryFn: cashierService.listMySessions,
+  });
+
+export const useCreateMySession = () => {
+  const queryClient = useQueryClient();
+  return useMutation<MyWhatsappSession, unknown, void>({
+    mutationFn: () => cashierService.createMySession(),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: cashierKeys.mySessions }),
+        queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
+      ]);
+    },
+  });
+};
+
+export const useDeleteMySession = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, unknown, string>({
+    mutationFn: (sessionId: string) => cashierService.deleteMySession(sessionId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: cashierKeys.mySessions }),
+        queryClient.invalidateQueries({ queryKey: cashierKeys.runtimeState }),
+      ]);
+    },
+  });
+};
+
+export const useLinkMySession = () => {
+  const queryClient = useQueryClient();
+  return useMutation<WhatsappLinkArtifacts, unknown, { sessionId: string; phoneNumber: string }>({
+    mutationFn: ({ sessionId, phoneNumber }) => cashierService.linkMySession(sessionId, phoneNumber),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: cashierKeys.mySessions });
+    },
+  });
+};
+
+export const useRefreshMySession = () => {
+  const queryClient = useQueryClient();
+  return useMutation<WhatsappLinkArtifacts, unknown, string>({
+    mutationFn: (sessionId: string) => cashierService.refreshMySession(sessionId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: cashierKeys.mySessions });
+    },
+  });
+};
+
+export const useResetMySessionRefresh = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, unknown, string>({
+    mutationFn: (sessionId: string) => cashierService.resetMySessionRefresh(sessionId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: cashierKeys.mySessions });
+    },
+  });
+};
+
+export const useMySessionStatus = (sessionId: string, enabled = true) =>
+  useQuery<WhatsappSessionStatus>({
+    queryKey: cashierKeys.mySessionStatus(sessionId),
+    queryFn: () => cashierService.getMySessionStatus(sessionId),
+    enabled: enabled && Boolean(sessionId),
+    refetchInterval: enabled ? 5_000 : false,
+  });

@@ -38,6 +38,9 @@ export type ConversionMinAggregateOutputType = {
   id: string | null
   leadId: string | null
   amount: runtime.Decimal | null
+  source: string | null
+  cashierId: string | null
+  sourceMessageId: string | null
   createdAt: Date | null
 }
 
@@ -45,6 +48,9 @@ export type ConversionMaxAggregateOutputType = {
   id: string | null
   leadId: string | null
   amount: runtime.Decimal | null
+  source: string | null
+  cashierId: string | null
+  sourceMessageId: string | null
   createdAt: Date | null
 }
 
@@ -52,6 +58,9 @@ export type ConversionCountAggregateOutputType = {
   id: number
   leadId: number
   amount: number
+  source: number
+  cashierId: number
+  sourceMessageId: number
   createdAt: number
   _all: number
 }
@@ -69,6 +78,9 @@ export type ConversionMinAggregateInputType = {
   id?: true
   leadId?: true
   amount?: true
+  source?: true
+  cashierId?: true
+  sourceMessageId?: true
   createdAt?: true
 }
 
@@ -76,6 +88,9 @@ export type ConversionMaxAggregateInputType = {
   id?: true
   leadId?: true
   amount?: true
+  source?: true
+  cashierId?: true
+  sourceMessageId?: true
   createdAt?: true
 }
 
@@ -83,6 +98,9 @@ export type ConversionCountAggregateInputType = {
   id?: true
   leadId?: true
   amount?: true
+  source?: true
+  cashierId?: true
+  sourceMessageId?: true
   createdAt?: true
   _all?: true
 }
@@ -177,6 +195,9 @@ export type ConversionGroupByOutputType = {
   id: string
   leadId: string
   amount: runtime.Decimal
+  source: string | null
+  cashierId: string | null
+  sourceMessageId: string | null
   createdAt: Date
   _count: ConversionCountAggregateOutputType | null
   _avg: ConversionAvgAggregateOutputType | null
@@ -207,6 +228,9 @@ export type ConversionWhereInput = {
   id?: Prisma.StringFilter<"Conversion"> | string
   leadId?: Prisma.StringFilter<"Conversion"> | string
   amount?: Prisma.DecimalFilter<"Conversion"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.StringNullableFilter<"Conversion"> | string | null
+  cashierId?: Prisma.StringNullableFilter<"Conversion"> | string | null
+  sourceMessageId?: Prisma.StringNullableFilter<"Conversion"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Conversion"> | Date | string
   lead?: Prisma.XOR<Prisma.LeadScalarRelationFilter, Prisma.LeadWhereInput>
 }
@@ -215,6 +239,9 @@ export type ConversionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   leadId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  source?: Prisma.SortOrderInput | Prisma.SortOrder
+  cashierId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   lead?: Prisma.LeadOrderByWithRelationInput
 }
@@ -226,6 +253,9 @@ export type ConversionWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.ConversionWhereInput | Prisma.ConversionWhereInput[]
   leadId?: Prisma.StringFilter<"Conversion"> | string
   amount?: Prisma.DecimalFilter<"Conversion"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.StringNullableFilter<"Conversion"> | string | null
+  cashierId?: Prisma.StringNullableFilter<"Conversion"> | string | null
+  sourceMessageId?: Prisma.StringNullableFilter<"Conversion"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Conversion"> | Date | string
   lead?: Prisma.XOR<Prisma.LeadScalarRelationFilter, Prisma.LeadWhereInput>
 }, "id">
@@ -234,6 +264,9 @@ export type ConversionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   leadId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  source?: Prisma.SortOrderInput | Prisma.SortOrder
+  cashierId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.ConversionCountOrderByAggregateInput
   _avg?: Prisma.ConversionAvgOrderByAggregateInput
@@ -249,12 +282,18 @@ export type ConversionScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Conversion"> | string
   leadId?: Prisma.StringWithAggregatesFilter<"Conversion"> | string
   amount?: Prisma.DecimalWithAggregatesFilter<"Conversion"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.StringNullableWithAggregatesFilter<"Conversion"> | string | null
+  cashierId?: Prisma.StringNullableWithAggregatesFilter<"Conversion"> | string | null
+  sourceMessageId?: Prisma.StringNullableWithAggregatesFilter<"Conversion"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Conversion"> | Date | string
 }
 
 export type ConversionCreateInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: string | null
+  cashierId?: string | null
+  sourceMessageId?: string | null
   createdAt?: Date | string
   lead: Prisma.LeadCreateNestedOneWithoutConversionsInput
 }
@@ -263,12 +302,18 @@ export type ConversionUncheckedCreateInput = {
   id?: string
   leadId: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: string | null
+  cashierId?: string | null
+  sourceMessageId?: string | null
   createdAt?: Date | string
 }
 
 export type ConversionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lead?: Prisma.LeadUpdateOneRequiredWithoutConversionsNestedInput
 }
@@ -277,6 +322,9 @@ export type ConversionUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   leadId?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -284,12 +332,18 @@ export type ConversionCreateManyInput = {
   id?: string
   leadId: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: string | null
+  cashierId?: string | null
+  sourceMessageId?: string | null
   createdAt?: Date | string
 }
 
 export type ConversionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -297,6 +351,9 @@ export type ConversionUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   leadId?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -314,6 +371,9 @@ export type ConversionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   leadId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  sourceMessageId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -325,6 +385,9 @@ export type ConversionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   leadId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  sourceMessageId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -332,6 +395,9 @@ export type ConversionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   leadId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  cashierId?: Prisma.SortOrder
+  sourceMessageId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -392,12 +458,18 @@ export type DecimalFieldUpdateOperationsInput = {
 export type ConversionCreateWithoutLeadInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: string | null
+  cashierId?: string | null
+  sourceMessageId?: string | null
   createdAt?: Date | string
 }
 
 export type ConversionUncheckedCreateWithoutLeadInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: string | null
+  cashierId?: string | null
+  sourceMessageId?: string | null
   createdAt?: Date | string
 }
 
@@ -434,30 +506,45 @@ export type ConversionScalarWhereInput = {
   id?: Prisma.StringFilter<"Conversion"> | string
   leadId?: Prisma.StringFilter<"Conversion"> | string
   amount?: Prisma.DecimalFilter<"Conversion"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.StringNullableFilter<"Conversion"> | string | null
+  cashierId?: Prisma.StringNullableFilter<"Conversion"> | string | null
+  sourceMessageId?: Prisma.StringNullableFilter<"Conversion"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Conversion"> | Date | string
 }
 
 export type ConversionCreateManyLeadInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: string | null
+  cashierId?: string | null
+  sourceMessageId?: string | null
   createdAt?: Date | string
 }
 
 export type ConversionUpdateWithoutLeadInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type ConversionUncheckedUpdateWithoutLeadInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type ConversionUncheckedUpdateManyWithoutLeadInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -467,6 +554,9 @@ export type ConversionSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   id?: boolean
   leadId?: boolean
   amount?: boolean
+  source?: boolean
+  cashierId?: boolean
+  sourceMessageId?: boolean
   createdAt?: boolean
   lead?: boolean | Prisma.LeadDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["conversion"]>
@@ -475,6 +565,9 @@ export type ConversionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   id?: boolean
   leadId?: boolean
   amount?: boolean
+  source?: boolean
+  cashierId?: boolean
+  sourceMessageId?: boolean
   createdAt?: boolean
   lead?: boolean | Prisma.LeadDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["conversion"]>
@@ -483,6 +576,9 @@ export type ConversionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   id?: boolean
   leadId?: boolean
   amount?: boolean
+  source?: boolean
+  cashierId?: boolean
+  sourceMessageId?: boolean
   createdAt?: boolean
   lead?: boolean | Prisma.LeadDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["conversion"]>
@@ -491,10 +587,13 @@ export type ConversionSelectScalar = {
   id?: boolean
   leadId?: boolean
   amount?: boolean
+  source?: boolean
+  cashierId?: boolean
+  sourceMessageId?: boolean
   createdAt?: boolean
 }
 
-export type ConversionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "leadId" | "amount" | "createdAt", ExtArgs["result"]["conversion"]>
+export type ConversionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "leadId" | "amount" | "source" | "cashierId" | "sourceMessageId" | "createdAt", ExtArgs["result"]["conversion"]>
 export type ConversionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   lead?: boolean | Prisma.LeadDefaultArgs<ExtArgs>
 }
@@ -514,6 +613,9 @@ export type $ConversionPayload<ExtArgs extends runtime.Types.Extensions.Internal
     id: string
     leadId: string
     amount: runtime.Decimal
+    source: string | null
+    cashierId: string | null
+    sourceMessageId: string | null
     createdAt: Date
   }, ExtArgs["result"]["conversion"]>
   composites: {}
@@ -942,6 +1044,9 @@ export interface ConversionFieldRefs {
   readonly id: Prisma.FieldRef<"Conversion", 'String'>
   readonly leadId: Prisma.FieldRef<"Conversion", 'String'>
   readonly amount: Prisma.FieldRef<"Conversion", 'Decimal'>
+  readonly source: Prisma.FieldRef<"Conversion", 'String'>
+  readonly cashierId: Prisma.FieldRef<"Conversion", 'String'>
+  readonly sourceMessageId: Prisma.FieldRef<"Conversion", 'String'>
   readonly createdAt: Prisma.FieldRef<"Conversion", 'DateTime'>
 }
     

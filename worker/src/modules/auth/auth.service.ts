@@ -41,7 +41,6 @@ const toPublicUser = (
     ...(user.cashier
       ? {
           cashierId: user.cashier.id,
-          sessionName: user.cashier.sessionName,
         }
       : {}),
   };

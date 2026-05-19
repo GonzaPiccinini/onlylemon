@@ -7,16 +7,22 @@ import type {
   CreateLandingInput,
   DateRangeFilters,
   LeadsFilters,
+  ReplaceSessionLandingsInput,
   UpdateAdminAccountInput,
   UpdateCashierInput,
+  UpdateCashierMaxSessionsInput,
   UpdateLandingFallbackPhoneInput,
   UpdateLandingInput,
 } from "@/types/domain";
 
 type ConversionsTotalsFilters = Omit<ConversionsFilters, "page" | "pageSize">;
 
-const adminKeys = {
+export const adminKeys = {
+  autoConversionTrigger: ["admin", "auto-conversion-trigger"] as const,
   cashiers: ["admin", "cashiers"] as const,
+  cashierSessions: (cashierId: string) => ["admin", "cashiers", cashierId, "sessions"] as const,
+  sessionLandings: (sessionId: string) => ["admin", "sessions", sessionId, "landings"] as const,
+  landingSessions: (landingId: string) => ["admin", "landings", landingId, "sessions"] as const,
   landings: ["admin", "landings"] as const,
   landingFallbackPhones: (landingId: string) =>
     ["admin", "landings", landingId, "fallback-phones"] as const,
@@ -45,21 +51,6 @@ export const useCreateCashier = () => {
     mutationFn: (input: CreateCashierInput) => adminService.createCashier(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
-    },
-  });
-};
-
-export const useReplaceCashierLandings = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ cashierId, landingIds }: { cashierId: string; landingIds: string[] }) =>
-      adminService.replaceCashierLandings(cashierId, landingIds),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminKeys.cashiers }),
-        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
-      ]);
     },
   });
 };
@@ -278,3 +269,119 @@ export const useDeleteLandingFallbackPhone = (landingId: string) => {
     // is surfaced automatically via the mutation's `error` field.
   });
 };
+
+// ---------------------------------------------------------------------------
+// E/F — WhatsappSession admin hooks
+// ---------------------------------------------------------------------------
+
+export const useCashierSessions = (cashierId: string) =>
+  useQuery({
+    queryKey: adminKeys.cashierSessions(cashierId),
+    queryFn: () => adminService.listCashierSessions(cashierId),
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+  });
+
+export const useCreateCashierSession = (cashierId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => adminService.createCashierSession(cashierId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashierSessions(cashierId) });
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
+    },
+  });
+};
+
+export const useDeleteCashierSession = (cashierId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => adminService.deleteCashierSession(sessionId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashierSessions(cashierId) });
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
+    },
+  });
+};
+
+export const useSessionLandings = (sessionId: string) =>
+  useQuery({
+    queryKey: adminKeys.sessionLandings(sessionId),
+    queryFn: () => adminService.getSessionLandings(sessionId),
+  });
+
+export const useReplaceSessionLandings = (sessionId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ReplaceSessionLandingsInput) =>
+      adminService.replaceSessionLandings(sessionId, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminKeys.sessionLandings(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.landings }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.cashiers }),
+      ]);
+    },
+  });
+};
+
+export const useLandingSessions = (landingId: string) =>
+  useQuery({
+    queryKey: adminKeys.landingSessions(landingId),
+    queryFn: () => adminService.getLandingSessions(landingId),
+  });
+
+export const useUpdateCashierMaxSessions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cashierId, input }: { cashierId: string; input: UpdateCashierMaxSessionsInput }) =>
+      adminService.updateCashierMaxSessions(cashierId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashiers });
+    },
+  });
+};
+
+export const useLinkAdminCashierSession = (cashierId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, phoneNumber }: { sessionId: string; phoneNumber: string }) =>
+      adminService.linkCashierSession(sessionId, phoneNumber),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.cashierSessions(cashierId) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// System Settings — Generic hook factories
+// ---------------------------------------------------------------------------
+
+export const adminSettingKey = (key: string) => ["admin", "settings", key] as const;
+
+export const useSetting = (key: string) =>
+  useQuery({
+    queryKey: adminSettingKey(key),
+    queryFn: () => adminService.getSetting(key),
+  });
+
+export const useUpdateSetting = (key: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (value: string) => adminService.updateSetting(key, value),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminSettingKey(key) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// System Settings — Specific hooks (thin wrappers over generic)
+// ---------------------------------------------------------------------------
+
+export const useAutoConversionTrigger = () => useSetting('auto_conversion_trigger_phrase');
+export const useUpdateAutoConversionTrigger = () => useUpdateSetting('auto_conversion_trigger_phrase');
+export const useAutoConversionMinAmount = () => useSetting('auto_conversion_min_amount');
+export const useUpdateAutoConversionMinAmount = () => useUpdateSetting('auto_conversion_min_amount');
+export const useAutoConversionMaxAmount = () => useSetting('auto_conversion_max_amount');
+export const useUpdateAutoConversionMaxAmount = () => useUpdateSetting('auto_conversion_max_amount');

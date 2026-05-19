@@ -18,8 +18,8 @@ Núcleo de negocio de OnlyLemon. Combina tres responsabilidades en un solo proce
   - **Nivel 3**: número de fallback de la tabla `LandingFallbackPhone` (pool estático administrable por el admin). Invariante duro: cada Landing debe tener ≥1 fila en esta tabla; el worker lanza HTTP 500 (`FALLBACK_INVARIANT_VIOLATION`) si los niveles 1 y 2 fallan y la tabla está vacía para esa landing.
 - **Matching de código ↔ teléfono**: cuando llega un mensaje de WhatsApp (desde la cola `inbound`), busca el `code` en el body, valida TTL (`LEADS_CODE_TTL_HOURS`) y marca el lead como `CONTACTED`. Envía `Contact` a Meta.
 - **Auth**: login/logout con JWT (`JWT_SECRET`), soporte de roles `ADMIN` y `CASHIER`.
-- **Admin**: CRUD de cashiers, landings, asociación cashier↔landing, CRUD de teléfonos de fallback por landing (`/api/admin/landings/:id/fallback-phones`), estadísticas (`/stats/summary`, `/stats/cashiers`, `/stats/funds-series`), listado de leads.
-- **Cashier**: sesiones de trabajo, cola de leads (current/convert/skip), historial, estado runtime, vinculación de WhatsApp (via WAHA: request-code, QR, session status).
+- **Admin**: CRUD de cashiers, landings, CRUD de WhatsApp sessions por cashier, binding session↔landing (M:N), CRUD de teléfonos de fallback por landing (`/api/admin/landings/:id/fallback-phones`), estadísticas (`/stats/summary`, `/stats/cashiers`, `/stats/funds-series`), listado de leads.
+- **Cashier**: sesiones de trabajo, cola de leads (current/convert/skip), historial, estado runtime, gestión multi-WhatsApp por sesión (crear/borrar/QR/refresh) acotada por `Cashier.maxSessions`.
 - **Realtime**: SSE en `/api/realtime/cashier/runtime-state/stream` autenticado por JWT vía `?token=`. Heartbeat cada 20 s.
 - **Idempotencia**: tabla `ProcessedJob` evita reprocesar el mismo webhook (jobKey = `event:id`).
 - **Observabilidad**: `/metrics` Prometheus + logs pino.
@@ -30,7 +30,8 @@ Núcleo de negocio de OnlyLemon. Combina tres responsabilidades en un solo proce
 worker/
 ├── prisma/
 │   ├── schema.prisma                 User, Admin, Cashier, Lead, Landing, LandingFallbackPhone,
-│   │                                 CashierLanding, SessionActivity, ProcessedJob + enums
+│   │                                 WhatsappSession, WhatsappSessionLanding,
+│   │                                 SessionActivity, ProcessedJob + enums
 │   └── migrations/                   Histórico de migraciones Prisma
 ├── prisma.config.ts                  Datasource desde DATABASE_URL (dotenv)
 └── src/
@@ -67,12 +68,13 @@ worker/
 |---|---|
 | `User` | Usuario base (admin o cashier). `username` único, password hasheado, `role`. |
 | `Admin` | 1-1 con `User`. |
-| `Cashier` | 1-1 con `User`. Contiene sesión de WAHA (`sessionName`), teléfono vinculado, estado (`ACTIVE`/`DISABLED`), contador de refresh de QR. |
+| `Cashier` | 1-1 con `User`. Estado (`ACTIVE`/`DISABLED`) y `maxSessions` (cap configurable de sesiones WhatsApp simultáneas, default 1). Sus sesiones viven en `WhatsappSession`. |
 | `SessionActivity` | Turnos de trabajo del cashier (start/end). |
 | `Lead` | Lead generado por la landing (`code` único, `fbc`/`fbp`/`userAgent`, `metaPixelId`, `expiresAt`, `status`, `amount` al convertir, FK opcional a cashier). |
 | `Landing` | Sitio de tracking con `metaPixelId`/`metaAccessToken` propios. |
 | `LandingFallbackPhone` | Pool de teléfonos de respaldo 1→N desde `Landing`. Validación `^\+?[0-9]{8,15}$`. Constraint único `(landingId, phone)`. Cada landing debe tener ≥1 fila (invariante duro). |
-| `CashierLanding` | Muchos-a-muchos entre cashier y landing. |
+| `WhatsappSession` | Sesión WAHA por cashier. `sessionName` único, `whatsappPhoneNumber`, `refreshCount`, `lastRefreshAt`. WAHA `status` se consulta live, no se persiste. Acotada por `Cashier.maxSessions`. |
+| `WhatsappSessionLanding` | Join M:N entre `WhatsappSession` y `Landing`. Una sesión puede atender múltiples landings y una landing puede tener múltiples sesiones (de cualquier cajero). `onDelete: Cascade` en ambos lados. |
 | `ProcessedJob` | Idempotencia: `jobKey` único por evento. |
 
 Enums: `Role(ADMIN\|CASHIER\|SUPER_ADMIN)`, `CashierStatus(ACTIVE\|DISABLED)`, `AdminStatus(ACTIVE\|DISABLED)`, `LandingStatus(ACTIVE\|DISABLED)`, `LeadStatus(NOT_CONTACTED\|CONTACTED\|CONVERTED\|EXPIRED)`.
@@ -94,11 +96,19 @@ Validadas con zod en `src/config/env.ts`. Si falta alguna, el proceso tira y no 
 | `WAHA_BASE_URL` | sí | — | URL del WAHA (prod: `https://waha.onlylemon.app`). |
 | `WAHA_API_KEY` | sí | — | API key de WAHA. |
 | `WAHA_WEBHOOK_URL` | sí | — | URL pública del gateway (`https://api.onlylemon.app/api/webhook`). Usada al crear sesiones en WAHA. |
-| `WAHA_WEBHOOK_EVENTS` | sí | — | CSV de eventos que WAHA debe notificar (ej: `message,session.status`). |
+| `WAHA_WEBHOOK_EVENTS` | no | `message.any,session.status` | CSV de eventos que WAHA debe notificar. Usar `message.any` (no `message`) para capturar todos los mensajes incluyendo los propios (`fromMe=true`). |
 | `WAHA_WEBHOOK_TOKEN_HEADER` | sí | — | Nombre del header que WAHA envía al gateway. |
 | `WAHA_WEBHOOK_TOKEN_VALUE` | sí | — | Valor del token. Idéntico al que valida el gateway. |
 | `META_API_VERSION` | no | `v21.0` | Versión del Graph API de Meta (las credenciales son por-landing en DB). |
+| `META_DRY_RUN` | no | `false` | Si `true`, **NO** envía eventos a Meta CAPI: logea el payload a INFO y retorna éxito. Para QA E2E sin contaminar datos reales. |
 | `LOG_LEVEL` | no | `info` | `fatal\|error\|warn\|info\|debug\|trace`. |
+| `OPENAI_API_KEY` | no* | — | API key de OpenAI. *Requerida en runtime si la feature de auto-conversión OCR está activa (trigger phrase configurado). Sin esta key el cliente lanza error en el momento de la llamada. |
+| `OPENAI_MODEL` | no | `gpt-4o-mini` | Modelo de OpenAI a usar para extracción OCR. |
+| `AUTO_OCR_DAILY_LIMIT` | no | `100` | Límite diario de llamadas OCR por cashier (resets a las 00:00 UTC). |
+| `R2_ACCESS_KEY_ID` | no | — | Access key ID de Cloudflare R2 (o S3 compatible). Si no está configurada, el borrado del comprobante tras conversión exitosa se omite (log warn, no falla el job). |
+| `R2_SECRET_ACCESS_KEY` | no | — | Secret access key de Cloudflare R2. Requerida junto con `R2_ACCESS_KEY_ID` y `R2_ENDPOINT` para el auto-borrado. |
+| `R2_ENDPOINT` | no | — | URL del endpoint R2 (ej: `https://<accountId>.r2.cloudflarestorage.com`). Requerido para el auto-borrado. |
+| `R2_REGION` | no | `auto` | Región del bucket R2/S3. Para Cloudflare R2 usar `auto`. |
 
 > Nota: el worker lee sus envs directamente desde `process.env`; no hay `.env.example` en el repo, tomar como referencia la tabla de arriba y/o `docker-compose.dashboard-vps.yml`.
 
@@ -195,7 +205,9 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM \"User\" WHERE role='SUPER_ADMIN';
 
 ### Admin (`requireRole('ADMIN', 'SUPER_ADMIN')`)
 
-Cashiers: `GET/POST /api/admin/cashiers`, `PUT /:id`, `PATCH /:id/disable|enable`, `GET/PUT /:id/landings`.
+Cashiers: `GET/POST /api/admin/cashiers`, `PUT /:cashierId`, `PATCH /:cashierId` (maxSessions), `PATCH /:cashierId/disable|enable`, `POST /:cashierId/sessions/finish`.
+WhatsApp sessions: `GET/POST /api/admin/cashiers/:cashierId/whatsapp-sessions`, `DELETE /api/admin/whatsapp-sessions/:sessionId`, `POST /api/admin/whatsapp-sessions/:sessionId/link` (admin "Generar QR ahora").
+Session↔Landing binding: `GET/PUT /api/admin/whatsapp-sessions/:sessionId/landings` (full-replace, M:N), `GET /api/admin/landings/:landingId/sessions`.
 Landings: `GET/POST /api/admin/landings`, `PUT /:id`, `PATCH /:id/disable|enable`.
 Fallback phones por landing: `GET /api/admin/landings/:id/fallback-phones`, `POST /api/admin/landings/:id/fallback-phones`, `PUT /api/admin/landings/:id/fallback-phones/:phoneId`, `DELETE /api/admin/landings/:id/fallback-phones/:phoneId`. El DELETE rechaza con `409 LAST_FALLBACK` si dejaría la landing sin respaldos.
 Stats: `GET /api/admin/stats/summary|cashiers|funds-series`.
@@ -211,8 +223,10 @@ Leads: `GET /api/admin/leads`.
 
 Sesiones: `GET /api/cashier/sessions`, `GET /sessions/current`, `POST /sessions/start|finish`.
 Cola de leads: `GET /leads/queue/current`, `POST /leads/:leadId/convert|skip`, `GET /leads`.
+Conversión manual: `GET /conversion-limits` (devuelve `{min, max}` desde los SystemSettings; `0` = sin bound). `POST /leads/:leadId/convert` re-valida el monto contra esos límites y rechaza con `400`.
 Runtime: `GET /runtime-state`, `PATCH /account`.
-WhatsApp (WAHA): `GET /whatsapp/link-state|link/status`, `POST /whatsapp/link/start|refresh|reset|complete`.
+WhatsApp legacy (single-session, mantiene reset/complete del flow viejo): `GET /whatsapp/link-state|link/status`, `POST /whatsapp/link/reset|complete`.
+WhatsApp multi-session (acotado por `Cashier.maxSessions`): `GET /me/sessions`, `POST /me/sessions`, `DELETE /me/sessions/:id`, `POST /me/sessions/:id/link|refresh|reset-refresh`, `GET /me/sessions/:id/status`.
 
 ### Realtime (SSE)
 
@@ -236,6 +250,55 @@ El `jobKey` para idempotencia combina `event` + `id` (o session+status+timestamp
 - `session.status` → `processWhatsappSessionStatusService` actualiza el estado del enlace de WhatsApp del cashier.
 
 Reintentos: gobernados por el gateway al encolar (`attempts=3`, backoff exponencial 1 s).
+
+## Auto-conversión desde WhatsApp (OCR)
+
+Cuando un cajero envía el mensaje de disparo configurado desde la sesión WAHA, el worker detecta el evento `message.any` (con `fromMe=true`) y ejecuta el flujo de auto-conversión:
+
+1. Lee el disparador desde `SystemSetting.auto_conversion_trigger_phrase` (Admin → Configuración).
+2. Camina el historial del chat con un **walk-back incremental** (`limit=1, 2, 3, …` hasta tope `lookbackLimit=20`) y se detiene en el primer adjunto elegible — imagen `image/*` o PDF, enviado por el cliente (`fromMe=false`). Hacerlo de a un mensaje a la vez evita que WAHA re-ensure-S3 todo el rango de lookback en una sola llamada y vuelva a subir a R2 los recibos ya borrados de conversiones anteriores.
+3. Descarga el adjunto elegido. Si es un PDF, renderiza la **página 1** a PNG antes del OCR (via `pdf-to-png-converter` + `@napi-rs/canvas`, sin dependencias nativas del sistema).
+4. Llama a OpenAI Vision (modelo `gpt-4o-mini`) para extraer el monto en ARS desde la imagen/PNG.
+5. Valida `min ≤ monto ≤ max` contra los SystemSettings (saltea cada bound cuando es `0`).
+6. Busca el lead en estado `CONTACTED` cuyo teléfono coincida (normalización de dígitos).
+7. Crea la conversión con `source='AUTO_OCR'` y `sourceMessageId` para idempotencia.
+
+**Limpieza de R2** — tras una conversión `CREATED` (no `DUPLICATE`) el worker borra del bucket el recibo procesado. Además, en el `finally` del flujo se borran los archivos que WAHA hubiera re-subido durante el walk-back y no fueron seleccionados (media del cajero, audios, videos, stickers, etc.). Las fallas de borrado son no-fatales y se loggean como `warn` (`auto_conversion_receipt_delete_failed`, `auto_conversion_passed_over_delete_failed`).
+
+**Formatos de comprobante soportados**: imágenes (JPG, PNG, WEBP, y otros `image/*`) y PDFs (solo página 1). Videos, audios y stickers no están soportados.
+
+**Variables de entorno requeridas**
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `OPENAI_API_KEY` | — | API key de OpenAI. Requerida si la feature está activa. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Modelo Vision para extracción OCR. |
+| `AUTO_OCR_DAILY_LIMIT` | `100` | Límite de llamadas OCR por cajero por día UTC. |
+
+**Configuración (SystemSetting keys)** — endpoint genérico `GET/PUT /api/admin/settings/:key` (ADMIN).
+Desde el dashboard: Admin → Configuración.
+
+| Key | Tipo | Default | Descripción |
+|---|---|---|---|
+| `auto_conversion_trigger_phrase` | string | — | Frase que activa el flujo (case-insensitive). Vacío = deshabilitado. |
+| `auto_conversion_min_amount` | número como string | `""` / `0` | Monto mínimo ARS. Si OCR detecta un monto menor, la conversión no se crea. `0` = sin mínimo. |
+| `auto_conversion_max_amount` | número como string | `""` / `0` | Monto máximo ARS. Si OCR detecta un monto mayor, la conversión no se crea. `0` = sin máximo. |
+
+**Validación cruzada `min ≤ max`** — el `PUT /api/admin/settings/:key` rechaza con `400` cualquier intento de fijar `min > max` cuando ambos valores son `> 0`. Setear cualquiera de los dos en `0` (deshabilitado) lo exime de la regla.
+
+**Compartido con la conversión manual** — el endpoint `GET /api/cashier/conversion-limits` expone estos mismos límites al panel del cajero, y `POST /api/cashier/leads/:leadId/convert` los aplica server-side (rechazo con `400` si el monto cae fuera del rango). Así la UI manual y el flujo OCR validan contra los mismos números.
+
+**Suscripción WAHA** — el worker requiere el evento `message.any` (no `message`) para recibir mensajes propios (`fromMe=true`). Para sincronizar sesiones existentes:
+
+```bash
+npm run reconcile:waha-webhooks
+```
+
+**Idempotencia** — doble capa: `ProcessedJob` (jobKey) + índice parcial único `(cashierId, sourceMessageId)`. Los duplicados se silencian (sin reply, job succeed).
+
+**Modos de fallo** — si OCR o la búsqueda de lead fallan, el worker responde al cajero con un mensaje en español explicando el error (imagen no encontrada, monto ilegible, lead no encontrado, límite diario excedido, etc.) y el job se marca como completado (no se reintenta).
+
+**Fuera de alcance (v1.1)** — PDFs multi-página (solo se OCRea la página 1), disparadores por landing/cajero distintos, retry UI, confirmación manual.
 
 ## Métricas expuestas en `/metrics`
 

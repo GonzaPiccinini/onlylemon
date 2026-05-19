@@ -87,12 +87,22 @@ export type Landing = Prisma.LandingModel
  */
 export type LandingFallbackPhone = Prisma.LandingFallbackPhoneModel
 /**
- * Model CashierLanding
+ * Model WhatsappSession
  * 
  */
-export type CashierLanding = Prisma.CashierLandingModel
+export type WhatsappSession = Prisma.WhatsappSessionModel
+/**
+ * Model WhatsappSessionLanding
+ * 
+ */
+export type WhatsappSessionLanding = Prisma.WhatsappSessionLandingModel
 /**
  * Model ProcessedJob
  * 
  */
 export type ProcessedJob = Prisma.ProcessedJobModel
+/**
+ * Model SystemSetting
+ * 
+ */
+export type SystemSetting = Prisma.SystemSettingModel

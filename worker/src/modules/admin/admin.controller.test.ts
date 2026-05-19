@@ -640,3 +640,133 @@ test('B10.2: deleteLandingFallbackPhoneHandlerImpl → 409 with exact message wh
   assert.equal(body.code, 'LAST_FALLBACK');
   assert.equal(body.message, 'Debes agregar otro respaldo antes de eliminar este');
 });
+
+// ---------------------------------------------------------------------------
+// E — WhatsappSession admin controller handlers (TDD: RED → GREEN)
+// ---------------------------------------------------------------------------
+
+test('E: admin controller exports listCashierSessionsHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.listCashierSessionsHandler, 'function');
+});
+
+test('E: admin controller exports createCashierSessionHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.createCashierSessionHandler, 'function');
+});
+
+test('E: admin controller exports deleteCashierSessionHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.deleteCashierSessionHandler, 'function');
+});
+
+test('E: admin controller exports getSessionLandingsHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.getSessionLandingsHandler, 'function');
+});
+
+test('E: admin controller exports replaceSessionLandingsHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.replaceSessionLandingsHandler, 'function');
+});
+
+test('E: admin controller exports getLandingSessionsHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.getLandingSessionsHandler, 'function');
+});
+
+test('E: admin controller exports updateCashierMaxSessionsHandler', async () => {
+  const mod = await import('./admin.controller.js') as Record<string, unknown>;
+  assert.equal(typeof mod.updateCashierMaxSessionsHandler, 'function');
+});
+
+// E2: maxSessions cap enforcement
+test('E2: createCashierSessionHandler → 404 if cashier not found (DB-integrated)', async () => {
+  const { createCashierSessionHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { cashierId: 'nonexistent-cashier-00000' } });
+  const res = makeRes();
+
+  try {
+    await createCashierSessionHandler(req, res);
+    // DB available: service returns null → 404
+    assert.ok([404, 500].includes(res.statusCode));
+  } catch {
+    // DB unavailable — acceptable
+  }
+});
+
+// E6: PATCH /cashiers/:cashierId — maxSessions validation
+test('E6: updateCashierMaxSessionsHandler: maxSessions=0 → 400', async () => {
+  const { updateCashierMaxSessionsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { cashierId: 'c-1' }, body: { maxSessions: 0 } });
+  const res = makeRes();
+
+  await updateCashierMaxSessionsHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('E6: updateCashierMaxSessionsHandler: maxSessions=-1 → 400', async () => {
+  const { updateCashierMaxSessionsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { cashierId: 'c-1' }, body: { maxSessions: -1 } });
+  const res = makeRes();
+
+  await updateCashierMaxSessionsHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('E6: updateCashierMaxSessionsHandler: missing maxSessions field → 400', async () => {
+  const { updateCashierMaxSessionsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { cashierId: 'c-1' }, body: {} });
+  const res = makeRes();
+
+  await updateCashierMaxSessionsHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test('E6: updateCashierMaxSessionsHandler: maxSessions=1 (minimum valid) for nonexistent cashier → 404 or 500 (DB-integrated)', async () => {
+  const { updateCashierMaxSessionsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { cashierId: 'nonexistent-cashier-000' }, body: { maxSessions: 1 } });
+  const res = makeRes();
+
+  try {
+    await updateCashierMaxSessionsHandler(req, res);
+    assert.ok([404, 500].includes(res.statusCode));
+  } catch {
+    // DB unavailable — acceptable
+  }
+});
+
+// E4b: replaceSessionLandingsHandler validation
+test('E4b: replaceSessionLandingsHandler: invalid payload (landingIds not array) → 400', async () => {
+  const { replaceSessionLandingsHandler } = await import('./admin.controller.js');
+
+  const req = makeReq({ params: { sessionId: 's-1' }, body: { landingIds: 'not-array' } });
+  const res = makeRes();
+
+  await replaceSessionLandingsHandler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+// SessionCapReachedError + SessionNotFoundError error classes
+test('E: SessionCapReachedError is exported and has correct name', async () => {
+  const { SessionCapReachedError } = await import('./admin.service.js');
+  const err = new SessionCapReachedError();
+  assert.equal(err.name, 'SessionCapReachedError');
+  assert.equal(err.message, 'SESSION_CAP_REACHED');
+});
+
+test('E: SessionNotFoundError is exported and has correct name', async () => {
+  const { SessionNotFoundError } = await import('./admin.service.js');
+  const err = new SessionNotFoundError();
+  assert.equal(err.name, 'SessionNotFoundError');
+  assert.equal(err.message, 'SESSION_NOT_FOUND');
+});

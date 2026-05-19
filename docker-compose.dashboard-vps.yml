@@ -40,6 +40,16 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      META_DRY_RUN: ${META_DRY_RUN:-false}
+      # ── OpenAI (auto-conversion OCR) ──
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      AUTO_OCR_DAILY_LIMIT: ${AUTO_OCR_DAILY_LIMIT:-100}
+      # ── Cloudflare R2 (cleanup de recibos post-conversión) ──
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_ENDPOINT: ${R2_ENDPOINT}
+      R2_REGION: ${R2_REGION:-auto}
       TZ: America/Argentina/Buenos_Aires
     depends_on:
       postgres:

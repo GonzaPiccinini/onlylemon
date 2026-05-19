@@ -14,6 +14,20 @@ Cada fila de la tabla de landings en `/admin/landings` incluye un panel expandib
 
 La vista de leads en `/admin/leads` incluye el filtro **RECARGA** (compradores repetidos: leads con `status = CONVERTED` y más de una conversión). Es independiente del filtro **Convertido** (primera conversión). Seleccionar ambos juntos devuelve todos los leads convertidos sin distinción.
 
+### Admin — Configuración de conversión automática
+
+La página `/admin/settings` (Admin → Configuración) reúne todos los ajustes del flujo de auto-conversión OCR en **una sola tarjeta** con dos secciones: la frase disparadora y los límites de monto.
+
+- **Frase disparadora**: texto libre, 1–200 caracteres. Badge en vivo `Activo` / `Inactivo` según haya valor guardado. Botones de `Guardar` / `Cancelar` aparecen sólo cuando hay cambios sin guardar. Para deshabilitar la feature, hoy se elimina la fila desde la DB (no hay UI dedicada).
+- **Límites de monto (ARS)**: campos `Mínimo` y `Máximo` lado a lado, con prefijo `$` y preview formateado (`$ 1.000 ARS` / `Sin minimo`). Se persisten en un solo submit, en el orden que evite chocar con la validación server-side (al subir ambos: primero `max`; al bajar: primero `min`). `0` en cualquiera de los dos = deshabilitado.
+- **Validación cruzada `min ≤ max`**: tanto cliente (Zod `superRefine` con re-trigger cuando cambia la contraparte) como server (`PUT /api/admin/settings/:key` devuelve `400` si el nuevo valor rompe la regla). Carrera cliente-server: el toast cae al `serverMessage` si el server rechaza por estado desactualizado.
+- **Estado de carga**: skeleton durante GET inicial; toast Sonner con éxito/error tras cada PUT.
+- **Ver conversiones generadas**: las creadas vía OCR aparecen en la lista habitual de conversiones; `source` (`AUTO_OCR` vs `MANUAL`) no se expone en la UI todavía.
+
+### Cajero — Carga de conversión manual
+
+`/cashier/add-funds` levanta los mismos límites configurados por el admin vía `GET /api/cashier/conversion-limits` (`useCashierConversionLimits`) y los aplica al schema de Zod dinámicamente (con `useMemo` + re-trigger del field cuando cambian). El `FieldDescription` muestra el rango formateado (`Rango permitido: $ X – $ Y ARS`, o sólo min / sólo max si uno está deshabilitado). El backend re-valida en `POST /api/cashier/leads/:leadId/convert`, así que un cliente outdated cae con `400` y el `toast.error` muestra el mensaje del server.
+
 ### Rutas
 
 ```
@@ -23,6 +37,7 @@ La vista de leads en `/admin/leads` incluye el filtro **RECARGA** (compradores r
 /admin/stats                 Estadísticas (ADMIN)
 /admin/landings              Landings (ADMIN)
 /admin/leads                 Leads (ADMIN)
+/admin/settings              Configuración — auto-conversión OCR: disparador + montos min/max (ADMIN)
 /cashier                     Sesión activa + cola de leads (CASHIER)
 /cashier/add-funds           Conversión de lead / carga de saldo (CASHIER)
 /cashier/history             Historial (CASHIER)

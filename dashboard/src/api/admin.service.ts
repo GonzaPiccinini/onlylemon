@@ -20,12 +20,16 @@ import type {
   LeadHistoryPage,
   LeadsFilters,
   PaginatedResult,
+  ReplaceSessionLandingsInput,
   StatsSummary,
   UpdateAdminAccountInput,
   UpdateAdminInput,
+  UpdateCashierMaxSessionsInput,
   UpdateLandingFallbackPhoneInput,
   UpdateLandingInput,
   UpdateCashierInput,
+  WhatsappLinkArtifacts,
+  WhatsappSession,
 } from "@/types/domain";
 
 const toDateRangeParams = (filters: DateRangeFilters) => ({
@@ -63,13 +67,6 @@ export const adminService = {
 
   async finishCashierWorkSession(cashierId: string): Promise<void> {
     await http.post(endpoints.admin.cashierFinishSession(cashierId));
-  },
-
-  async replaceCashierLandings(cashierId: string, landingIds: string[]): Promise<Landing[]> {
-    const { data } = await http.put<Landing[]>(endpoints.admin.cashierLandings(cashierId), {
-      landingIds,
-    });
-    return data;
   },
 
   async listLandings(): Promise<Landing[]> {
@@ -246,5 +243,76 @@ export const adminService = {
 
   async deleteLandingFallbackPhone(landingId: string, id: string): Promise<void> {
     await http.delete(endpoints.admin.landingFallbackPhone(landingId, id));
+  },
+
+  // ---------------------------------------------------------------------------
+  // E — WhatsappSession admin API
+  // ---------------------------------------------------------------------------
+
+  async listCashierSessions(cashierId: string): Promise<WhatsappSession[]> {
+    const { data } = await http.get<WhatsappSession[]>(endpoints.admin.cashierWhatsappSessions(cashierId));
+    return data;
+  },
+
+  async createCashierSession(cashierId: string): Promise<WhatsappSession> {
+    const { data } = await http.post<WhatsappSession>(endpoints.admin.cashierWhatsappSessions(cashierId));
+    return data;
+  },
+
+  async deleteCashierSession(sessionId: string): Promise<void> {
+    await http.delete(endpoints.admin.whatsappSession(sessionId));
+  },
+
+  async getSessionLandings(sessionId: string): Promise<Landing[]> {
+    const { data } = await http.get<Landing[]>(endpoints.admin.whatsappSessionLandings(sessionId));
+    return data;
+  },
+
+  async replaceSessionLandings(sessionId: string, input: ReplaceSessionLandingsInput): Promise<Landing[]> {
+    const { data } = await http.put<Landing[]>(endpoints.admin.whatsappSessionLandings(sessionId), input);
+    return data;
+  },
+
+  async getLandingSessions(landingId: string): Promise<WhatsappSession[]> {
+    const { data } = await http.get<WhatsappSession[]>(endpoints.admin.landingSessions(landingId));
+    return data;
+  },
+
+  async updateCashierMaxSessions(cashierId: string, input: UpdateCashierMaxSessionsInput): Promise<Cashier> {
+    const { data } = await http.patch<Cashier>(endpoints.admin.cashierById(cashierId), input);
+    return data;
+  },
+
+  async linkCashierSession(sessionId: string, phoneNumber: string): Promise<WhatsappLinkArtifacts> {
+    const { data } = await http.post<WhatsappLinkArtifacts>(
+      endpoints.admin.linkCashierSession(sessionId),
+      { phoneNumber },
+    );
+    return data;
+  },
+
+  // ---------------------------------------------------------------------------
+  // System Settings — Generic key/value
+  // ---------------------------------------------------------------------------
+
+  async getSetting(key: string): Promise<{ value: string }> {
+    const { data } = await http.get<{ value: string }>(endpoints.admin.settingByKey(key));
+    return data;
+  },
+
+  async updateSetting(key: string, value: string): Promise<{ value: string }> {
+    const { data } = await http.put<{ value: string }>(endpoints.admin.settingByKey(key), {
+      value,
+    });
+    return data;
+  },
+
+  // Thin wrappers for backwards compatibility
+  async getAutoConversionTrigger(): Promise<{ value: string }> {
+    return adminService.getSetting('auto_conversion_trigger_phrase');
+  },
+
+  async updateAutoConversionTrigger(input: { value: string }): Promise<{ value: string }> {
+    return adminService.updateSetting('auto_conversion_trigger_phrase', input.value);
   },
 };

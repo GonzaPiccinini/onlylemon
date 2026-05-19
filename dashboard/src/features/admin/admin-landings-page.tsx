@@ -805,6 +805,7 @@ export const AdminLandingsPage = () => {
           {fallbacksLanding && <FallbackPhonesPanel landing={fallbacksLanding} />}
         </DialogContent>
       </Dialog>
+
     </section>
   );
 };

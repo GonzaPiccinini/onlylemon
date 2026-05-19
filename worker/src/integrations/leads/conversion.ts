@@ -1,4 +1,5 @@
 import { config } from '../../config/env.js';
+import { logger } from '../../lib/logger.js';
 import {
   metaConversionEventsTotal,
   metaConversionDurationSeconds,
@@ -103,6 +104,25 @@ const postMetaEvent = async (input: {
   };
   if (input.customData) {
     eventObject.custom_data = input.customData;
+  }
+
+  if (config.META_DRY_RUN) {
+    logger.info(
+      {
+        dryRun: true,
+        eventName: input.eventName,
+        eventId: input.eventId,
+        pixelId: input.base.metaPixelId,
+        leadCode: input.base.leadCode,
+        customData: input.customData,
+      },
+      'META_DRY_RUN: skipping CAPI POST (returning success)',
+    );
+    metaConversionEventsTotal.labels(input.eventName, 'dry_run').inc();
+    metaConversionDurationSeconds
+      .labels(input.eventName)
+      .observe(Number(process.hrtime.bigint() - startedAt) / 1_000_000_000);
+    return true;
   }
 
   try {

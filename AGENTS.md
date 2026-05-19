@@ -42,7 +42,7 @@
 - Tests use Node's built-in `node:test` via `tsx --test`; set env defaults before importing modules that read `src/config/env.ts` (many tests use dynamic `await import(...)` for this).
 - `Lead.fbc` is not DB-unique in the current schema. Duplicate prevention is app-level only via `getLeadByFbc` + `LeadFbcConflictError` mapped to HTTP 409, so do not add a unique migration casually.
 - `POST /api/leads` reads ad attribution from `utm_content` query param and merges it as `adCode`; query param wins over body.
-- If a landing exists but has no active cashier, lead creation should still persist the lead and return an empty `number` so landings can use their fallback number. Only missing/disabled landings should fail creation.
+- `POST /api/leads` always returns a non-empty `number` via a 3-level fallback chain: (L1) on-shift cashier with WAHA `WORKING`, (L2) any ACTIVE cashier bound to the landing with WAHA `WORKING`, (L3) random pick from `LandingFallbackPhone` for that landing. Hard invariant: every landing must have ≥1 `LandingFallbackPhone` row; if L1+L2 yield nothing and the pool is empty, the worker throws HTTP 500 `FALLBACK_INVARIANT_VIOLATION`. Missing/disabled landings still fail creation outright.
 
 ## Style/tooling notes
 - Gateway is CommonJS style config and enforces single quotes, semicolons, arrow parens, and Prettier (`gateway/.prettierrc.json`).

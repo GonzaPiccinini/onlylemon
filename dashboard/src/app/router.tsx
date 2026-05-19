@@ -11,6 +11,7 @@ import { AdminLandingsPage } from "@/features/admin/admin-landings-page";
 import { AdminLeadsPage } from "@/features/admin/admin-leads-page";
 import { AdminConversionsPage } from "@/features/admin/admin-conversions-page";
 import { AdminManagementPage } from "@/features/admin-management/admin-management-page";
+import { AdminSettingsPage } from "@/features/admin/settings/admin-settings-page";
 import { CashierSessionPage } from "@/features/cashier/cashier-session-page";
 import { CashierAddFundsPage } from "@/features/cashier/cashier-add-funds-page";
 import { CashierAccountPage } from "@/features/cashier/cashier-account-page";
@@ -62,6 +63,10 @@ export const router = createBrowserRouter([
               {
                 path: "/admin/account",
                 element: <AdminAccountPage />,
+              },
+              {
+                path: "/admin/settings",
+                element: <AdminSettingsPage />,
               },
             ],
           },

@@ -27,20 +27,17 @@ export type AggregateCashier = {
 }
 
 export type CashierAvgAggregateOutputType = {
-  whatsappLinkRefreshCount: number | null
+  maxSessions: number | null
 }
 
 export type CashierSumAggregateOutputType = {
-  whatsappLinkRefreshCount: number | null
+  maxSessions: number | null
 }
 
 export type CashierMinAggregateOutputType = {
   id: string | null
   userId: string | null
-  sessionName: string | null
-  whatsappPhoneNumber: string | null
-  whatsappLinkRefreshCount: number | null
-  whatsappLinkUpdatedAt: Date | null
+  maxSessions: number | null
   status: $Enums.CashierStatus | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -49,10 +46,7 @@ export type CashierMinAggregateOutputType = {
 export type CashierMaxAggregateOutputType = {
   id: string | null
   userId: string | null
-  sessionName: string | null
-  whatsappPhoneNumber: string | null
-  whatsappLinkRefreshCount: number | null
-  whatsappLinkUpdatedAt: Date | null
+  maxSessions: number | null
   status: $Enums.CashierStatus | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -61,10 +55,7 @@ export type CashierMaxAggregateOutputType = {
 export type CashierCountAggregateOutputType = {
   id: number
   userId: number
-  sessionName: number
-  whatsappPhoneNumber: number
-  whatsappLinkRefreshCount: number
-  whatsappLinkUpdatedAt: number
+  maxSessions: number
   status: number
   createdAt: number
   updatedAt: number
@@ -73,20 +64,17 @@ export type CashierCountAggregateOutputType = {
 
 
 export type CashierAvgAggregateInputType = {
-  whatsappLinkRefreshCount?: true
+  maxSessions?: true
 }
 
 export type CashierSumAggregateInputType = {
-  whatsappLinkRefreshCount?: true
+  maxSessions?: true
 }
 
 export type CashierMinAggregateInputType = {
   id?: true
   userId?: true
-  sessionName?: true
-  whatsappPhoneNumber?: true
-  whatsappLinkRefreshCount?: true
-  whatsappLinkUpdatedAt?: true
+  maxSessions?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -95,10 +83,7 @@ export type CashierMinAggregateInputType = {
 export type CashierMaxAggregateInputType = {
   id?: true
   userId?: true
-  sessionName?: true
-  whatsappPhoneNumber?: true
-  whatsappLinkRefreshCount?: true
-  whatsappLinkUpdatedAt?: true
+  maxSessions?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -107,10 +92,7 @@ export type CashierMaxAggregateInputType = {
 export type CashierCountAggregateInputType = {
   id?: true
   userId?: true
-  sessionName?: true
-  whatsappPhoneNumber?: true
-  whatsappLinkRefreshCount?: true
-  whatsappLinkUpdatedAt?: true
+  maxSessions?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -206,10 +188,7 @@ export type CashierGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 export type CashierGroupByOutputType = {
   id: string
   userId: string
-  sessionName: string | null
-  whatsappPhoneNumber: string | null
-  whatsappLinkRefreshCount: number
-  whatsappLinkUpdatedAt: Date | null
+  maxSessions: number
   status: $Enums.CashierStatus
   createdAt: Date
   updatedAt: Date
@@ -241,61 +220,49 @@ export type CashierWhereInput = {
   NOT?: Prisma.CashierWhereInput | Prisma.CashierWhereInput[]
   id?: Prisma.StringFilter<"Cashier"> | string
   userId?: Prisma.StringFilter<"Cashier"> | string
-  sessionName?: Prisma.StringNullableFilter<"Cashier"> | string | null
-  whatsappPhoneNumber?: Prisma.StringNullableFilter<"Cashier"> | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFilter<"Cashier"> | number
-  whatsappLinkUpdatedAt?: Prisma.DateTimeNullableFilter<"Cashier"> | Date | string | null
+  maxSessions?: Prisma.IntFilter<"Cashier"> | number
   status?: Prisma.EnumCashierStatusFilter<"Cashier"> | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFilter<"Cashier"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Cashier"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   activity?: Prisma.SessionActivityListRelationFilter
   leads?: Prisma.LeadListRelationFilter
-  landings?: Prisma.CashierLandingListRelationFilter
+  sessions?: Prisma.WhatsappSessionListRelationFilter
 }
 
 export type CashierOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  sessionName?: Prisma.SortOrderInput | Prisma.SortOrder
-  whatsappPhoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
-  whatsappLinkRefreshCount?: Prisma.SortOrder
-  whatsappLinkUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxSessions?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   activity?: Prisma.SessionActivityOrderByRelationAggregateInput
   leads?: Prisma.LeadOrderByRelationAggregateInput
-  landings?: Prisma.CashierLandingOrderByRelationAggregateInput
+  sessions?: Prisma.WhatsappSessionOrderByRelationAggregateInput
 }
 
 export type CashierWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   userId?: string
-  sessionName?: string
   AND?: Prisma.CashierWhereInput | Prisma.CashierWhereInput[]
   OR?: Prisma.CashierWhereInput[]
   NOT?: Prisma.CashierWhereInput | Prisma.CashierWhereInput[]
-  whatsappPhoneNumber?: Prisma.StringNullableFilter<"Cashier"> | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFilter<"Cashier"> | number
-  whatsappLinkUpdatedAt?: Prisma.DateTimeNullableFilter<"Cashier"> | Date | string | null
+  maxSessions?: Prisma.IntFilter<"Cashier"> | number
   status?: Prisma.EnumCashierStatusFilter<"Cashier"> | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFilter<"Cashier"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Cashier"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   activity?: Prisma.SessionActivityListRelationFilter
   leads?: Prisma.LeadListRelationFilter
-  landings?: Prisma.CashierLandingListRelationFilter
-}, "id" | "userId" | "sessionName">
+  sessions?: Prisma.WhatsappSessionListRelationFilter
+}, "id" | "userId">
 
 export type CashierOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  sessionName?: Prisma.SortOrderInput | Prisma.SortOrder
-  whatsappPhoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
-  whatsappLinkRefreshCount?: Prisma.SortOrder
-  whatsappLinkUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxSessions?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -312,10 +279,7 @@ export type CashierScalarWhereWithAggregatesInput = {
   NOT?: Prisma.CashierScalarWhereWithAggregatesInput | Prisma.CashierScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Cashier"> | string
   userId?: Prisma.StringWithAggregatesFilter<"Cashier"> | string
-  sessionName?: Prisma.StringNullableWithAggregatesFilter<"Cashier"> | string | null
-  whatsappPhoneNumber?: Prisma.StringNullableWithAggregatesFilter<"Cashier"> | string | null
-  whatsappLinkRefreshCount?: Prisma.IntWithAggregatesFilter<"Cashier"> | number
-  whatsappLinkUpdatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Cashier"> | Date | string | null
+  maxSessions?: Prisma.IntWithAggregatesFilter<"Cashier"> | number
   status?: Prisma.EnumCashierStatusWithAggregatesFilter<"Cashier"> | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Cashier"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Cashier"> | Date | string
@@ -323,71 +287,56 @@ export type CashierScalarWhereWithAggregatesInput = {
 
 export type CashierCreateInput = {
   id?: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCashierInput
   activity?: Prisma.SessionActivityCreateNestedManyWithoutCashierInput
   leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionCreateNestedManyWithoutCashierInput
 }
 
 export type CashierUncheckedCreateInput = {
   id?: string
   userId: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutCashierInput
   leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionUncheckedCreateNestedManyWithoutCashierInput
 }
 
 export type CashierUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCashierNestedInput
   activity?: Prisma.SessionActivityUpdateManyWithoutCashierNestedInput
   leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutCashierNestedInput
   leads?: Prisma.LeadUncheckedUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUncheckedUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUncheckedUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierCreateManyInput = {
   id?: string
   userId: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -395,10 +344,7 @@ export type CashierCreateManyInput = {
 
 export type CashierUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -407,10 +353,7 @@ export type CashierUpdateManyMutationInput = {
 export type CashierUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -424,26 +367,20 @@ export type CashierNullableScalarRelationFilter = {
 export type CashierCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  sessionName?: Prisma.SortOrder
-  whatsappPhoneNumber?: Prisma.SortOrder
-  whatsappLinkRefreshCount?: Prisma.SortOrder
-  whatsappLinkUpdatedAt?: Prisma.SortOrder
+  maxSessions?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type CashierAvgOrderByAggregateInput = {
-  whatsappLinkRefreshCount?: Prisma.SortOrder
+  maxSessions?: Prisma.SortOrder
 }
 
 export type CashierMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  sessionName?: Prisma.SortOrder
-  whatsappPhoneNumber?: Prisma.SortOrder
-  whatsappLinkRefreshCount?: Prisma.SortOrder
-  whatsappLinkUpdatedAt?: Prisma.SortOrder
+  maxSessions?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -452,17 +389,14 @@ export type CashierMaxOrderByAggregateInput = {
 export type CashierMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  sessionName?: Prisma.SortOrder
-  whatsappPhoneNumber?: Prisma.SortOrder
-  whatsappLinkRefreshCount?: Prisma.SortOrder
-  whatsappLinkUpdatedAt?: Prisma.SortOrder
+  maxSessions?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type CashierSumOrderByAggregateInput = {
-  whatsappLinkRefreshCount?: Prisma.SortOrder
+  maxSessions?: Prisma.SortOrder
 }
 
 export type CashierScalarRelationFilter = {
@@ -502,20 +436,12 @@ export type CashierUncheckedUpdateOneWithoutUserNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CashierUpdateToOneWithWhereWithoutUserInput, Prisma.CashierUpdateWithoutUserInput>, Prisma.CashierUncheckedUpdateWithoutUserInput>
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type IntFieldUpdateOperationsInput = {
   set?: number
   increment?: number
   decrement?: number
   multiply?: number
   divide?: number
-}
-
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
 }
 
 export type EnumCashierStatusFieldUpdateOperationsInput = {
@@ -552,46 +478,40 @@ export type CashierUpdateOneWithoutLeadsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CashierUpdateToOneWithWhereWithoutLeadsInput, Prisma.CashierUpdateWithoutLeadsInput>, Prisma.CashierUncheckedUpdateWithoutLeadsInput>
 }
 
-export type CashierCreateNestedOneWithoutLandingsInput = {
-  create?: Prisma.XOR<Prisma.CashierCreateWithoutLandingsInput, Prisma.CashierUncheckedCreateWithoutLandingsInput>
-  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutLandingsInput
+export type CashierCreateNestedOneWithoutSessionsInput = {
+  create?: Prisma.XOR<Prisma.CashierCreateWithoutSessionsInput, Prisma.CashierUncheckedCreateWithoutSessionsInput>
+  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutSessionsInput
   connect?: Prisma.CashierWhereUniqueInput
 }
 
-export type CashierUpdateOneRequiredWithoutLandingsNestedInput = {
-  create?: Prisma.XOR<Prisma.CashierCreateWithoutLandingsInput, Prisma.CashierUncheckedCreateWithoutLandingsInput>
-  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutLandingsInput
-  upsert?: Prisma.CashierUpsertWithoutLandingsInput
+export type CashierUpdateOneRequiredWithoutSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.CashierCreateWithoutSessionsInput, Prisma.CashierUncheckedCreateWithoutSessionsInput>
+  connectOrCreate?: Prisma.CashierCreateOrConnectWithoutSessionsInput
+  upsert?: Prisma.CashierUpsertWithoutSessionsInput
   connect?: Prisma.CashierWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.CashierUpdateToOneWithWhereWithoutLandingsInput, Prisma.CashierUpdateWithoutLandingsInput>, Prisma.CashierUncheckedUpdateWithoutLandingsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CashierUpdateToOneWithWhereWithoutSessionsInput, Prisma.CashierUpdateWithoutSessionsInput>, Prisma.CashierUncheckedUpdateWithoutSessionsInput>
 }
 
 export type CashierCreateWithoutUserInput = {
   id?: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityCreateNestedManyWithoutCashierInput
   leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionCreateNestedManyWithoutCashierInput
 }
 
 export type CashierUncheckedCreateWithoutUserInput = {
   id?: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutCashierInput
   leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionUncheckedCreateNestedManyWithoutCashierInput
 }
 
 export type CashierCreateOrConnectWithoutUserInput = {
@@ -612,58 +532,46 @@ export type CashierUpdateToOneWithWhereWithoutUserInput = {
 
 export type CashierUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUpdateManyWithoutCashierNestedInput
   leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutCashierNestedInput
   leads?: Prisma.LeadUncheckedUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUncheckedUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUncheckedUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierCreateWithoutActivityInput = {
   id?: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCashierInput
   leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionCreateNestedManyWithoutCashierInput
 }
 
 export type CashierUncheckedCreateWithoutActivityInput = {
   id?: string
   userId: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionUncheckedCreateNestedManyWithoutCashierInput
 }
 
 export type CashierCreateOrConnectWithoutActivityInput = {
@@ -684,58 +592,46 @@ export type CashierUpdateToOneWithWhereWithoutActivityInput = {
 
 export type CashierUpdateWithoutActivityInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCashierNestedInput
   leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierUncheckedUpdateWithoutActivityInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   leads?: Prisma.LeadUncheckedUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUncheckedUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUncheckedUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierCreateWithoutLeadsInput = {
   id?: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCashierInput
   activity?: Prisma.SessionActivityCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionCreateNestedManyWithoutCashierInput
 }
 
 export type CashierUncheckedCreateWithoutLeadsInput = {
   id?: string
   userId: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   activity?: Prisma.SessionActivityUncheckedCreateNestedManyWithoutCashierInput
-  landings?: Prisma.CashierLandingUncheckedCreateNestedManyWithoutCashierInput
+  sessions?: Prisma.WhatsappSessionUncheckedCreateNestedManyWithoutCashierInput
 }
 
 export type CashierCreateOrConnectWithoutLeadsInput = {
@@ -756,38 +652,29 @@ export type CashierUpdateToOneWithWhereWithoutLeadsInput = {
 
 export type CashierUpdateWithoutLeadsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCashierNestedInput
   activity?: Prisma.SessionActivityUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUpdateManyWithoutCashierNestedInput
 }
 
 export type CashierUncheckedUpdateWithoutLeadsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activity?: Prisma.SessionActivityUncheckedUpdateManyWithoutCashierNestedInput
-  landings?: Prisma.CashierLandingUncheckedUpdateManyWithoutCashierNestedInput
+  sessions?: Prisma.WhatsappSessionUncheckedUpdateManyWithoutCashierNestedInput
 }
 
-export type CashierCreateWithoutLandingsInput = {
+export type CashierCreateWithoutSessionsInput = {
   id?: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -796,13 +683,10 @@ export type CashierCreateWithoutLandingsInput = {
   leads?: Prisma.LeadCreateNestedManyWithoutCashierInput
 }
 
-export type CashierUncheckedCreateWithoutLandingsInput = {
+export type CashierUncheckedCreateWithoutSessionsInput = {
   id?: string
   userId: string
-  sessionName?: string | null
-  whatsappPhoneNumber?: string | null
-  whatsappLinkRefreshCount?: number
-  whatsappLinkUpdatedAt?: Date | string | null
+  maxSessions?: number
   status?: $Enums.CashierStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -810,28 +694,25 @@ export type CashierUncheckedCreateWithoutLandingsInput = {
   leads?: Prisma.LeadUncheckedCreateNestedManyWithoutCashierInput
 }
 
-export type CashierCreateOrConnectWithoutLandingsInput = {
+export type CashierCreateOrConnectWithoutSessionsInput = {
   where: Prisma.CashierWhereUniqueInput
-  create: Prisma.XOR<Prisma.CashierCreateWithoutLandingsInput, Prisma.CashierUncheckedCreateWithoutLandingsInput>
+  create: Prisma.XOR<Prisma.CashierCreateWithoutSessionsInput, Prisma.CashierUncheckedCreateWithoutSessionsInput>
 }
 
-export type CashierUpsertWithoutLandingsInput = {
-  update: Prisma.XOR<Prisma.CashierUpdateWithoutLandingsInput, Prisma.CashierUncheckedUpdateWithoutLandingsInput>
-  create: Prisma.XOR<Prisma.CashierCreateWithoutLandingsInput, Prisma.CashierUncheckedCreateWithoutLandingsInput>
+export type CashierUpsertWithoutSessionsInput = {
+  update: Prisma.XOR<Prisma.CashierUpdateWithoutSessionsInput, Prisma.CashierUncheckedUpdateWithoutSessionsInput>
+  create: Prisma.XOR<Prisma.CashierCreateWithoutSessionsInput, Prisma.CashierUncheckedCreateWithoutSessionsInput>
   where?: Prisma.CashierWhereInput
 }
 
-export type CashierUpdateToOneWithWhereWithoutLandingsInput = {
+export type CashierUpdateToOneWithWhereWithoutSessionsInput = {
   where?: Prisma.CashierWhereInput
-  data: Prisma.XOR<Prisma.CashierUpdateWithoutLandingsInput, Prisma.CashierUncheckedUpdateWithoutLandingsInput>
+  data: Prisma.XOR<Prisma.CashierUpdateWithoutSessionsInput, Prisma.CashierUncheckedUpdateWithoutSessionsInput>
 }
 
-export type CashierUpdateWithoutLandingsInput = {
+export type CashierUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -840,13 +721,10 @@ export type CashierUpdateWithoutLandingsInput = {
   leads?: Prisma.LeadUpdateManyWithoutCashierNestedInput
 }
 
-export type CashierUncheckedUpdateWithoutLandingsInput = {
+export type CashierUncheckedUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  sessionName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  whatsappLinkRefreshCount?: Prisma.IntFieldUpdateOperationsInput | number
-  whatsappLinkUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  maxSessions?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumCashierStatusFieldUpdateOperationsInput | $Enums.CashierStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -862,13 +740,13 @@ export type CashierUncheckedUpdateWithoutLandingsInput = {
 export type CashierCountOutputType = {
   activity: number
   leads: number
-  landings: number
+  sessions: number
 }
 
 export type CashierCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   activity?: boolean | CashierCountOutputTypeCountActivityArgs
   leads?: boolean | CashierCountOutputTypeCountLeadsArgs
-  landings?: boolean | CashierCountOutputTypeCountLandingsArgs
+  sessions?: boolean | CashierCountOutputTypeCountSessionsArgs
 }
 
 /**
@@ -898,35 +776,29 @@ export type CashierCountOutputTypeCountLeadsArgs<ExtArgs extends runtime.Types.E
 /**
  * CashierCountOutputType without action
  */
-export type CashierCountOutputTypeCountLandingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.CashierLandingWhereInput
+export type CashierCountOutputTypeCountSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WhatsappSessionWhereInput
 }
 
 
 export type CashierSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
-  sessionName?: boolean
-  whatsappPhoneNumber?: boolean
-  whatsappLinkRefreshCount?: boolean
-  whatsappLinkUpdatedAt?: boolean
+  maxSessions?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   activity?: boolean | Prisma.Cashier$activityArgs<ExtArgs>
   leads?: boolean | Prisma.Cashier$leadsArgs<ExtArgs>
-  landings?: boolean | Prisma.Cashier$landingsArgs<ExtArgs>
+  sessions?: boolean | Prisma.Cashier$sessionsArgs<ExtArgs>
   _count?: boolean | Prisma.CashierCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["cashier"]>
 
 export type CashierSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
-  sessionName?: boolean
-  whatsappPhoneNumber?: boolean
-  whatsappLinkRefreshCount?: boolean
-  whatsappLinkUpdatedAt?: boolean
+  maxSessions?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -936,10 +808,7 @@ export type CashierSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type CashierSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
-  sessionName?: boolean
-  whatsappPhoneNumber?: boolean
-  whatsappLinkRefreshCount?: boolean
-  whatsappLinkUpdatedAt?: boolean
+  maxSessions?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -949,21 +818,18 @@ export type CashierSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type CashierSelectScalar = {
   id?: boolean
   userId?: boolean
-  sessionName?: boolean
-  whatsappPhoneNumber?: boolean
-  whatsappLinkRefreshCount?: boolean
-  whatsappLinkUpdatedAt?: boolean
+  maxSessions?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CashierOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "sessionName" | "whatsappPhoneNumber" | "whatsappLinkRefreshCount" | "whatsappLinkUpdatedAt" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["cashier"]>
+export type CashierOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "maxSessions" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["cashier"]>
 export type CashierInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   activity?: boolean | Prisma.Cashier$activityArgs<ExtArgs>
   leads?: boolean | Prisma.Cashier$leadsArgs<ExtArgs>
-  landings?: boolean | Prisma.Cashier$landingsArgs<ExtArgs>
+  sessions?: boolean | Prisma.Cashier$sessionsArgs<ExtArgs>
   _count?: boolean | Prisma.CashierCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CashierIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -979,15 +845,12 @@ export type $CashierPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     user: Prisma.$UserPayload<ExtArgs>
     activity: Prisma.$SessionActivityPayload<ExtArgs>[]
     leads: Prisma.$LeadPayload<ExtArgs>[]
-    landings: Prisma.$CashierLandingPayload<ExtArgs>[]
+    sessions: Prisma.$WhatsappSessionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     userId: string
-    sessionName: string | null
-    whatsappPhoneNumber: string | null
-    whatsappLinkRefreshCount: number
-    whatsappLinkUpdatedAt: Date | null
+    maxSessions: number
     status: $Enums.CashierStatus
     createdAt: Date
     updatedAt: Date
@@ -1388,7 +1251,7 @@ export interface Prisma__CashierClient<T, Null = never, ExtArgs extends runtime.
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   activity<T extends Prisma.Cashier$activityArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$activityArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   leads<T extends Prisma.Cashier$leadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$leadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  landings<T extends Prisma.Cashier$landingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$landingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CashierLandingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sessions<T extends Prisma.Cashier$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Cashier$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsappSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1420,10 +1283,7 @@ export interface Prisma__CashierClient<T, Null = never, ExtArgs extends runtime.
 export interface CashierFieldRefs {
   readonly id: Prisma.FieldRef<"Cashier", 'String'>
   readonly userId: Prisma.FieldRef<"Cashier", 'String'>
-  readonly sessionName: Prisma.FieldRef<"Cashier", 'String'>
-  readonly whatsappPhoneNumber: Prisma.FieldRef<"Cashier", 'String'>
-  readonly whatsappLinkRefreshCount: Prisma.FieldRef<"Cashier", 'Int'>
-  readonly whatsappLinkUpdatedAt: Prisma.FieldRef<"Cashier", 'DateTime'>
+  readonly maxSessions: Prisma.FieldRef<"Cashier", 'Int'>
   readonly status: Prisma.FieldRef<"Cashier", 'CashierStatus'>
   readonly createdAt: Prisma.FieldRef<"Cashier", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Cashier", 'DateTime'>
@@ -1876,27 +1736,27 @@ export type Cashier$leadsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 }
 
 /**
- * Cashier.landings
+ * Cashier.sessions
  */
-export type Cashier$landingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Cashier$sessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the CashierLanding
+   * Select specific fields to fetch from the WhatsappSession
    */
-  select?: Prisma.CashierLandingSelect<ExtArgs> | null
+  select?: Prisma.WhatsappSessionSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the CashierLanding
+   * Omit specific fields from the WhatsappSession
    */
-  omit?: Prisma.CashierLandingOmit<ExtArgs> | null
+  omit?: Prisma.WhatsappSessionOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.CashierLandingInclude<ExtArgs> | null
-  where?: Prisma.CashierLandingWhereInput
-  orderBy?: Prisma.CashierLandingOrderByWithRelationInput | Prisma.CashierLandingOrderByWithRelationInput[]
-  cursor?: Prisma.CashierLandingWhereUniqueInput
+  include?: Prisma.WhatsappSessionInclude<ExtArgs> | null
+  where?: Prisma.WhatsappSessionWhereInput
+  orderBy?: Prisma.WhatsappSessionOrderByWithRelationInput | Prisma.WhatsappSessionOrderByWithRelationInput[]
+  cursor?: Prisma.WhatsappSessionWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.CashierLandingScalarFieldEnum | Prisma.CashierLandingScalarFieldEnum[]
+  distinct?: Prisma.WhatsappSessionScalarFieldEnum | Prisma.WhatsappSessionScalarFieldEnum[]
 }
 
 /**
