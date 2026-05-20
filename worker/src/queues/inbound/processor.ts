@@ -378,6 +378,9 @@ async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
     { getSetting },
     { logger },
     { bullmqJobDurationSeconds, bullmqJobsTotal },
+    { getSessionBySessionName },
+    { publishChatMessage, publishChatReaction },
+    { createChatMessageFanout, createChatReactionFanout },
   ] = await Promise.all([
     import('../../integrations/leads/http.js'),
     import('../../modules/idempotency/idempotency.service.js'),
@@ -386,7 +389,35 @@ async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
     import('../../modules/system-settings/service.js'),
     import('../../lib/logger.js'),
     import('../../lib/metrics.js'),
+    import('../../modules/cashier/whatsapp-session.repository.js'),
+    import('../../modules/chat/chat.events.js'),
+    import('../../modules/chat/chat-fanout.js'),
   ]);
+
+  // Build the fan-out logger adapter (InboundProcessorDeps.logger shape already resolved)
+  const fanoutLogger = {
+    warn: (...args: unknown[]) => logger.warn(...(args as Parameters<typeof logger.warn>)),
+    error: (...args: unknown[]) => logger.error(...(args as Parameters<typeof logger.error>)),
+    info: (...args: unknown[]) => logger.info(...(args as Parameters<typeof logger.info>)),
+  };
+
+  // Batch 11 — wire fan-out deps to the real chat-events bus.
+  // createChatMessageFanout/createChatReactionFanout resolve WAHA sessionName →
+  // { sessionId, cashierId } via getSessionBySessionName, then publish on the bus.
+  // Fan-out is best-effort: errors are logged and swallowed; never throws.
+  const mirrorChatMessage = createChatMessageFanout({
+    getSessionBySessionName,
+    publishChatMessage,
+    publishChatReaction,
+    logger: fanoutLogger,
+  });
+
+  const mirrorChatReaction = createChatReactionFanout({
+    getSessionBySessionName,
+    publishChatMessage,
+    publishChatReaction,
+    logger: fanoutLogger,
+  });
 
   const realDeps: InboundProcessorDeps = {
     handleCashierTriggerMessage,
@@ -394,9 +425,8 @@ async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
     validateJobIdempotency,
     processWhatsappSessionStatusService,
     getSetting,
-    // Batch 2 — seams wired to no-ops here; Batch 11 wires them to the chat-events bus.
-    mirrorChatMessage: async () => {},
-    mirrorChatReaction: async () => {},
+    mirrorChatMessage,
+    mirrorChatReaction,
     logger: {
       info: (...args) => logger.info(...(args as Parameters<typeof logger.info>)),
       warn: (...args) => logger.warn(...(args as Parameters<typeof logger.warn>)),
