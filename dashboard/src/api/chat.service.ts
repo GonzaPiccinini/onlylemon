@@ -35,9 +35,11 @@ import type {
 
 /**
  * Cashier scope — uses the cashier-owned session URL group.
- * No cashierId needed: the JWT carries it.
+ * cashierId is included so localStorage keys can be scoped per-cashier on
+ * shared devices (Design Addendum §Session selector persistence).
+ * The JWT still carries auth — this is only used for key namespacing.
  */
-export type CashierScope = { kind: "cashier" };
+export type CashierScope = { kind: "cashier"; cashierId: string };
 
 /**
  * Admin scope — uses the admin URL group which requires an explicit cashierId

@@ -17,15 +17,10 @@ import { Link } from 'react-router-dom';
 import { SmartphoneIcon } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/features/auth/auth-context';
 import { useMySessions } from '@/features/cashier/cashier-hooks';
 import type { SessionOption } from './components';
 import { ChatPage } from './chat-page';
-
-// ---------------------------------------------------------------------------
-// Scope — cashier sees their own sessions; no cashierId in scope
-// ---------------------------------------------------------------------------
-
-const CASHIER_SCOPE = { kind: 'cashier' } as const;
 
 // ---------------------------------------------------------------------------
 // CTA — rendered when the cashier has no WORKING sessions
@@ -54,7 +49,14 @@ const NoSessionsCta = () => (
 // ---------------------------------------------------------------------------
 
 export const CashierChatPage = () => {
+  const { user } = useAuth();
   const { data: allSessions = [], isLoading } = useMySessions();
+
+  // Build the cashier scope with the cashier's own id for localStorage key
+  // scoping (Design Addendum §Session selector persistence). Falls back to an
+  // empty string when the user record is not yet loaded — the scope is only
+  // used for localStorage key generation, so this is safe.
+  const cashierScope = { kind: 'cashier' as const, cashierId: user?.cashierId ?? '' };
 
   // Filter to WORKING sessions only
   const workingSessions: SessionOption[] = allSessions
@@ -85,7 +87,7 @@ export const CashierChatPage = () => {
         description="Chateá con tus clientes desde tus sesiones de WhatsApp."
       />
       <ChatPage
-        scope={CASHIER_SCOPE}
+        scope={cashierScope}
         sessions={workingSessions}
         emptyCta={<NoSessionsCta />}
       />

@@ -7,12 +7,10 @@ import type { ChatScope } from "@/api/chat.service";
 
 function lastSessionKey(scope: ChatScope): string {
   if (scope.kind === "cashier") {
-    // Key includes "cashier" but NOT a cashierId — the JWT carries it.
-    // To avoid collisions between cashier accounts on the same browser,
-    // we use a stable fixed key per role rather than per-user-id.
-    // If the calling component has the cashierId available it should be
-    // passed via an admin scope with kind="admin".
-    return "chat:last-session:cashier";
+    // Key includes cashierId so two cashier accounts on the same browser/device
+    // do NOT overwrite each other's last-session selection.
+    // Design Addendum: `chat:last-session:cashier:<cashierId>`
+    return `chat:last-session:cashier:${scope.cashierId}`;
   }
   // Admin scope: keyed per viewed cashier so each cashier remembers its own.
   return `chat:last-session:admin:${scope.cashierId}`;
@@ -20,7 +18,8 @@ function lastSessionKey(scope: ChatScope): string {
 
 function lastChatKey(scope: ChatScope, sessionId: string): string {
   if (scope.kind === "cashier") {
-    return `chat:last-chat:cashier:session:${sessionId}`;
+    // Design Addendum: `chat:last-chat:cashier:<cashierId>:session:<sessionId>`
+    return `chat:last-chat:cashier:${scope.cashierId}:session:${sessionId}`;
   }
   return `chat:last-chat:cashier:${scope.cashierId}:session:${sessionId}`;
 }
@@ -33,7 +32,7 @@ function lastChatKey(scope: ChatScope, sessionId: string): string {
  * Reads and writes the last-selected session id for the current scope.
  *
  * Key format (Design Addendum):
- *   - Cashier: `chat:last-session:cashier`
+ *   - Cashier: `chat:last-session:cashier:<cashierId>`
  *   - Admin (per viewed cashier): `chat:last-session:admin:<cashierId>`
  *
  * The hook only handles persistence — the caller is responsible for:
@@ -78,7 +77,7 @@ export const useLastSession = (
  * Reads and writes the last-opened chat id within a session.
  *
  * Key format (Design Addendum):
- *   - Cashier: `chat:last-chat:cashier:session:<sessionId>`
+ *   - Cashier: `chat:last-chat:cashier:<cashierId>:session:<sessionId>`
  *   - Admin:   `chat:last-chat:cashier:<cashierId>:session:<sessionId>`
  *
  * The caller validates that the stored chatId still exists in the current

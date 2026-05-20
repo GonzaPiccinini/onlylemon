@@ -467,6 +467,23 @@ describe('chat.routes — unauthenticated requests', () => {
 
     assert.equal(status, 401);
   });
+
+  // W2: Verify the media proxy route is behind auth — no token → 401.
+  // The requireAuth stub used throughout these tests correctly rejects requests
+  // that carry no Authorization header, so this test exercises the real auth
+  // surface of the GET .../media endpoint without DB calls.
+  it('GET media proxy route returns 401 when no Authorization header is sent', async () => {
+    const app = makeTestApp(async () => ownedSession);
+
+    const { status } = await request(
+      app,
+      'GET',
+      '/api/chat/sessions/session-uuid-1/chats/chat@c.us/messages/msg-001/media',
+      { headers: {} }, // no Authorization header
+    );
+
+    assert.equal(status, 401);
+  });
 });
 
 // ── wrong role ─────────────────────────────────────────────────────────────────

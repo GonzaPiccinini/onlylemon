@@ -664,4 +664,23 @@ describe('chat.controller — getMedia', () => {
 
     assert.equal(res.statusCode, 404);
   });
+
+  // W4: PDF mimetype — the handler sets Content-Type from result.mimetype
+  // generically (res.set('Content-Type', result.mimetype)). This test confirms
+  // the same code path works correctly for non-image types.
+  it('returns 200 with application/pdf Content-Type when service returns PDF mimetype', async () => {
+    const pdfBytes = Buffer.from('%PDF-1.4 fake pdf content');
+    const svc = makeMockService({
+      getMediaBytes: async () => ({ bytes: pdfBytes, mimetype: 'application/pdf' }),
+    });
+    const { getMedia } = createChatController(svc);
+
+    const req = makeReq();
+    const res = makeRes();
+    await getMedia(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res._headers['Content-Type'], 'application/pdf');
+    assert.deepEqual(res.body, pdfBytes);
+  });
 });
