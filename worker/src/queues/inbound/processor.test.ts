@@ -72,6 +72,8 @@ function makeDefaultDeps(overrides: Partial<InboundProcessorDeps> = {}): Inbound
     validateJobIdempotency: async () => true,
     processWhatsappSessionStatusService: async () => undefined,
     getSetting: async () => '',
+    mirrorChatMessage: async () => undefined,
+    mirrorChatReaction: async () => undefined,
     logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
     metrics: {
       jobsTotal: { labels: () => ({ inc: () => undefined }) },
@@ -415,5 +417,227 @@ describe('idempotency — duplicate jobs are still suppressed', () => {
     }) as never);
     assert.equal(triggerCalls.length, 0);
     assert.equal(mapLeadsCalls.length, 0);
+  });
+});
+
+// ===========================================================================
+// Batch 2 — mirrorChatMessage fan-out
+// ===========================================================================
+
+describe('mirrorChatMessage fan-out — message.any text job', () => {
+  it('B2.1 — mirrorChatMessage is called for inbound message.any text job with correct fields', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-mirror',
+      payload: {
+        id: 'msg-mirror-1',
+        from: '5491112345678@c.us',
+        body: 'hello world',
+        fromMe: false,
+        hasMedia: false,
+      },
+    }) as never);
+    assert.equal(mirrorCalls.length, 1);
+    const call = mirrorCalls[0];
+    assert.equal(call.sessionName, 'sess-mirror');
+    assert.equal(call.chatId, '5491112345678@c.us');
+    assert.equal(call.messageId, 'msg-mirror-1');
+    assert.equal(call.body, 'hello world');
+    assert.equal(call.fromMe, false);
+    assert.equal(call.hasMedia, false);
+  });
+
+  it('B2.2 — mirrorChatMessage is called for message.any with hasMedia=true and mediaMimetype', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-media',
+      payload: {
+        id: 'msg-media-1',
+        from: '5499887766@c.us',
+        body: '',
+        fromMe: false,
+        hasMedia: true,
+        media: {
+          url: 'https://waha.example.com/media/xyz',
+          mimetype: 'image/jpeg',
+          s3: { Bucket: 'bucket', Key: 'key' },
+        },
+      },
+    }) as never);
+    assert.equal(mirrorCalls.length, 1);
+    assert.equal(mirrorCalls[0].hasMedia, true);
+    assert.equal(mirrorCalls[0].mediaMimetype, 'image/jpeg');
+  });
+
+  it('B2.3 — mirrorChatMessage is called for message.any with fromMe=true (cashier sent from phone)', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      getSetting: async () => '',
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-fromme',
+      payload: {
+        id: 'msg-fromme-1',
+        from: '5491110000001@c.us',
+        body: 'cashier outbound',
+        fromMe: true,
+        hasMedia: false,
+      },
+    }) as never);
+    assert.equal(mirrorCalls.length, 1);
+    assert.equal(mirrorCalls[0].fromMe, true);
+  });
+
+  it('B2.4 — mirrorChatMessage is STILL called when message matches a trigger phrase (auto-conversion path)', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const triggerCalls: unknown[][] = [];
+    const deps = makeDefaultDeps({
+      getSetting: async () => 'convertir',
+      handleCashierTriggerMessage: async (...args) => {
+        triggerCalls.push(args);
+      },
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-trigger-fan',
+      payload: {
+        id: 'msg-trigger-fan-1',
+        from: '5491112223333@c.us',
+        body: 'convertir',
+        fromMe: true,
+        hasMedia: false,
+      },
+    }) as never);
+    // Auto-conversion ran
+    assert.equal(triggerCalls.length, 1, 'trigger handler must be called once');
+    // Fan-out ALSO ran (acceptance criterion #4)
+    assert.equal(mirrorCalls.length, 1, 'mirrorChatMessage must be called even on trigger path');
+    assert.equal(mirrorCalls[0].messageId, 'msg-trigger-fan-1');
+  });
+});
+
+// ===========================================================================
+// Batch 2 — mirrorChatReaction fan-out
+// ===========================================================================
+
+describe('mirrorChatReaction fan-out — message.reaction job', () => {
+  it('B2.5 — mirrorChatReaction is called for a valid message.reaction job with correct fields', async () => {
+    type MirrorChatReactionCall = Parameters<InboundProcessorDeps['mirrorChatReaction']>[0];
+    const reactionCalls: MirrorChatReactionCall[] = [];
+    const deps = makeDefaultDeps({
+      mirrorChatReaction: async (payload) => {
+        reactionCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    await processor(makeJob({
+      event: 'message.reaction',
+      session: 'sess-react',
+      payload: {
+        id: 'evt-reaction-1',
+        from: '5491112345678@c.us',
+        fromMe: false,
+        to: '5490000000@c.us',
+        timestamp: 1716000000,
+        reaction: {
+          text: '👍',
+          msgId: {
+            fromMe: false,
+            remote: '5491112345678@c.us',
+            id: 'target-msg-id-abc',
+            _serialized: 'false_5491112345678@c.us_target-msg-id-abc',
+          },
+        },
+      },
+    }, 'message.reaction') as never);
+    assert.equal(reactionCalls.length, 1);
+    const call = reactionCalls[0];
+    assert.equal(call.sessionName, 'sess-react');
+    assert.equal(call.chatId, '5491112345678@c.us');
+    assert.equal(call.messageId, 'false_5491112345678@c.us_target-msg-id-abc');
+    assert.equal(call.reaction, '👍');
+    assert.equal(call.fromMe, false);
+  });
+
+  it('B2.6 — malformed message.reaction payload causes warn log but does NOT throw', async () => {
+    const warnCalls: unknown[][] = [];
+    const reactionCalls: unknown[][] = [];
+    const deps = makeDefaultDeps({
+      logger: {
+        info: () => undefined,
+        warn: (...args) => { warnCalls.push(args); },
+        error: () => undefined,
+      },
+      mirrorChatReaction: async (...args) => {
+        reactionCalls.push(args);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    // Missing required session field → schema parse fails
+    await assert.doesNotReject(async () =>
+      processor(makeJob({
+        event: 'message.reaction',
+        // session intentionally missing
+        payload: {
+          // missing reaction.msgId._serialized
+          reaction: { text: '🔥' },
+        },
+      }, 'message.reaction') as never),
+    );
+    // Should NOT have called mirrorChatReaction (parse failed)
+    assert.equal(reactionCalls.length, 0);
+  });
+
+  it('B2.7 — default no-op mirrorChatReaction dep allows processor to handle message.reaction without error', async () => {
+    // makeDefaultDeps adds no-op mirrorChatReaction — processor must not throw
+    const deps = makeDefaultDeps();
+    const processor = createInboundProcessor(deps);
+    await assert.doesNotReject(async () =>
+      processor(makeJob({
+        event: 'message.reaction',
+        session: 'sess-noop',
+        payload: {
+          id: 'evt-noop-1',
+          from: '5490000000@c.us',
+          fromMe: false,
+          reaction: {
+            text: '❤️',
+            msgId: {
+              fromMe: false,
+              remote: '5490000000@c.us',
+              id: 'target-noop',
+              _serialized: 'false_5490000000@c.us_target-noop',
+            },
+          },
+        },
+      }, 'message.reaction') as never),
+    );
   });
 });

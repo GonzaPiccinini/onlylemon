@@ -309,6 +309,9 @@ describe('integration: processor end-to-end (auto-conversion happy path)', { tim
       validateJobIdempotency: async () => true,
       processWhatsappSessionStatusService: async () => undefined,
       getSetting: async (_key: string) => SEED.triggerPhrase,
+      // Batch 2 seams — no-op for this integration test (Batch 11 wires real bus)
+      mirrorChatMessage: async () => undefined,
+      mirrorChatReaction: async () => undefined,
       logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
       metrics: {
         jobsTotal: { labels: () => ({ inc: () => undefined }) },

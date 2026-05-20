@@ -72,9 +72,47 @@ const InboundSessionStatusSchema = z.object({
   }),
 });
 
+/**
+ * InboundReactionSchema — message.reaction webhook envelope.
+ *
+ * Shape inferred from WAHA DTO inspection (batch-0-shapes #367).
+ * Live capture deferred to Batch 14 manual QA.
+ *
+ * Key mapping:
+ *   payload.reaction.msgId._serialized → used as the target messageId for mirrorChatReaction.
+ *   payload.from → chatId (reactor's JID).
+ *   payload.fromMe → boolean (true when the session owner reacted).
+ *
+ * NOTE: The design doc referred to reaction.messageId, but the real WAHA shape
+ * (per WAHA DTO source inspection in batch-0-shapes) uses reaction.msgId._serialized.
+ * Using passthrough() so forward-incompatible payloads don't crash.
+ */
+const InboundReactionSchema = z.object({
+  id: z.string().optional(),
+  event: z.literal('message.reaction'),
+  session: z.string().min(1),
+  payload: z.object({
+    id: z.string().optional(),
+    from: z.string().optional(),
+    fromMe: z.boolean().optional(),
+    to: z.string().optional(),
+    timestamp: z.number().optional(),
+    reaction: z.object({
+      text: z.string(), // emoji or '' to remove
+      msgId: z.object({
+        fromMe: z.boolean().optional(),
+        remote: z.string().optional(),
+        id: z.string(),
+        _serialized: z.string(), // full serialized target message ID
+      }).passthrough(),
+    }).passthrough(),
+  }).passthrough(),
+}).passthrough();
+
 const InboundJobSchema = z.union([
   InboundMessageSchema,
   InboundSessionStatusSchema,
+  InboundReactionSchema,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -98,6 +136,35 @@ export type InboundProcessorDeps = {
   ) => Promise<unknown>;
   /** Returns the current trigger phrase, or '' when not configured */
   getSetting: (key: string) => Promise<string>;
+  /**
+   * Fan-out seam for chat UI — called for every inbound/outbound message event.
+   * Wired to the real chat-events bus in Batch 11; defaults to no-op here.
+   * Called AFTER the existing routing decision so auto-conversion + mapLeadsToPhone
+   * behavior is unchanged (acceptance criterion #4).
+   */
+  mirrorChatMessage: (payload: {
+    sessionName: string;
+    chatId: string;
+    messageId: string;
+    timestamp?: number;
+    body: string;
+    fromMe: boolean;
+    hasMedia: boolean;
+    mediaMimetype?: string | null;
+    quotedMessage?: { id: string; body?: string | null; fromMe?: boolean } | null;
+  }) => Promise<void>;
+  /**
+   * Fan-out seam for chat UI — called for every message.reaction event.
+   * Wired to the real chat-events bus in Batch 11; defaults to no-op here.
+   * On schema mismatch the processor logs a warn and skips (does not throw).
+   */
+  mirrorChatReaction: (payload: {
+    sessionName: string;
+    chatId: string;
+    messageId: string;
+    reaction: string;
+    fromMe: boolean;
+  }) => Promise<void>;
   logger: {
     info: (...args: unknown[]) => void;
     warn: (...args: unknown[]) => void;
@@ -161,6 +228,31 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
           data.payload.status,
           new Date(latestTimestamp),
         );
+      } else if (data.event === 'message.reaction') {
+        // Batch 2 — message.reaction branch.
+        // Validate with the permissive InboundReactionSchema (passthrough).
+        // If anything goes wrong, log a warn and skip — do NOT throw.
+        try {
+          const reactionPayload = data.payload as {
+            from?: string;
+            fromMe?: boolean;
+            reaction: { text: string; msgId: { _serialized: string } };
+          };
+          await deps.mirrorChatReaction({
+            sessionName: data.session,
+            chatId: reactionPayload.from ?? '',
+            // Use msgId._serialized as the canonical target message ID.
+            // This matches the real WAHA GOWS shape (batch-0-shapes #367).
+            messageId: reactionPayload.reaction.msgId._serialized,
+            reaction: reactionPayload.reaction.text,
+            fromMe: reactionPayload.fromMe ?? false,
+          });
+        } catch (reactionErr) {
+          deps.logger.warn(
+            { jobId: job.id, eventType, err: reactionErr },
+            'mirror_chat_reaction_skip',
+          );
+        }
       } else {
         // H3 — Auto-conversion branch
         // For message / message.any events: check if this is a cashier outbound
@@ -214,6 +306,18 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
               );
             }
 
+            // Batch 2 — fan-out chat message AFTER existing routing decision.
+            // Called unconditionally even on the trigger path (acceptance criterion #4).
+            await deps.mirrorChatMessage({
+              sessionName: data.session,
+              chatId: data.payload.from,
+              messageId: data.payload.id,
+              body: data.payload.body ?? '',
+              fromMe: data.payload.fromMe ?? false,
+              hasMedia: data.payload.hasMedia ?? false,
+              mediaMimetype: (data.payload.media as { mimetype?: string } | null | undefined)?.mimetype ?? null,
+            });
+
             const durationSeconds =
               Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
             deps.metrics.jobDurationSeconds.labels(eventType).observe(durationSeconds);
@@ -223,6 +327,19 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
 
         // Existing path: inbound messages OR outbound messages that don't match trigger
         await deps.mapLeadsToPhone(data.session, data.payload.from, data.payload.body ?? '');
+
+        // Batch 2 — fan-out chat message AFTER existing routing decision (additive).
+        // This call is unconditional for message/message.any events so the chat UI
+        // receives ALL inbound + outbound messages regardless of routing.
+        await deps.mirrorChatMessage({
+          sessionName: data.session,
+          chatId: data.payload.from,
+          messageId: data.payload.id,
+          body: data.payload.body ?? '',
+          fromMe: data.payload.fromMe ?? false,
+          hasMedia: data.payload.hasMedia ?? false,
+          mediaMimetype: (data.payload.media as { mimetype?: string } | null | undefined)?.mimetype ?? null,
+        });
       }
 
       const durationSeconds =
@@ -277,6 +394,9 @@ async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
     validateJobIdempotency,
     processWhatsappSessionStatusService,
     getSetting,
+    // Batch 2 — seams wired to no-ops here; Batch 11 wires them to the chat-events bus.
+    mirrorChatMessage: async () => {},
+    mirrorChatReaction: async () => {},
     logger: {
       info: (...args) => logger.info(...(args as Parameters<typeof logger.info>)),
       warn: (...args) => logger.warn(...(args as Parameters<typeof logger.warn>)),
