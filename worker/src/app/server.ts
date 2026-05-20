@@ -9,6 +9,9 @@ import { authRouter } from '../modules/auth/auth.routes.js';
 import { adminRouter } from '../modules/admin/admin.routes.js';
 import { cashierRouter } from '../modules/cashier/cashier.routes.js';
 import { realtimeRouter } from '../modules/realtime/realtime.routes.js';
+import { createChatRouter } from '../modules/chat/chat.routes.js';
+import { requireAuth, requireRole } from '../modules/security/auth.middleware.js';
+import { createDefaultChatService } from '../modules/chat/chat.service.js';
 import { isCorsOriginAllowed } from '../modules/security/cors-origins.service.js';
 import { requestLoggingMiddleware } from '../middlewares/request-logging.middleware.js';
 import { errorMiddleware } from '../middlewares/error.middleware.js';
@@ -53,6 +56,38 @@ app.post('/receive', (_req, res) => {
   res.status(202).json({ received: true });
 });
 
+// ── Chat router (Batch 5) ──────────────────────────────────────────────────────
+// Lazily initialized on first request so we can await the default service factory
+// without blocking module load time (server.ts does not support top-level await).
+let _chatRouter: import('express').Router | null = null;
+
+app.use('/api', (req, res, next) => {
+  if (_chatRouter) {
+    _chatRouter(req, res, next);
+    return;
+  }
+
+  // First request — initialize the chat router asynchronously, then serve.
+  Promise.all([
+    createDefaultChatService(),
+  ])
+    .then(([chatService]) => {
+      _chatRouter = createChatRouter({
+        service: chatService,
+        getWhatsappSession: async (sessionId) =>
+          prisma.whatsappSession.findUnique({
+            where: { id: sessionId },
+            select: { id: true, sessionName: true, cashierId: true },
+          }),
+        requireAuth,
+        requireRole,
+      });
+      _chatRouter(req, res, next);
+    })
+    .catch(next);
+});
+
+// ── Other routers ─────────────────────────────────────────────────────────────
 app.post('/api/leads', leadsPost);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
