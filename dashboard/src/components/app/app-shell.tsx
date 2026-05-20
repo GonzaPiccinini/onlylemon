@@ -15,6 +15,7 @@ import {
   ShieldCheckIcon,
   ArrowRightLeftIcon,
   SettingsIcon,
+  MessageCircleIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ const adminLinks: ShellLink[] = [
   { to: "/admin/leads", label: "Leads", icon: ListChecksIcon },
   { to: "/admin/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/admin/landings", label: "Landings", icon: TagsIcon },
+  { to: "/admin/chat", label: "WhatsApp", icon: MessageCircleIcon },
   { to: "/admin/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
   { to: "/admin/settings", label: "Configuracion", icon: SettingsIcon },
 ];
@@ -56,6 +58,7 @@ const superAdminLinks: ShellLink[] = [
 
 const cashierLinks: ShellLink[] = [
   { to: "/cashier", label: "Sesion", icon: Clock3Icon },
+  { to: "/cashier/chat", label: "WhatsApp", icon: MessageCircleIcon },
   { to: "/cashier/add-funds", label: "Cargas", icon: CircleDollarSignIcon },
   { to: "/cashier/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/cashier/account", label: "Mi cuenta", icon: CircleUserRoundIcon },

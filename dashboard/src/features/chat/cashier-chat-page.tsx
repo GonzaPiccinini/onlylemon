@@ -1,0 +1,94 @@
+/**
+ * cashier-chat-page.tsx — /cashier/chat route component.
+ *
+ * Loads the cashier's own WORKING WhatsApp sessions and renders the shared
+ * ChatPage layout.
+ *
+ * Spec §Cashier Chat Route:
+ *   - 0 WORKING sessions → CTA linking to /cashier.
+ *   - 1+ WORKING sessions → ChatPage with those sessions.
+ *   - Session/chat persistence via useLastSession / useLastChat (inside ChatPage).
+ *
+ * useMySessions returns ALL of the cashier's sessions; we filter to WORKING here
+ * so the picker only shows connected sessions.
+ */
+
+import { Link } from 'react-router-dom';
+import { SmartphoneIcon } from 'lucide-react';
+import { PageHeader } from '@/components/common/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useMySessions } from '@/features/cashier/cashier-hooks';
+import type { SessionOption } from './components';
+import { ChatPage } from './chat-page';
+
+// ---------------------------------------------------------------------------
+// Scope — cashier sees their own sessions; no cashierId in scope
+// ---------------------------------------------------------------------------
+
+const CASHIER_SCOPE = { kind: 'cashier' } as const;
+
+// ---------------------------------------------------------------------------
+// CTA — rendered when the cashier has no WORKING sessions
+// ---------------------------------------------------------------------------
+
+const NoSessionsCta = () => (
+  <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed p-8 text-center">
+    <SmartphoneIcon className="size-10 text-muted-foreground/50" />
+    <div className="flex flex-col gap-1">
+      <p className="text-sm font-medium">Sin WhatsApp conectado</p>
+      <p className="text-xs text-muted-foreground">
+        Conectá un WhatsApp para empezar a chatear con tus clientes.
+      </p>
+    </div>
+    <Link
+      to="/cashier"
+      className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      Ir a Sesión y WhatsApp
+    </Link>
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export const CashierChatPage = () => {
+  const { data: allSessions = [], isLoading } = useMySessions();
+
+  // Filter to WORKING sessions only
+  const workingSessions: SessionOption[] = allSessions
+    .filter((s) => s.wahaStatus === 'WORKING')
+    .map((s) => ({
+      id: s.id,
+      sessionName: s.sessionName,
+      whatsappPhoneNumber: s.whatsappPhoneNumber ?? null,
+      wahaStatus: s.wahaStatus ?? null,
+    }));
+
+  if (isLoading) {
+    return (
+      <section className="flex flex-col gap-4">
+        <PageHeader
+          title="WhatsApp"
+          description="Cargando sesiones de WhatsApp..."
+        />
+        <Skeleton className="h-[400px] w-full rounded-2xl" />
+      </section>
+    );
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <PageHeader
+        title="WhatsApp"
+        description="Chateá con tus clientes desde tus sesiones de WhatsApp."
+      />
+      <ChatPage
+        scope={CASHIER_SCOPE}
+        sessions={workingSessions}
+        emptyCta={<NoSessionsCta />}
+      />
+    </section>
+  );
+};
