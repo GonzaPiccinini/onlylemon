@@ -390,3 +390,265 @@ test('getOwnChatId returns null on network error (does not throw)', async () => 
     stub.restore();
   }
 });
+
+// ---------------------------------------------------------------------------
+// listChats tests
+// ---------------------------------------------------------------------------
+
+const MOCK_CHAT_LIST = JSON.stringify([
+  { id: '5491112345678@c.us', name: 'Alice', conversationTimestamp: 1716163200 },
+  { id: '120363000000000001@g.us', name: 'Sales Group', conversationTimestamp: 1716163100 },
+]);
+
+test('listChats GETs /api/{session}/chats and returns parsed array on 200', async () => {
+  const stub = stubFetch([makeResponse(200, MOCK_CHAT_LIST)]);
+  try {
+    const { listChats } = await import('./client.js');
+    const result = await listChats('session-01');
+    assert.equal(stub.calls.length, 1);
+    assert.ok(stub.calls[0].url.includes('/api/session-01/chats'));
+    assert.equal(result.length, 2);
+    assert.equal(result[0].id, '5491112345678@c.us');
+    assert.equal(result[0].name, 'Alice');
+    assert.equal(result[0].conversationTimestamp, 1716163200);
+    assert.equal(result[1].id, '120363000000000001@g.us');
+    assert.equal(result[1].name, 'Sales Group');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('listChats returns empty array when WAHA returns []', async () => {
+  const stub = stubFetch([makeResponse(200, '[]')]);
+  try {
+    const { listChats } = await import('./client.js');
+    const result = await listChats('session-01');
+    assert.deepEqual(result, []);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('listChats sends X-Api-Key header', async () => {
+  const stub = stubFetch([makeResponse(200, MOCK_CHAT_LIST)]);
+  try {
+    const { listChats } = await import('./client.js');
+    await listChats('session-01');
+    const headers = stub.calls[0].init.headers as Record<string, string>;
+    assert.equal(headers['X-Api-Key'], WAHA_API_KEY);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('listChats throws on 500 response', async () => {
+  const stub = stubFetch([makeResponse(500, '{"error":"internal"}')]);
+  try {
+    const { listChats } = await import('./client.js');
+    await assert.rejects(
+      () => listChats('session-01'),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok((err as Error).message.includes('500'));
+        return true;
+      },
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// sendImage tests
+// ---------------------------------------------------------------------------
+
+test('sendImage POSTs to /api/sendImage with correct body shape', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendImage } = await import('./client.js');
+    await sendImage('session-01', '5491112345678@c.us', {
+      data: 'aGVsbG8=',
+      mimetype: 'image/jpeg',
+    });
+    assert.equal(stub.calls.length, 1);
+    assert.ok(stub.calls[0].url.endsWith('/api/sendImage'));
+    assert.equal(stub.calls[0].init.method, 'POST');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal(body.session, 'session-01');
+    assert.equal(body.chatId, '5491112345678@c.us');
+    assert.equal(body.file.data, 'aGVsbG8=');
+    assert.equal(body.file.mimetype, 'image/jpeg');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendImage includes caption when provided', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendImage } = await import('./client.js');
+    await sendImage('session-01', '5491112345678@c.us', {
+      data: 'aGVsbG8=',
+      mimetype: 'image/jpeg',
+    }, 'My caption');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal(body.caption, 'My caption');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendImage does not include caption when omitted', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendImage } = await import('./client.js');
+    await sendImage('session-01', '5491112345678@c.us', {
+      data: 'aGVsbG8=',
+      mimetype: 'image/jpeg',
+    });
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal('caption' in body, false);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendImage throws on non-2xx with status in message', async () => {
+  const stub = stubFetch([makeResponse(422, '{"error":"invalid"}')]);
+  try {
+    const { sendImage } = await import('./client.js');
+    await assert.rejects(
+      () => sendImage('session-01', '5491112345678@c.us', {
+        data: 'aGVsbG8=',
+        mimetype: 'image/jpeg',
+      }),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok((err as Error).message.includes('422'));
+        return true;
+      },
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// sendReaction tests
+// ---------------------------------------------------------------------------
+
+test('sendReaction PUTs to /api/reaction with correct body', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendReaction } = await import('./client.js');
+    await sendReaction('session-01', 'false_5491112345678@c.us_ABC123', '👍');
+    assert.equal(stub.calls.length, 1);
+    assert.ok(stub.calls[0].url.endsWith('/api/reaction'));
+    assert.equal(stub.calls[0].init.method, 'PUT');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal(body.session, 'session-01');
+    assert.equal(body.messageId, 'false_5491112345678@c.us_ABC123');
+    assert.equal(body.reaction, '👍');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendReaction with empty string removes the reaction (still PUTs)', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendReaction } = await import('./client.js');
+    await sendReaction('session-01', 'false_5491112345678@c.us_ABC123', '');
+    assert.equal(stub.calls[0].init.method, 'PUT');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal(body.reaction, '');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendReaction does NOT include chatId in payload', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendReaction } = await import('./client.js');
+    await sendReaction('session-01', 'false_5491112345678@c.us_ABC123', '❤️');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal('chatId' in body, false);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendReaction throws on non-2xx', async () => {
+  const stub = stubFetch([makeResponse(500, '{"error":"internal"}')]);
+  try {
+    const { sendReaction } = await import('./client.js');
+    await assert.rejects(
+      () => sendReaction('session-01', 'false_5491112345678@c.us_ABC123', '👍'),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok((err as Error).message.includes('500'));
+        return true;
+      },
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// sendText with replyTo tests
+// ---------------------------------------------------------------------------
+
+test('sendText 3-arg form still works (no replyTo in body)', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendText } = await import('./client.js');
+    await sendText('session-01', '5491112345678@c.us', 'plain message');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal(body.session, 'session-01');
+    assert.equal(body.chatId, '5491112345678@c.us');
+    assert.equal(body.text, 'plain message');
+    assert.equal('reply_to' in body, false);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendText 4-arg form includes reply_to field in POST body', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendText } = await import('./client.js');
+    await sendText('session-01', '5491112345678@c.us', 'quoted reply', 'false_5491112345678@c.us_ORIG');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal(body.reply_to, 'false_5491112345678@c.us_ORIG');
+  } finally {
+    stub.restore();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// createSessionIfNotExists — events includes message.reaction
+// ---------------------------------------------------------------------------
+
+test('createSessionIfNotExists sends webhook events including message.reaction', async () => {
+  // First call: GET /api/sessions returns empty array (no existing session)
+  // Second call: POST /api/sessions (creates the session)
+  const stub = stubFetch([
+    makeResponse(200, '[]'),
+    makeResponse(200, '{"name":"session-new","status":"CREATED"}'),
+  ]);
+  try {
+    const { createSessionIfNotExists } = await import('./client.js');
+    await createSessionIfNotExists('session-new');
+    // The second call is the POST /api/sessions
+    assert.equal(stub.calls.length, 2);
+    const body = JSON.parse(stub.calls[1].init.body as string);
+    const events: string[] = body.config.webhooks[0].events;
+    assert.ok(events.includes('message.reaction'), `events should include message.reaction, got: ${JSON.stringify(events)}`);
+    assert.ok(events.includes('message.any'), `events should include message.any, got: ${JSON.stringify(events)}`);
+    assert.ok(events.includes('session.status'), `events should include session.status, got: ${JSON.stringify(events)}`);
+  } finally {
+    stub.restore();
+  }
+});

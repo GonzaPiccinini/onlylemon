@@ -14,6 +14,17 @@ export type WahaMessage = {
   };
 };
 
+/**
+ * A single chat list entry returned by GET /api/{session}/chats.
+ * WAHA Plus 2026.3.4 GOWS only returns these three fields — no lastMessage,
+ * unreadCount, or isGroup are present in this version.
+ */
+export type ChatListEntry = {
+  id: string;
+  name: string | null;
+  conversationTimestamp: number;
+};
+
 type WahaSession = {
   name: string;
   status: string;
@@ -202,7 +213,7 @@ export async function createSessionIfNotExists(
     .map((event) => event.trim())
     .filter(Boolean);
   const events = Array.from(
-    new Set([...configuredEvents, 'message.any', 'session.status']),
+    new Set([...configuredEvents, 'message.any', 'message.reaction', 'session.status']),
   );
 
   await wahaCallJson('/api/sessions', {
@@ -338,18 +349,119 @@ export async function deleteSession(sessionName: string): Promise<void> {
   await wahaDelete(`/api/sessions/${sessionName}`);
 }
 
+/**
+ * Lists all chats for a session.
+ * Calls GET /api/{session}/chats and returns an array of ChatListEntry.
+ * WAHA Plus 2026.3.4 only returns {id, name, conversationTimestamp} per entry.
+ */
+export async function listChats(session: string): Promise<ChatListEntry[]> {
+  const response = await fetch(
+    `${config.WAHA_BASE_URL}/api/${session}/chats`,
+    {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': config.WAHA_API_KEY,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`WAHA listChats failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as Array<{
+    id: string;
+    name?: string | null;
+    conversationTimestamp?: number | null;
+  }>;
+
+  return data.map((entry) => ({
+    id: entry.id,
+    name: entry.name ?? null,
+    conversationTimestamp: entry.conversationTimestamp ?? 0,
+  }));
+}
+
+/**
+ * Sends an image to a WhatsApp chat.
+ * Calls POST /api/sendImage with base64-encoded file data.
+ * `file.data` must be base64-encoded bytes WITHOUT a `data:` prefix.
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendImage(
+  session: string,
+  chatId: string,
+  file: { data: string; mimetype: string },
+  caption?: string,
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    session,
+    chatId,
+    file: { data: file.data, mimetype: file.mimetype },
+  };
+
+  if (caption !== undefined) {
+    payload.caption = caption;
+  }
+
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/sendImage`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendImage failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Sends or removes a reaction on a WhatsApp message.
+ * Calls PUT /api/reaction (WAHA uses PUT, not POST — confirmed Batch 0).
+ * `reaction` is the emoji string; pass `""` to remove the reaction.
+ * `messageId` is the full serialized WhatsApp message ID (e.g. "false_{chatId}_{id}").
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendReaction(
+  session: string,
+  messageId: string,
+  reaction: string,
+): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/reaction`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ session, messageId, reaction }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendReaction failed with status ${response.status}`);
+  }
+}
+
 export async function sendText(
   session: string,
   chatId: string,
   text: string,
+  replyTo?: string,
 ): Promise<void> {
+  const payload: Record<string, unknown> = { session, chatId, text };
+  if (replyTo !== undefined) {
+    payload.reply_to = replyTo;
+  }
+
   const response = await fetch(`${config.WAHA_BASE_URL}/api/sendText`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Api-Key': config.WAHA_API_KEY,
     },
-    body: JSON.stringify({ session, chatId, text }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
