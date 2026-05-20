@@ -75,17 +75,18 @@ const InboundSessionStatusSchema = z.object({
 /**
  * InboundReactionSchema — message.reaction webhook envelope.
  *
- * Shape inferred from WAHA DTO inspection (batch-0-shapes #367).
- * Live capture deferred to Batch 14 manual QA.
+ * Shape confirmed by live capture during whatsapp-chat-ui Batch 16 manual QA
+ * (WAHA GOWS 2026.3.4). The earlier batch-0 inference was wrong.
  *
  * Key mapping:
- *   payload.reaction.msgId._serialized → used as the target messageId for mirrorChatReaction.
+ *   payload.reaction.messageId → target messageId for mirrorChatReaction (GOWS).
+ *   payload.reaction.msgId._serialized → same, for legacy WEBJS engines.
  *   payload.from → chatId (reactor's JID).
  *   payload.fromMe → boolean (true when the session owner reacted).
  *
- * NOTE: The design doc referred to reaction.messageId, but the real WAHA shape
- * (per WAHA DTO source inspection in batch-0-shapes) uses reaction.msgId._serialized.
- * Using passthrough() so forward-incompatible payloads don't crash.
+ * NOTE: GOWS sends `payload.to` as null and the reaction target as a flat
+ * `reaction.messageId` string. WEBJS nests it in `reaction.msgId._serialized`.
+ * Both are accepted. passthrough() keeps forward-incompatible payloads alive.
  */
 const InboundReactionSchema = z.object({
   id: z.string().optional(),
@@ -93,18 +94,21 @@ const InboundReactionSchema = z.object({
   session: z.string().min(1),
   payload: z.object({
     id: z.string().optional(),
-    from: z.string().optional(),
+    from: z.string().nullable().optional(),
     fromMe: z.boolean().optional(),
-    to: z.string().optional(),
+    to: z.string().nullable().optional(),
     timestamp: z.number().optional(),
     reaction: z.object({
       text: z.string(), // emoji or '' to remove
+      // Real WAHA GOWS 2026.3.4 shape: a flat target message ID string.
+      messageId: z.string().optional(),
+      // Legacy WEBJS-engine shape: target ID nested under msgId._serialized.
       msgId: z.object({
         fromMe: z.boolean().optional(),
         remote: z.string().optional(),
-        id: z.string(),
+        id: z.string().optional(),
         _serialized: z.string(), // full serialized target message ID
-      }).passthrough(),
+      }).passthrough().optional(),
     }).passthrough(),
   }).passthrough(),
 }).passthrough();
@@ -230,23 +234,36 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
         );
       } else if (data.event === 'message.reaction') {
         // Batch 2 — message.reaction branch.
-        // Validate with the permissive InboundReactionSchema (passthrough).
         // If anything goes wrong, log a warn and skip — do NOT throw.
         try {
           const reactionPayload = data.payload as {
-            from?: string;
+            from?: string | null;
             fromMe?: boolean;
-            reaction: { text: string; msgId: { _serialized: string } };
+            reaction: {
+              text: string;
+              messageId?: string;
+              msgId?: { _serialized?: string };
+            };
           };
-          await deps.mirrorChatReaction({
-            sessionName: data.session,
-            chatId: reactionPayload.from ?? '',
-            // Use msgId._serialized as the canonical target message ID.
-            // This matches the real WAHA GOWS shape (batch-0-shapes #367).
-            messageId: reactionPayload.reaction.msgId._serialized,
-            reaction: reactionPayload.reaction.text,
-            fromMe: reactionPayload.fromMe ?? false,
-          });
+          // Real WAHA GOWS 2026.3.4 uses a flat `reaction.messageId` string.
+          // Legacy WEBJS engines nest it under `reaction.msgId._serialized`.
+          const targetMessageId =
+            reactionPayload.reaction.messageId ??
+            reactionPayload.reaction.msgId?._serialized;
+          if (!targetMessageId) {
+            deps.logger.warn(
+              { jobId: job.id, eventType },
+              'mirror_chat_reaction_skip',
+            );
+          } else {
+            await deps.mirrorChatReaction({
+              sessionName: data.session,
+              chatId: reactionPayload.from ?? '',
+              messageId: targetMessageId,
+              reaction: reactionPayload.reaction.text,
+              fromMe: reactionPayload.fromMe ?? false,
+            });
+          }
         } catch (reactionErr) {
           deps.logger.warn(
             { jobId: job.id, eventType, err: reactionErr },

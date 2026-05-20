@@ -548,7 +548,7 @@ describe('mirrorChatMessage fan-out — message.any text job', () => {
 // ===========================================================================
 
 describe('mirrorChatReaction fan-out — message.reaction job', () => {
-  it('B2.5 — mirrorChatReaction is called for a valid message.reaction job with correct fields', async () => {
+  it('B2.5 — mirrorChatReaction is called for a valid message.reaction job (real WAHA GOWS shape)', async () => {
     type MirrorChatReactionCall = Parameters<InboundProcessorDeps['mirrorChatReaction']>[0];
     const reactionCalls: MirrorChatReactionCall[] = [];
     const deps = makeDefaultDeps({
@@ -557,6 +557,9 @@ describe('mirrorChatReaction fan-out — message.reaction job', () => {
       },
     });
     const processor = createInboundProcessor(deps);
+    // Real WAHA GOWS 2026.3.4 payload: `to` is null and the reaction target is
+    // a flat `reaction.messageId` string (NOT a `msgId` object). Captured live
+    // during whatsapp-chat-ui Batch 16 manual QA.
     await processor(makeJob({
       event: 'message.reaction',
       session: 'sess-react',
@@ -564,16 +567,12 @@ describe('mirrorChatReaction fan-out — message.reaction job', () => {
         id: 'evt-reaction-1',
         from: '5491112345678@c.us',
         fromMe: false,
-        to: '5490000000@c.us',
+        to: null,
+        participant: null,
         timestamp: 1716000000,
         reaction: {
           text: '👍',
-          msgId: {
-            fromMe: false,
-            remote: '5491112345678@c.us',
-            id: 'target-msg-id-abc',
-            _serialized: 'false_5491112345678@c.us_target-msg-id-abc',
-          },
+          messageId: 'false_5491112345678@c.us_target-msg-id-abc',
         },
       },
     }, 'message.reaction') as never);
@@ -584,6 +583,40 @@ describe('mirrorChatReaction fan-out — message.reaction job', () => {
     assert.equal(call.messageId, 'false_5491112345678@c.us_target-msg-id-abc');
     assert.equal(call.reaction, '👍');
     assert.equal(call.fromMe, false);
+  });
+
+  it('B2.8 — mirrorChatReaction maps the legacy WEBJS msgId._serialized shape', async () => {
+    type MirrorChatReactionCall = Parameters<InboundProcessorDeps['mirrorChatReaction']>[0];
+    const reactionCalls: MirrorChatReactionCall[] = [];
+    const deps = makeDefaultDeps({
+      mirrorChatReaction: async (payload) => {
+        reactionCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    // Backward compatibility: a non-GOWS engine (WEBJS) nests the target id in
+    // `reaction.msgId._serialized`. Both shapes must keep working.
+    await processor(makeJob({
+      event: 'message.reaction',
+      session: 'sess-legacy',
+      payload: {
+        id: 'evt-legacy-1',
+        from: '5491112345678@c.us',
+        fromMe: false,
+        reaction: {
+          text: '❤️',
+          msgId: {
+            fromMe: false,
+            remote: '5491112345678@c.us',
+            id: 'legacy-id',
+            _serialized: 'false_5491112345678@c.us_legacy-id',
+          },
+        },
+      },
+    }, 'message.reaction') as never);
+    assert.equal(reactionCalls.length, 1);
+    assert.equal(reactionCalls[0].messageId, 'false_5491112345678@c.us_legacy-id');
+    assert.equal(reactionCalls[0].reaction, '❤️');
   });
 
   it('B2.6 — malformed message.reaction payload causes warn log but does NOT throw', async () => {
@@ -604,9 +637,9 @@ describe('mirrorChatReaction fan-out — message.reaction job', () => {
     await assert.doesNotReject(async () =>
       processor(makeJob({
         event: 'message.reaction',
-        // session intentionally missing
+        // session intentionally missing → schema parse fails
         payload: {
-          // missing reaction.msgId._serialized
+          // also missing any reaction target id (messageId / msgId)
           reaction: { text: '🔥' },
         },
       }, 'message.reaction') as never),
