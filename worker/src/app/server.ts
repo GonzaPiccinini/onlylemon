@@ -18,6 +18,8 @@ import { errorMiddleware } from '../middlewares/error.middleware.js';
 import { logger } from '../lib/logger.js';
 import { register } from '../lib/metrics.js';
 import { prisma } from '../persistence/prisma/client.js';
+import { getSessions, updateSessionConfig } from '../integrations/waha/client.js';
+import { ensureSessionsSubscribedToReactions } from '../integrations/waha/ensure-session-events.js';
 
 const app = express();
 const port = config.PORT; // NO TOCAR PORQUE ROMPE EL CODIGO DE OPENAI
@@ -98,6 +100,22 @@ app.use(errorMiddleware);
 
 const server = app.listen(port, () => {
   logger.info({ port }, 'server listening');
+
+  // ADR-8: Boot-time idempotent fixup — subscribe any pre-existing WAHA sessions
+  // to 'message.reaction' if they were created before this event was added to the
+  // default event set. Runs fire-and-forget so it never blocks or crashes boot.
+  // If WAHA is unreachable (common in local dev without the waha docker profile),
+  // the function logs a warn and returns zero counts — the worker remains healthy.
+  void ensureSessionsSubscribedToReactions({
+    getSessions,
+    updateSessionConfig,
+    logger,
+  }).then((result) => {
+    logger.info(
+      result,
+      'boot fixup: ensureSessionsSubscribedToReactions complete',
+    );
+  });
 });
 
 async function shutdown(signal: string) {

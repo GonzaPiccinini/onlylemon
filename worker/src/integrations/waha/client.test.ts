@@ -631,6 +631,90 @@ test('sendText 4-arg form includes reply_to field in POST body', async () => {
 // createSessionIfNotExists — events includes message.reaction
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// updateSessionConfig tests
+// ---------------------------------------------------------------------------
+
+test('updateSessionConfig PUTs to /api/sessions/{name} with config body', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { updateSessionConfig } = await import('./client.js');
+    const cfg = {
+      webhooks: [{ url: 'http://example.com', events: ['message.any', 'message.reaction'] }],
+    };
+    await updateSessionConfig('session-01', cfg);
+    assert.equal(stub.calls.length, 1);
+    assert.ok(stub.calls[0].url.endsWith('/api/sessions/session-01'), `URL should end with /api/sessions/session-01, got: ${stub.calls[0].url}`);
+    assert.equal(stub.calls[0].init.method, 'PUT');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.deepEqual(body, { config: cfg });
+  } finally {
+    stub.restore();
+  }
+});
+
+test('updateSessionConfig sends X-Api-Key and Content-Type headers', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { updateSessionConfig } = await import('./client.js');
+    await updateSessionConfig('session-02', { webhooks: [] });
+    const headers = stub.calls[0].init.headers as Record<string, string>;
+    assert.equal(headers['X-Api-Key'], WAHA_API_KEY);
+    assert.equal(headers['Content-Type'], 'application/json');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('updateSessionConfig resolves void on 200', async () => {
+  const stub = stubFetch([makeResponse(200, '{"name":"session-01"}')]);
+  try {
+    const { updateSessionConfig } = await import('./client.js');
+    const result = await updateSessionConfig('session-01', {});
+    assert.equal(result, undefined);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('updateSessionConfig throws on non-2xx with status in message', async () => {
+  const stub = stubFetch([makeResponse(422, '{"error":"invalid config"}')]);
+  try {
+    const { updateSessionConfig } = await import('./client.js');
+    await assert.rejects(
+      () => updateSessionConfig('session-01', {}),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok((err as Error).message.includes('422'), `expected 422 in message, got: ${(err as Error).message}`);
+        return true;
+      },
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+test('updateSessionConfig throws on 500', async () => {
+  const stub = stubFetch([makeResponse(500, '{"error":"internal"}')]);
+  try {
+    const { updateSessionConfig } = await import('./client.js');
+    await assert.rejects(
+      () => updateSessionConfig('session-01', {}),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok((err as Error).message.includes('500'));
+        return true;
+      },
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// createSessionIfNotExists — events includes message.reaction
+// ---------------------------------------------------------------------------
+
 test('createSessionIfNotExists sends webhook events including message.reaction', async () => {
   // First call: GET /api/sessions returns empty array (no existing session)
   // Second call: POST /api/sessions (creates the session)

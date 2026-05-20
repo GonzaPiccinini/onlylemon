@@ -482,6 +482,36 @@ export async function getOwnChatId(sessionName: string): Promise<string | null> 
   return session?.me?.id ?? null;
 }
 
+/**
+ * Updates an existing WAHA session's config via PUT /api/sessions/{name}.
+ * Used by the boot-time fixup to add missing webhook events (e.g. message.reaction)
+ * to sessions that were created before that event was included in the default set.
+ *
+ * The request body is wrapped as `{ config }` per WAHA Plus 2026.3.4 API.
+ * Throws on any non-2xx response.
+ *
+ * NOTE: The exact PUT /api/sessions/{name} shape was not live-verified in Batch 0
+ * (the session in the smoke test had config.webhooks = []). This should be
+ * smoke-verified in Batch 14 manual QA against a real session.
+ */
+export async function updateSessionConfig(
+  sessionName: string,
+  sessionConfig: object,
+): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/sessions/${sessionName}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ config: sessionConfig }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA updateSessionConfig failed with status ${response.status}`);
+  }
+}
+
 export async function downloadMedia(
   url: string,
 ): Promise<{ buffer: Buffer; mimetype: string }> {
