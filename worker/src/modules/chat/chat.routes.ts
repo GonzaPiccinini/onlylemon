@@ -9,9 +9,10 @@
  * 2. Admin-scoped (/admin/chat/cashiers/:cashierId/sessions/:sessionId/...):
  *    requireAuth → requireRole('ADMIN','SUPER_ADMIN') → controller (flat scope, no ownership)
  *
- * NOTE: Photo-send route (POST .../media) is DEFERRED to Batch 6/7
- * (multipart upload middleware not yet available).
- * The media-GET proxy route (GET .../media) IS included here.
+ * Both the media-GET proxy (GET .../media) and the photo-send route
+ * (POST .../media, Batch 6/7) are included here.
+ * The photo-send route uses uploadSingleFile (multer memory storage, 5 MB cap,
+ * MIME allowlist) before the handler; magic-byte verification is in the controller.
  *
  * Design ref: whatsapp-chat-ui design §5 (routes).
  * Spec amendments: sendReaction is worker→WAHA via PUT in service/repo (transparent here);
@@ -28,6 +29,7 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { createRequireSessionOwnership } from '../../middlewares/require-session-ownership.middleware.js';
 import type { RequireSessionOwnershipDeps } from '../../middlewares/require-session-ownership.middleware.js';
 import { createChatController } from './chat.controller.js';
+import { uploadSingleFile } from './upload.middleware.js';
 import type { ChatService } from './chat.service.js';
 import type { Role } from '../../types/api.js';
 
@@ -113,8 +115,18 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     wrapAsync(controller.getMedia.bind(controller)),
   );
 
-  // POST /chat/sessions/:sessionId/chats/:chatId/media (photo-send) is DEFERRED to Batch 6/7.
-  // It requires multipart upload middleware (multer) which is not yet installed.
+  // POST /chat/sessions/:sessionId/chats/:chatId/media — photo-send
+  // Chain: requireAuth → CASHIER role → session ownership → upload middleware → handler
+  // uploadSingleFile handles multipart parsing (memory storage, 5 MB cap, MIME allowlist).
+  // Magic-byte verification happens in the controller (has access to req.file.buffer).
+  // NOTE: replyTo is intentionally NOT accepted on this route (V2 deferral —
+  // spec-amendments confirm WAHA sendImage has no reply_to support in V1).
+  router.post(
+    '/chat/sessions/:sessionId/chats/:chatId/media',
+    ...cashierMiddleware,
+    uploadSingleFile,
+    wrapAsync(controller.sendPhoto.bind(controller)),
+  );
 
   // ── Admin-scoped group ────────────────────────────────────────────────────
   // All routes: auth → ADMIN|SUPER_ADMIN role → handler (flat scope, no ownership)
@@ -155,7 +167,15 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     wrapAsync(controller.getMedia.bind(controller)),
   );
 
-  // POST /admin/chat/.../media (photo-send) is DEFERRED to Batch 6/7.
+  // POST /admin/chat/.../media — admin photo-send
+  // Chain: requireAuth → ADMIN|SUPER_ADMIN role → upload middleware → handler
+  // No ownership check for admin (flat scope).
+  router.post(
+    '/admin/chat/cashiers/:cashierId/sessions/:sessionId/chats/:chatId/media',
+    ...adminMiddleware,
+    uploadSingleFile,
+    wrapAsync(controller.sendPhoto.bind(controller)),
+  );
 
   return router;
 }

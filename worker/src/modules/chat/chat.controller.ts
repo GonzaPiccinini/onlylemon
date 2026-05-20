@@ -13,9 +13,14 @@
  *     ChatRateLimitError       → 429
  *     null from getMediaBytes  → 404 { error: "MEDIA_UNAVAILABLE" }
  *
- * Photo-send route (POST .../media) is DEFERRED to Batch 6/7 (upload middleware).
+ * Photo-send handler (sendPhoto) runs AFTER the uploadSingleFile middleware has
+ * parsed req.file into memory (no disk write). It performs magic-byte verification
+ * before delegating to ChatService.sendPhoto.
  *
- * Design ref: whatsapp-chat-ui design §5 (controller).
+ * NOTE: replyTo is intentionally NOT accepted on the photo-send route (V2 deferral —
+ * the WAHA sendImage wrapper has no reply_to support in V1).
+ *
+ * Design ref: whatsapp-chat-ui design §5 (controller), §7 (upload pipeline).
  */
 
 import { z } from 'zod';
@@ -26,6 +31,7 @@ import {
   ChatRateLimitError,
   ChatSessionNotFoundError,
 } from './chat.service.js';
+import { sniffImageMagicBytes } from './upload.middleware.js';
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
@@ -68,6 +74,12 @@ export type ChatController = {
   listChats(req: Request, res: Response): Promise<void>;
   getChatHistory(req: Request, res: Response): Promise<void>;
   sendText(req: Request, res: Response): Promise<void>;
+  /**
+   * sendPhoto — runs AFTER uploadSingleFile middleware.
+   * Validates magic bytes, then delegates to service.sendPhoto.
+   * Does NOT accept replyTo (V2 deferral — see spec-amendments).
+   */
+  sendPhoto(req: Request, res: Response): Promise<void>;
   sendReaction(req: Request, res: Response): Promise<void>;
   getMedia(req: Request, res: Response): Promise<void>;
 };
@@ -145,6 +157,54 @@ export function createChatController(service: ChatService): ChatController {
           chatId,
           text,
           replyTo,
+          requesterRole,
+          requesterCashierId,
+        });
+        res.status(200).json({ ok: true });
+      } catch (err) {
+        if (!mapServiceError(err, res)) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }
+    },
+
+    // ── POST /chat/sessions/:sessionId/chats/:chatId/media ──────────────────────
+    // Runs AFTER uploadSingleFile middleware has parsed req.file into memory.
+    // Magic-byte verification is done here (controller has full file buffer).
+    // NOTE: replyTo is intentionally NOT read from req.body (V2 deferral —
+    // WAHA sendImage has no reply_to support; spec-amendments confirm this).
+    async sendPhoto(req: Request, res: Response): Promise<void> {
+      const { sessionId, chatId } = req.params;
+      const requesterRole = req.authUser!.role;
+      const requesterCashierId = req.authUser!.cashierId;
+
+      // 400 — upload middleware didn't populate req.file (no file in request)
+      if (!req.file) {
+        res.status(400).json({ error: 'Missing file — upload a file field named "file"' });
+        return;
+      }
+
+      // 415 — magic bytes do not match the declared MIME type
+      if (!sniffImageMagicBytes(req.file.buffer, req.file.mimetype)) {
+        res.status(415).json({ error: 'File content does not match declared MIME type' });
+        return;
+      }
+
+      // Optional caption from multipart body. replyTo deliberately NOT read (V2).
+      const caption = typeof req.body?.caption === 'string' ? req.body.caption : undefined;
+
+      try {
+        await service.sendPhoto({
+          sessionId,
+          chatId,
+          file: {
+            // Pass base64-encoded data — service.sendPhoto also converts Buffer→base64
+            // but accepts both; passing base64 string directly is cleaner here.
+            data: req.file.buffer.toString('base64'),
+            mimetype: req.file.mimetype,
+          },
+          caption,
+          // replyTo is intentionally omitted (V2 deferral)
           requesterRole,
           requesterCashierId,
         });

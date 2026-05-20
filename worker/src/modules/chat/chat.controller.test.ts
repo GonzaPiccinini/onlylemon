@@ -465,6 +465,147 @@ describe('chat.controller — sendReaction', () => {
   });
 });
 
+// ── sendPhoto ─────────────────────────────────────────────────────────────────
+
+describe('chat.controller — sendPhoto', () => {
+  // Valid JPEG buffer for tests
+  const jpegBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+
+  function makeReqWithFile(
+    file: Express.Multer.File | undefined,
+    body: Record<string, unknown> = {},
+  ) {
+    return makeReq({ file, body }) as unknown as import('express').Request;
+  }
+
+  it('returns 200 on happy path: valid JPEG buffer with matching magic bytes', async () => {
+    let capturedFileData: unknown;
+    const svc = makeMockService({
+      sendPhoto: async (args) => { capturedFileData = args.file.data; },
+    });
+    const { sendPhoto } = createChatController(svc);
+
+    const multerFile = {
+      fieldname: 'file',
+      originalname: 'test.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: jpegBuffer,
+      size: jpegBuffer.length,
+    } as Express.Multer.File;
+
+    const req = makeReqWithFile(multerFile);
+    const res = makeRes();
+    await sendPhoto(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    // service receives base64-encoded data
+    assert.equal(capturedFileData, jpegBuffer.toString('base64'));
+  });
+
+  it('returns 400 when req.file is missing', async () => {
+    const svc = makeMockService();
+    const { sendPhoto } = createChatController(svc);
+
+    const req = makeReqWithFile(undefined);
+    const res = makeRes();
+    await sendPhoto(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('returns 415 on magic-byte mismatch (declared jpeg, bytes are PNG)', async () => {
+    const pngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const svc = makeMockService();
+    const { sendPhoto } = createChatController(svc);
+
+    const multerFile = {
+      fieldname: 'file',
+      originalname: 'fake.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: pngBuffer, // PNG bytes but declared as jpeg
+      size: pngBuffer.length,
+    } as Express.Multer.File;
+
+    const req = makeReqWithFile(multerFile);
+    const res = makeRes();
+    await sendPhoto(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 415);
+  });
+
+  it('returns 429 on ChatRateLimitError', async () => {
+    const svc = makeMockService({
+      sendPhoto: async () => { throw new ChatRateLimitError(); },
+    });
+    const { sendPhoto } = createChatController(svc);
+
+    const multerFile = {
+      fieldname: 'file',
+      originalname: 'test.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: jpegBuffer,
+      size: jpegBuffer.length,
+    } as Express.Multer.File;
+
+    const req = makeReqWithFile(multerFile);
+    const res = makeRes();
+    await sendPhoto(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 429);
+  });
+
+  it('returns 403 on ChatForbiddenError', async () => {
+    const svc = makeMockService({
+      sendPhoto: async () => { throw new ChatForbiddenError(); },
+    });
+    const { sendPhoto } = createChatController(svc);
+
+    const multerFile = {
+      fieldname: 'file',
+      originalname: 'test.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: jpegBuffer,
+      size: jpegBuffer.length,
+    } as Express.Multer.File;
+
+    const req = makeReqWithFile(multerFile);
+    const res = makeRes();
+    await sendPhoto(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 403);
+  });
+
+  it('does NOT read replyTo from body (V2 deferral)', async () => {
+    let capturedArgs: Parameters<ChatService['sendPhoto']>[0] | undefined;
+    const svc = makeMockService({
+      sendPhoto: async (args) => { capturedArgs = args; },
+    });
+    const { sendPhoto } = createChatController(svc);
+
+    const multerFile = {
+      fieldname: 'file',
+      originalname: 'test.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: jpegBuffer,
+      size: jpegBuffer.length,
+    } as Express.Multer.File;
+
+    const req = makeReqWithFile(multerFile, { caption: 'hi', replyTo: 'some-msg-id' });
+    const res = makeRes();
+    await sendPhoto(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(capturedArgs?.caption, 'hi');
+    // replyTo must NOT be forwarded in V1
+    assert.equal(capturedArgs?.replyTo, undefined);
+  });
+});
+
 // ── getMedia ──────────────────────────────────────────────────────────────────
 
 describe('chat.controller — getMedia', () => {

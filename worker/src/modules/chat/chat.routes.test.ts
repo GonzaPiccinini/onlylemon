@@ -515,3 +515,233 @@ describe('chat.routes — session not found', () => {
     assert.equal(status, 404);
   });
 });
+
+// ── photo-send route (POST .../media) ─────────────────────────────────────────
+
+/**
+ * Multipart helper: builds a minimal multipart/form-data body with one file part.
+ * We avoid requiring supertest or form-data packages — this project uses plain node:http.
+ *
+ * The boundary and body format follows RFC 2046 §5.1.1.
+ */
+function buildMultipartBody(
+  boundary: string,
+  file: { fieldname: string; filename: string; contentType: string; data: Buffer },
+  extraFields: Record<string, string> = {},
+): Buffer {
+  const CRLF = '\r\n';
+  const parts: Buffer[] = [];
+
+  // Extra text fields
+  for (const [name, value] of Object.entries(extraFields)) {
+    parts.push(Buffer.from(
+      `--${boundary}${CRLF}` +
+      `Content-Disposition: form-data; name="${name}"${CRLF}${CRLF}` +
+      `${value}${CRLF}`,
+    ));
+  }
+
+  // File part
+  parts.push(Buffer.from(
+    `--${boundary}${CRLF}` +
+    `Content-Disposition: form-data; name="${file.fieldname}"; filename="${file.filename}"${CRLF}` +
+    `Content-Type: ${file.contentType}${CRLF}${CRLF}`,
+  ));
+  parts.push(file.data);
+  parts.push(Buffer.from(CRLF));
+
+  // Final boundary
+  parts.push(Buffer.from(`--${boundary}--${CRLF}`));
+
+  return Buffer.concat(parts);
+}
+
+async function requestMultipart(
+  app: express.Express,
+  method: string,
+  path: string,
+  headers: Record<string, string>,
+  multipartBody: Buffer,
+  contentType: string,
+): Promise<{ status: number; body: unknown }> {
+  const http = await import('node:http');
+
+  return new Promise((resolve, reject) => {
+    const server = http.createServer(app);
+    server.listen(0, () => {
+      const address = server.address() as { port: number };
+      const port = address.port;
+
+      const reqOptions: Record<string, unknown> = {
+        hostname: '127.0.0.1',
+        port,
+        path,
+        method,
+        headers: {
+          ...headers,
+          'Content-Type': contentType,
+          'Content-Length': multipartBody.length,
+        },
+      };
+
+      const clientReq = http.request(reqOptions, (res) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        res.on('end', () => {
+          server.close();
+          let parsed: unknown = data;
+          try { parsed = JSON.parse(data); } catch { /* leave as string */ }
+          resolve({ status: res.statusCode ?? 0, body: parsed });
+        });
+      });
+
+      clientReq.on('error', (err) => {
+        server.close();
+        reject(err);
+      });
+
+      clientReq.write(multipartBody);
+      clientReq.end();
+    });
+  });
+}
+
+// Valid JPEG bytes (magic: FF D8 FF)
+const validJpegBytes = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+  ...new Array(100).fill(0x00), // padding
+]);
+
+describe('chat.routes — photo-send (POST .../media)', () => {
+  it('cashier posting a valid JPEG to own session returns 200', async () => {
+    const boundary = 'testboundary001';
+    const body = buildMultipartBody(boundary, {
+      fieldname: 'file',
+      filename: 'photo.jpg',
+      contentType: 'image/jpeg',
+      data: validJpegBytes,
+    });
+
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await requestMultipart(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-1/chats/chat@c.us/media',
+      { authorization: `Bearer ${cashier1Token}` },
+      body,
+      `multipart/form-data; boundary=${boundary}`,
+    );
+
+    assert.equal(status, 200);
+  });
+
+  it('cashier posting to a foreign session returns 403', async () => {
+    const boundary = 'testboundary002';
+    const body = buildMultipartBody(boundary, {
+      fieldname: 'file',
+      filename: 'photo.jpg',
+      contentType: 'image/jpeg',
+      data: validJpegBytes,
+    });
+
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-2' ? foreignSession : null),
+    );
+
+    const { status } = await requestMultipart(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-2/chats/chat@c.us/media',
+      { authorization: `Bearer ${cashier1Token}` }, // cashier-1 does NOT own session-uuid-2
+      body,
+      `multipart/form-data; boundary=${boundary}`,
+    );
+
+    assert.equal(status, 403);
+  });
+
+  it('admin posting to any session returns 200', async () => {
+    const boundary = 'testboundary003';
+    const body = buildMultipartBody(boundary, {
+      fieldname: 'file',
+      filename: 'photo.jpg',
+      contentType: 'image/jpeg',
+      data: validJpegBytes,
+    });
+
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await requestMultipart(
+      app,
+      'POST',
+      '/api/admin/chat/cashiers/cashier-1/sessions/session-uuid-1/chats/chat@c.us/media',
+      { authorization: `Bearer ${adminToken}` },
+      body,
+      `multipart/form-data; boundary=${boundary}`,
+    );
+
+    assert.equal(status, 200);
+  });
+
+  it('posting a file > 5 MB returns 413', async () => {
+    const boundary = 'testboundary004';
+    // 5 MB + 1 byte exceeds the limit
+    const oversizedData = Buffer.alloc(5 * 1024 * 1024 + 1, 0xff);
+    // Patch in JPEG magic bytes at the front to pass magic check (won't reach it — size limit fires first)
+    oversizedData[0] = 0xff;
+    oversizedData[1] = 0xd8;
+    oversizedData[2] = 0xff;
+
+    const body = buildMultipartBody(boundary, {
+      fieldname: 'file',
+      filename: 'huge.jpg',
+      contentType: 'image/jpeg',
+      data: oversizedData,
+    });
+
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await requestMultipart(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-1/chats/chat@c.us/media',
+      { authorization: `Bearer ${cashier1Token}` },
+      body,
+      `multipart/form-data; boundary=${boundary}`,
+    );
+
+    assert.equal(status, 413);
+  });
+
+  it('posting Content-Type image/gif returns 415', async () => {
+    const boundary = 'testboundary005';
+    const body = buildMultipartBody(boundary, {
+      fieldname: 'file',
+      filename: 'anim.gif',
+      contentType: 'image/gif', // Not in allowlist
+      data: Buffer.from([0x47, 0x49, 0x46, 0x38]), // GIF magic
+    });
+
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await requestMultipart(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-1/chats/chat@c.us/media',
+      { authorization: `Bearer ${cashier1Token}` },
+      body,
+      `multipart/form-data; boundary=${boundary}`,
+    );
+
+    assert.equal(status, 415);
+  });
+});
