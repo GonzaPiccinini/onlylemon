@@ -42,11 +42,11 @@ interface ConversionPayload extends MetaEventBase {
   eventId: string;
 }
 
-interface LeadEventPayload extends MetaEventBase {
+interface ContactEventPayload extends MetaEventBase {
   eventId: string;
 }
 
-interface ContactEventPayload extends MetaEventBase {
+interface LeadEventPayload extends MetaEventBase {
   eventId: string;
   phone: string;
 }
@@ -221,25 +221,25 @@ export const sendMetaConversion = async (
   };
 };
 
-export const sendLeadEvent = async (
-  payload: LeadEventPayload,
+export const sendContactEvent = async (
+  payload: ContactEventPayload,
 ): Promise<boolean> => {
   const hashedExternalId = await sha256(payload.leadCode.trim().toLowerCase());
   return postMetaEvent({
-    eventName: 'Lead',
+    eventName: 'Contact',
     eventId: payload.eventId,
     base: toBase(payload),
     hashedExternalId,
   });
 };
 
-export const sendContactEvent = async (
-  payload: ContactEventPayload,
+export const sendLeadEvent = async (
+  payload: LeadEventPayload,
 ): Promise<boolean> => {
   const hashedPhone = await sha256(normalizePhone(payload.phone));
   const hashedExternalId = await sha256(payload.leadCode.trim().toLowerCase());
   return postMetaEvent({
-    eventName: 'Contact',
+    eventName: 'Lead',
     eventId: payload.eventId,
     base: toBase(payload),
     hashedPhone,
