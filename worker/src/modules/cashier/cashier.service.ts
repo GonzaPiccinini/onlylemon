@@ -1,6 +1,7 @@
 import { LeadStatus } from '../../generated/prisma/client.js';
 import { prisma } from '../../persistence/prisma/client.js';
 import { sendMetaConversion } from '../../integrations/leads/conversion.js';
+import { loadConversionConfig } from '../system-settings/conversion-config.js';
 import { getLandingByMetaPixelId } from '../admin/admin.repository.js';
 import {
   createSessionIfNotExists,
@@ -618,18 +619,23 @@ export const createConversionService = async (
     };
   }
 
-  const conversionResult = await sendMetaConversion({
-    phone: lead.phone,
-    value: amount,
-    fbc: lead.fbc,
-    fbp: lead.fbp,
-    userAgent: lead.userAgent,
-    metaPixelId: lead.metaPixelId,
-    metaAccessToken: landing.metaAccessToken,
-    eventId: conversion.id,
-    eventSourceUrl: landing.url,
-    leadCode: lead.code,
-  });
+  const conversionConfig = await loadConversionConfig();
+
+  const conversionResult = await sendMetaConversion(
+    {
+      phone: lead.phone,
+      value: amount,
+      fbc: lead.fbc,
+      fbp: lead.fbp,
+      userAgent: lead.userAgent,
+      metaPixelId: lead.metaPixelId,
+      metaAccessToken: landing.metaAccessToken,
+      eventId: conversion.id,
+      eventSourceUrl: landing.url,
+      leadCode: lead.code,
+    },
+    conversionConfig,
+  );
 
   if (!conversionResult.purchaseSent) {
     logger.error({

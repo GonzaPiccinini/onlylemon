@@ -385,3 +385,39 @@ export const useAutoConversionMinAmount = () => useSetting('auto_conversion_min_
 export const useUpdateAutoConversionMinAmount = () => useUpdateSetting('auto_conversion_min_amount');
 export const useAutoConversionMaxAmount = () => useSetting('auto_conversion_max_amount');
 export const useUpdateAutoConversionMaxAmount = () => useUpdateSetting('auto_conversion_max_amount');
+
+// ---------------------------------------------------------------------------
+// Platform currency + high-value thresholds
+// ---------------------------------------------------------------------------
+
+export const useCurrencyOptions = () =>
+  useQuery({
+    queryKey: ["admin", "settings", "currency-options"] as const,
+    queryFn: () => adminService.getCurrencyOptions(),
+    staleTime: Infinity,
+  });
+
+export const usePlatformCurrency = () => useSetting('platform_currency');
+
+export const useUpdatePlatformCurrency = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (value: string) => adminService.updateSetting('platform_currency', value),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminSettingKey('platform_currency') }),
+        // Refresh the active-currency used to render symbols across the dashboard.
+        queryClient.invalidateQueries({ queryKey: ["settings", "active-currency"] }),
+      ]);
+    },
+  });
+};
+
+export const useHighValueThreshold = () => useSetting('high_value_threshold');
+export const useUpdateHighValueThreshold = () => useUpdateSetting('high_value_threshold');
+export const useHighValueTier1Threshold = () => useSetting('high_value_tier1_threshold');
+export const useUpdateHighValueTier1Threshold = () => useUpdateSetting('high_value_tier1_threshold');
+export const useHighValueTier2Threshold = () => useSetting('high_value_tier2_threshold');
+export const useUpdateHighValueTier2Threshold = () => useUpdateSetting('high_value_tier2_threshold');
+export const useHighValueTier3Threshold = () => useSetting('high_value_tier3_threshold');
+export const useUpdateHighValueTier3Threshold = () => useUpdateSetting('high_value_tier3_threshold');

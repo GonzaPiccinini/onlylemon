@@ -1,11 +1,19 @@
 import { ARGENTINA_TZ } from "./timezone";
 
+/** Groups a number with es-AR separators and no decimals, e.g. 12345 → "12.345". */
+export const formatAmount = (amount: number): string =>
+  new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
+
+/**
+ * Formats an amount with an explicit currency symbol, e.g. ("$", 12345) → "$ 12.345".
+ * Use this with the active platform currency symbol (see useMoneyFormatter).
+ */
+export const formatCurrencyWith = (amount: number, symbol: string): string =>
+  `${symbol} ${formatAmount(amount)}`;
+
+/** Legacy ARS-only formatter. Prefer useMoneyFormatter() so the symbol follows the selected currency. */
 export const formatCurrency = (amount: number): string =>
-  new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  formatCurrencyWith(amount, "$");
 
 export const formatPercentage = (value: number): string =>
   `${value.toFixed(1)}%`;

@@ -7,6 +7,9 @@ export const endpoints = {
     setupStatus: "/auth/setup-status",
     setup: "/auth/setup",
   },
+  settings: {
+    activeCurrency: "/settings/currency",
+  },
   admin: {
     account: "/admin/account",
     cashiers: "/admin/cashiers",
@@ -39,6 +42,7 @@ export const endpoints = {
     landingFallbackPhone: (landingId: string, id: string) =>
       `/admin/landings/${landingId}/fallback-phones/${id}`,
     autoConversionTriggerPhrase: "/admin/settings/auto-conversion-trigger-phrase",
+    currencyOptions: "/admin/settings/currency-options",
     settingByKey: (key: string) => `/admin/settings/${key}`,
   },
   cashier: {
