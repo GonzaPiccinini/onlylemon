@@ -23,11 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
+import { useMoneyFormatter } from '@/lib/use-currency';
 
 const PAGE_SIZE = 25;
 
 export const AdminConversionsPage = () => {
+  const money = useMoneyFormatter();
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -219,7 +221,7 @@ export const AdminConversionsPage = () => {
                 <CardDescription>Monto total</CardDescription>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : formatCurrency(totals?.totalAmount ?? 0)}
+                {totalsLoading ? '…' : money.format(totals?.totalAmount ?? 0)}
               </CardContent>
             </Card>
             <Card>
@@ -235,7 +237,7 @@ export const AdminConversionsPage = () => {
                 <CardDescription>Monto promedio</CardDescription>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : formatCurrency(totals?.averageAmount ?? 0)}
+                {totalsLoading ? '…' : money.format(totals?.averageAmount ?? 0)}
               </CardContent>
             </Card>
           </div>
@@ -270,7 +272,7 @@ export const AdminConversionsPage = () => {
                     <TableCell>{conversion.cashierName ?? '-'}</TableCell>
                     <TableCell>{conversion.phone ?? '-'}</TableCell>
                     <TableCell>
-                      {formatCurrency(Number(conversion.amount))}
+                      {money.format(Number(conversion.amount))}
                     </TableCell>
                     <TableCell>{formatDateTime(conversion.createdAt)}</TableCell>
                   </TableRow>

@@ -366,8 +366,8 @@ async function dispatchLeadCreatedEvent(lead: {
     return;
   }
 
-  const sent = await sendContactEvent({
-    eventId: `contact-${lead.id}`,
+  const sent = await sendLeadEvent({
+    eventId: `lead-${lead.id}`,
     leadCode: lead.code,
     fbc: lead.fbc,
     fbp: lead.fbp,
@@ -381,7 +381,7 @@ async function dispatchLeadCreatedEvent(lead: {
     logger.error({
       event: 'meta_conversion_failed',
       leadId: lead.id,
-      eventName: 'Contact',
+      eventName: 'Lead',
     });
   }
 }
@@ -405,8 +405,8 @@ async function dispatchLeadContactedEvent(lead: {
     return;
   }
 
-  const sent = await sendLeadEvent({
-    eventId: `lead-${lead.id}`,
+  const sent = await sendContactEvent({
+    eventId: `contact-${lead.id}`,
     leadCode: lead.code,
     phone: lead.phone,
     fbc: lead.fbc,
@@ -421,7 +421,7 @@ async function dispatchLeadContactedEvent(lead: {
     logger.error({
       event: 'meta_conversion_failed',
       leadId: lead.id,
-      eventName: 'Lead',
+      eventName: 'Contact',
     });
   }
 }

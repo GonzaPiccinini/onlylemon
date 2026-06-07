@@ -28,6 +28,7 @@ import type {
   UpdateLandingFallbackPhoneInput,
   UpdateLandingInput,
   UpdateCashierInput,
+  CurrencyOption,
   WhatsappLinkArtifacts,
   WhatsappSession,
 } from "@/types/domain";
@@ -304,6 +305,13 @@ export const adminService = {
     const { data } = await http.put<{ value: string }>(endpoints.admin.settingByKey(key), {
       value,
     });
+    return data;
+  },
+
+  async getCurrencyOptions(): Promise<{ currencies: CurrencyOption[] }> {
+    const { data } = await http.get<{ currencies: CurrencyOption[] }>(
+      endpoints.admin.currencyOptions,
+    );
     return data;
   },
 

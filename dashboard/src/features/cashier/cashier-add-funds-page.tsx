@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useMoneyFormatter } from '@/lib/use-currency';
 import { formatDateTime } from '@/lib/format';
 import {
   useSearchCashierLeads,
@@ -61,9 +62,8 @@ const buildAmountSchema = (limits: { min: number; max: number }) =>
 
 type FormValues = { amount: string };
 
-const formatARS = (n: number) => new Intl.NumberFormat('es-AR').format(n);
-
 export const CashierAddFundsPage = () => {
+  const money = useMoneyFormatter();
   const navigate = useNavigate();
   const { data: runtimeState } = useCashierRuntimeState();
   const { data: limitsData } = useCashierConversionLimits();
@@ -290,11 +290,11 @@ export const CashierAddFundsPage = () => {
                   />
                   <FieldDescription>
                     {limits.min > 0 && limits.max > 0
-                      ? `Rango permitido: $ ${formatARS(limits.min)} – $ ${formatARS(limits.max)} ARS.`
+                      ? `Rango permitido: ${money.format(limits.min)} – ${money.format(limits.max)}.`
                       : limits.min > 0
-                        ? `Monto minimo: $ ${formatARS(limits.min)} ARS.`
+                        ? `Monto minimo: ${money.format(limits.min)}.`
                         : limits.max > 0
-                          ? `Monto maximo: $ ${formatARS(limits.max)} ARS.`
+                          ? `Monto maximo: ${money.format(limits.max)}.`
                           : 'Valor reportado de conversion.'}
                   </FieldDescription>
                   <FieldError errors={[form.formState.errors.amount]} />

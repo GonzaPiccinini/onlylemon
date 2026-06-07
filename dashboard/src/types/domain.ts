@@ -385,3 +385,15 @@ export interface SetupInput {
   username: string;
   password: string;
 }
+
+export interface CurrencyOption {
+  code: string;
+  label: string;
+  symbol: string;
+}
+
+export interface ActiveCurrency {
+  code: string;
+  label: string;
+  symbol: string;
+}

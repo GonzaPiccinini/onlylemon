@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/table";
 import { PaginationControls } from "@/components/common/pagination-controls";
 import { getDefaultDateRange } from "@/lib/date-range";
-import { formatCurrency, formatHours, formatPercentage } from "@/lib/format";
+import { formatHours, formatPercentage } from "@/lib/format";
+import { useMoneyFormatter } from "@/lib/use-currency";
 import {
   useAdminSummary,
   useCashierStats,
@@ -32,6 +33,7 @@ import {
 } from "@/features/admin/admin-hooks";
 
 export const AdminStatsPage = () => {
+  const money = useMoneyFormatter();
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
   const [selectedSeries, setSelectedSeries] = useState<"contacted" | "gross" | "first">("contacted");
   const [page, setPage] = useState(1);
@@ -73,7 +75,7 @@ export const AdminStatsPage = () => {
             <MetricCard label="Leads totales" value={String(summary.totalLeads)} />
             <MetricCard label="Leads convertidos" value={String(summary.convertedLeads)} />
             <MetricCard label="Tasa conversion" value={formatPercentage(summary.conversionRate)} />
-            <MetricCard label="Valor convertido" value={formatCurrency(summary.totalConvertedValue)} />
+            <MetricCard label="Valor convertido" value={money.format(summary.totalConvertedValue)} />
             <MetricCard label="Horas activas" value={formatHours(summary.totalActiveHours)} />
           </>
         )}
@@ -113,7 +115,7 @@ export const AdminStatsPage = () => {
                 <CartesianGrid strokeDasharray="4 4" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value) => money.format(Number(value))} />
                 <Bar dataKey="sum" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -158,7 +160,7 @@ export const AdminStatsPage = () => {
                     <TableCell>{cashier.contactedLeads}</TableCell>
                     <TableCell>{cashier.convertedLeads}</TableCell>
                     <TableCell>{formatPercentage(cashier.conversionRate)}</TableCell>
-                    <TableCell>{formatCurrency(cashier.convertedValue)}</TableCell>
+                    <TableCell>{money.format(cashier.convertedValue)}</TableCell>
                     <TableCell>{formatHours(cashier.activeHours)}</TableCell>
                   </TableRow>
                 ))
