@@ -602,6 +602,7 @@ test('omits fbc/fbp from user_data when they are empty (blocked pixel)', async (
     await sendContactEvent({
       fbc: '',
       fbp: '',
+      phone: '+5491100000000',
       userAgent: 'Mozilla/5.0',
       metaPixelId: 'pixel-blocked',
       metaAccessToken: 'token-blocked',
