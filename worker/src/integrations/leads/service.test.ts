@@ -759,3 +759,61 @@ test('selectCashierNumberForLandingWithDependencies clamps activity started befo
     number: '5492222222222',
   });
 });
+
+// ---------------------------------------------------------------------------
+// Blocked-pixel leads: ad-blockers prevent the Meta pixel from creating the
+// _fbp/_fbc cookies, so the landing sends null. The lead must still be created
+// (contact must succeed); attribution degrades gracefully via CAPI.
+// ---------------------------------------------------------------------------
+
+test('CreateLeadPayloadSchema accepts null fbc/fbp and normalizes them to empty string', async () => {
+  const { CreateLeadPayloadSchema } = await import('./service.js');
+
+  const parsed = CreateLeadPayloadSchema.safeParse({
+    fbc: null,
+    fbp: null,
+    userAgent: 'Mozilla/5.0',
+    metaPixelId: 'pixel-1',
+  });
+
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.success && parsed.data.fbc, '');
+  assert.equal(parsed.success && parsed.data.fbp, '');
+});
+
+test('CreateLeadPayloadSchema accepts missing fbc/fbp', async () => {
+  const { CreateLeadPayloadSchema } = await import('./service.js');
+
+  const parsed = CreateLeadPayloadSchema.safeParse({
+    userAgent: 'Mozilla/5.0',
+    metaPixelId: 'pixel-1',
+  });
+
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.success && parsed.data.fbc, '');
+  assert.equal(parsed.success && parsed.data.fbp, '');
+});
+
+test('createLeadWithDependencies skips fbc dedup and creates the lead when fbc is empty', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  let getLeadByFbcCalled = false;
+  const deps = buildDependencies({
+    getLeadByFbc: async () => {
+      getLeadByFbcCalled = true;
+      return { id: 'existing-lead' };
+    },
+  });
+
+  const result = await createLeadWithDependencies(
+    { fbc: '', fbp: '', userAgent: 'Mozilla/5.0', metaPixelId: 'pixel-1' },
+    deps,
+  );
+
+  assert.equal(result.code, 'ABCD1234');
+  assert.equal(
+    getLeadByFbcCalled,
+    false,
+    'must not run fbc dedup when fbc is empty',
+  );
+});

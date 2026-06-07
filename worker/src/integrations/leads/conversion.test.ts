@@ -446,3 +446,44 @@ test('sendMetaConversion does not send Tier1 when value is just below threshold'
     globalThis.fetch = originalFetch;
   }
 });
+
+test('omits fbc/fbp from user_data when they are empty (blocked pixel)', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => '',
+    } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendContactEvent } = await import('./conversion.js');
+
+    await sendContactEvent({
+      fbc: '',
+      fbp: '',
+      userAgent: 'Mozilla/5.0',
+      metaPixelId: 'pixel-blocked',
+      metaAccessToken: 'token-blocked',
+      eventId: 'contact-blocked',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'BLOCKED1',
+    });
+
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(String(calls[0]!.init!.body)) as {
+      data: Array<{ user_data: Record<string, unknown> }>;
+    };
+    const userData = body.data[0]!.user_data;
+    assert.equal('fbc' in userData, false, 'fbc must be omitted when empty');
+    assert.equal('fbp' in userData, false, 'fbp must be omitted when empty');
+    assert.equal(userData.client_user_agent, 'Mozilla/5.0');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
