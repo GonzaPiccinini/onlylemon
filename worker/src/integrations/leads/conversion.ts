@@ -85,11 +85,16 @@ const postMetaEvent = async (input: {
   const startedAt = process.hrtime.bigint();
 
   const userData: Record<string, unknown> = {
-    fbc: input.base.fbc,
-    fbp: input.base.fbp,
     client_user_agent: input.base.userAgent,
     external_id: [input.hashedExternalId],
   };
+  // Omit fbc/fbp when empty (pixel was blocked) — sending '' degrades match quality.
+  if (input.base.fbc) {
+    userData.fbc = input.base.fbc;
+  }
+  if (input.base.fbp) {
+    userData.fbp = input.base.fbp;
+  }
   if (input.hashedPhone) {
     userData.ph = [input.hashedPhone];
   }
