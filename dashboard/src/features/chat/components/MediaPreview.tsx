@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMediaBlob } from '@/features/chat/hooks/useMediaBlob';
+import { isStickerMime } from '../mime';
 import type { ChatScope } from '@/api/chat.service';
 
 // ---------------------------------------------------------------------------
@@ -107,6 +108,19 @@ export const MediaPreview = ({
           </a>
         </div>
       </div>
+    );
+  }
+
+  // Sticker — rendered plain (transparent, no crop, no enlarge dialog),
+  // mimicking WhatsApp's sticker presentation.
+  if (isStickerMime(mimetype)) {
+    return (
+      <img
+        src={objectUrl}
+        alt="Sticker"
+        className="size-32 object-contain"
+        draggable={false}
+      />
     );
   }
 

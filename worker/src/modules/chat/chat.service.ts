@@ -137,6 +137,23 @@ export type ChatService = {
     requesterCashierId?: string;
     requesterRole: Role;
   }): Promise<{ bytes: Buffer; mimetype: string } | null>;
+
+  publishTextStatus(args: {
+    sessionId: string;
+    text: string;
+    backgroundColor?: string;
+    requesterCashierId?: string;
+    requesterRole: Role;
+  }): Promise<void>;
+
+  publishImageStatus(args: {
+    sessionId: string;
+    /** file.data may be a Buffer (encoded to base64 before hitting the repository) */
+    file: { data: Buffer | string; mimetype: string };
+    caption?: string;
+    requesterCashierId?: string;
+    requesterRole: Role;
+  }): Promise<void>;
 };
 
 export function createChatService(deps: ChatServiceDeps): ChatService {
@@ -216,6 +233,38 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
     async getMediaBytes({ sessionId, chatId, messageId, requesterCashierId, requesterRole }) {
       const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
       return repository.getMediaBytes(session.sessionName, chatId, messageId);
+    },
+
+    async publishTextStatus({ sessionId, text, backgroundColor, requesterCashierId, requesterRole }) {
+      const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
+
+      // Statuses share the same per-session bucket as sendText/sendPhoto.
+      if (!limiter.tryConsume(sessionId)) {
+        throw new ChatRateLimitError();
+      }
+
+      return repository.sendTextStatus(session.sessionName, {
+        text,
+        ...(backgroundColor !== undefined ? { backgroundColor } : {}),
+      });
+    },
+
+    async publishImageStatus({ sessionId, file, caption, requesterCashierId, requesterRole }) {
+      const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
+
+      if (!limiter.tryConsume(sessionId)) {
+        throw new ChatRateLimitError();
+      }
+
+      const fileData =
+        typeof file.data === 'string'
+          ? file.data
+          : file.data.toString('base64');
+
+      return repository.sendImageStatus(session.sessionName, {
+        file: { data: fileData, mimetype: file.mimetype },
+        ...(caption !== undefined ? { caption } : {}),
+      });
     },
   };
 }

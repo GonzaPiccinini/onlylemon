@@ -128,6 +128,22 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     wrapAsync(controller.sendPhoto.bind(controller)),
   );
 
+  // POST /chat/sessions/:sessionId/status/{text,image} — publish a WhatsApp
+  // status (story) from the cashier's session. Image route reuses the photo
+  // upload pipeline (multer memory storage + magic-byte check in controller).
+  router.post(
+    '/chat/sessions/:sessionId/status/text',
+    ...cashierMiddleware,
+    wrapAsync(controller.publishTextStatus.bind(controller)),
+  );
+
+  router.post(
+    '/chat/sessions/:sessionId/status/image',
+    ...cashierMiddleware,
+    uploadSingleFile,
+    wrapAsync(controller.publishImageStatus.bind(controller)),
+  );
+
   // ── Admin-scoped group ────────────────────────────────────────────────────
   // All routes: auth → ADMIN|SUPER_ADMIN role → handler (flat scope, no ownership)
   // The session must exist → 404 handling occurs in the controller/service.
@@ -175,6 +191,20 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     ...adminMiddleware,
     uploadSingleFile,
     wrapAsync(controller.sendPhoto.bind(controller)),
+  );
+
+  // POST /admin/chat/.../status/{text,image} — admin status publishing
+  router.post(
+    '/admin/chat/cashiers/:cashierId/sessions/:sessionId/status/text',
+    ...adminMiddleware,
+    wrapAsync(controller.publishTextStatus.bind(controller)),
+  );
+
+  router.post(
+    '/admin/chat/cashiers/:cashierId/sessions/:sessionId/status/image',
+    ...adminMiddleware,
+    uploadSingleFile,
+    wrapAsync(controller.publishImageStatus.bind(controller)),
   );
 
   return router;

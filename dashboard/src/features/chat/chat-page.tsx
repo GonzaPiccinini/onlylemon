@@ -31,7 +31,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon, CircleFadingPlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -58,6 +58,7 @@ import {
   ChatList,
   MessageThread,
   Composer,
+  StatusComposerDialog,
 } from './components';
 import type { SessionOption } from './components';
 
@@ -156,6 +157,9 @@ export const ChatPage = ({
 
   // Mobile sheet open state
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Status composer dialog open state
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
   // ------------------------------------------------------------------
   // Data fetching
@@ -303,6 +307,18 @@ export const ChatPage = ({
             selectedSessionId={selectedSessionId}
             onSelect={handleSelectSession}
           />
+          {selectedSessionId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setStatusDialogOpen(true)}
+              className="shrink-0 justify-start gap-2"
+            >
+              <CircleFadingPlusIcon className="size-4" />
+              Publicar estado
+            </Button>
+          )}
           <ChatList
             chats={chats}
             selectedChatId={selectedChatId}
@@ -399,6 +415,16 @@ export const ChatPage = ({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Status composer — needs a selected session to publish against */}
+      {selectedSessionId && (
+        <StatusComposerDialog
+          open={statusDialogOpen}
+          onOpenChange={setStatusDialogOpen}
+          scope={scope}
+          sessionId={selectedSessionId}
+        />
+      )}
     </div>
   );
 };

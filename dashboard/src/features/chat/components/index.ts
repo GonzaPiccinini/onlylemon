@@ -8,3 +8,4 @@ export { MediaPreview } from './MediaPreview';
 export { EmojiPicker } from './EmojiPicker';
 export { Composer } from './Composer';
 export { AttachmentPreview } from './AttachmentPreview';
+export { StatusComposerDialog } from './StatusComposerDialog';

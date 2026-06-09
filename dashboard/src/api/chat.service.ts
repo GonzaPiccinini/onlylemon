@@ -93,6 +93,18 @@ function sendMediaUrl(scope: ChatScope, sessionId: string, chatId: string): stri
     : endpoints.chat.adminSendMedia(scope.cashierId, sessionId, chatId);
 }
 
+function statusTextUrl(scope: ChatScope, sessionId: string): string {
+  return scope.kind === "cashier"
+    ? endpoints.chat.cashierStatusText(sessionId)
+    : endpoints.chat.adminStatusText(scope.cashierId, sessionId);
+}
+
+function statusImageUrl(scope: ChatScope, sessionId: string): string {
+  return scope.kind === "cashier"
+    ? endpoints.chat.cashierStatusImage(sessionId)
+    : endpoints.chat.adminStatusImage(scope.cashierId, sessionId);
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -218,6 +230,37 @@ export const chatService = {
       }
       throw error;
     }
+  },
+
+  /**
+   * Publish a text status (story) on the session's WhatsApp account.
+   * `backgroundColor` is an optional hex color (e.g. "#38b42f").
+   */
+  async publishTextStatus(
+    scope: ChatScope,
+    sessionId: string,
+    body: { text: string; backgroundColor?: string },
+  ): Promise<void> {
+    await http.post(statusTextUrl(scope, sessionId), body);
+  },
+
+  /**
+   * Publish an image status (story) as a multipart upload, mirroring sendPhoto.
+   */
+  async publishImageStatus(
+    scope: ChatScope,
+    sessionId: string,
+    file: File,
+    caption?: string,
+  ): Promise<void> {
+    const form = new FormData();
+    form.append("file", file);
+    if (caption !== undefined && caption !== "") {
+      form.append("caption", caption);
+    }
+    await http.post(statusImageUrl(scope, sessionId), form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
   },
 
   /**

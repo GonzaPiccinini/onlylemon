@@ -48,6 +48,25 @@ export type ChatRepositoryDeps = {
 
   /** Calls WAHA PUT /api/reaction */
   sendReaction(session: string, messageId: string, reaction: string): Promise<void>;
+
+  /** Calls WAHA POST /api/{session}/status/text */
+  sendTextStatus(session: string, payload: TextStatusPayload): Promise<void>;
+
+  /** Calls WAHA POST /api/{session}/status/image */
+  sendImageStatus(session: string, payload: ImageStatusPayload): Promise<void>;
+};
+
+// ── Status payloads ────────────────────────────────────────────────────────────
+
+export type TextStatusPayload = {
+  text: string;
+  backgroundColor?: string;
+  font?: number;
+};
+
+export type ImageStatusPayload = {
+  file: { data: string; mimetype: string };
+  caption?: string;
 };
 
 // ── Internal WAHA shape (permissive — tolerates extra fields via index sig) ───
@@ -140,10 +159,21 @@ export type ChatRepository = {
     caption?: string,
   ): Promise<void>;
   sendReaction(sessionName: string, messageId: string, reaction: string): Promise<void>;
+  sendTextStatus(sessionName: string, payload: TextStatusPayload): Promise<void>;
+  sendImageStatus(sessionName: string, payload: ImageStatusPayload): Promise<void>;
 };
 
 export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
-  const { listChats, getChatMessages, downloadMedia, sendText, sendImage, sendReaction } = deps;
+  const {
+    listChats,
+    getChatMessages,
+    downloadMedia,
+    sendText,
+    sendImage,
+    sendReaction,
+    sendTextStatus,
+    sendImageStatus,
+  } = deps;
 
   return {
     async listChats(sessionName: string): Promise<ChatListEntry[]> {
@@ -232,6 +262,14 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
     ): Promise<void> {
       return sendReaction(sessionName, messageId, reaction);
     },
+
+    async sendTextStatus(sessionName: string, payload: TextStatusPayload): Promise<void> {
+      return sendTextStatus(sessionName, payload);
+    },
+
+    async sendImageStatus(sessionName: string, payload: ImageStatusPayload): Promise<void> {
+      return sendImageStatus(sessionName, payload);
+    },
   };
 }
 
@@ -250,6 +288,8 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
     sendText,
     sendImage,
     sendReaction,
+    sendTextStatus,
+    sendImageStatus,
   } = await import('../../integrations/waha/client.js');
 
   return createChatRepository({
@@ -260,5 +300,7 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
     sendText: (session, chatId, text, replyTo) => sendText(session, chatId, text, replyTo),
     sendImage: (session, chatId, file, caption) => sendImage(session, chatId, file, caption),
     sendReaction: (session, messageId, reaction) => sendReaction(session, messageId, reaction),
+    sendTextStatus: (session, payload) => sendTextStatus(session, payload),
+    sendImageStatus: (session, payload) => sendImageStatus(session, payload),
   });
 }

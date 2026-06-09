@@ -18,6 +18,7 @@ import { ReplyIcon, SmilePlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuotedReply } from './QuotedReply';
 import { MediaPreview } from './MediaPreview';
+import { isStickerMime } from '../mime';
 import { EmojiPicker } from './EmojiPicker';
 import { formatMessageTime } from '../time';
 import type { ChatMessage } from '@/types/chat';
@@ -55,6 +56,9 @@ export const MessageItem = ({
     onReact(message.id, emoji);
     setShowEmojiPicker(false);
   };
+
+  // Sticker-only messages render without a bubble (WhatsApp style).
+  const isStickerOnly = hasMedia && isStickerMime(mediaMimetype) && !body && !quotedMessage;
 
   return (
     <div
@@ -95,10 +99,13 @@ export const MessageItem = ({
       {/* Bubble */}
       <div
         className={[
-          'flex max-w-xs flex-col gap-1.5 rounded-2xl px-3 py-2 text-sm shadow-sm sm:max-w-md',
-          fromMe
-            ? 'rounded-br-sm bg-primary text-primary-foreground'
-            : 'rounded-bl-sm bg-muted text-foreground',
+          'flex max-w-xs flex-col gap-1.5 rounded-2xl text-sm sm:max-w-md',
+          isStickerOnly
+            ? 'bg-transparent px-0 py-0'
+            : 'px-3 py-2 shadow-sm ' +
+              (fromMe
+                ? 'rounded-br-sm bg-primary text-primary-foreground'
+                : 'rounded-bl-sm bg-muted text-foreground'),
         ].join(' ')}
       >
         {/* Quoted reply preview */}
@@ -126,7 +133,7 @@ export const MessageItem = ({
         <p
           className={[
             'self-end text-xs',
-            fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground',
+            !isStickerOnly && fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground',
           ].join(' ')}
         >
           {formatMessageTime(timestamp)}

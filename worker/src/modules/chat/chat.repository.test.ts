@@ -50,6 +50,8 @@ function makeDeps(overrides: Partial<ChatRepositoryDeps> = {}): ChatRepositoryDe
     sendText: async () => {},
     sendImage: async () => {},
     sendReaction: async () => {},
+    sendTextStatus: async () => {},
+    sendImageStatus: async () => {},
     ...overrides,
   };
 }
@@ -397,5 +399,43 @@ describe('chat.repository — send pass-throughs', () => {
     const repo = createChatRepository(deps);
     await repo.sendReaction('sess', 'msg-id', '');
     assert.equal(capturedReaction, '');
+  });
+});
+
+// ── status publishing ──────────────────────────────────────────────────────────
+
+describe('chat.repository — status publishing', () => {
+  it('sendTextStatus passes sessionName and payload to WAHA dep', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      sendTextStatus: async (session, payload) => {
+        captured = { session, payload };
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    await repo.sendTextStatus('sess', { text: 'hola estado', backgroundColor: '#38b42f' });
+
+    const args = captured as { session: string; payload: unknown };
+    assert.equal(args.session, 'sess');
+    assert.deepEqual(args.payload, { text: 'hola estado', backgroundColor: '#38b42f' });
+  });
+
+  it('sendImageStatus passes sessionName, file and caption to WAHA dep', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      sendImageStatus: async (session, payload) => {
+        captured = { session, payload };
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    const file = { data: 'base64data', mimetype: 'image/jpeg' };
+    await repo.sendImageStatus('sess', { file, caption: 'mi caption' });
+
+    const args = captured as { session: string; payload: { file: unknown; caption?: string } };
+    assert.equal(args.session, 'sess');
+    assert.deepEqual(args.payload.file, file);
+    assert.equal(args.payload.caption, 'mi caption');
   });
 });

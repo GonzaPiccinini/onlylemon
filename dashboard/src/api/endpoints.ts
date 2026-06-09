@@ -53,6 +53,10 @@ export const endpoints = {
       `/chat/sessions/${sessionId}/chats/${chatId}/messages/${messageId}/media`,
     cashierSendMedia: (sessionId: string, chatId: string) =>
       `/chat/sessions/${sessionId}/chats/${chatId}/media`,
+    cashierStatusText: (sessionId: string) =>
+      `/chat/sessions/${sessionId}/status/text`,
+    cashierStatusImage: (sessionId: string) =>
+      `/chat/sessions/${sessionId}/status/image`,
 
     // Admin-scoped endpoints
     adminChats: (cashierId: string, sessionId: string) =>
@@ -65,6 +69,10 @@ export const endpoints = {
       `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats/${chatId}/messages/${messageId}/media`,
     adminSendMedia: (cashierId: string, sessionId: string, chatId: string) =>
       `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats/${chatId}/media`,
+    adminStatusText: (cashierId: string, sessionId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/status/text`,
+    adminStatusImage: (cashierId: string, sessionId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/status/image`,
   },
   cashier: {
     sessions: "/cashier/sessions",

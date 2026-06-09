@@ -50,6 +50,12 @@ const SendReactionBodySchema = z.object({
   reaction: z.string(),
 });
 
+/** WhatsApp caps status text around 700 chars. backgroundColor is a hex color. */
+const PublishTextStatusBodySchema = z.object({
+  text: z.string().min(1).max(700),
+  backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+});
+
 // ── Error → HTTP status mapping ───────────────────────────────────────────────
 
 function mapServiceError(error: unknown, res: Response): boolean {
@@ -82,6 +88,9 @@ export type ChatController = {
   sendPhoto(req: Request, res: Response): Promise<void>;
   sendReaction(req: Request, res: Response): Promise<void>;
   getMedia(req: Request, res: Response): Promise<void>;
+  publishTextStatus(req: Request, res: Response): Promise<void>;
+  /** publishImageStatus — runs AFTER uploadSingleFile middleware (like sendPhoto). */
+  publishImageStatus(req: Request, res: Response): Promise<void>;
 };
 
 export function createChatController(service: ChatService): ChatController {
@@ -269,6 +278,74 @@ export function createChatController(service: ChatService): ChatController {
 
         res.set('Content-Type', result.mimetype);
         res.status(200).send(result.bytes);
+      } catch (err) {
+        if (!mapServiceError(err, res)) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }
+    },
+
+    // ── POST /chat/sessions/:sessionId/status/text ───────────────────────────
+    async publishTextStatus(req: Request, res: Response): Promise<void> {
+      const { sessionId } = req.params;
+      const requesterRole = req.authUser!.role;
+      const requesterCashierId = req.authUser!.cashierId;
+
+      const parsed = PublishTextStatusBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+        return;
+      }
+
+      const { text, backgroundColor } = parsed.data;
+
+      try {
+        await service.publishTextStatus({
+          sessionId,
+          text,
+          backgroundColor,
+          requesterRole,
+          requesterCashierId,
+        });
+        res.status(200).json({ ok: true });
+      } catch (err) {
+        if (!mapServiceError(err, res)) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }
+    },
+
+    // ── POST /chat/sessions/:sessionId/status/image ──────────────────────────
+    // Runs AFTER uploadSingleFile middleware — same pipeline as sendPhoto.
+    async publishImageStatus(req: Request, res: Response): Promise<void> {
+      const { sessionId } = req.params;
+      const requesterRole = req.authUser!.role;
+      const requesterCashierId = req.authUser!.cashierId;
+
+      if (!req.file) {
+        res.status(400).json({ error: 'Missing file — upload a file field named "file"' });
+        return;
+      }
+
+      if (!sniffImageMagicBytes(req.file.buffer, req.file.mimetype)) {
+        res.status(415).json({ error: 'File content does not match declared MIME type' });
+        return;
+      }
+
+      const caption = typeof req.body?.caption === 'string' ? req.body.caption : undefined;
+
+      try {
+        await service.publishImageStatus({
+          sessionId,
+          file: {
+            data: req.file.buffer.toString('base64'),
+            mimetype: req.file.mimetype,
+          },
+          caption,
+          requesterRole,
+          requesterCashierId,
+        });
+        res.status(200).json({ ok: true });
       } catch (err) {
         if (!mapServiceError(err, res)) {
           res.status(500).json({ error: 'Internal server error' });

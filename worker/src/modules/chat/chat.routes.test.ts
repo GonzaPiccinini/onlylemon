@@ -101,6 +101,8 @@ function makeMockService(overrides: Partial<ChatService> = {}): ChatService {
     sendPhoto: async () => {},
     sendReaction: async () => {},
     getMediaBytes: async () => ({ bytes: Buffer.from('bytes'), mimetype: 'image/png' }),
+    publishTextStatus: async () => {},
+    publishImageStatus: async () => {},
     ...overrides,
   };
 }
@@ -760,5 +762,93 @@ describe('chat.routes — photo-send (POST .../media)', () => {
     );
 
     assert.equal(status, 415);
+  });
+});
+
+// ── status routes ─────────────────────────────────────────────────────────────
+
+describe('chat.routes — status publishing', () => {
+  it('POST /chat/sessions/:sessionId/status/text returns 200 for cashier owning session', async () => {
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await request(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-1/status/text',
+      {
+        headers: { authorization: `Bearer ${cashier1Token}` },
+        body: { text: 'mi estado' },
+      },
+    );
+
+    assert.equal(status, 200);
+  });
+
+  it('POST /chat/sessions/:sessionId/status/text returns 403 for foreign session', async () => {
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-2' ? foreignSession : null),
+    );
+
+    const { status } = await request(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-2/status/text',
+      {
+        headers: { authorization: `Bearer ${cashier1Token}` },
+        body: { text: 'mi estado' },
+      },
+    );
+
+    assert.equal(status, 403);
+  });
+
+  it('POST /admin/chat/.../status/text returns 200 for admin', async () => {
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-2' ? foreignSession : null),
+    );
+
+    const { status } = await request(
+      app,
+      'POST',
+      '/api/admin/chat/cashiers/cashier-2/sessions/session-uuid-2/status/text',
+      {
+        headers: { authorization: `Bearer ${adminToken}` },
+        body: { text: 'estado admin' },
+      },
+    );
+
+    assert.equal(status, 200);
+  });
+
+  it('POST /chat/sessions/:sessionId/status/text returns 401 unauthenticated', async () => {
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await request(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-1/status/text',
+      { body: { text: 'x' } },
+    );
+
+    assert.equal(status, 401);
+  });
+
+  it('POST /chat/sessions/:sessionId/status/image returns 401 unauthenticated', async () => {
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await request(
+      app,
+      'POST',
+      '/api/chat/sessions/session-uuid-1/status/image',
+      { body: {} },
+    );
+
+    assert.equal(status, 401);
   });
 });

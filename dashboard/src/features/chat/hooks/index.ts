@@ -7,3 +7,4 @@ export { useSendPhoto } from "./useSendPhoto";
 export { useSendReaction } from "./useSendReaction";
 export { useLastSession, useLastChat } from "./useLastSession";
 export { useMediaBlob } from "./useMediaBlob";
+export { usePublishStatus } from "./usePublishStatus";

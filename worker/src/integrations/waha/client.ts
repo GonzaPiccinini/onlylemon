@@ -423,6 +423,61 @@ export async function sendImage(
 }
 
 /**
+ * Publishes a text status (story). Calls POST /api/{session}/status/text.
+ * `backgroundColor` is a hex color (e.g. "#38b42f"); `font` is a WAHA font index.
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendTextStatus(
+  session: string,
+  payload: { text: string; backgroundColor?: string; font?: number },
+): Promise<void> {
+  const body: Record<string, unknown> = { text: payload.text };
+  if (payload.backgroundColor !== undefined) body.backgroundColor = payload.backgroundColor;
+  if (payload.font !== undefined) body.font = payload.font;
+
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/${session}/status/text`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendTextStatus failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Publishes an image status (story). Calls POST /api/{session}/status/image.
+ * `file.data` is base64-encoded image content.
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendImageStatus(
+  session: string,
+  payload: { file: { data: string; mimetype: string }; caption?: string },
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    file: { data: payload.file.data, mimetype: payload.file.mimetype },
+  };
+  if (payload.caption !== undefined) body.caption = payload.caption;
+
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/${session}/status/image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendImageStatus failed with status ${response.status}`);
+  }
+}
+
+/**
  * Sends or removes a reaction on a WhatsApp message.
  * Calls PUT /api/reaction (WAHA uses PUT, not POST — confirmed Batch 0).
  * `reaction` is the emoji string; pass `""` to remove the reaction.

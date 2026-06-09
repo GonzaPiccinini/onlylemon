@@ -62,6 +62,8 @@ function makeDeps(overrides: Partial<ChatServiceDeps> = {}): ChatServiceDeps {
       sendImage: async () => {},
       sendReaction: async () => {},
       getMediaBytes: async () => ({ bytes: Buffer.from('fake'), mimetype: 'image/jpeg' }),
+      sendTextStatus: async () => {},
+      sendImageStatus: async () => {},
     },
     nowFn: () => 0,
     ...overrides,
@@ -374,6 +376,8 @@ describe('chat.service — getMediaBytes', () => {
         sendImage: async () => {},
         sendReaction: async () => {},
         getMediaBytes: async () => ({ bytes: fakeBytes, mimetype: 'image/png' }),
+        sendTextStatus: async () => {},
+        sendImageStatus: async () => {},
       },
     }));
 
@@ -399,6 +403,8 @@ describe('chat.service — getMediaBytes', () => {
         sendImage: async () => {},
         sendReaction: async () => {},
         getMediaBytes: async () => null,
+        sendTextStatus: async () => {},
+        sendImageStatus: async () => {},
       },
     }));
 
@@ -449,6 +455,8 @@ describe('chat.service — sendText forwards replyTo', () => {
         sendImage: async () => {},
         sendReaction: async () => {},
         getMediaBytes: async () => null,
+        sendTextStatus: async () => {},
+        sendImageStatus: async () => {},
       },
     }));
 
@@ -462,5 +470,96 @@ describe('chat.service — sendText forwards replyTo', () => {
     });
 
     assert.equal(capturedReplyTo, 'quoted-msg-id');
+  });
+});
+
+// ── status publishing ──────────────────────────────────────────────────────────
+
+describe('chat.service — status publishing', () => {
+  it('publishTextStatus delegates to repository with resolved sessionName', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ sessionName: 'waha-sess', cashierId: 'cashier-1' }),
+    });
+    deps.repository.sendTextStatus = async (sessionName, payload) => {
+      captured = { sessionName, payload };
+    };
+
+    const service = createChatService(deps);
+    await service.publishTextStatus({
+      sessionId: 'session-uuid-1',
+      text: 'hola estado',
+      backgroundColor: '#38b42f',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    const args = captured as { sessionName: string; payload: { text: string; backgroundColor?: string } };
+    assert.equal(args.sessionName, 'waha-sess');
+    assert.equal(args.payload.text, 'hola estado');
+    assert.equal(args.payload.backgroundColor, '#38b42f');
+  });
+
+  it('publishTextStatus throws ChatForbiddenError for foreign cashier', async () => {
+    const service = createChatService(makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-OTHER' }),
+    }));
+
+    await assert.rejects(
+      () => service.publishTextStatus({
+        sessionId: 'session-uuid-1',
+        text: 'x',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+      (err) => err instanceof ChatForbiddenError,
+    );
+  });
+
+  it('publishImageStatus base64-encodes Buffer file data and delegates', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps();
+    deps.repository.sendImageStatus = async (sessionName, payload) => {
+      captured = { sessionName, payload };
+    };
+
+    const service = createChatService(deps);
+    await service.publishImageStatus({
+      sessionId: 'session-uuid-1',
+      file: { data: Buffer.from('rawbytes'), mimetype: 'image/png' },
+      caption: 'cap',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    const args = captured as {
+      sessionName: string;
+      payload: { file: { data: string; mimetype: string }; caption?: string };
+    };
+    assert.equal(args.payload.file.data, Buffer.from('rawbytes').toString('base64'));
+    assert.equal(args.payload.file.mimetype, 'image/png');
+    assert.equal(args.payload.caption, 'cap');
+  });
+
+  it('publishTextStatus consumes the shared rate bucket and throws ChatRateLimitError when exhausted', async () => {
+    const deps = makeDeps({ nowFn: () => 0 });
+    deps.repository.sendTextStatus = async () => {};
+
+    const service = createChatService(deps);
+    const args = {
+      sessionId: 'session-uuid-1',
+      text: 'x',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER' as const,
+    };
+
+    // capacity = 10 — the 11th call must throw
+    for (let i = 0; i < 10; i++) {
+      await service.publishTextStatus(args);
+    }
+    await assert.rejects(
+      () => service.publishTextStatus(args),
+      (err) => err instanceof ChatRateLimitError,
+    );
   });
 });

@@ -132,6 +132,8 @@ function makeMockService(overrides: Partial<ChatService> = {}): ChatService {
     sendPhoto: async () => {},
     sendReaction: async () => {},
     getMediaBytes: async () => ({ bytes: Buffer.from('image-bytes'), mimetype: 'image/jpeg' }),
+    publishTextStatus: async () => {},
+    publishImageStatus: async () => {},
     ...overrides,
   };
 }
@@ -682,5 +684,147 @@ describe('chat.controller — getMedia', () => {
     assert.equal(res.statusCode, 200);
     assert.equal(res._headers['Content-Type'], 'application/pdf');
     assert.deepEqual(res.body, pdfBytes);
+  });
+});
+
+// ── publishTextStatus ───────────────────────────────────────────────────────────
+
+describe('chat.controller — publishTextStatus', () => {
+  it('returns 200 and delegates to service on valid payload', async () => {
+    let captured: unknown = null;
+    const svc = makeMockService({
+      publishTextStatus: async (args) => { captured = args; },
+    });
+    const { publishTextStatus } = createChatController(svc);
+
+    const req = makeReq({ body: { text: 'mi estado', backgroundColor: '#38b42f' } });
+    const res = makeRes();
+    await publishTextStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    const args = captured as { sessionId: string; text: string; backgroundColor?: string };
+    assert.equal(args.sessionId, 'session-uuid-1');
+    assert.equal(args.text, 'mi estado');
+    assert.equal(args.backgroundColor, '#38b42f');
+  });
+
+  it('returns 400 on empty text', async () => {
+    const svc = makeMockService();
+    const { publishTextStatus } = createChatController(svc);
+
+    const req = makeReq({ body: { text: '' } });
+    const res = makeRes();
+    await publishTextStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('returns 400 on malformed backgroundColor', async () => {
+    const svc = makeMockService();
+    const { publishTextStatus } = createChatController(svc);
+
+    const req = makeReq({ body: { text: 'ok', backgroundColor: 'rojo' } });
+    const res = makeRes();
+    await publishTextStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('maps ChatRateLimitError to 429', async () => {
+    const svc = makeMockService({
+      publishTextStatus: async () => { throw new ChatRateLimitError(); },
+    });
+    const { publishTextStatus } = createChatController(svc);
+
+    const req = makeReq({ body: { text: 'x' } });
+    const res = makeRes();
+    await publishTextStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 429);
+  });
+
+  it('maps ChatForbiddenError to 403', async () => {
+    const svc = makeMockService({
+      publishTextStatus: async () => { throw new ChatForbiddenError(); },
+    });
+    const { publishTextStatus } = createChatController(svc);
+
+    const req = makeReq({ body: { text: 'x' } });
+    const res = makeRes();
+    await publishTextStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 403);
+  });
+});
+
+// ── publishImageStatus ──────────────────────────────────────────────────────────
+
+describe('chat.controller — publishImageStatus', () => {
+  const jpegStatusBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+
+  function makeStatusReqWithFile(
+    file: Express.Multer.File | undefined,
+    body: Record<string, unknown> = {},
+  ) {
+    return makeReq({ file, body }) as unknown as import('express').Request;
+  }
+
+  it('returns 200 on valid JPEG and forwards base64 data + caption', async () => {
+    let captured: unknown = null;
+    const svc = makeMockService({
+      publishImageStatus: async (args) => { captured = args; },
+    });
+    const { publishImageStatus } = createChatController(svc);
+
+    const multerFile = {
+      fieldname: 'file',
+      originalname: 'status.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: jpegStatusBuffer,
+      size: jpegStatusBuffer.length,
+    } as Express.Multer.File;
+
+    const req = makeStatusReqWithFile(multerFile, { caption: 'mi caption' });
+    const res = makeRes();
+    await publishImageStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    const args = captured as { file: { data: string; mimetype: string }; caption?: string };
+    assert.equal(args.file.data, jpegStatusBuffer.toString('base64'));
+    assert.equal(args.file.mimetype, 'image/jpeg');
+    assert.equal(args.caption, 'mi caption');
+  });
+
+  it('returns 400 when file is missing', async () => {
+    const svc = makeMockService();
+    const { publishImageStatus } = createChatController(svc);
+
+    const req = makeStatusReqWithFile(undefined);
+    const res = makeRes();
+    await publishImageStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('returns 415 on magic-byte mismatch', async () => {
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const svc = makeMockService();
+    const { publishImageStatus } = createChatController(svc);
+
+    const multerFile = {
+      fieldname: 'file',
+      originalname: 'fake.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: pngBytes,
+      size: pngBytes.length,
+    } as Express.Multer.File;
+
+    const req = makeStatusReqWithFile(multerFile);
+    const res = makeRes();
+    await publishImageStatus(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 415);
   });
 });
