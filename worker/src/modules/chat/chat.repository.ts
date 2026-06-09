@@ -29,7 +29,7 @@ export type ChatRepositoryDeps = {
   getChatMessages(
     session: string,
     chatId: string,
-    opts: { limit: number; before?: string },
+    opts: { limit: number; offset?: number },
   ): Promise<Array<WahaMessageShape>>;
 
   /** Downloads media bytes from a WAHA-served URL */
@@ -125,7 +125,7 @@ export type ChatRepository = {
   getChatHistory(
     sessionName: string,
     chatId: string,
-    opts: { limit: number; before?: string },
+    opts: { limit: number; offset?: number },
   ): Promise<ChatMessage[]>;
   getMediaBytes(
     sessionName: string,
@@ -164,7 +164,7 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
     async getChatHistory(
       sessionName: string,
       chatId: string,
-      opts: { limit: number; before?: string },
+      opts: { limit: number; offset?: number },
     ): Promise<ChatMessage[]> {
       const messages = await getChatMessages(sessionName, chatId, opts);
       return messages.map(mapWahaMessageToChatMessage);
@@ -255,7 +255,7 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
   return createChatRepository({
     listChats: (session) => listChats(session),
     getChatMessages: (session, chatId, opts) =>
-      getChatMessages(session, chatId, { limit: opts.limit, sortBy: 'timestamp', downloadMedia: true }),
+      getChatMessages(session, chatId, { limit: opts.limit, offset: opts.offset, sortBy: 'timestamp', sortOrder: 'desc', downloadMedia: true }),
     downloadMedia: (url) => downloadMedia(url),
     sendText: (session, chatId, text, replyTo) => sendText(session, chatId, text, replyTo),
     sendImage: (session, chatId, file, caption) => sendImage(session, chatId, file, caption),

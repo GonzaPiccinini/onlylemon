@@ -541,6 +541,165 @@ describe('mirrorChatMessage fan-out — message.any text job', () => {
     assert.equal(mirrorCalls.length, 1, 'mirrorChatMessage must be called even on trigger path');
     assert.equal(mirrorCalls[0].messageId, 'msg-trigger-fan-1');
   });
+
+  it('B2.9 — inbound LID chat resolves chatId from _data.Info.SenderAlt (not raw @lid from)', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    // GOWS LID-addressed inbound: payload.from is a LID JID, the real phone JID
+    // lives in _data.Info.SenderAlt. The fan-out chatId MUST be the phone JID so
+    // the open @c.us chat updates live.
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-lid-in',
+      payload: {
+        id: 'msg-lid-in-1',
+        from: '12345@lid',
+        body: 'hola',
+        fromMe: false,
+        hasMedia: false,
+        _data: { Info: { SenderAlt: '5491112345678@c.us' } },
+      },
+    }, 'message.any') as never);
+    assert.equal(mirrorCalls.length, 1);
+    assert.equal(mirrorCalls[0].chatId, '5491112345678@c.us');
+  });
+
+  it('B2.10 — outbound LID chat resolves chatId from _data.Info.RecipientAlt (not raw @lid from)', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      getSetting: async () => '',
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    // GOWS LID-addressed outbound: payload.from is a LID JID, the real phone JID
+    // lives in _data.Info.RecipientAlt.
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-lid-out',
+      payload: {
+        id: 'msg-lid-out-1',
+        from: '12345@lid',
+        body: 'respondiendo',
+        fromMe: true,
+        hasMedia: false,
+        _data: { Info: { RecipientAlt: '5491112345678@c.us' } },
+      },
+    }, 'message.any') as never);
+    assert.equal(mirrorCalls.length, 1);
+    assert.equal(mirrorCalls[0].chatId, '5491112345678@c.us');
+  });
+
+  it('B2.11 — empty SenderAlt/RecipientAlt do NOT yield an empty chatId (falls back to from)', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      getSetting: async () => '',
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    // Real GOWS non-LID chat: `_data.Info.SenderAlt`/`RecipientAlt` come back as
+    // EMPTY STRINGS, not absent (captured live 2026-06-09). The `??` chain
+    // short-circuits on "" and would emit chatId:"" — which lands in an empty
+    // history-cache bucket so the open thread never updates. Must skip empties
+    // and fall back to the (already @c.us) `payload.from`.
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-empty-alt',
+      payload: {
+        id: 'msg-empty-alt-1',
+        from: '5491112345678@c.us',
+        body: 'hola',
+        fromMe: true,
+        hasMedia: false,
+        _data: { Info: { SenderAlt: '', RecipientAlt: '', AddressingMode: '' } },
+      },
+    }, 'message.any') as never);
+    assert.equal(mirrorCalls.length, 1);
+    assert.equal(mirrorCalls[0].chatId, '5491112345678@c.us');
+  });
+
+  it('B2.12 — real GOWS inbound: SenderAlt is @s.whatsapp.net, from/Chat are @lid → normalizes to @c.us', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      getSetting: async () => '',
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    // Captured live 2026-06-09: an incoming message has `from` and `Info.Chat` in
+    // the LID form, while the phone JID lives in `Info.SenderAlt` but in the
+    // `@s.whatsapp.net` domain (NOT `@c.us`). The chat list/history use `@c.us`,
+    // so the resolver MUST normalize the domain.
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-gows-in',
+      payload: {
+        id: 'msg-gows-in-1',
+        from: '44517520601297@lid',
+        body: 'hola cajero',
+        fromMe: false,
+        hasMedia: false,
+        _data: {
+          Info: {
+            Chat: '44517520601297@lid',
+            SenderAlt: '5493512692202@s.whatsapp.net',
+            RecipientAlt: '',
+            AddressingMode: '',
+          },
+        },
+      },
+    }, 'message.any') as never);
+    assert.equal(mirrorCalls.length, 1);
+    assert.equal(mirrorCalls[0].chatId, '5493512692202@c.us');
+  });
+
+  it('B2.13 — outbound with empty Alts falls back to Info.Chat (@s.whatsapp.net) → @c.us', async () => {
+    type MirrorChatMessageCall = Parameters<InboundProcessorDeps['mirrorChatMessage']>[0];
+    const mirrorCalls: MirrorChatMessageCall[] = [];
+    const deps = makeDefaultDeps({
+      getSetting: async () => '',
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    // sendText outbound: both Alt fields are empty, but Info.Chat carries the
+    // phone JID in `@s.whatsapp.net` form.
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-gows-out',
+      payload: {
+        id: 'msg-gows-out-1',
+        from: '5493512692202@c.us',
+        body: 'respuesta',
+        fromMe: true,
+        hasMedia: false,
+        _data: {
+          Info: {
+            Chat: '5493512692202@s.whatsapp.net',
+            SenderAlt: '',
+            RecipientAlt: '',
+            AddressingMode: '',
+          },
+        },
+      },
+    }, 'message.any') as never);
+    assert.equal(mirrorCalls.length, 1);
+    assert.equal(mirrorCalls[0].chatId, '5493512692202@c.us');
+  });
 });
 
 // ===========================================================================

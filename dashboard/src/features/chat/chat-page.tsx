@@ -39,6 +39,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useAuth } from '@/features/auth/auth-context';
+import { useIsMobile } from '@/hooks/use-is-mobile';
+import { toMillis } from './time';
 import type { ChatScope } from '@/api/chat.service';
 import type { ChatMessage } from '@/types/chat';
 import {
@@ -107,6 +109,7 @@ export const ChatPage = ({
   emptyCta,
 }: ChatPageProps) => {
   const { token } = useAuth();
+  const isMobile = useIsMobile();
 
   // ------------------------------------------------------------------
   // Session selection with localStorage persistence
@@ -189,14 +192,30 @@ export const ChatPage = ({
     if (sheetOpen) setSheetOpen(false);
   }
 
+  // ------------------------------------------------------------------
+  // SSE stream — mounted at page level (all visible chats stay live).
+  // Declared before handleSelectChat because the latter needs markChatRead.
+  // ------------------------------------------------------------------
+
+  const { unreadChatIds, markChatRead } = useChatStream(
+    token,
+    scope,
+    selectedSessionId,
+    selectedChatId,
+  );
+
   const handleSelectChat = useCallback(
     (chatId: string) => {
       setSelectedChatId(chatId);
       setReplyingTo(null);
-      setSheetOpen(true);
+      // Opening a chat clears its unread notification dot.
+      markChatRead(chatId);
+      // Desktop is a persistent two-pane layout (WhatsApp Web): selecting a
+      // chat just swaps the right pane. The full-screen Sheet is mobile-only.
+      if (isMobile) setSheetOpen(true);
       rememberChat(chatId);
     },
-    [rememberChat],
+    [isMobile, markChatRead, rememberChat],
   );
 
   // ------------------------------------------------------------------
@@ -204,16 +223,22 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   const historyQuery = useChatHistory(scope, selectedSessionId, selectedChatId);
-  const messages = useMemo(
-    () => historyQuery.data?.pages.flat() ?? [],
-    [historyQuery.data],
-  );
-
-  // ------------------------------------------------------------------
-  // SSE stream — mounted at page level (all visible chats stay live)
-  // ------------------------------------------------------------------
-
-  useChatStream(token, scope, selectedSessionId, selectedChatId);
+  // WAHA returns history newest-first and the SSE stream prepends new messages,
+  // so sort ascending by timestamp for WhatsApp-style display: oldest at the
+  // top, newest at the bottom. (Pagination cursors read the raw pages, not this
+  // derived list, so sorting here is display-only.)
+  const messages = useMemo(() => {
+    const flat = historyQuery.data?.pages.flat() ?? [];
+    // De-dupe by message id: pagination boundaries and SSE/optimistic races can
+    // surface the same message twice. Keep the first occurrence.
+    const seen = new Set<string>();
+    const unique = flat.filter((m) => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+    return unique.sort((a, b) => toMillis(a.timestamp) - toMillis(b.timestamp));
+  }, [historyQuery.data]);
 
   // ------------------------------------------------------------------
   // Send mutations (only meaningful when a chat + session are selected)
@@ -282,6 +307,7 @@ export const ChatPage = ({
             chats={chats}
             selectedChatId={selectedChatId}
             onSelect={handleSelectChat}
+            unreadChatIds={unreadChatIds}
             isLoading={chatListQuery.isLoading}
           />
         </>
@@ -292,8 +318,11 @@ export const ChatPage = ({
   const threadPanel =
     selectedChatId && selectedSessionId ? (
       <div className="flex h-full flex-col overflow-hidden">
-        <div className="flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* key on chatId → full remount per conversation, so no scroll
+              position or message state can bleed across chats. */}
           <MessageThread
+            key={selectedChatId}
             messages={messages}
             scope={scope}
             sessionId={selectedSessionId}
@@ -342,8 +371,9 @@ export const ChatPage = ({
         {listPanel}
       </div>
 
-      {/* Mobile: Sheet slide-over for the thread */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      {/* Mobile: Sheet slide-over for the thread. Never opens on desktop —
+          there the right pane already shows the conversation. */}
+      <Sheet open={isMobile && sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           showCloseButton={false}
           className="flex w-full flex-col gap-0 p-0 sm:max-w-full"

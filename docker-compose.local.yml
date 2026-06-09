@@ -126,6 +126,12 @@ services:
     profiles: [waha]
     environment:
       WAHA_API_KEY: dev-waha-key
+      WAHA_DASHBOARD_USERNAME: admin
+      WAHA_DASHBOARD_PASSWORD: admin
+      WAHA_DASHBOARD_NO_PASSWORD: 'true'
+      WHATSAPP_SWAGGER_USERNAME: admin
+      WHATSAPP_SWAGGER_PASSWORD: admin
+      WHATSAPP_SWAGGER_NO_PASSWORD: 'true'
       WHATSAPP_DEFAULT_ENGINE: GOWS
       WAHA_PRINT_QR: 'true'
       WAHA_LOG_LEVEL: info
@@ -140,7 +146,7 @@ services:
       WAHA_DOWNLOAD_MEDIA: 'True'
       WHATSAPP_DOWNLOAD_MEDIA: 'True'
       WHATSAPP_FILES_MIMETYPES: 'image/jpeg,image/png,application/pdf'
-      WHATSAPP_FILES_LIFETIME: '7200'
+      WHATSAPP_FILES_LIFETIME: '2592000'
     ports:
       - '127.0.0.1:3001:3000'
     volumes:

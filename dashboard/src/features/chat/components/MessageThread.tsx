@@ -1,20 +1,26 @@
 /**
  * MessageThread.tsx — Scrollable list of chat messages.
  *
- * Features:
- *   - Auto-scroll to bottom on new messages when the user is already near the
- *     bottom (within 120 px). Does not hijack scroll when user is reading old
- *     messages.
- *   - "Cargar mensajes anteriores" button at the top when `hasOlder` is true.
- *   - Delegates per-message rendering to MessageItem.
- *   - Loading skeleton while initial history is fetching.
- *   - Propagates `onReply` / `onReact` callbacks upward.
+ * Messages arrive oldest→newest (sorted by the parent), WhatsApp-style:
+ * oldest at the top, newest at the bottom.
+ *
+ * Scroll behaviour:
+ *   - On chat open / first load → jump instantly to the bottom (newest).
+ *   - On a new incoming/sent message while the user is near the bottom →
+ *     smooth-scroll to follow it. Does not hijack scroll when the user is
+ *     reading history.
+ *   - On "Cargar mensajes anteriores" (older messages prepended at the top) →
+ *     preserve the viewport so the message being read stays put.
+ *
+ * "Cargar mensajes anteriores" button at the top when `hasOlder` is true.
+ * Delegates per-message rendering to MessageItem.
  */
 
-import { useEffect, useRef } from 'react';
+import { Fragment, useLayoutEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { MessageItem } from './MessageItem';
+import { formatDayLabel, isSameDay } from '../time';
 import type { ChatMessage } from '@/types/chat';
 import type { ChatScope } from '@/api/chat.service';
 
@@ -56,23 +62,43 @@ export const MessageThread = ({
   onReact,
 }: MessageThreadProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const prevLengthRef = useRef(messages.length);
+  const prevChatIdRef = useRef(chatId);
+  const prevLengthRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
 
-  useEffect(() => {
+  // useLayoutEffect: adjust scroll before the browser paints to avoid flicker
+  // (especially when preserving position after prepending older messages).
+  useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
+    const chatChanged = prevChatIdRef.current !== chatId;
+    const firstLoad = prevLengthRef.current === 0 && messages.length > 0;
     const grew = messages.length > prevLengthRef.current;
-    prevLengthRef.current = messages.length;
 
-    if (!grew) return;
+    // Was the user near the bottom BEFORE this update? Use the previous
+    // scrollHeight so a just-prepended page doesn't skew the measurement.
+    const wasNearBottom =
+      prevScrollHeightRef.current - el.scrollTop - el.clientHeight <=
+      NEAR_BOTTOM_THRESHOLD;
 
-    // Only auto-scroll if the user is near the bottom
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceFromBottom <= NEAR_BOTTOM_THRESHOLD) {
-      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    if (chatChanged || firstLoad) {
+      // Open a chat → land at the newest message instantly.
+      el.scrollTop = el.scrollHeight;
+    } else if (grew) {
+      if (wasNearBottom) {
+        // New incoming/sent message at the bottom → follow it.
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      } else {
+        // Older messages prepended at the top → keep the viewport anchored.
+        el.scrollTop += el.scrollHeight - prevScrollHeightRef.current;
+      }
     }
-  }, [messages.length]);
+
+    prevChatIdRef.current = chatId;
+    prevLengthRef.current = messages.length;
+    prevScrollHeightRef.current = el.scrollHeight;
+  }, [messages.length, chatId]);
 
   if (isLoading) {
     return (
@@ -92,7 +118,7 @@ export const MessageThread = ({
   return (
     <div
       ref={scrollRef}
-      className="flex flex-1 flex-col gap-3 overflow-y-auto p-4"
+      className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
     >
       {/* Load older messages */}
       {hasOlder && (
@@ -114,17 +140,30 @@ export const MessageThread = ({
         </div>
       )}
 
-      {messages.map((msg) => (
-        <MessageItem
-          key={msg.id}
-          message={msg}
-          scope={scope}
-          sessionId={sessionId}
-          chatId={chatId}
-          onReply={onReply}
-          onReact={onReact}
-        />
-      ))}
+      {messages.map((msg, i) => {
+        const prev = i > 0 ? messages[i - 1] : undefined;
+        const showDayDivider =
+          !prev || !isSameDay(prev.timestamp, msg.timestamp);
+        return (
+          <Fragment key={msg.id}>
+            {showDayDivider && (
+              <div className="sticky top-0 z-10 flex justify-center py-1">
+                <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+                  {formatDayLabel(msg.timestamp)}
+                </span>
+              </div>
+            )}
+            <MessageItem
+              message={msg}
+              scope={scope}
+              sessionId={sessionId}
+              chatId={chatId}
+              onReply={onReply}
+              onReact={onReact}
+            />
+          </Fragment>
+        );
+      })}
     </div>
   );
 };

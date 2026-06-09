@@ -120,6 +120,72 @@ const InboundJobSchema = z.union([
 ]);
 
 // ---------------------------------------------------------------------------
+// Canonical chat-id resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalize a WhatsApp JID to the canonical chat-id form (`<phone>@c.us`) that
+ * the chat list / history are keyed on. Returns undefined when the JID is NOT a
+ * usable phone form, so callers can fall through to the next candidate.
+ *   - `<phone>@s.whatsapp.net` (optionally `:<device>`) → `<phone>@c.us`
+ *   - `<phone>@c.us`                                    → `<phone>@c.us`
+ *   - `<group>@g.us`                                    → unchanged (group chat)
+ *   - `<lid>@lid` / empty / anything else               → undefined
+ */
+function toCanonicalChatId(jid: string | undefined | null): string | undefined {
+  if (!jid) return undefined;
+  if (jid.endsWith('@g.us')) return jid;
+  const user = jid.split('@')[0]?.split(':')[0];
+  if (!user) return undefined;
+  if (jid.endsWith('@s.whatsapp.net') || jid.endsWith('@c.us')) {
+    return `${user}@c.us`;
+  }
+  return undefined;
+}
+
+/**
+ * WAHA addresses LID chats with `payload.from` / `_data.Info.Chat` in the LID
+ * form (e.g. `12345@lid`), while the chat list/history key on the phone JID
+ * (`<phone>@c.us`). The fan-out chatId MUST be that phone JID so live updates
+ * (thread, unread dot) land in the right cache bucket. The real phone lives in
+ * several fields and DOMAINS depending on engine/direction:
+ *   GOWS inbound  (fromMe=false): _data.Info.SenderAlt    (e.g. `<phone>@s.whatsapp.net`)
+ *   GOWS outbound (fromMe=true):  _data.Info.RecipientAlt (e.g. `<phone>@s.whatsapp.net`)
+ *   GOWS either:                  _data.Info.Chat         (phone form on non-LID chats)
+ *   NOWEB:                        _data.key.remoteJidAlt
+ *   Fallback:                     payload.from
+ * GOWS also sends the Alt fields as EMPTY STRINGS (not absent) on some chats, and
+ * the alt/Chat phone is in `@s.whatsapp.net` (not `@c.us`). So: pick the first
+ * candidate that NORMALIZES to a usable `@c.us` phone form (skipping empties and
+ * `@lid`); fall back to the raw `from` only when nothing else resolves.
+ */
+function resolveCanonicalChatId(
+  payload: { from: string; fromMe?: boolean } & Record<string, unknown>,
+  fromMe: boolean,
+): string {
+  const dataAny = (payload as Record<string, unknown>)._data as
+    | {
+        Info?: { RecipientAlt?: string; SenderAlt?: string; Chat?: string };
+        key?: { remoteJidAlt?: string };
+      }
+    | undefined;
+  const info = dataAny?.Info;
+  const directional = fromMe ? info?.RecipientAlt : info?.SenderAlt;
+  const candidates = [
+    directional,
+    fromMe ? info?.SenderAlt : info?.RecipientAlt,
+    info?.Chat,
+    dataAny?.key?.remoteJidAlt,
+    payload.from,
+  ];
+  for (const candidate of candidates) {
+    const canonical = toCanonicalChatId(candidate);
+    if (canonical) return canonical;
+  }
+  return payload.from;
+}
+
+// ---------------------------------------------------------------------------
 // Injectable deps type (for testing)
 // ---------------------------------------------------------------------------
 
@@ -258,7 +324,12 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
           } else {
             await deps.mirrorChatReaction({
               sessionName: data.session,
-              chatId: reactionPayload.from ?? '',
+              // Same LID→phone resolution as messages: the reaction payload also
+              // preserves `_data` (InboundReactionSchema.payload uses .passthrough()).
+              chatId: resolveCanonicalChatId(
+                { ...(data.payload as Record<string, unknown>), from: reactionPayload.from ?? '' },
+                reactionPayload.fromMe ?? false,
+              ),
               messageId: targetMessageId,
               reaction: reactionPayload.reaction.text,
               fromMe: reactionPayload.fromMe ?? false,
@@ -327,7 +398,7 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
             // Called unconditionally even on the trigger path (acceptance criterion #4).
             await deps.mirrorChatMessage({
               sessionName: data.session,
-              chatId: data.payload.from,
+              chatId: resolveCanonicalChatId(data.payload, data.payload.fromMe ?? false),
               messageId: data.payload.id,
               body: data.payload.body ?? '',
               fromMe: data.payload.fromMe ?? false,
@@ -350,7 +421,7 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
         // receives ALL inbound + outbound messages regardless of routing.
         await deps.mirrorChatMessage({
           sessionName: data.session,
-          chatId: data.payload.from,
+          chatId: resolveCanonicalChatId(data.payload, data.payload.fromMe ?? false),
           messageId: data.payload.id,
           body: data.payload.body ?? '',
           fromMe: data.payload.fromMe ?? false,

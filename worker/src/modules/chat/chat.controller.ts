@@ -37,7 +37,7 @@ import { sniffImageMagicBytes } from './upload.middleware.js';
 
 const HistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(30),
-  before: z.string().optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 });
 
 const SendTextBodySchema = z.object({
@@ -118,14 +118,14 @@ export function createChatController(service: ChatService): ChatController {
         return;
       }
 
-      const { limit, before } = parsed.data;
+      const { limit, offset } = parsed.data;
 
       try {
         const messages = await service.getChatHistory({
           sessionId,
           chatId,
           limit,
-          before,
+          offset,
           requesterRole,
           requesterCashierId,
         });

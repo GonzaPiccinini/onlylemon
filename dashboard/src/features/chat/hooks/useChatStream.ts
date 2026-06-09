@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { chatService, type ChatScope } from "@/api/chat.service";
 import type { ChatMessageEvent, ChatMessage, ChatReactionEvent } from "@/types/chat";
 import { chatHistoryKey } from "./useChatHistory";
 import { chatListKey } from "./useChatList";
+import { RECONCILE_WINDOW_MS, type OptimisticMessage } from "./useSendMessage";
+import { toMillis } from "../time";
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -28,10 +30,15 @@ import { chatListKey } from "./useChatList";
  * The hook processes events for ALL visible chats, not just the active one,
  * so that the chat list unread counters / timestamps stay current.
  *
+ * Unread tracking: an incoming message (`!fromMe`) for a chat that is NOT the
+ * one currently open marks that chatId as unread (drives the notification dot
+ * in the chat list). Opening a chat clears it via the returned `markChatRead`.
+ *
  * @param token  JWT for ?token= query param.  When null the hook is a no-op.
  * @param scope  Current scope — needed to build the correct cache keys.
  * @param activeSessionId  Currently open session (may be null).
  * @param activeChatId    Currently open chat (may be null).
+ * @returns `unreadChatIds` set and a `markChatRead(chatId)` clearer.
  */
 export const useChatStream = (
   token: string | null,
@@ -40,6 +47,21 @@ export const useChatStream = (
   activeChatId: string | null,
 ) => {
   const queryClient = useQueryClient();
+
+  // Set of chatIds with unread incoming messages. Drives the chat-list dot.
+  const [unreadChatIds, setUnreadChatIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  // Clear a chat's unread flag — called by the page when a chat is opened.
+  const markChatRead = useCallback((chatId: string) => {
+    setUnreadChatIds((prev) => {
+      if (!prev.has(chatId)) return prev;
+      const next = new Set(prev);
+      next.delete(chatId);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -69,12 +91,26 @@ export const useChatStream = (
           histKey,
           (old) => {
             if (!old) return old;
-            const firstPage = old.pages[0] ?? [];
-            if (firstPage.some((m) => m.id === message.id)) {
-              // Already in cache — no-op
+            // Already in cache by real id (e.g. duplicate echo) — no-op.
+            if (old.pages.some((page) => page.some((m) => m.id === message.id))) {
               return old;
             }
-            // Prepend new message to first page (newest-first ordering)
+            // Reconcile: this echo may supersede an optimistic tile we inserted
+            // on send (different local id). Drop the matching optimistic tile so
+            // the message doesn't appear twice. Match by side + body + a ±5s
+            // timestamp window (units normalized — optimistic is ms, echo may be
+            // seconds). Only fromMe echoes can match an optimistic tile.
+            const firstPage = (old.pages[0] ?? []).filter((m) => {
+              if (!(m as Partial<OptimisticMessage>)._optimistic) return true;
+              const supersededByEcho =
+                m.fromMe === message.fromMe &&
+                m.body === message.body &&
+                Math.abs(toMillis(m.timestamp) - toMillis(message.timestamp)) <=
+                  RECONCILE_WINDOW_MS;
+              return !supersededByEcho;
+            });
+            // Prepend new message to first page (newest-first ordering;
+            // chat-page re-sorts by timestamp for display).
             return {
               ...old,
               pages: [
@@ -91,6 +127,40 @@ export const useChatStream = (
         void queryClient.invalidateQueries({
           queryKey: chatListKey(scope, sessionId),
         });
+
+        // The fan-out chatId form may not match the chatId the OPEN thread is
+        // keyed on. The chat list / history use the phone JID (`@c.us`) coming
+        // from `listChats`, but the SSE event's chatId can arrive in a different
+        // form (`@lid`, or a fallback to the raw `payload.from`) when the
+        // canonical resolver can't find the phone JID in the webhook payload.
+        // When that happens the surgical setQueryData above writes to a
+        // different cache bucket and the open conversation never updates — even
+        // though the chat list (keyed only by sessionId) refreshes. That is the
+        // "messages show in the contact list but not in the open chat" bug.
+        //
+        // Guarantee the open thread reflects the new message by invalidating its
+        // history query whenever a message lands in the active session, so it
+        // refetches from WAHA (which returns the message under the chat's
+        // canonical id regardless of the event's chatId form). Gated on the
+        // active session so unrelated sessions don't trigger a refetch.
+        if (
+          activeSessionId &&
+          activeChatId &&
+          sessionId === activeSessionId
+        ) {
+          void queryClient.invalidateQueries({
+            queryKey: chatHistoryKey(scope, activeSessionId, activeChatId),
+          });
+        }
+
+        // Unread indicator: flag the chat when an INCOMING message arrives for a
+        // chat that is not the one currently open. The active chat is excluded
+        // (the user is already looking at it) and own (fromMe) echoes never count.
+        if (chatId && !message.fromMe && chatId !== activeChatId) {
+          setUnreadChatIds((prev) =>
+            prev.has(chatId) ? prev : new Set(prev).add(chatId),
+          );
+        }
       } catch {
         // Malformed event — ignore
       }
@@ -154,4 +224,6 @@ export const useChatStream = (
       source.close();
     };
   }, [activeChatId, activeSessionId, queryClient, scope, token]);
+
+  return { unreadChatIds, markChatRead };
 };

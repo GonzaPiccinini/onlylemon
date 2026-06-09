@@ -2,7 +2,8 @@
  * ChatList.tsx — Renders the list of chats for a selected session.
  *
  * Per spec amendment: shows name + relative timestamp only (no body preview).
- * Unread indicator: small dot when chatId is in `unreadChatIds`.
+ * Unread indicator: a yellow notification dot (trailing) when chatId is in
+ * `unreadChatIds`. Rows are separated by a divider line for clear delimitation.
  *
  * Relative time uses `date-fns/formatDistanceToNow` (already a dependency).
  */
@@ -71,7 +72,7 @@ export const ChatList = ({
   }
 
   return (
-    <ul className="flex flex-col gap-0.5 p-1.5">
+    <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border">
       {chats.map((chat) => {
         const isSelected = chat.chatId === selectedChatId;
         const isUnread = unreadChatIds?.has(chat.chatId) ?? false;
@@ -83,21 +84,12 @@ export const ChatList = ({
               type="button"
               onClick={() => onSelect(chat.chatId)}
               className={[
-                'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
+                'group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors',
                 isSelected
                   ? 'bg-primary/10 text-primary'
                   : 'hover:bg-muted/60 text-foreground',
               ].join(' ')}
             >
-              {/* Unread indicator dot */}
-              <span
-                className={[
-                  'size-2 shrink-0 rounded-full',
-                  isUnread ? 'bg-primary' : 'bg-transparent',
-                ].join(' ')}
-                aria-hidden={!isUnread}
-              />
-
               {/* Name + timestamp */}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <p
@@ -112,6 +104,15 @@ export const ChatList = ({
                   {relativeTime(chat.lastMessageTimestamp)}
                 </p>
               </div>
+
+              {/* Unread notification dot — yellow circle, trailing. */}
+              {isUnread && (
+                <span
+                  role="status"
+                  aria-label="Mensaje sin leer"
+                  className="size-2.5 shrink-0 rounded-full bg-yellow-400 shadow-[0_0_0_3px_rgba(250,204,21,0.25)]"
+                />
+              )}
             </button>
           </li>
         );

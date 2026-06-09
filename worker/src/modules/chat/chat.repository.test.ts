@@ -212,7 +212,7 @@ describe('chat.repository — getChatHistory', () => {
     assert.equal(msg.mediaMimetype, 'image/jpeg');
   });
 
-  it('passes limit and before to WAHA getChatMessages', async () => {
+  it('passes limit and offset to WAHA getChatMessages', async () => {
     let capturedArgs: unknown = null;
     const deps = makeDeps({
       getChatMessages: async (session, chatId, opts) => {
@@ -222,13 +222,14 @@ describe('chat.repository — getChatHistory', () => {
     });
 
     const repo = createChatRepository(deps);
-    await repo.getChatHistory('sess', 'chat@c.us', { limit: 15, before: 'msg-cursor' });
+    await repo.getChatHistory('sess', 'chat@c.us', { limit: 15, offset: 30 });
 
     assert.ok(capturedArgs);
     const args = capturedArgs as { session: string; chatId: string; opts: Record<string, unknown> };
     assert.equal(args.session, 'sess');
     assert.equal(args.chatId, 'chat@c.us');
     assert.equal(args.opts.limit, 15);
+    assert.equal(args.opts.offset, 30);
   });
 
   it('handles missing reactions field gracefully (defaults to [])', async () => {

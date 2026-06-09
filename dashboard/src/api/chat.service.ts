@@ -109,18 +109,19 @@ export const chatService = {
   /**
    * Fetch paginated message history for a chat, most-recent-first.
    * `limit` defaults to 30 on the worker side when omitted.
-   * `before` is an opaque cursor (message id) for pagination.
+   * `offset` skips the N most-recent messages (WAHA-backed pagination) so the
+   * UI can walk back through older messages without re-fetching the same set.
    */
   async getChatHistory(
     scope: ChatScope,
     sessionId: string,
     chatId: string,
-    opts: { limit?: number; before?: string } = {},
+    opts: { limit?: number; offset?: number } = {},
   ): Promise<ChatMessage[]> {
     const { data } = await http.get<ChatMessage[]>(messagesUrl(scope, sessionId, chatId), {
       params: {
         ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
-        ...(opts.before ? { before: opts.before } : {}),
+        ...(opts.offset ? { offset: opts.offset } : {}),
       },
     });
     return data;

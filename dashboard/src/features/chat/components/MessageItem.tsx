@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { QuotedReply } from './QuotedReply';
 import { MediaPreview } from './MediaPreview';
 import { EmojiPicker } from './EmojiPicker';
+import { formatMessageTime } from '../time';
 import type { ChatMessage } from '@/types/chat';
 import type { ChatScope } from '@/api/chat.service';
 
@@ -33,22 +34,6 @@ interface MessageItemProps {
   chatId: string;
   onReply: (message: ChatMessage) => void;
   onReact: (messageId: string, emoji: string) => void;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatTime(timestamp: number): string {
-  try {
-    return new Intl.DateTimeFormat('es-AR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(new Date(timestamp * 1000));
-  } catch {
-    return '';
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +129,7 @@ export const MessageItem = ({
             fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground',
           ].join(' ')}
         >
-          {formatTime(timestamp)}
+          {formatMessageTime(timestamp)}
         </p>
       </div>
 

@@ -16,12 +16,16 @@ export const chatHistoryKey = (
 // Hook
 // ---------------------------------------------------------------------------
 
+const PAGE_SIZE = 30;
+
 /**
  * Fetches paginated message history for a chat using an infinite query.
  *
- * Pages are keyed by the `before` cursor (oldest message id in the loaded page).
- * `fetchNextPage()` loads older messages by passing the last page's earliest
- * message id as the `before` cursor.
+ * Pages use a numeric `offset` cursor (WAHA-backed): page 0 is the newest
+ * PAGE_SIZE messages, and `fetchNextPage()` loads older messages by skipping
+ * the count already loaded. This avoids the old broken message-id cursor that
+ * the worker ignored — which re-fetched the same newest page and produced
+ * duplicate / out-of-order messages.
  *
  * Disabled when `chatId` is null (no chat selected yet).
  */
@@ -30,19 +34,19 @@ export const useChatHistory = (
   sessionId: string | null,
   chatId: string | null,
 ) =>
-  useInfiniteQuery<ChatMessage[], Error, { pages: ChatMessage[][] }, ReturnType<typeof chatHistoryKey>, string | undefined>({
+  useInfiniteQuery<ChatMessage[], Error, { pages: ChatMessage[][] }, ReturnType<typeof chatHistoryKey>, number>({
     queryKey: chatHistoryKey(scope, sessionId, chatId),
     queryFn: ({ pageParam }) =>
       chatService.getChatHistory(scope, sessionId!, chatId!, {
-        limit: 30,
-        before: pageParam,
+        limit: PAGE_SIZE,
+        offset: pageParam,
       }),
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) => {
-      // If the page returned fewer than 30 items we've reached the end.
-      if (lastPage.length < 30) return undefined;
-      // The oldest message in the page becomes the next `before` cursor.
-      return lastPage[lastPage.length - 1]?.id;
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      // Fewer than a full page back means we've reached the start of history.
+      if (lastPage.length < PAGE_SIZE) return undefined;
+      // Next offset = total messages already loaded.
+      return allPages.reduce((total, page) => total + page.length, 0);
     },
     enabled: sessionId !== null && chatId !== null,
     staleTime: 30_000,

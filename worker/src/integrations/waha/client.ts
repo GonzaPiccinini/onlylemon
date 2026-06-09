@@ -43,7 +43,9 @@ type WahaQrResponse = {
 
 export type GetChatMessagesOptions = {
   limit: number;
+  offset?: number;
   sortBy?: 'timestamp' | 'messageTimestamp';
+  sortOrder?: 'asc' | 'desc';
   downloadMedia?: boolean;
 };
 
@@ -186,7 +188,9 @@ export async function getChatMessages(
   return wahaGet<WahaMessage[]>(`/api/${session}/chats/${chatId}/messages`, {
     limit: options.limit.toString(),
     sortBy: options.sortBy ?? 'timestamp',
+    sortOrder: options.sortOrder ?? 'desc',
     downloadMedia: String(options.downloadMedia ?? false),
+    ...(options.offset !== undefined ? { offset: String(options.offset) } : {}),
   });
 }
 

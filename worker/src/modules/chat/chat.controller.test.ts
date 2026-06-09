@@ -278,11 +278,11 @@ describe('chat.controller — getChatHistory', () => {
     assert.equal(res.statusCode, 400);
   });
 
-  it('forwards optional before cursor to service', async () => {
-    let capturedBefore: string | undefined;
+  it('forwards optional offset cursor to service', async () => {
+    let capturedOffset: number | undefined;
     const svc = makeMockService({
       getChatHistory: async (args) => {
-        capturedBefore = args.before;
+        capturedOffset = args.offset;
         return [];
       },
     });
@@ -290,11 +290,11 @@ describe('chat.controller — getChatHistory', () => {
 
     const res = makeRes();
     await getChatHistory(
-      makeReq({ query: { before: 'cursor-abc' } }),
+      makeReq({ query: { offset: '10' } }),
       res as unknown as import('express').Response,
     );
 
-    assert.equal(capturedBefore, 'cursor-abc');
+    assert.equal(capturedOffset, 10);
   });
 });
 

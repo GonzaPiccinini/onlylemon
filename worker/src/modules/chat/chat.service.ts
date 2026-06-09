@@ -96,7 +96,7 @@ export type ChatService = {
     sessionId: string;
     chatId: string;
     limit: number;
-    before?: string;
+    offset?: number;
     requesterCashierId?: string;
     requesterRole: Role;
   }): Promise<ChatMessage[]>;
@@ -168,9 +168,9 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
       return repository.listChats(session.sessionName);
     },
 
-    async getChatHistory({ sessionId, chatId, limit, before, requesterCashierId, requesterRole }) {
+    async getChatHistory({ sessionId, chatId, limit, offset, requesterCashierId, requesterRole }) {
       const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
-      return repository.getChatHistory(session.sessionName, chatId, { limit, before });
+      return repository.getChatHistory(session.sessionName, chatId, { limit, offset });
     },
 
     async sendText({ sessionId, chatId, text, replyTo, requesterCashierId, requesterRole }) {
