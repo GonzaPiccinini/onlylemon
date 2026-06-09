@@ -138,8 +138,8 @@ export const Composer = ({
         <AttachmentPreview file={attachment} onRemove={handleRemoveAttachment} />
       )}
 
-      {/* Input row */}
-      <div className="flex items-end gap-2">
+      {/* Input row — buttons vertically centered with the input bar. */}
+      <div className="flex items-center gap-2">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -164,7 +164,7 @@ export const Composer = ({
           <PaperclipIcon className="size-4" />
         </Button>
 
-        {/* Text input */}
+        {/* Text input — grows up to ~5 lines, then scrolls inside. */}
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -172,7 +172,7 @@ export const Composer = ({
           placeholder={attachment ? 'Añadí un pie de foto (opcional)…' : 'Escribí un mensaje…'}
           disabled={sending}
           rows={1}
-          className="min-h-0 flex-1 resize-none py-2"
+          className="scrollbar-thin min-h-0 max-h-[7.5rem] flex-1 resize-none overflow-y-auto py-2"
         />
 
         {/* Send button */}

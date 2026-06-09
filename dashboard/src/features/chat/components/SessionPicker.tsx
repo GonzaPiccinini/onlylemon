@@ -5,10 +5,11 @@
  * - 2+ sessions → shadcn Select dropdown.
  * - 0 sessions → empty state (caller decides, but we render nothing meaningful).
  *
- * Reuses `wahaStatusLabel` / `wahaStatusVariant` from the codebase convention.
+ * The connection state is shown as a compact dot (yellow = connected,
+ * black = disconnected) instead of a text badge, to save horizontal space.
+ * The full status label is kept as a tooltip for accessibility.
  */
 
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { wahaStatusLabel, wahaStatusVariant } from '@/lib/waha-status';
+import { wahaStatusLabel } from '@/lib/waha-status';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,6 +40,25 @@ interface SessionPickerProps {
 }
 
 // ---------------------------------------------------------------------------
+// Status dot — yellow when connected (WORKING), black otherwise.
+// ---------------------------------------------------------------------------
+
+const StatusDot = ({ status }: { status: string | null }) => {
+  const connected = status === 'WORKING';
+  const label = wahaStatusLabel(status);
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      className={[
+        'inline-block size-2.5 shrink-0 rounded-full',
+        connected ? 'bg-yellow-400' : 'bg-black',
+      ].join(' ')}
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -54,15 +74,13 @@ export const SessionPicker = ({
   const label = (s: SessionOption) =>
     s.whatsappPhoneNumber ? `+${s.whatsappPhoneNumber}` : s.sessionName;
 
-  // Single session — render as a static label with status badge
+  // Single session — render as a static label with a status dot
   if (sessions.length === 1) {
     const s = sessions[0]!;
     return (
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
+        <StatusDot status={s.wahaStatus} />
         <span className="text-sm font-medium">{label(s)}</span>
-        <Badge variant={wahaStatusVariant(s.wahaStatus)}>
-          {wahaStatusLabel(s.wahaStatus)}
-        </Badge>
       </div>
     );
   }
@@ -83,21 +101,15 @@ export const SessionPicker = ({
           {sessions.map((s) => (
             <SelectItem key={s.id} value={s.id}>
               <span className="flex items-center gap-2">
+                <StatusDot status={s.wahaStatus} />
                 <span>{label(s)}</span>
-                <Badge variant={wahaStatusVariant(s.wahaStatus)}>
-                  {wahaStatusLabel(s.wahaStatus)}
-                </Badge>
               </span>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      {selectedSession && (
-        <Badge variant={wahaStatusVariant(selectedSession.wahaStatus)}>
-          {wahaStatusLabel(selectedSession.wahaStatus)}
-        </Badge>
-      )}
+      {selectedSession && <StatusDot status={selectedSession.wahaStatus} />}
     </div>
   );
 };

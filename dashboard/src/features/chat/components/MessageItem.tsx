@@ -96,13 +96,13 @@ export const MessageItem = ({
         </Button>
       </div>
 
-      {/* Bubble */}
+      {/* Bubble — width hugs content (max ~75% of the pane), WhatsApp-style. */}
       <div
         className={[
-          'flex max-w-xs flex-col gap-1.5 rounded-2xl text-sm sm:max-w-md',
+          'flex w-fit max-w-[75%] flex-col gap-1 rounded-lg text-sm leading-snug',
           isStickerOnly
-            ? 'bg-transparent px-0 py-0'
-            : 'px-3 py-2 shadow-sm ' +
+            ? 'bg-transparent p-0'
+            : 'px-2.5 py-1.5 shadow-sm ' +
               (fromMe
                 ? 'rounded-br-sm bg-primary text-primary-foreground'
                 : 'rounded-bl-sm bg-muted text-foreground'),
@@ -129,10 +129,10 @@ export const MessageItem = ({
           <p className="whitespace-pre-wrap break-words">{body}</p>
         )}
 
-        {/* Timestamp */}
+        {/* Timestamp — small, tight to the bubble bottom (WhatsApp-style). */}
         <p
           className={[
-            'self-end text-xs',
+            '-mt-0.5 self-end text-[10px] leading-none',
             !isStickerOnly && fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground',
           ].join(' ')}
         >

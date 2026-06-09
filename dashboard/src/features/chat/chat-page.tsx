@@ -31,7 +31,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { ArrowLeftIcon, CircleFadingPlusIcon } from 'lucide-react';
+import { CircleFadingPlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -57,6 +57,7 @@ import {
   SessionPicker,
   ChatList,
   MessageThread,
+  ChatHeader,
   Composer,
   StatusComposerDialog,
 } from './components';
@@ -288,15 +289,22 @@ export const ChatPage = ({
     void historyQuery.fetchNextPage();
   }, [historyQuery]);
 
-  const selectedChatName =
-    chats.find((c) => c.chatId === selectedChatId)?.displayName ?? 'Chat';
+  // The selected chat entry — falls back to a minimal entry built from the id
+  // so the header still shows the phone number before the list has loaded.
+  const selectedChat =
+    chats.find((c) => c.chatId === selectedChatId) ??
+    (selectedChatId
+      ? { chatId: selectedChatId, displayName: null, lastMessageTimestamp: 0 }
+      : undefined);
+
+  const selectedChatName = selectedChat?.displayName ?? 'Chat';
 
   // ------------------------------------------------------------------
   // Panels
   // ------------------------------------------------------------------
 
   const listPanel = (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
+    <div className="scrollbar-thin flex h-full flex-col gap-3 overflow-y-auto p-3">
       {cashierPicker}
       {sessions.length === 0 ? (
         (emptyCta ?? null)
@@ -334,6 +342,13 @@ export const ChatPage = ({
   const threadPanel =
     selectedChatId && selectedSessionId ? (
       <div className="flex h-full flex-col overflow-hidden">
+        {/* Top bar with the other party's name (or phone if not saved). */}
+        {selectedChat && (
+          <ChatHeader
+            chat={selectedChat}
+            onBack={isMobile ? () => setSheetOpen(false) : undefined}
+          />
+        )}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {/* key on chatId → full remount per conversation, so no scroll
               position or message state can bleed across chats. */}
@@ -395,21 +410,8 @@ export const ChatPage = ({
           className="flex w-full flex-col gap-0 p-0 sm:max-w-full"
         >
           <SheetTitle className="sr-only">{selectedChatName}</SheetTitle>
-          {/* Back navigation header */}
-          <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Volver a la lista"
-              onClick={() => setSheetOpen(false)}
-            >
-              <ArrowLeftIcon className="size-4" />
-            </Button>
-            <span className="truncate text-sm font-medium">
-              {selectedChatName}
-            </span>
-          </div>
-          {/* Thread + Composer */}
+          {/* Thread + Composer — ChatHeader (inside threadPanel) carries the
+              back button and contact info on mobile. */}
           <div className="flex flex-1 flex-col overflow-hidden">
             {threadPanel}
           </div>
