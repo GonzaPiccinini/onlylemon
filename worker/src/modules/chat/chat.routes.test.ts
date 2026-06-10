@@ -103,6 +103,7 @@ function makeMockService(overrides: Partial<ChatService> = {}): ChatService {
     getMediaBytes: async () => ({ bytes: Buffer.from('bytes'), mimetype: 'image/png' }),
     publishTextStatus: async () => {},
     publishImageStatus: async () => {},
+    setSessionAlias: async () => {},
     ...overrides,
   };
 }
@@ -849,6 +850,45 @@ describe('chat.routes — status publishing', () => {
       { body: {} },
     );
 
+    assert.equal(status, 401);
+  });
+});
+
+// ── setSessionAlias routes ──────────────────────────────────────────────────────
+
+describe('chat.routes — setSessionAlias', () => {
+  it('PATCH /chat/sessions/:sessionId/alias returns 200 for owner', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-1' ? ownedSession : null));
+    const { status } = await request(
+      app, 'PATCH', '/api/chat/sessions/session-uuid-1/alias',
+      { headers: { authorization: `Bearer ${cashier1Token}` }, body: { alias: 'Ventas' } },
+    );
+    assert.equal(status, 200);
+  });
+
+  it('PATCH /chat/sessions/:sessionId/alias returns 403 for foreign session', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-2' ? foreignSession : null));
+    const { status } = await request(
+      app, 'PATCH', '/api/chat/sessions/session-uuid-2/alias',
+      { headers: { authorization: `Bearer ${cashier1Token}` }, body: { alias: 'Ventas' } },
+    );
+    assert.equal(status, 403);
+  });
+
+  it('PATCH /admin/chat/.../alias returns 200 for admin', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-2' ? foreignSession : null));
+    const { status } = await request(
+      app, 'PATCH', '/api/admin/chat/cashiers/cashier-2/sessions/session-uuid-2/alias',
+      { headers: { authorization: `Bearer ${adminToken}` }, body: { alias: 'Admin alias' } },
+    );
+    assert.equal(status, 200);
+  });
+
+  it('PATCH /chat/sessions/:sessionId/alias returns 401 unauthenticated', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-1' ? ownedSession : null));
+    const { status } = await request(
+      app, 'PATCH', '/api/chat/sessions/session-uuid-1/alias', { body: { alias: 'x' } },
+    );
     assert.equal(status, 401);
   });
 });

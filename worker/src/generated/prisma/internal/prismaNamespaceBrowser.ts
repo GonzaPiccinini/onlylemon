@@ -202,6 +202,7 @@ export const WhatsappSessionScalarFieldEnum = {
   cashierId: 'cashierId',
   sessionName: 'sessionName',
   whatsappPhoneNumber: 'whatsappPhoneNumber',
+  alias: 'alias',
   refreshCount: 'refreshCount',
   lastRefreshAt: 'lastRefreshAt',
   createdAt: 'createdAt',

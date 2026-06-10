@@ -110,6 +110,7 @@ const AdminChatInner = ({ cashierId, cashierPicker }: AdminChatInnerProps) => {
     id: s.id,
     sessionName: s.sessionName,
     whatsappPhoneNumber: s.whatsappPhoneNumber ?? null,
+    alias: s.alias ?? null,
     wahaStatus: s.wahaStatus ?? null,
   }));
 

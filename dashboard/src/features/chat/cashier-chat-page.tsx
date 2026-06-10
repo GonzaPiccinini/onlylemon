@@ -65,6 +65,7 @@ export const CashierChatPage = () => {
       id: s.id,
       sessionName: s.sessionName,
       whatsappPhoneNumber: s.whatsappPhoneNumber ?? null,
+      alias: s.alias ?? null,
       wahaStatus: s.wahaStatus ?? null,
     }));
 

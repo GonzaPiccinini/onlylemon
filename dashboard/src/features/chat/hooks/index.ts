@@ -8,3 +8,4 @@ export { useSendReaction } from "./useSendReaction";
 export { useLastSession, useLastChat } from "./useLastSession";
 export { useMediaBlob } from "./useMediaBlob";
 export { usePublishStatus } from "./usePublishStatus";
+export { useSetSessionAlias } from "./useSetSessionAlias";

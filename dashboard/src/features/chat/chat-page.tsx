@@ -8,9 +8,9 @@
  *   Left:  SessionPicker (top) + ChatList (below, scrollable)
  *   Right: MessageThread (grows) + Composer (bottom)
  *
- * Mobile: shadcn Sheet slide-over. The list view is always visible.
- * When a chat is selected, a Sheet slides in with the thread + composer.
- * A back button inside the Sheet returns to the list.
+ * Mobile: the list view is always visible. When a chat is selected, a
+ * full-screen conversation overlay slides in from the right (WhatsApp-style)
+ * with the thread + composer. The back button in ChatHeader returns to the list.
  *
  * localStorage persistence (Design Addendum):
  *   - Session selection → useLastSession
@@ -33,11 +33,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { CircleFadingPlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { useAuth } from '@/features/auth/auth-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { toMillis } from './time';
@@ -305,12 +300,22 @@ export const ChatPage = ({
 
   const selectedChatName = selectedChat?.displayName ?? 'Chat';
 
+  // Label of the session in use (alias → +phone → code), shown in the header
+  // so the user always sees which number they're chatting from.
+  const selectedSession = sessions.find((s) => s.id === selectedSessionId);
+  const selectedSessionLabel = selectedSession
+    ? (selectedSession.alias?.trim() ||
+        (selectedSession.whatsappPhoneNumber
+          ? `+${selectedSession.whatsappPhoneNumber}`
+          : selectedSession.sessionName))
+    : undefined;
+
   // ------------------------------------------------------------------
   // Panels
   // ------------------------------------------------------------------
 
   const listPanel = (
-    <div className="scrollbar-thin flex h-full flex-col gap-3 overflow-y-auto p-3">
+    <div className="scrollbar-thin flex h-full flex-col gap-3 overflow-y-auto bg-black p-3">
       {cashierPicker}
       {sessions.length === 0 ? (
         (emptyCta ?? null)
@@ -356,6 +361,7 @@ export const ChatPage = ({
           <ChatHeader
             chat={selectedChat}
             onBack={isMobile ? () => setSheetOpen(false) : undefined}
+            sessionLabel={selectedSessionLabel}
           />
         )}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -395,7 +401,7 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   return (
-    <div className="flex h-[calc(100svh-8rem)] overflow-hidden rounded-2xl border bg-card shadow-sm md:h-[calc(100svh-6rem)]">
+    <div className="relative flex h-[calc(100svh-8rem)] overflow-hidden rounded-2xl border bg-black shadow-sm md:h-[calc(100svh-6rem)]">
       {/* Desktop: left column — list */}
       <div className="hidden w-72 shrink-0 flex-col border-r md:flex">
         {listPanel}
@@ -411,21 +417,23 @@ export const ChatPage = ({
         {listPanel}
       </div>
 
-      {/* Mobile: Sheet slide-over for the thread. Never opens on desktop —
-          there the right pane already shows the conversation. */}
-      <Sheet open={isMobile && sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent
-          showCloseButton={false}
-          className="flex w-full flex-col gap-0 p-0 sm:max-w-full"
-        >
-          <SheetTitle className="sr-only">{selectedChatName}</SheetTitle>
-          {/* Thread + Composer — ChatHeader (inside threadPanel) carries the
-              back button and contact info on mobile. */}
-          <div className="flex flex-1 flex-col overflow-hidden">
-            {threadPanel}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Mobile: full-screen conversation overlay that slides in from the
+          right when a chat is selected (WhatsApp-style). Hidden on desktop —
+          there the right pane already shows the conversation. ChatHeader
+          (inside threadPanel) carries the back button + contact info. */}
+      <div
+        role="dialog"
+        aria-label={selectedChatName}
+        aria-hidden={!(isMobile && sheetOpen)}
+        className={[
+          'absolute inset-0 z-50 flex flex-col bg-black transition-transform duration-200 md:hidden',
+          isMobile && sheetOpen
+            ? 'translate-x-0'
+            : 'pointer-events-none translate-x-full',
+        ].join(' ')}
+      >
+        {threadPanel}
+      </div>
 
       {/* Status composer — needs a selected session to publish against */}
       {selectedSessionId && (

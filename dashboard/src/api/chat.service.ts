@@ -105,6 +105,12 @@ function statusImageUrl(scope: ChatScope, sessionId: string): string {
     : endpoints.chat.adminStatusImage(scope.cashierId, sessionId);
 }
 
+function sessionAliasUrl(scope: ChatScope, sessionId: string): string {
+  return scope.kind === "cashier"
+    ? endpoints.chat.cashierSessionAlias(sessionId)
+    : endpoints.chat.adminSessionAlias(scope.cashierId, sessionId);
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -272,6 +278,18 @@ export const chatService = {
     await http.post(statusImageUrl(scope, sessionId), form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+  },
+
+  /**
+   * Set (or clear) a human-friendly alias for a session. Pass null/empty to
+   * clear. The worker enforces ownership (cashier own / admin any).
+   */
+  async setSessionAlias(
+    scope: ChatScope,
+    sessionId: string,
+    alias: string | null,
+  ): Promise<void> {
+    await http.patch(sessionAliasUrl(scope, sessionId), { alias });
   },
 
   /**

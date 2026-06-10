@@ -10,3 +10,4 @@ export { EmojiPicker } from './EmojiPicker';
 export { Composer } from './Composer';
 export { AttachmentPreview } from './AttachmentPreview';
 export { StatusComposerDialog } from './StatusComposerDialog';
+export { SessionAliasEditor } from './SessionAliasEditor';

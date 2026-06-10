@@ -5,9 +5,10 @@
  * - 2+ sessions → shadcn Select dropdown.
  * - 0 sessions → empty state (caller decides, but we render nothing meaningful).
  *
- * The connection state is shown as a compact dot (yellow = connected,
- * black = disconnected) instead of a text badge, to save horizontal space.
- * The full status label is kept as a tooltip for accessibility.
+ * Connection state is a compact dot (yellow = connected, black = disconnected).
+ * The displayed name prioritises: alias → phone number → session code.
+ * The alias is DISPLAY-ONLY here — it is assigned in the WhatsApp sessions
+ * management section (cashier session page / admin sessions panel).
  */
 
 import {
@@ -29,6 +30,8 @@ export type SessionOption = {
   sessionName: string;
   /** WhatsApp phone number, if linked */
   whatsappPhoneNumber: string | null;
+  /** Human-friendly alias, if set */
+  alias?: string | null;
   /** WAHA status string */
   wahaStatus: string | null;
 };
@@ -37,6 +40,17 @@ interface SessionPickerProps {
   sessions: SessionOption[];
   selectedSessionId: string | null;
   onSelect: (sessionId: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Display name: alias → +phone → session code. */
+function sessionLabel(s: SessionOption): string {
+  if (s.alias && s.alias.trim()) return s.alias;
+  if (s.whatsappPhoneNumber) return `+${s.whatsappPhoneNumber}`;
+  return s.sessionName;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,21 +85,18 @@ export const SessionPicker = ({
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
 
-  const label = (s: SessionOption) =>
-    s.whatsappPhoneNumber ? `+${s.whatsappPhoneNumber}` : s.sessionName;
-
-  // Single session — render as a static label with a status dot
+  // Single session — static label with status dot
   if (sessions.length === 1) {
     const s = sessions[0]!;
     return (
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
         <StatusDot status={s.wahaStatus} />
-        <span className="text-sm font-medium">{label(s)}</span>
+        <span className="truncate text-sm font-medium">{sessionLabel(s)}</span>
       </div>
     );
   }
 
-  // Multiple sessions — show a Select
+  // Multiple sessions — Select + status dot
   return (
     <div className="flex items-center gap-2">
       <Select
@@ -102,7 +113,7 @@ export const SessionPicker = ({
             <SelectItem key={s.id} value={s.id}>
               <span className="flex items-center gap-2">
                 <StatusDot status={s.wahaStatus} />
-                <span>{label(s)}</span>
+                <span>{sessionLabel(s)}</span>
               </span>
             </SelectItem>
           ))}

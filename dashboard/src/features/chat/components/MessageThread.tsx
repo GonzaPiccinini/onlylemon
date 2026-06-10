@@ -118,7 +118,7 @@ export const MessageThread = ({
   return (
     <div
       ref={scrollRef}
-      className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-4"
+      className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-4"
     >
       {/* Load older messages */}
       {hasOlder && (

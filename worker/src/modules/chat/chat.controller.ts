@@ -62,6 +62,11 @@ const PublishTextStatusBodySchema = z.object({
   backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
+/** Session alias: up to 60 chars; empty string or null clears it. */
+const SetSessionAliasBodySchema = z.object({
+  alias: z.string().max(60).nullable(),
+});
+
 // ── Error → HTTP status mapping ───────────────────────────────────────────────
 
 function mapServiceError(error: unknown, res: Response): boolean {
@@ -97,6 +102,7 @@ export type ChatController = {
   publishTextStatus(req: Request, res: Response): Promise<void>;
   /** publishImageStatus — runs AFTER uploadSingleFile middleware (like sendPhoto). */
   publishImageStatus(req: Request, res: Response): Promise<void>;
+  setSessionAlias(req: Request, res: Response): Promise<void>;
 };
 
 export function createChatController(service: ChatService): ChatController {
@@ -358,6 +364,33 @@ export function createChatController(service: ChatService): ChatController {
             mimetype: req.file.mimetype,
           },
           caption,
+          requesterRole,
+          requesterCashierId,
+        });
+        res.status(200).json({ ok: true });
+      } catch (err) {
+        if (!mapServiceError(err, res)) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }
+    },
+
+    // ── PATCH /chat/sessions/:sessionId/alias ────────────────────────────────
+    async setSessionAlias(req: Request, res: Response): Promise<void> {
+      const { sessionId } = req.params;
+      const requesterRole = req.authUser!.role;
+      const requesterCashierId = req.authUser!.cashierId;
+
+      const parsed = SetSessionAliasBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+        return;
+      }
+
+      try {
+        await service.setSessionAlias({
+          sessionId,
+          alias: parsed.data.alias,
           requesterRole,
           requesterCashierId,
         });

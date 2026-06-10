@@ -60,6 +60,9 @@ export type ChatServiceDeps = {
   /** Resolves a DB sessionId → WhatsappSession row, or null if not found */
   getWhatsappSession(sessionId: string): Promise<WhatsappSessionRow | null>;
 
+  /** Persists a session's human-friendly alias (null clears it). */
+  setSessionAlias(sessionId: string, alias: string | null): Promise<void>;
+
   /** The WAHA-backed repository */
   repository: ChatRepository;
 
@@ -153,6 +156,14 @@ export type ChatService = {
     /** file.data may be a Buffer (encoded to base64 before hitting the repository) */
     file: { data: Buffer | string; mimetype: string };
     caption?: string;
+    requesterCashierId?: string;
+    requesterRole: Role;
+  }): Promise<void>;
+
+  setSessionAlias(args: {
+    sessionId: string;
+    /** Trimmed alias; null or empty clears it. */
+    alias: string | null;
     requesterCashierId?: string;
     requesterRole: Role;
   }): Promise<void>;
@@ -268,6 +279,17 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
         ...(caption !== undefined ? { caption } : {}),
       });
     },
+
+    async setSessionAlias({ sessionId, alias, requesterCashierId, requesterRole }) {
+      // Ownership: cashier may rename own session; admin may rename any.
+      await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
+
+      // Normalize: trim, and treat empty as null (clears the alias).
+      const trimmed = alias?.trim();
+      const value = trimmed ? trimmed : null;
+
+      return deps.setSessionAlias(sessionId, value);
+    },
   };
 }
 
@@ -290,6 +312,12 @@ export async function createDefaultChatService(): Promise<ChatService> {
         select: { id: true, sessionName: true, cashierId: true },
       });
       return row;
+    },
+    setSessionAlias: async (sessionId, alias) => {
+      await prisma.whatsappSession.update({
+        where: { id: sessionId },
+        data: { alias },
+      });
     },
     repository,
   });

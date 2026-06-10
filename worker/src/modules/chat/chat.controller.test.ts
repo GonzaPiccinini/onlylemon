@@ -134,6 +134,7 @@ function makeMockService(overrides: Partial<ChatService> = {}): ChatService {
     getMediaBytes: async () => ({ bytes: Buffer.from('image-bytes'), mimetype: 'image/jpeg' }),
     publishTextStatus: async () => {},
     publishImageStatus: async () => {},
+    setSessionAlias: async () => {},
     ...overrides,
   };
 }
@@ -875,5 +876,65 @@ describe('chat.controller — listChats pagination', () => {
     await listChats(req, res as unknown as import('express').Response);
 
     assert.equal(res.statusCode, 400);
+  });
+});
+
+// ── setSessionAlias ─────────────────────────────────────────────────────────────
+
+describe('chat.controller — setSessionAlias', () => {
+  it('returns 200 and forwards alias to the service', async () => {
+    let captured: unknown = null;
+    const svc = makeMockService({
+      setSessionAlias: async (args) => { captured = args; },
+    });
+    const { setSessionAlias } = createChatController(svc);
+
+    const req = makeReq({ body: { alias: 'Ventas' } });
+    const res = makeRes();
+    await setSessionAlias(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    const args = captured as { sessionId: string; alias: string | null };
+    assert.equal(args.sessionId, 'session-uuid-1');
+    assert.equal(args.alias, 'Ventas');
+  });
+
+  it('accepts null to clear the alias', async () => {
+    let captured: unknown = 'UNSET';
+    const svc = makeMockService({
+      setSessionAlias: async (args) => { captured = args.alias; },
+    });
+    const { setSessionAlias } = createChatController(svc);
+
+    const req = makeReq({ body: { alias: null } });
+    const res = makeRes();
+    await setSessionAlias(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(captured, null);
+  });
+
+  it('returns 400 when alias exceeds max length', async () => {
+    const svc = makeMockService();
+    const { setSessionAlias } = createChatController(svc);
+
+    const req = makeReq({ body: { alias: 'x'.repeat(61) } });
+    const res = makeRes();
+    await setSessionAlias(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('maps ChatForbiddenError to 403', async () => {
+    const svc = makeMockService({
+      setSessionAlias: async () => { throw new ChatForbiddenError(); },
+    });
+    const { setSessionAlias } = createChatController(svc);
+
+    const req = makeReq({ body: { alias: 'x' } });
+    const res = makeRes();
+    await setSessionAlias(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 403);
   });
 });

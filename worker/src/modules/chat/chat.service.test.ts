@@ -55,6 +55,7 @@ function makeChatMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
 function makeDeps(overrides: Partial<ChatServiceDeps> = {}): ChatServiceDeps {
   return {
     getWhatsappSession: async () => makeSession(),
+    setSessionAlias: async () => {},
     repository: {
       listChats: async () => [makeChatListEntry()],
       getChatHistory: async () => [makeChatMessage()],
@@ -590,5 +591,77 @@ describe('chat.service — listChats pagination', () => {
     assert.equal(args.sessionName, 'waha-sess');
     assert.equal(args.opts.limit, 20);
     assert.equal(args.opts.offset, 20);
+  });
+});
+
+// ── setSessionAlias ─────────────────────────────────────────────────────────────
+
+describe('chat.service — setSessionAlias', () => {
+  it('persists the trimmed alias for the owner', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-1' }),
+    });
+    deps.setSessionAlias = async (sessionId, alias) => { captured = { sessionId, alias }; };
+
+    const service = createChatService(deps);
+    await service.setSessionAlias({
+      sessionId: 'session-uuid-1',
+      alias: '  Ventas Córdoba  ',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    assert.deepEqual(captured, { sessionId: 'session-uuid-1', alias: 'Ventas Córdoba' });
+  });
+
+  it('clears the alias (null) when given empty/whitespace', async () => {
+    let captured: unknown = 'UNSET';
+    const deps = makeDeps();
+    deps.setSessionAlias = async (_sessionId, alias) => { captured = alias; };
+
+    const service = createChatService(deps);
+    await service.setSessionAlias({
+      sessionId: 'session-uuid-1',
+      alias: '   ',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    assert.equal(captured, null);
+  });
+
+  it('throws ChatForbiddenError for a foreign cashier', async () => {
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-OTHER' }),
+    });
+    deps.setSessionAlias = async () => {};
+
+    const service = createChatService(deps);
+    await assert.rejects(
+      () => service.setSessionAlias({
+        sessionId: 'session-uuid-1',
+        alias: 'x',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+      (err) => err instanceof ChatForbiddenError,
+    );
+  });
+
+  it('allows ADMIN to set alias on any session', async () => {
+    let called = false;
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-OTHER' }),
+    });
+    deps.setSessionAlias = async () => { called = true; };
+
+    const service = createChatService(deps);
+    await service.setSessionAlias({
+      sessionId: 'session-uuid-1',
+      alias: 'Admin name',
+      requesterRole: 'ADMIN',
+    });
+    assert.equal(called, true);
   });
 });

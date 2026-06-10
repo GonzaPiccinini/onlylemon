@@ -39,6 +39,7 @@ export type WhatsappSessionMinAggregateOutputType = {
   cashierId: string | null
   sessionName: string | null
   whatsappPhoneNumber: string | null
+  alias: string | null
   refreshCount: number | null
   lastRefreshAt: Date | null
   createdAt: Date | null
@@ -50,6 +51,7 @@ export type WhatsappSessionMaxAggregateOutputType = {
   cashierId: string | null
   sessionName: string | null
   whatsappPhoneNumber: string | null
+  alias: string | null
   refreshCount: number | null
   lastRefreshAt: Date | null
   createdAt: Date | null
@@ -61,6 +63,7 @@ export type WhatsappSessionCountAggregateOutputType = {
   cashierId: number
   sessionName: number
   whatsappPhoneNumber: number
+  alias: number
   refreshCount: number
   lastRefreshAt: number
   createdAt: number
@@ -82,6 +85,7 @@ export type WhatsappSessionMinAggregateInputType = {
   cashierId?: true
   sessionName?: true
   whatsappPhoneNumber?: true
+  alias?: true
   refreshCount?: true
   lastRefreshAt?: true
   createdAt?: true
@@ -93,6 +97,7 @@ export type WhatsappSessionMaxAggregateInputType = {
   cashierId?: true
   sessionName?: true
   whatsappPhoneNumber?: true
+  alias?: true
   refreshCount?: true
   lastRefreshAt?: true
   createdAt?: true
@@ -104,6 +109,7 @@ export type WhatsappSessionCountAggregateInputType = {
   cashierId?: true
   sessionName?: true
   whatsappPhoneNumber?: true
+  alias?: true
   refreshCount?: true
   lastRefreshAt?: true
   createdAt?: true
@@ -202,6 +208,7 @@ export type WhatsappSessionGroupByOutputType = {
   cashierId: string
   sessionName: string
   whatsappPhoneNumber: string | null
+  alias: string | null
   refreshCount: number
   lastRefreshAt: Date | null
   createdAt: Date
@@ -236,6 +243,7 @@ export type WhatsappSessionWhereInput = {
   cashierId?: Prisma.StringFilter<"WhatsappSession"> | string
   sessionName?: Prisma.StringFilter<"WhatsappSession"> | string
   whatsappPhoneNumber?: Prisma.StringNullableFilter<"WhatsappSession"> | string | null
+  alias?: Prisma.StringNullableFilter<"WhatsappSession"> | string | null
   refreshCount?: Prisma.IntFilter<"WhatsappSession"> | number
   lastRefreshAt?: Prisma.DateTimeNullableFilter<"WhatsappSession"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"WhatsappSession"> | Date | string
@@ -249,6 +257,7 @@ export type WhatsappSessionOrderByWithRelationInput = {
   cashierId?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
   whatsappPhoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  alias?: Prisma.SortOrderInput | Prisma.SortOrder
   refreshCount?: Prisma.SortOrder
   lastRefreshAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -265,6 +274,7 @@ export type WhatsappSessionWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.WhatsappSessionWhereInput | Prisma.WhatsappSessionWhereInput[]
   cashierId?: Prisma.StringFilter<"WhatsappSession"> | string
   whatsappPhoneNumber?: Prisma.StringNullableFilter<"WhatsappSession"> | string | null
+  alias?: Prisma.StringNullableFilter<"WhatsappSession"> | string | null
   refreshCount?: Prisma.IntFilter<"WhatsappSession"> | number
   lastRefreshAt?: Prisma.DateTimeNullableFilter<"WhatsappSession"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"WhatsappSession"> | Date | string
@@ -278,6 +288,7 @@ export type WhatsappSessionOrderByWithAggregationInput = {
   cashierId?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
   whatsappPhoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  alias?: Prisma.SortOrderInput | Prisma.SortOrder
   refreshCount?: Prisma.SortOrder
   lastRefreshAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -297,6 +308,7 @@ export type WhatsappSessionScalarWhereWithAggregatesInput = {
   cashierId?: Prisma.StringWithAggregatesFilter<"WhatsappSession"> | string
   sessionName?: Prisma.StringWithAggregatesFilter<"WhatsappSession"> | string
   whatsappPhoneNumber?: Prisma.StringNullableWithAggregatesFilter<"WhatsappSession"> | string | null
+  alias?: Prisma.StringNullableWithAggregatesFilter<"WhatsappSession"> | string | null
   refreshCount?: Prisma.IntWithAggregatesFilter<"WhatsappSession"> | number
   lastRefreshAt?: Prisma.DateTimeNullableWithAggregatesFilter<"WhatsappSession"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"WhatsappSession"> | Date | string
@@ -307,6 +319,7 @@ export type WhatsappSessionCreateInput = {
   id?: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -320,6 +333,7 @@ export type WhatsappSessionUncheckedCreateInput = {
   cashierId: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -331,6 +345,7 @@ export type WhatsappSessionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -344,6 +359,7 @@ export type WhatsappSessionUncheckedUpdateInput = {
   cashierId?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -356,6 +372,7 @@ export type WhatsappSessionCreateManyInput = {
   cashierId: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -366,6 +383,7 @@ export type WhatsappSessionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -377,6 +395,7 @@ export type WhatsappSessionUncheckedUpdateManyInput = {
   cashierId?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -398,6 +417,7 @@ export type WhatsappSessionCountOrderByAggregateInput = {
   cashierId?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
   whatsappPhoneNumber?: Prisma.SortOrder
+  alias?: Prisma.SortOrder
   refreshCount?: Prisma.SortOrder
   lastRefreshAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -413,6 +433,7 @@ export type WhatsappSessionMaxOrderByAggregateInput = {
   cashierId?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
   whatsappPhoneNumber?: Prisma.SortOrder
+  alias?: Prisma.SortOrder
   refreshCount?: Prisma.SortOrder
   lastRefreshAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -424,6 +445,7 @@ export type WhatsappSessionMinOrderByAggregateInput = {
   cashierId?: Prisma.SortOrder
   sessionName?: Prisma.SortOrder
   whatsappPhoneNumber?: Prisma.SortOrder
+  alias?: Prisma.SortOrder
   refreshCount?: Prisma.SortOrder
   lastRefreshAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -499,6 +521,7 @@ export type WhatsappSessionCreateWithoutCashierInput = {
   id?: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -510,6 +533,7 @@ export type WhatsappSessionUncheckedCreateWithoutCashierInput = {
   id?: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -551,6 +575,7 @@ export type WhatsappSessionScalarWhereInput = {
   cashierId?: Prisma.StringFilter<"WhatsappSession"> | string
   sessionName?: Prisma.StringFilter<"WhatsappSession"> | string
   whatsappPhoneNumber?: Prisma.StringNullableFilter<"WhatsappSession"> | string | null
+  alias?: Prisma.StringNullableFilter<"WhatsappSession"> | string | null
   refreshCount?: Prisma.IntFilter<"WhatsappSession"> | number
   lastRefreshAt?: Prisma.DateTimeNullableFilter<"WhatsappSession"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"WhatsappSession"> | Date | string
@@ -561,6 +586,7 @@ export type WhatsappSessionCreateWithoutLandingsInput = {
   id?: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -573,6 +599,7 @@ export type WhatsappSessionUncheckedCreateWithoutLandingsInput = {
   cashierId: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -599,6 +626,7 @@ export type WhatsappSessionUpdateWithoutLandingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -611,6 +639,7 @@ export type WhatsappSessionUncheckedUpdateWithoutLandingsInput = {
   cashierId?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -621,6 +650,7 @@ export type WhatsappSessionCreateManyCashierInput = {
   id?: string
   sessionName: string
   whatsappPhoneNumber?: string | null
+  alias?: string | null
   refreshCount?: number
   lastRefreshAt?: Date | string | null
   createdAt?: Date | string
@@ -631,6 +661,7 @@ export type WhatsappSessionUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -642,6 +673,7 @@ export type WhatsappSessionUncheckedUpdateWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -653,6 +685,7 @@ export type WhatsappSessionUncheckedUpdateManyWithoutCashierInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sessionName?: Prisma.StringFieldUpdateOperationsInput | string
   whatsappPhoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alias?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   refreshCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastRefreshAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -695,6 +728,7 @@ export type WhatsappSessionSelect<ExtArgs extends runtime.Types.Extensions.Inter
   cashierId?: boolean
   sessionName?: boolean
   whatsappPhoneNumber?: boolean
+  alias?: boolean
   refreshCount?: boolean
   lastRefreshAt?: boolean
   createdAt?: boolean
@@ -709,6 +743,7 @@ export type WhatsappSessionSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   cashierId?: boolean
   sessionName?: boolean
   whatsappPhoneNumber?: boolean
+  alias?: boolean
   refreshCount?: boolean
   lastRefreshAt?: boolean
   createdAt?: boolean
@@ -721,6 +756,7 @@ export type WhatsappSessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   cashierId?: boolean
   sessionName?: boolean
   whatsappPhoneNumber?: boolean
+  alias?: boolean
   refreshCount?: boolean
   lastRefreshAt?: boolean
   createdAt?: boolean
@@ -733,13 +769,14 @@ export type WhatsappSessionSelectScalar = {
   cashierId?: boolean
   sessionName?: boolean
   whatsappPhoneNumber?: boolean
+  alias?: boolean
   refreshCount?: boolean
   lastRefreshAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type WhatsappSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cashierId" | "sessionName" | "whatsappPhoneNumber" | "refreshCount" | "lastRefreshAt" | "createdAt" | "updatedAt", ExtArgs["result"]["whatsappSession"]>
+export type WhatsappSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cashierId" | "sessionName" | "whatsappPhoneNumber" | "alias" | "refreshCount" | "lastRefreshAt" | "createdAt" | "updatedAt", ExtArgs["result"]["whatsappSession"]>
 export type WhatsappSessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cashier?: boolean | Prisma.CashierDefaultArgs<ExtArgs>
   landings?: boolean | Prisma.WhatsappSession$landingsArgs<ExtArgs>
@@ -763,6 +800,7 @@ export type $WhatsappSessionPayload<ExtArgs extends runtime.Types.Extensions.Int
     cashierId: string
     sessionName: string
     whatsappPhoneNumber: string | null
+    alias: string | null
     refreshCount: number
     lastRefreshAt: Date | null
     createdAt: Date
@@ -1196,6 +1234,7 @@ export interface WhatsappSessionFieldRefs {
   readonly cashierId: Prisma.FieldRef<"WhatsappSession", 'String'>
   readonly sessionName: Prisma.FieldRef<"WhatsappSession", 'String'>
   readonly whatsappPhoneNumber: Prisma.FieldRef<"WhatsappSession", 'String'>
+  readonly alias: Prisma.FieldRef<"WhatsappSession", 'String'>
   readonly refreshCount: Prisma.FieldRef<"WhatsappSession", 'Int'>
   readonly lastRefreshAt: Prisma.FieldRef<"WhatsappSession", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"WhatsappSession", 'DateTime'>

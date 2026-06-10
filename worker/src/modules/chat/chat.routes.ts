@@ -144,6 +144,14 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     wrapAsync(controller.publishImageStatus.bind(controller)),
   );
 
+  // PATCH /chat/sessions/:sessionId/alias — set/clear a human-friendly alias
+  // for the cashier's own session.
+  router.patch(
+    '/chat/sessions/:sessionId/alias',
+    ...cashierMiddleware,
+    wrapAsync(controller.setSessionAlias.bind(controller)),
+  );
+
   // ── Admin-scoped group ────────────────────────────────────────────────────
   // All routes: auth → ADMIN|SUPER_ADMIN role → handler (flat scope, no ownership)
   // The session must exist → 404 handling occurs in the controller/service.
@@ -205,6 +213,13 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     ...adminMiddleware,
     uploadSingleFile,
     wrapAsync(controller.publishImageStatus.bind(controller)),
+  );
+
+  // PATCH /admin/chat/.../alias — admin sets/clears any session's alias
+  router.patch(
+    '/admin/chat/cashiers/:cashierId/sessions/:sessionId/alias',
+    ...adminMiddleware,
+    wrapAsync(controller.setSessionAlias.bind(controller)),
   );
 
   return router;

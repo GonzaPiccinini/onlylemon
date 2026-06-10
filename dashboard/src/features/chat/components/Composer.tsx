@@ -13,12 +13,13 @@
  */
 
 import { useRef, useState, type KeyboardEvent } from 'react';
-import { PaperclipIcon, SendIcon } from 'lucide-react';
+import { PaperclipIcon, SendIcon, SmileIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { QuotedReply } from './QuotedReply';
 import { AttachmentPreview } from './AttachmentPreview';
+import { EmojiPicker } from './EmojiPicker';
 import type { ChatMessage } from '@/types/chat';
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,30 @@ export const Composer = ({
 }: ComposerProps) => {
   const [text, setText] = useState('');
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * Inserts the picked emoji at the current caret position (or appends it),
+   * keeping focus in the textarea so the user can keep typing.
+   */
+  const handleEmojiPick = (emoji: string) => {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    setShowEmojiPicker(false);
+    // Restore focus + caret just after the inserted emoji on the next frame.
+    requestAnimationFrame(() => {
+      const node = textareaRef.current;
+      if (!node) return;
+      node.focus();
+      const caret = start + emoji.length;
+      node.setSelectionRange(caret, caret);
+    });
+  };
 
   // CRITICAL: when an attachment is present, reply mode must be suppressed.
   // Photo send has no replyTo in V1 (spec amendment).
@@ -120,7 +144,7 @@ export const Composer = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 border-t bg-background p-3">
+    <div className="flex flex-col gap-2 border-t bg-black p-3">
       {/* Reply preview — hidden when an attachment is staged */}
       {effectiveReplyingTo && (
         <QuotedReply
@@ -164,16 +188,32 @@ export const Composer = ({
           <PaperclipIcon className="size-4" />
         </Button>
 
-        {/* Text input — grows up to ~5 lines, then scrolls inside. */}
-        <Textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={attachment ? 'Añadí un pie de foto (opcional)…' : 'Escribí un mensaje…'}
-          disabled={sending}
-          rows={1}
-          className="scrollbar-thin min-h-0 max-h-[7.5rem] flex-1 resize-none overflow-y-auto py-2"
-        />
+        {/* Text input with the emoji button inside the bar (left), WhatsApp
+            style. Grows up to ~5 lines, then scrolls inside. */}
+        <div className="relative flex-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setShowEmojiPicker(true)}
+            disabled={sending}
+            aria-label="Insertar emoji"
+            title="Insertar emoji"
+            className="absolute bottom-1 left-1 z-10"
+          >
+            <SmileIcon className="size-4" />
+          </Button>
+          <Textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={attachment ? 'Añadí un pie de foto (opcional)…' : 'Escribí un mensaje…'}
+            disabled={sending}
+            rows={1}
+            className="scrollbar-thin min-h-0 max-h-[7.5rem] w-full resize-none overflow-y-auto py-2 pl-10"
+          />
+        </div>
 
         {/* Send button */}
         <Button
@@ -188,6 +228,14 @@ export const Composer = ({
           <SendIcon className="size-4" />
         </Button>
       </div>
+
+      {/* Emoji picker — inserts into the message at the caret. */}
+      {showEmojiPicker && (
+        <EmojiPicker
+          onPick={handleEmojiPick}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      )}
     </div>
   );
 };

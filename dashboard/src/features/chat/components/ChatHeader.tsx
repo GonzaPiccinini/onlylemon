@@ -20,6 +20,11 @@ interface ChatHeaderProps {
   chat: ChatListEntry;
   /** When provided (mobile), renders a back button on the left. */
   onBack?: () => void;
+  /**
+   * Display name of the WhatsApp session being used (alias → phone → code).
+   * Shown as a subtitle so the user always sees which number they're on.
+   */
+  sessionLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -51,12 +56,12 @@ function resolveTitle(chat: ChatListEntry): { title: string; isPhone: boolean } 
 // Component
 // ---------------------------------------------------------------------------
 
-export const ChatHeader = ({ chat, onBack }: ChatHeaderProps) => {
+export const ChatHeader = ({ chat, onBack, sessionLabel }: ChatHeaderProps) => {
   const { title, isPhone } = resolveTitle(chat);
   const initial = !isPhone ? title.charAt(0).toUpperCase() : null;
 
   return (
-    <div className="flex shrink-0 items-center gap-3 border-b bg-card px-3 py-2.5">
+    <div className="flex shrink-0 items-center gap-3 border-b bg-black px-3 py-2.5">
       {onBack && (
         <Button
           type="button"
@@ -75,7 +80,14 @@ export const ChatHeader = ({ chat, onBack }: ChatHeaderProps) => {
         {initial ?? <UserIcon className="size-4" />}
       </div>
 
-      <span className="truncate text-sm font-medium">{title}</span>
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-sm font-medium">{title}</span>
+        {sessionLabel && (
+          <span className="truncate text-xs text-muted-foreground">
+            {sessionLabel}
+          </span>
+        )}
+      </div>
     </div>
   );
 };
