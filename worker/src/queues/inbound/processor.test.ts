@@ -117,6 +117,34 @@ describe('InboundMessageSchema — schema validation', () => {
     assert.equal(mapLeadsCalls.length, 1);
   });
 
+  it('H1.5b — accepts sticker media without s3 and url=null, and still fans out', async () => {
+    const mirrorCalls: unknown[] = [];
+    const deps = makeDefaultDeps({
+      mirrorChatMessage: async (payload) => {
+        mirrorCalls.push(payload);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    const job = makeJob({
+      event: 'message.any',
+      session: 'test-session',
+      payload: {
+        id: 'sticker-1',
+        from: '5491112345678@c.us',
+        body: '',
+        fromMe: false,
+        hasMedia: true,
+        // Sticker: not in WHATSAPP_FILES_MIMETYPES → WAHA didn't download it.
+        media: { url: null, mimetype: 'image/webp' },
+      },
+    });
+    await processor(job as never);
+    assert.equal(mirrorCalls.length, 1);
+    const m = mirrorCalls[0] as { hasMedia: boolean; mediaMimetype: string | null };
+    assert.equal(m.hasMedia, true);
+    assert.equal(m.mediaMimetype, 'image/webp');
+  });
+
   it('H1.6 — accepts legacy payload WITHOUT new fields (backward compat)', async () => {
     const mapLeadsCalls: unknown[][] = [];
     const deps = makeDefaultDeps({

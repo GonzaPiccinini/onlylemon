@@ -27,15 +27,24 @@ const InboundMessageSchema = z.object({
       body: z.string().optional().nullable().default(''),
       fromMe: z.boolean().optional(),
       hasMedia: z.boolean().optional(),
+      // Tolerant media shape: WAHA only downloads/stores configured mimetypes,
+      // so media that wasn't downloaded (e.g. a sticker whose type isn't in
+      // WHATSAPP_FILES_MIMETYPES) arrives WITHOUT s3 and with url=null. Those
+      // fields must be optional/nullable or the whole webhook is rejected and
+      // the message never fans out to the chat UI in realtime.
       media: z
         .object({
-          url: z.string(),
-          mimetype: z.string(),
-          s3: z.object({
-            Bucket: z.string(),
-            Key: z.string(),
-          }),
+          url: z.string().nullable().optional(),
+          mimetype: z.string().optional(),
+          s3: z
+            .object({
+              Bucket: z.string(),
+              Key: z.string(),
+            })
+            .nullable()
+            .optional(),
         })
+        .passthrough()
         .optional()
         .nullable(),
     })

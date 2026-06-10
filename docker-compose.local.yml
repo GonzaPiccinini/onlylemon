@@ -145,7 +145,7 @@ services:
       WAHA_S3_PROXY_FILES: 'True'
       WAHA_DOWNLOAD_MEDIA: 'True'
       WHATSAPP_DOWNLOAD_MEDIA: 'True'
-      WHATSAPP_FILES_MIMETYPES: 'image/jpeg,image/png,application/pdf'
+      WHATSAPP_FILES_MIMETYPES: 'image/jpeg,image/png,image/webp,application/pdf'
       WHATSAPP_FILES_LIFETIME: '2592000'
     ports:
       - '127.0.0.1:3001:3000'
