@@ -358,9 +358,25 @@ export async function deleteSession(sessionName: string): Promise<void> {
  * Calls GET /api/{session}/chats and returns an array of ChatListEntry.
  * WAHA Plus 2026.3.4 only returns {id, name, conversationTimestamp} per entry.
  */
-export async function listChats(session: string): Promise<ChatListEntry[]> {
+export type ListChatsOptions = {
+  limit?: number;
+  offset?: number;
+};
+
+export async function listChats(
+  session: string,
+  options: ListChatsOptions = {},
+): Promise<ChatListEntry[]> {
+  // Sort newest-first at the WAHA layer so offset pagination is stable.
+  const params = new URLSearchParams({
+    sortBy: 'conversationTimestamp',
+    sortOrder: 'desc',
+  });
+  if (options.limit !== undefined) params.set('limit', String(options.limit));
+  if (options.offset !== undefined) params.set('offset', String(options.offset));
+
   const response = await fetch(
-    `${config.WAHA_BASE_URL}/api/${session}/chats`,
+    `${config.WAHA_BASE_URL}/api/${session}/chats?${params.toString()}`,
     {
       method: 'GET',
       headers: {

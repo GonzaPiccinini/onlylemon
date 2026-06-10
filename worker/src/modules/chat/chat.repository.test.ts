@@ -439,3 +439,31 @@ describe('chat.repository — status publishing', () => {
     assert.equal(args.payload.caption, 'mi caption');
   });
 });
+
+// ── listChats pagination ────────────────────────────────────────────────────────
+
+describe('chat.repository — listChats pagination', () => {
+  it('forwards limit/offset opts to the WAHA dep', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      listChats: async (session, opts) => {
+        captured = { session, opts };
+        return [];
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    await repo.listChats('sess', { limit: 20, offset: 40 });
+
+    const args = captured as { session: string; opts: { limit?: number; offset?: number } };
+    assert.equal(args.session, 'sess');
+    assert.deepEqual(args.opts, { limit: 20, offset: 40 });
+  });
+
+  it('works without opts (back-compat)', async () => {
+    const deps = makeDeps({ listChats: async () => [makeWahaChat({ id: 'c1@c.us' })] });
+    const repo = createChatRepository(deps);
+    const result = await repo.listChats('sess');
+    assert.equal(result.length, 1);
+  });
+});

@@ -168,12 +168,18 @@ export const ChatPage = ({
 
   const chatListQuery = useChatList(scope, selectedSessionId);
 
-  // Stable reference — prevents exhaustive-deps warnings when chats is used
-  // in conditional expressions during render.
-  const chats = useMemo(
-    () => chatListQuery.data ?? [],
-    [chatListQuery.data],
-  );
+  // Flatten the infinite-query pages into a single list, de-duping by chatId
+  // (offset pagination over live-updating data can surface a chat twice across
+  // a page boundary when ordering shifts). Stable reference for exhaustive-deps.
+  const chats = useMemo(() => {
+    const flat = chatListQuery.data?.pages.flat() ?? [];
+    const seen = new Set<string>();
+    return flat.filter((c) => {
+      if (seen.has(c.chatId)) return false;
+      seen.add(c.chatId);
+      return true;
+    });
+  }, [chatListQuery.data]);
 
   // Auto-restore lastChatId once the chat list loads (render-time, no effect).
   // Condition: chatId is null, the list has loaded successfully, and the
@@ -333,6 +339,9 @@ export const ChatPage = ({
             onSelect={handleSelectChat}
             unreadChatIds={unreadChatIds}
             isLoading={chatListQuery.isLoading}
+            hasMore={chatListQuery.hasNextPage}
+            onLoadMore={() => void chatListQuery.fetchNextPage()}
+            isLoadingMore={chatListQuery.isFetchingNextPage}
           />
         </>
       )}

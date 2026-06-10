@@ -563,3 +563,32 @@ describe('chat.service — status publishing', () => {
     );
   });
 });
+
+// ── listChats pagination ────────────────────────────────────────────────────────
+
+describe('chat.service — listChats pagination', () => {
+  it('forwards limit/offset to the repository with the resolved sessionName', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ sessionName: 'waha-sess', cashierId: 'cashier-1' }),
+    });
+    deps.repository.listChats = async (sessionName, opts) => {
+      captured = { sessionName, opts };
+      return [];
+    };
+
+    const service = createChatService(deps);
+    await service.listChats({
+      sessionId: 'session-uuid-1',
+      limit: 20,
+      offset: 20,
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    const args = captured as { sessionName: string; opts: { limit?: number; offset?: number } };
+    assert.equal(args.sessionName, 'waha-sess');
+    assert.equal(args.opts.limit, 20);
+    assert.equal(args.opts.offset, 20);
+  });
+});

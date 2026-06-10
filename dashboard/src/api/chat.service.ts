@@ -111,10 +111,21 @@ function statusImageUrl(scope: ChatScope, sessionId: string): string {
 
 export const chatService = {
   /**
-   * List all chats for a session, sorted most-recent-first by the worker.
+   * List chats for a session, sorted most-recent-first by the worker.
+   * `limit`/`offset` drive WAHA-backed offset pagination so the list can be
+   * loaded incrementally ("cargar más chats") instead of all at once.
    */
-  async listChats(scope: ChatScope, sessionId: string): Promise<ChatListEntry[]> {
-    const { data } = await http.get<ChatListEntry[]>(chatsUrl(scope, sessionId));
+  async listChats(
+    scope: ChatScope,
+    sessionId: string,
+    opts: { limit?: number; offset?: number } = {},
+  ): Promise<ChatListEntry[]> {
+    const { data } = await http.get<ChatListEntry[]>(chatsUrl(scope, sessionId), {
+      params: {
+        ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
+        ...(opts.offset ? { offset: opts.offset } : {}),
+      },
+    });
     return data;
   },
 

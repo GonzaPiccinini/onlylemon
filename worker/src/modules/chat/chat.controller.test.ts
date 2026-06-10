@@ -828,3 +828,52 @@ describe('chat.controller — publishImageStatus', () => {
     assert.equal(res.statusCode, 415);
   });
 });
+
+// ── listChats pagination ────────────────────────────────────────────────────────
+
+describe('chat.controller — listChats pagination', () => {
+  it('forwards parsed limit/offset query to the service', async () => {
+    let captured: unknown = null;
+    const svc = makeMockService({
+      listChats: async (args) => { captured = args; return []; },
+    });
+    const { listChats } = createChatController(svc);
+
+    const req = makeReq({ query: { limit: '20', offset: '40' } });
+    const res = makeRes();
+    await listChats(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    const args = captured as { limit?: number; offset?: number };
+    assert.equal(args.limit, 20);
+    assert.equal(args.offset, 40);
+  });
+
+  it('omits limit/offset when not provided', async () => {
+    let captured: unknown = null;
+    const svc = makeMockService({
+      listChats: async (args) => { captured = args; return []; },
+    });
+    const { listChats } = createChatController(svc);
+
+    const req = makeReq({ query: {} });
+    const res = makeRes();
+    await listChats(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    const args = captured as { limit?: number; offset?: number };
+    assert.equal(args.limit, undefined);
+    assert.equal(args.offset, undefined);
+  });
+
+  it('returns 400 on invalid limit', async () => {
+    const svc = makeMockService();
+    const { listChats } = createChatController(svc);
+
+    const req = makeReq({ query: { limit: 'abc' } });
+    const res = makeRes();
+    await listChats(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+});

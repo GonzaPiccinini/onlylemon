@@ -16,16 +16,19 @@ export const chatHistoryKey = (
 // Hook
 // ---------------------------------------------------------------------------
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 50;
 
 /**
  * Fetches paginated message history for a chat using an infinite query.
  *
  * Pages use a numeric `offset` cursor (WAHA-backed): page 0 is the newest
- * PAGE_SIZE messages, and `fetchNextPage()` loads older messages by skipping
- * the count already loaded. This avoids the old broken message-id cursor that
- * the worker ignored — which re-fetched the same newest page and produced
+ * PAGE_SIZE (50) messages, and `fetchNextPage()` loads the next older block
+ * on demand by skipping the count already loaded — triggered by the "Cargar
+ * mensajes anteriores" button. This avoids the old broken message-id cursor
+ * that the worker ignored — which re-fetched the same newest page and produced
  * duplicate / out-of-order messages.
+ *
+ * Worker caps `limit` at 100 (HistoryQuerySchema), so 50 is well within range.
  *
  * Disabled when `chatId` is null (no chat selected yet).
  */

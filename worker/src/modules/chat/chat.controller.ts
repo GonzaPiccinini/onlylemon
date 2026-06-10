@@ -40,6 +40,12 @@ const HistoryQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 
+/** Chat-list pagination query (WAHA-backed offset pagination). */
+const ListChatsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
 const SendTextBodySchema = z.object({
   text: z.string().min(1).max(4096),
   replyTo: z.string().optional(),
@@ -101,9 +107,19 @@ export function createChatController(service: ChatService): ChatController {
       const requesterRole = req.authUser!.role;
       const requesterCashierId = req.authUser!.cashierId;
 
+      const parsed = ListChatsQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
+        return;
+      }
+
+      const { limit, offset } = parsed.data;
+
       try {
         const chats = await service.listChats({
           sessionId,
+          limit,
+          offset,
           requesterRole,
           requesterCashierId,
         });

@@ -10,6 +10,7 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatListEntry } from '@/types/chat';
 
@@ -24,6 +25,12 @@ interface ChatListProps {
   /** Set of chatIds that have unread messages (drives the dot indicator). */
   unreadChatIds?: Set<string>;
   isLoading?: boolean;
+  /** True when more chats can be loaded on demand. */
+  hasMore?: boolean;
+  /** Loads the next page of older chats. */
+  onLoadMore?: () => void;
+  /** True while a load-more request is in flight. */
+  isLoadingMore?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -51,6 +58,9 @@ export const ChatList = ({
   onSelect,
   unreadChatIds,
   isLoading = false,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
 }: ChatListProps) => {
   if (isLoading) {
     return (
@@ -117,6 +127,22 @@ export const ChatList = ({
           </li>
         );
       })}
+
+      {/* Load more — fetches the next page of older chats on demand. */}
+      {hasMore && (
+        <li className="p-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore ? 'Cargando…' : 'Cargar más chats'}
+          </Button>
+        </li>
+      )}
     </ul>
   );
 };

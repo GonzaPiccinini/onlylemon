@@ -429,6 +429,21 @@ test('listChats returns empty array when WAHA returns []', async () => {
   }
 });
 
+test('listChats passes limit/offset and sorts desc by conversationTimestamp', async () => {
+  const stub = stubFetch([makeResponse(200, MOCK_CHAT_LIST)]);
+  try {
+    const { listChats } = await import('./client.js');
+    await listChats('session-01', { limit: 20, offset: 40 });
+    const url = stub.calls[0].url;
+    assert.ok(url.includes('limit=20'), `expected limit=20 in ${url}`);
+    assert.ok(url.includes('offset=40'), `expected offset=40 in ${url}`);
+    assert.ok(url.includes('sortBy=conversationTimestamp'), `expected sortBy in ${url}`);
+    assert.ok(url.includes('sortOrder=desc'), `expected sortOrder=desc in ${url}`);
+  } finally {
+    stub.restore();
+  }
+});
+
 test('listChats sends X-Api-Key header', async () => {
   const stub = stubFetch([makeResponse(200, MOCK_CHAT_LIST)]);
   try {

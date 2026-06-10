@@ -16,9 +16,11 @@ import type { ChatListEntry, ChatMessage, ChatReactionSummary, QuotedMessage } f
 
 // ── Injected deps (WAHA client function signatures) ────────────────────────────
 
+export type ChatListOptions = { limit?: number; offset?: number };
+
 export type ChatRepositoryDeps = {
   /** Calls WAHA GET /api/{session}/chats */
-  listChats(session: string): Promise<Array<{
+  listChats(session: string, opts?: ChatListOptions): Promise<Array<{
     id: string;
     name?: string | null;
     conversationTimestamp?: number | null;
@@ -140,7 +142,7 @@ function mapWahaMessageToChatMessage(msg: WahaMessageShape): ChatMessage {
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export type ChatRepository = {
-  listChats(sessionName: string): Promise<ChatListEntry[]>;
+  listChats(sessionName: string, opts?: ChatListOptions): Promise<ChatListEntry[]>;
   getChatHistory(
     sessionName: string,
     chatId: string,
@@ -176,8 +178,8 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
   } = deps;
 
   return {
-    async listChats(sessionName: string): Promise<ChatListEntry[]> {
-      const raw = await listChats(sessionName);
+    async listChats(sessionName: string, opts?: ChatListOptions): Promise<ChatListEntry[]> {
+      const raw = await listChats(sessionName, opts);
 
       const entries: ChatListEntry[] = raw.map((entry) => ({
         chatId: entry.id,
@@ -185,7 +187,9 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
         lastMessageTimestamp: entry.conversationTimestamp ?? 0,
       }));
 
-      // Sort descending by lastMessageTimestamp (most recently active first)
+      // Sort descending by lastMessageTimestamp (most recently active first).
+      // WAHA already sorts desc, but we re-sort defensively within the page so
+      // ordering is stable regardless of engine behaviour.
       entries.sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp);
 
       return entries;
@@ -293,7 +297,7 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
   } = await import('../../integrations/waha/client.js');
 
   return createChatRepository({
-    listChats: (session) => listChats(session),
+    listChats: (session, opts) => listChats(session, opts),
     getChatMessages: (session, chatId, opts) =>
       getChatMessages(session, chatId, { limit: opts.limit, offset: opts.offset, sortBy: 'timestamp', sortOrder: 'desc', downloadMedia: true }),
     downloadMedia: (url) => downloadMedia(url),

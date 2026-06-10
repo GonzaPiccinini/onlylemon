@@ -88,6 +88,8 @@ function isOwner(session: WhatsappSessionRow, role: Role, requesterCashierId?: s
 export type ChatService = {
   listChats(args: {
     sessionId: string;
+    limit?: number;
+    offset?: number;
     requesterCashierId?: string;
     requesterRole: Role;
   }): Promise<ChatListEntry[]>;
@@ -180,9 +182,9 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
   }
 
   return {
-    async listChats({ sessionId, requesterCashierId, requesterRole }) {
+    async listChats({ sessionId, limit, offset, requesterCashierId, requesterRole }) {
       const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
-      return repository.listChats(session.sessionName);
+      return repository.listChats(session.sessionName, { limit, offset });
     },
 
     async getChatHistory({ sessionId, chatId, limit, offset, requesterCashierId, requesterRole }) {
