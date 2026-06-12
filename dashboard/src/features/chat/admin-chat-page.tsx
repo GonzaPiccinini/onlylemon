@@ -163,7 +163,7 @@ export const AdminChatPage = () => {
   );
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         title="WhatsApp"
         description="Supervisá y enviá mensajes desde las sesiones de los cajeros."
@@ -176,7 +176,7 @@ export const AdminChatPage = () => {
           cashierPicker={cashierPickerNode}
         />
       ) : (
-        <div className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden rounded-2xl border bg-card shadow-sm md:h-[calc(100svh-6rem)]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
             {cashierPickerNode}
             <NoCashierSelected />

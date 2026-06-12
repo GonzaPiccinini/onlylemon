@@ -315,29 +315,38 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   const listPanel = (
-    <div className="scrollbar-thin flex h-full flex-col gap-3 overflow-y-auto bg-black p-3">
-      {cashierPicker}
-      {sessions.length === 0 ? (
-        (emptyCta ?? null)
-      ) : (
-        <>
+    <div className="flex h-full min-h-0 flex-col bg-black">
+      {/* Pinned header — cashier/session pickers + status action stay fixed
+          at the top while the contacts list scrolls below them. */}
+      <div className="flex shrink-0 flex-col gap-3 px-3 pt-3">
+        {cashierPicker}
+        {sessions.length > 0 && (
           <SessionPicker
             sessions={sessions}
             selectedSessionId={selectedSessionId}
             onSelect={handleSelectSession}
           />
-          {selectedSessionId && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setStatusDialogOpen(true)}
-              className="shrink-0 justify-start gap-2"
-            >
-              <CircleFadingPlusIcon className="size-4" />
-              Publicar estado
-            </Button>
-          )}
+        )}
+        {sessions.length > 0 && selectedSessionId && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setStatusDialogOpen(true)}
+            className="shrink-0 justify-start gap-2"
+          >
+            <CircleFadingPlusIcon className="size-4" />
+            Publicar estado
+          </Button>
+        )}
+      </div>
+
+      {/* Scrollable contacts region — grows with chat count and scrolls in
+          place, so the list never overflows the (viewport-locked) layout. */}
+      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+        {sessions.length === 0 ? (
+          (emptyCta ?? null)
+        ) : (
           <ChatList
             chats={chats}
             selectedChatId={selectedChatId}
@@ -348,8 +357,8 @@ export const ChatPage = ({
             onLoadMore={() => void chatListQuery.fetchNextPage()}
             isLoadingMore={chatListQuery.isFetchingNextPage}
           />
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 
@@ -401,7 +410,7 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   return (
-    <div className="relative flex h-[calc(100svh-8rem)] overflow-hidden rounded-2xl border bg-black shadow-sm md:h-[calc(100svh-6rem)]">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl border bg-black shadow-sm">
       {/* Desktop: left column — list */}
       <div className="hidden w-72 shrink-0 flex-col border-r md:flex">
         {listPanel}

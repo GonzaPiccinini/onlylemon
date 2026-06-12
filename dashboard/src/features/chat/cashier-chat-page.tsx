@@ -71,7 +71,7 @@ export const CashierChatPage = () => {
 
   if (isLoading) {
     return (
-      <section className="flex flex-col gap-4">
+      <section className="flex min-h-0 flex-1 flex-col gap-4">
         <PageHeader
           title="WhatsApp"
           description="Cargando sesiones de WhatsApp..."
@@ -82,7 +82,7 @@ export const CashierChatPage = () => {
   }
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         title="WhatsApp"
         description="Chateá con tus clientes desde tus sesiones de WhatsApp."

@@ -2,8 +2,9 @@
  * SessionPicker.tsx — Displays the cashier's WORKING WhatsApp sessions.
  *
  * - 1 session → static label (no picker needed).
- * - 2+ sessions → shadcn Select dropdown.
- * - 0 sessions → empty state (caller decides, but we render nothing meaningful).
+ * - 2+ sessions → a CUSTOM dropdown (built in-house, not the shadcn/base-ui
+ *   Select primitive) so it matches the dashboard's lemon/dark theme exactly
+ *   and we fully own its look & behaviour.
  *
  * Connection state is a compact dot (yellow = connected, black = disconnected).
  * The displayed name prioritises: alias → phone number → session code.
@@ -11,13 +12,10 @@
  * management section (cashier session page / admin sessions panel).
  */
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import * as React from 'react';
+import { CheckIcon, ChevronDownIcon } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 import { wahaStatusLabel } from '@/lib/waha-status';
 
 // ---------------------------------------------------------------------------
@@ -66,11 +64,198 @@ const StatusDot = ({ status }: { status: string | null }) => {
       aria-label={label}
       className={[
         'inline-block size-2.5 shrink-0 rounded-full',
-        connected ? 'bg-yellow-400' : 'bg-black',
+        connected ? 'bg-yellow-400' : 'bg-black ring-1 ring-foreground/30',
       ].join(' ')}
     />
   );
 };
+
+// ---------------------------------------------------------------------------
+// Custom dropdown (2+ sessions) — owns its markup, theme tokens & a11y.
+// ---------------------------------------------------------------------------
+
+function SessionSelect({
+  sessions,
+  selectedSession,
+  onSelect,
+}: {
+  sessions: SessionOption[];
+  selectedSession: SessionOption | undefined;
+  onSelect: (sessionId: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [activeIndex, setActiveIndex] = React.useState(0);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const optionRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const listboxId = React.useId();
+
+  const selectedIndex = sessions.findIndex((s) => s.id === selectedSession?.id);
+
+  // Close when clicking outside the picker.
+  React.useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  // On open: highlight the current session (or first) and move focus into it.
+  React.useEffect(() => {
+    if (!open) return;
+    const idx = selectedIndex >= 0 ? selectedIndex : 0;
+    setActiveIndex(idx);
+    const raf = requestAnimationFrame(() => optionRefs.current[idx]?.focus());
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const focusOption = (idx: number) => {
+    setActiveIndex(idx);
+    optionRefs.current[idx]?.focus();
+  };
+
+  const commit = (idx: number) => {
+    const s = sessions[idx];
+    if (s) onSelect(s.id);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const onTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
+
+  const onListKeyDown = (e: React.KeyboardEvent) => {
+    const last = sessions.length - 1;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        focusOption(activeIndex >= last ? 0 : activeIndex + 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        focusOption(activeIndex <= 0 ? last : activeIndex - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        focusOption(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        focusOption(last);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        commit(activeIndex);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        break;
+      case 'Tab':
+        setOpen(false);
+        break;
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={onTriggerKeyDown}
+        className={cn(
+          'group flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-left text-sm font-medium text-foreground shadow-sm transition-colors',
+          'hover:border-foreground/25 hover:bg-accent/40',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+          open && 'border-ring/60 bg-accent/40',
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {selectedSession ? (
+            <>
+              <StatusDot status={selectedSession.wahaStatus} />
+              <span className="truncate">{sessionLabel(selectedSession)}</span>
+            </>
+          ) : (
+            <span className="truncate text-muted-foreground">
+              Seleccioná una sesión
+            </span>
+          )}
+        </span>
+        <ChevronDownIcon
+          className={cn(
+            'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
+            open && 'rotate-180',
+          )}
+        />
+      </button>
+
+      {open && (
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label="Sesiones de WhatsApp"
+          aria-activedescendant={`${listboxId}-opt-${activeIndex}`}
+          tabIndex={-1}
+          onKeyDown={onListKeyDown}
+          className={cn(
+            'absolute inset-x-0 top-full z-50 mt-1.5 origin-top max-h-28 overflow-y-auto scrollbar-thin rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10',
+            'animate-in fade-in-0 zoom-in-95 duration-100',
+          )}
+        >
+          {sessions.map((s, idx) => {
+            const isSelected = s.id === selectedSession?.id;
+            const isActive = idx === activeIndex;
+            return (
+              <button
+                key={s.id}
+                ref={(el) => {
+                  optionRefs.current[idx] = el;
+                }}
+                id={`${listboxId}-opt-${idx}`}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={isActive ? 0 : -1}
+                data-active={isActive}
+                onClick={() => commit(idx)}
+                onMouseMove={() => setActiveIndex(idx)}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors',
+                  isActive
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-popover-foreground',
+                )}
+              >
+                <StatusDot status={s.wahaStatus} />
+                <span
+                  className={cn('min-w-0 flex-1 truncate', isSelected && 'font-medium')}
+                >
+                  {sessionLabel(s)}
+                </span>
+                {isSelected && <CheckIcon className="size-4 shrink-0 text-primary" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -89,38 +274,19 @@ export const SessionPicker = ({
   if (sessions.length === 1) {
     const s = sessions[0]!;
     return (
-      <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
+      <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5">
         <StatusDot status={s.wahaStatus} />
         <span className="truncate text-sm font-medium">{sessionLabel(s)}</span>
       </div>
     );
   }
 
-  // Multiple sessions — Select + status dot
+  // Multiple sessions — custom dropdown
   return (
-    <div className="flex items-center gap-2">
-      <Select
-        value={selectedSessionId ?? ''}
-        onValueChange={(value: string | null) => {
-          if (value) onSelect(value);
-        }}
-      >
-        <SelectTrigger className="w-52">
-          <SelectValue placeholder="Seleccioná una sesión" />
-        </SelectTrigger>
-        <SelectContent>
-          {sessions.map((s) => (
-            <SelectItem key={s.id} value={s.id}>
-              <span className="flex items-center gap-2">
-                <StatusDot status={s.wahaStatus} />
-                <span>{sessionLabel(s)}</span>
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {selectedSession && <StatusDot status={selectedSession.wahaStatus} />}
-    </div>
+    <SessionSelect
+      sessions={sessions}
+      selectedSession={selectedSession}
+      onSelect={onSelect}
+    />
   );
 };
