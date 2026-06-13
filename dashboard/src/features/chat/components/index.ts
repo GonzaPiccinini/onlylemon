@@ -1,6 +1,7 @@
 export { SessionPicker } from './SessionPicker';
 export type { SessionOption } from './SessionPicker';
 export { ChatList } from './ChatList';
+export { NotificationToggle } from './NotificationToggle';
 export { MessageThread } from './MessageThread';
 export { ChatHeader } from './ChatHeader';
 export { MessageItem } from './MessageItem';

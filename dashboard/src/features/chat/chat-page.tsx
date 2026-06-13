@@ -47,6 +47,7 @@ import {
   useSendReaction,
   useLastSession,
   useLastChat,
+  rememberChatFor,
 } from './hooks';
 import {
   SessionPicker,
@@ -55,6 +56,7 @@ import {
   ChatHeader,
   Composer,
   StatusComposerDialog,
+  NotificationToggle,
 } from './components';
 import type { SessionOption } from './components';
 
@@ -198,6 +200,22 @@ export const ChatPage = ({
     if (sheetOpen) setSheetOpen(false);
   }
 
+  // Navigate to a specific chat (used by notification clicks). Switches the
+  // session if needed and opens the chat. The target chat is persisted for its
+  // session first, so when the (possibly different) session's list loads the
+  // page's auto-restore opens it even before the optimistic id resolves.
+  const handleNavigateToChat = useCallback(
+    (sessionId: string, chatId: string) => {
+      rememberChatFor(scope, sessionId, chatId);
+      rememberSession(sessionId);
+      setSelectedSessionId(sessionId);
+      setSelectedChatId(chatId);
+      setReplyingTo(null);
+      if (isMobile) setSheetOpen(true);
+    },
+    [scope, rememberSession, isMobile],
+  );
+
   // ------------------------------------------------------------------
   // SSE stream — mounted at page level (all visible chats stay live).
   // Declared before handleSelectChat because the latter needs markChatRead.
@@ -208,6 +226,7 @@ export const ChatPage = ({
     scope,
     selectedSessionId,
     selectedChatId,
+    handleNavigateToChat,
   );
 
   const handleSelectChat = useCallback(
@@ -319,6 +338,7 @@ export const ChatPage = ({
       {/* Pinned header — cashier/session pickers + status action stay fixed
           at the top while the contacts list scrolls below them. */}
       <div className="flex shrink-0 flex-col gap-3 px-3 pt-3">
+        <NotificationToggle />
         {cashierPicker}
         {sessions.length > 0 && (
           <SessionPicker

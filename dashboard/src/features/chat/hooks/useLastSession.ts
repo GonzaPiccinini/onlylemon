@@ -115,3 +115,25 @@ export const useLastChat = (
 
   return { lastChatId, rememberChat };
 };
+
+// ---------------------------------------------------------------------------
+// rememberChatFor
+// ---------------------------------------------------------------------------
+
+/**
+ * Persists the last-opened chat for an ARBITRARY session (not necessarily the
+ * currently selected one). Used to pre-seed the target chat before switching
+ * sessions — e.g. opening the chat a notification points to — so the page's
+ * auto-restore opens it once that session's chat list loads.
+ */
+export function rememberChatFor(
+  scope: ChatScope,
+  sessionId: string,
+  chatId: string,
+): void {
+  try {
+    localStorage.setItem(lastChatKey(scope, sessionId), chatId);
+  } catch {
+    // Storage quota exceeded or private browsing — ignore silently
+  }
+}

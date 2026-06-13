@@ -13,6 +13,7 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatListEntry } from '@/types/chat';
+import { resolveContactTitle } from '../contact';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,7 +87,7 @@ export const ChatList = ({
       {chats.map((chat) => {
         const isSelected = chat.chatId === selectedChatId;
         const isUnread = unreadChatIds?.has(chat.chatId) ?? false;
-        const displayName = chat.displayName ?? chat.chatId;
+        const { title: displayName } = resolveContactTitle(chat);
 
         return (
           <li key={chat.chatId}>

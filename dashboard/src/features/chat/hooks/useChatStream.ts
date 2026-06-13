@@ -1,11 +1,50 @@
 import { useCallback, useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { chatService, type ChatScope } from "@/api/chat.service";
-import type { ChatMessageEvent, ChatMessage, ChatReactionEvent } from "@/types/chat";
+import type {
+  ChatMessageEvent,
+  ChatMessage,
+  ChatReactionEvent,
+  ChatListEntry,
+} from "@/types/chat";
 import { chatHistoryKey } from "./useChatHistory";
 import { chatListKey } from "./useChatList";
 import { RECONCILE_WINDOW_MS, type OptimisticMessage } from "./useSendMessage";
 import { toMillis } from "../time";
+import { resolveContactTitle } from "../contact";
+import { showChatNotification } from "../notifications";
+
+// ---------------------------------------------------------------------------
+// Notification helpers
+// ---------------------------------------------------------------------------
+
+/** Reads the cached chat-list entry for a chat, to resolve its display title. */
+function findChatListEntry(
+  queryClient: QueryClient,
+  scope: ChatScope,
+  sessionId: string,
+  chatId: string,
+): ChatListEntry | null {
+  const data = queryClient.getQueryData<{ pages: ChatListEntry[][] }>(
+    chatListKey(scope, sessionId),
+  );
+  if (!data) return null;
+  for (const page of data.pages) {
+    const found = page.find((entry) => entry.chatId === chatId);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** Short human label for a media-only message (no text body). */
+function mediaPlaceholder(mimetype: string | null): string {
+  if (!mimetype) return "📎 Archivo";
+  if (mimetype.startsWith("image/")) return "📷 Foto";
+  if (mimetype.startsWith("video/")) return "🎥 Video";
+  if (mimetype.startsWith("audio/")) return "🎙️ Audio";
+  if (mimetype === "application/pdf") return "📄 PDF";
+  return "📎 Archivo";
+}
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -45,6 +84,8 @@ export const useChatStream = (
   scope: ChatScope,
   activeSessionId: string | null,
   activeChatId: string | null,
+  /** Called when a chat notification is clicked — opens that session + chat. */
+  onOpenChat?: (sessionId: string, chatId: string) => void,
 ) => {
   const queryClient = useQueryClient();
 
@@ -161,6 +202,47 @@ export const useChatStream = (
             prev.has(chatId) ? prev : new Set(prev).add(chatId),
           );
         }
+
+        // In-app browser notification (Option A). Suppress ONLY when the user is
+        // actively viewing this exact chat: tab focused AND the message's session
+        // is the one selected in the picker AND its chat is the open one. In every
+        // other case — including a message that arrives on a session OTHER than
+        // the selected one — notify. No-ops unless permission was granted.
+        const viewingThisChat =
+          !document.hidden &&
+          sessionId === activeSessionId &&
+          chatId === activeChatId;
+        if (!message.fromMe && !viewingThisChat) {
+          const entry =
+            findChatListEntry(queryClient, scope, sessionId, chatId) ?? {
+              chatId,
+              displayName: null,
+              lastMessageTimestamp: 0,
+            };
+          const { title } = resolveContactTitle(entry);
+          const body = message.body.trim()
+            ? message.body
+            : message.hasMedia
+              ? mediaPlaceholder(message.mediaMimetype)
+              : "Nuevo mensaje";
+          // Tag per session+chat so the same contact on different sessions does
+          // not collapse into a single notification. Clicking opens that exact
+          // session + chat (and clears its unread flag, since we're opening it).
+          showChatNotification({
+            title,
+            body,
+            tag: `${sessionId}:${chatId}`,
+            onClick: () => {
+              setUnreadChatIds((prev) => {
+                if (!prev.has(chatId)) return prev;
+                const next = new Set(prev);
+                next.delete(chatId);
+                return next;
+              });
+              onOpenChat?.(sessionId, chatId);
+            },
+          });
+        }
       } catch {
         // Malformed event — ignore
       }
@@ -223,7 +305,7 @@ export const useChatStream = (
     return () => {
       source.close();
     };
-  }, [activeChatId, activeSessionId, queryClient, scope, token]);
+  }, [activeChatId, activeSessionId, onOpenChat, queryClient, scope, token]);
 
   return { unreadChatIds, markChatRead };
 };

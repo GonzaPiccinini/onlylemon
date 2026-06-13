@@ -11,6 +11,7 @@
 import { ArrowLeftIcon, UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ChatListEntry } from '@/types/chat';
+import { resolveContactTitle } from '../contact';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,36 +29,11 @@ interface ChatHeaderProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Resolves the title shown in the header.
- * Returns the saved contact name when available, otherwise the phone number
- * (prefixed with "+"). `isPhone` flags when the title is a bare number so the
- * avatar can fall back to an icon instead of an initial.
- */
-function resolveTitle(chat: ChatListEntry): { title: string; isPhone: boolean } {
-  const name = chat.displayName?.trim();
-  const local = chat.chatId.split('@')[0] ?? '';
-
-  // A real saved name (not just the bare number) → use it.
-  if (name && !/^\d+$/.test(name)) {
-    return { title: name, isPhone: false };
-  }
-
-  // No name (or the "name" is just digits) → show the phone number.
-  const digits = name && /^\d+$/.test(name) ? name : local;
-  const title = /^\d+$/.test(digits) ? `+${digits}` : digits;
-  return { title, isPhone: true };
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export const ChatHeader = ({ chat, onBack, sessionLabel }: ChatHeaderProps) => {
-  const { title, isPhone } = resolveTitle(chat);
+  const { title, isPhone } = resolveContactTitle(chat);
   const initial = !isPhone ? title.charAt(0).toUpperCase() : null;
 
   return (
