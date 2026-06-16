@@ -34,6 +34,19 @@ export type ChatRepositoryDeps = {
     opts: { limit: number; offset?: number },
   ): Promise<Array<WahaMessageShape>>;
 
+  /**
+   * Calls WAHA GET /api/{session}/chats/{chatId}/messages/{messageId}.
+   * Fetches a SINGLE message directly by id (returns null when WAHA 404s).
+   * Used by getMediaBytes so media resolves regardless of how old the message
+   * is — the previous recent-window list scan missed anything beyond its limit.
+   */
+  getMessageById(
+    session: string,
+    chatId: string,
+    messageId: string,
+    opts?: { downloadMedia?: boolean },
+  ): Promise<WahaMessageShape | null>;
+
   /** Downloads media bytes from a WAHA-served URL */
   downloadMedia(url: string): Promise<{ buffer: Buffer; mimetype: string }>;
 
@@ -169,6 +182,7 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
   const {
     listChats,
     getChatMessages,
+    getMessageById,
     downloadMedia,
     sendText,
     sendImage,
@@ -209,17 +223,17 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
       chatId: string,
       messageId: string,
     ): Promise<{ bytes: Buffer; mimetype: string } | null> {
-      // Fetch the message to get its media metadata
-      // We use a high limit scan to find the message — in V2, direct message lookup
-      // would be used. For V1, getChatMessages is the available API.
-      let messages: WahaMessageShape[];
+      // Fetch the target message DIRECTLY by id (with downloadMedia=true so WAHA
+      // populates media.url on demand). The previous implementation scanned the
+      // 50 most-recent messages and `find`-ed the target — which silently 404'd
+      // media on anything older than that window, even when WAHA had the URL.
+      let msg: WahaMessageShape | null;
       try {
-        messages = await getChatMessages(sessionName, chatId, { limit: 50 });
+        msg = await getMessageById(sessionName, chatId, messageId, { downloadMedia: true });
       } catch {
         return null;
       }
 
-      const msg = messages.find((m) => m.id === messageId);
       if (!msg) return null;
       if (!msg.hasMedia) return null;
       if (!msg.media) return null;
@@ -288,6 +302,7 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
   const {
     listChats,
     getChatMessages,
+    getMessageById,
     downloadMedia,
     sendText,
     sendImage,
@@ -300,6 +315,8 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
     listChats: (session, opts) => listChats(session, opts),
     getChatMessages: (session, chatId, opts) =>
       getChatMessages(session, chatId, { limit: opts.limit, offset: opts.offset, sortBy: 'timestamp', sortOrder: 'desc', downloadMedia: true }),
+    getMessageById: (session, chatId, messageId, opts) =>
+      getMessageById(session, chatId, messageId, { downloadMedia: opts?.downloadMedia ?? true }),
     downloadMedia: (url) => downloadMedia(url),
     sendText: (session, chatId, text, replyTo) => sendText(session, chatId, text, replyTo),
     sendImage: (session, chatId, file, caption) => sendImage(session, chatId, file, caption),

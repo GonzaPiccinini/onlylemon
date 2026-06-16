@@ -194,6 +194,38 @@ export async function getChatMessages(
   });
 }
 
+/**
+ * Fetches a SINGLE message by id via GET
+ * /api/{session}/chats/{chatId}/messages/{messageId}.
+ *
+ * Returns null when WAHA responds 404 (message not found). With
+ * `downloadMedia: true`, WAHA populates `media.url` on demand even for older
+ * messages — this is what lets media resolve regardless of how far back the
+ * message is (the previous list-scan approach missed anything beyond its limit).
+ */
+export async function getMessageById(
+  session: string,
+  chatId: string,
+  messageId: string,
+  options: { downloadMedia?: boolean } = {},
+): Promise<WahaMessage | null> {
+  const query = new URLSearchParams({
+    downloadMedia: String(options.downloadMedia ?? true),
+  });
+  const response = await wahaGetRaw(
+    `/api/${session}/chats/${chatId}/messages/${messageId}?${query.toString()}`,
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`WAHA getMessageById failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as WahaMessage;
+}
+
 export async function getSessions() {
   return wahaGet<SessionsList>('/api/sessions', {});
 }

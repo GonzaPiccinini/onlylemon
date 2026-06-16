@@ -46,6 +46,7 @@ function makeDeps(overrides: Partial<ChatRepositoryDeps> = {}): ChatRepositoryDe
   return {
     listChats: async () => [],
     getChatMessages: async () => [],
+    getMessageById: async () => null,
     downloadMedia: async () => ({ buffer: Buffer.alloc(0), mimetype: 'application/octet-stream' }),
     sendText: async () => {},
     sendImage: async () => {},
@@ -251,13 +252,12 @@ describe('chat.repository — getMediaBytes', () => {
   it('returns bytes + mimetype from message metadata (not from downloadMedia response header)', async () => {
     const expectedBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
     const deps = makeDeps({
-      getChatMessages: async () => [
+      getMessageById: async () =>
         makeWahaMessage({
           id: 'media-msg',
           hasMedia: true,
           media: { url: 'http://waha/api/s3/key', mimetype: 'image/png' },
         }),
-      ],
       // downloadMedia returns application/octet-stream — must NOT be used for mimetype
       downloadMedia: async () => ({ buffer: expectedBytes, mimetype: 'application/octet-stream' }),
     });
@@ -271,11 +271,38 @@ describe('chat.repository — getMediaBytes', () => {
     assert.equal(result!.mimetype, 'image/png');
   });
 
-  it('returns null when message is not found in WAHA response', async () => {
+  it('fetches the target message DIRECTLY by id (not via a recent-window list scan)', async () => {
+    // Regression: media on messages older than the former 50-message scan window
+    // returned 404 even though WAHA had the URL. The repo must look the message
+    // up by id, passing through the exact session/chat/message it was asked for.
+    let captured: { session: string; chatId: string; messageId: string } | null = null;
     const deps = makeDeps({
-      getChatMessages: async () => [
-        makeWahaMessage({ id: 'different-msg' }),
-      ],
+      getMessageById: async (session, chatId, messageId) => {
+        captured = { session, chatId, messageId };
+        return makeWahaMessage({
+          id: messageId,
+          hasMedia: true,
+          media: { url: 'http://waha/api/s3/old-but-present', mimetype: 'image/jpeg' },
+        });
+      },
+      downloadMedia: async () => ({ buffer: Buffer.from([0x01]), mimetype: 'application/octet-stream' }),
+    });
+
+    const repo = createChatRepository(deps);
+    const result = await repo.getMediaBytes('session', 'chat@c.us', 'true_old@lid_DEADBEEF');
+
+    assert.ok(result, 'older message media should still resolve');
+    assert.equal(result!.mimetype, 'image/jpeg');
+    assert.deepEqual(captured, {
+      session: 'session',
+      chatId: 'chat@c.us',
+      messageId: 'true_old@lid_DEADBEEF',
+    });
+  });
+
+  it('returns null when the message is not found (WAHA returns null)', async () => {
+    const deps = makeDeps({
+      getMessageById: async () => null,
     });
 
     const repo = createChatRepository(deps);
@@ -285,9 +312,8 @@ describe('chat.repository — getMediaBytes', () => {
 
   it('returns null when message has no media', async () => {
     const deps = makeDeps({
-      getChatMessages: async () => [
+      getMessageById: async () =>
         makeWahaMessage({ id: 'no-media-msg', hasMedia: false, media: null }),
-      ],
     });
 
     const repo = createChatRepository(deps);
@@ -297,13 +323,12 @@ describe('chat.repository — getMediaBytes', () => {
 
   it('returns null when media URL is null (media not yet available)', async () => {
     const deps = makeDeps({
-      getChatMessages: async () => [
+      getMessageById: async () =>
         makeWahaMessage({
           id: 'no-url-msg',
           hasMedia: true,
           media: { url: null, mimetype: 'image/jpeg' },
         }),
-      ],
     });
 
     const repo = createChatRepository(deps);
@@ -311,15 +336,26 @@ describe('chat.repository — getMediaBytes', () => {
     assert.equal(result, null);
   });
 
+  it('returns null when getMessageById throws (transient WAHA failure)', async () => {
+    const deps = makeDeps({
+      getMessageById: async () => {
+        throw new Error('WAHA getMessageById failed with status 500');
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    const result = await repo.getMediaBytes('session', 'chat@c.us', 'boom-msg');
+    assert.equal(result, null);
+  });
+
   it('returns null when downloadMedia throws (R2 deletion gap)', async () => {
     const deps = makeDeps({
-      getChatMessages: async () => [
+      getMessageById: async () =>
         makeWahaMessage({
           id: 'gone-msg',
           hasMedia: true,
           media: { url: 'http://waha/api/s3/gone', mimetype: 'image/png' },
         }),
-      ],
       downloadMedia: async () => {
         throw new Error('WAHA downloadMedia failed with status 404');
       },
