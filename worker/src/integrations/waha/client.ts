@@ -185,7 +185,9 @@ export async function getChatMessages(
   chatId: string,
   options: GetChatMessagesOptions,
 ) {
-  return wahaGet<WahaMessage[]>(`/api/${session}/chats/${chatId}/messages`, {
+  // chatId is cashier-controlled — encode it so a `/` or `..` cannot escape the
+  // session scope in the WAHA URL path (IDOR hardening).
+  return wahaGet<WahaMessage[]>(`/api/${session}/chats/${encodeURIComponent(chatId)}/messages`, {
     limit: options.limit.toString(),
     sortBy: options.sortBy ?? 'timestamp',
     sortOrder: options.sortOrder ?? 'desc',
@@ -212,8 +214,10 @@ export async function getMessageById(
   const query = new URLSearchParams({
     downloadMedia: String(options.downloadMedia ?? true),
   });
+  // chatId/messageId are cashier-controlled — encode them so a `/` or `..`
+  // cannot escape the session scope in the WAHA URL path (IDOR hardening).
   const response = await wahaGetRaw(
-    `/api/${session}/chats/${chatId}/messages/${messageId}?${query.toString()}`,
+    `/api/${session}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}?${query.toString()}`,
   );
 
   if (response.status === 404) {

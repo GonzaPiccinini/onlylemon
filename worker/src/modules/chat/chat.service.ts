@@ -79,6 +79,14 @@ export type ChatServiceDeps = {
 const RATE_CAPACITY = 10;
 const RATE_REFILL_INTERVAL_MS = 500;
 
+// Reactions get their OWN, more lenient bucket (they used to bypass limiting
+// entirely → unbounded WAHA spam). Separate from text/photo so reacting fast
+// never eats into the send budget.
+// capacity:          20 tokens  (burst)
+// refillIntervalMs:  250ms      (≈ 4 reactions/sec sustained)
+const REACTION_RATE_CAPACITY = 20;
+const REACTION_RATE_REFILL_INTERVAL_MS = 250;
+
 // ── Owner check ────────────────────────────────────────────────────────────────
 
 function isOwner(session: WhatsappSessionRow, role: Role, requesterCashierId?: string): boolean {
@@ -180,6 +188,13 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
     nowFn,
   });
 
+  // Dedicated bucket for reactions — keyed by sessionId, separate from `limiter`.
+  const reactionLimiter: RateLimiter = createRateLimiter({
+    capacity: REACTION_RATE_CAPACITY,
+    refillIntervalMs: REACTION_RATE_REFILL_INTERVAL_MS,
+    nowFn,
+  });
+
   /** Resolves session + enforces ownership. Throws on failure. */
   async function resolveAndAuthorize(
     sessionId: string,
@@ -239,7 +254,12 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
     async sendReaction({ sessionId, chatId: _chatId, messageId, reaction, requesterCashierId, requesterRole }) {
       const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
 
-      // NOTE: sendReaction does NOT consume from the rate bucket (design §6).
+      // Reactions consume from their OWN lenient bucket (not the shared text/photo
+      // one), so reaction spam is bounded without throttling normal sends.
+      if (!reactionLimiter.tryConsume(sessionId)) {
+        throw new ChatRateLimitError();
+      }
+
       return repository.sendReaction(session.sessionName, messageId, reaction);
     },
 

@@ -16,6 +16,7 @@ import { isCorsOriginAllowed } from '../modules/security/cors-origins.service.js
 import { requestLoggingMiddleware } from '../middlewares/request-logging.middleware.js';
 import { errorMiddleware } from '../middlewares/error.middleware.js';
 import { logger } from '../lib/logger.js';
+import { memoizeAsync } from '../lib/memoize-async.js';
 import { register } from '../lib/metrics.js';
 import { prisma } from '../persistence/prisma/client.js';
 import { getSessions, updateSessionConfig } from '../integrations/waha/client.js';
@@ -61,31 +62,26 @@ app.post('/receive', (_req, res) => {
 // ── Chat router (Batch 5) ──────────────────────────────────────────────────────
 // Lazily initialized on first request so we can await the default service factory
 // without blocking module load time (server.ts does not support top-level await).
-let _chatRouter: import('express').Router | null = null;
+// The init Promise is memoized (not the resolved router) so a burst of requests
+// arriving before the first init resolves all share ONE ChatService/rate-limiter
+// instead of each building its own.
+const getChatRouter = memoizeAsync(async () => {
+  const chatService = await createDefaultChatService();
+  return createChatRouter({
+    service: chatService,
+    getWhatsappSession: async (sessionId) =>
+      prisma.whatsappSession.findUnique({
+        where: { id: sessionId },
+        select: { id: true, sessionName: true, cashierId: true },
+      }),
+    requireAuth,
+    requireRole,
+  });
+});
 
 app.use('/api', (req, res, next) => {
-  if (_chatRouter) {
-    _chatRouter(req, res, next);
-    return;
-  }
-
-  // First request — initialize the chat router asynchronously, then serve.
-  Promise.all([
-    createDefaultChatService(),
-  ])
-    .then(([chatService]) => {
-      _chatRouter = createChatRouter({
-        service: chatService,
-        getWhatsappSession: async (sessionId) =>
-          prisma.whatsappSession.findUnique({
-            where: { id: sessionId },
-            select: { id: true, sessionName: true, cashierId: true },
-          }),
-        requireAuth,
-        requireRole,
-      });
-      _chatRouter(req, res, next);
-    })
+  getChatRouter()
+    .then((chatRouter) => chatRouter(req, res, next))
     .catch(next);
 });
 

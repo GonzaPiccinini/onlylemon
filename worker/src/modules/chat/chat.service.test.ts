@@ -289,9 +289,76 @@ describe('chat.service — rate limiting for sendText', () => {
   });
 });
 
-// ── sendReaction — not rate-limited ────────────────────────────────────────────
+// ── sendReaction — separate, lenient rate bucket ───────────────────────────────
 
-describe('chat.service — sendReaction is not rate-limited', () => {
+describe('chat.service — sendReaction uses a separate rate bucket', () => {
+  it('throws ChatRateLimitError once the dedicated reaction bucket is exhausted', async () => {
+    let now = 0;
+    const service = createChatService(makeDeps({
+      nowFn: () => now,
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-1' }),
+    }));
+
+    // The reaction bucket capacity is 20 — drain it.
+    for (let i = 0; i < 20; i++) {
+      await service.sendReaction({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        messageId: 'msg-001',
+        reaction: '👍',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      });
+    }
+
+    // 21st reaction is blocked.
+    await assert.rejects(
+      () => service.sendReaction({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        messageId: 'msg-001',
+        reaction: '👍',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+      (err) => {
+        assert.ok(err instanceof ChatRateLimitError);
+        return true;
+      },
+    );
+  });
+
+  it('reaction bucket is independent from the text/photo bucket', async () => {
+    let now = 0;
+    const service = createChatService(makeDeps({
+      nowFn: () => now,
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-1' }),
+    }));
+
+    // Drain the entire reaction bucket.
+    for (let i = 0; i < 20; i++) {
+      await service.sendReaction({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        messageId: 'msg-001',
+        reaction: '👍',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      });
+    }
+
+    // Text still works — it has its own untouched bucket.
+    await assert.doesNotReject(() =>
+      service.sendText({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        text: 'still works',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+    );
+  });
+
   it('sendReaction succeeds even after text bucket is fully exhausted', async () => {
     let now = 0;
     const service = createChatService(makeDeps({

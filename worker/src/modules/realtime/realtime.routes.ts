@@ -18,8 +18,16 @@ import {
   resolveVisibleCashierIds,
   isEventVisible,
 } from './chat-stream.helpers.js';
+import { createConnectionLimiter } from './connection-limiter.js';
 
 export const realtimeRouter = Router();
+
+// Cap concurrent SSE connections per user so one authenticated user cannot open
+// unbounded streams (each adds emitter listeners + a heartbeat timer → DoS/memory).
+// Generous enough for normal multi-tab dashboard use; tune if needed.
+const MAX_SSE_CONNECTIONS_PER_USER = 5;
+const runtimeStreamLimiter = createConnectionLimiter(MAX_SSE_CONNECTIONS_PER_USER);
+const chatStreamLimiter = createConnectionLimiter(MAX_SSE_CONNECTIONS_PER_USER);
 
 realtimeRouter.get('/cashier/runtime-state/stream', async (req, res) => {
   const rawToken =
@@ -50,6 +58,11 @@ realtimeRouter.get('/cashier/runtime-state/stream', async (req, res) => {
   } catch (err) {
     logger.error({ err, cashierId }, 'sse runtime-state initial fetch failed');
     return res.status(500).json({ error: 'Internal server error' });
+  }
+
+  // Enforce the per-user connection cap before committing to an SSE response.
+  if (!runtimeStreamLimiter.tryAcquire(authUser.userId)) {
+    return res.status(429).json({ error: 'Too many concurrent connections' });
   }
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -87,6 +100,7 @@ realtimeRouter.get('/cashier/runtime-state/stream', async (req, res) => {
     cleanedUp = true;
     clearInterval(heartbeat);
     unsubscribe();
+    runtimeStreamLimiter.release(authUser.userId);
   };
 
   req.on('close', cleanup);
@@ -128,6 +142,11 @@ realtimeRouter.get('/chat/stream', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
+  // Enforce the per-user connection cap before committing to an SSE response.
+  if (!chatStreamLimiter.tryAcquire(authUser.userId)) {
+    return res.status(429).json({ error: 'Too many concurrent connections' });
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('X-Accel-Buffering', 'no');
@@ -161,6 +180,7 @@ realtimeRouter.get('/chat/stream', async (req, res) => {
     clearInterval(heartbeat);
     unsubscribeMessage();
     unsubscribeReaction();
+    chatStreamLimiter.release(authUser.userId);
   };
 
   req.on('close', cleanup);

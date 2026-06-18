@@ -423,6 +423,22 @@ describe('chat.routes — admin scoped (flat scope)', () => {
     assert.equal(status, 200);
   });
 
+  it('GET admin .../chats returns 404 when :cashierId does not own the session', async () => {
+    // session-uuid-1 is owned by cashier-1; admin requests it under cashier-999.
+    const app = makeTestApp(
+      async (id) => (id === 'session-uuid-1' ? ownedSession : null),
+    );
+
+    const { status } = await request(
+      app,
+      'GET',
+      '/api/admin/chat/cashiers/cashier-999/sessions/session-uuid-1/chats',
+      { headers: { authorization: `Bearer ${adminToken}` } },
+    );
+
+    assert.equal(status, 404);
+  });
+
   it('POST admin .../messages returns 200 for ADMIN', async () => {
     const app = makeTestApp(
       async (id) => (id === 'session-uuid-1' ? ownedSession : null),

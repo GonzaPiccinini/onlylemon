@@ -38,7 +38,7 @@ import type { SessionOwnershipSession } from './require-session-ownership.middle
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 type FakeReq = {
-  params: { sessionId: string };
+  params: { sessionId: string; cashierId?: string };
   authUser?: {
     role: 'CASHIER' | 'ADMIN' | 'SUPER_ADMIN';
     cashierId?: string;
@@ -180,6 +180,48 @@ describe('requireSessionOwnership — ADMIN bypasses ownership', () => {
       (req as unknown as FakeReq).resolvedSession,
       session,
     );
+  });
+});
+
+describe('requireSessionOwnership — path :cashierId consistency (admin routes)', () => {
+  it('returns 404 when :cashierId in the path does not own the session (ADMIN)', async () => {
+    const session = makeSession({ cashierId: 'cashier-1' });
+    const middleware = createRequireSessionOwnership({
+      getWhatsappSession: async () => session,
+    });
+
+    const req = makeReq({
+      params: { sessionId: 'session-uuid-1', cashierId: 'cashier-OTHER' },
+      authUser: { role: 'ADMIN', userId: 'admin-user' },
+    }) as unknown as import('express').Request;
+    const res = makeRes() as unknown as import('express').Response;
+    let nextCalled = false;
+    const next = () => { nextCalled = true; };
+
+    await middleware(req, res, next as import('express').NextFunction);
+
+    assert.equal(nextCalled, false);
+    assert.equal((res as unknown as FakeRes).statusCode, 404);
+  });
+
+  it('calls next() when :cashierId matches the session owner (ADMIN)', async () => {
+    const session = makeSession({ cashierId: 'cashier-7' });
+    const middleware = createRequireSessionOwnership({
+      getWhatsappSession: async () => session,
+    });
+
+    const req = makeReq({
+      params: { sessionId: 'session-uuid-1', cashierId: 'cashier-7' },
+      authUser: { role: 'ADMIN', userId: 'admin-user' },
+    }) as unknown as import('express').Request;
+    const res = makeRes() as unknown as import('express').Response;
+    let nextCalled = false;
+    const next = () => { nextCalled = true; };
+
+    await middleware(req, res, next as import('express').NextFunction);
+
+    assert.equal(nextCalled, true);
+    assert.deepEqual((req as unknown as FakeReq).resolvedSession, session);
   });
 });
 

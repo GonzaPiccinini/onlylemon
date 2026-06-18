@@ -153,12 +153,15 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
   );
 
   // ── Admin-scoped group ────────────────────────────────────────────────────
-  // All routes: auth → ADMIN|SUPER_ADMIN role → handler (flat scope, no ownership)
-  // The session must exist → 404 handling occurs in the controller/service.
+  // All routes: auth → ADMIN|SUPER_ADMIN role → session/cashier consistency → handler.
+  // Admin has flat scope (no per-cashier ownership), but the shared ownership
+  // middleware also enforces that the :sessionId belongs to the path :cashierId
+  // (404 on mismatch) so the previously-decorative :cashierId is meaningful.
 
   const adminMiddleware: RequestHandler[] = [
     requireAuth,
     adminRoleGuard as RequestHandler,
+    ownershipMiddleware as unknown as RequestHandler,
   ];
 
   router.get(

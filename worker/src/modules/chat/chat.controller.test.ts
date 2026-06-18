@@ -688,6 +688,138 @@ describe('chat.controller — getMedia', () => {
   });
 });
 
+// ── getMedia hardening headers ──────────────────────────────────────────────────
+// Incoming media bytes are proxied with a Content-Type taken from WhatsApp
+// metadata (contact-controlled) and are NOT magic-byte verified. Harden the
+// response so a browser cannot sniff/render it as active content.
+
+describe('chat.controller — getMedia hardening headers', () => {
+  it('sets X-Content-Type-Options: nosniff on a media response', async () => {
+    const svc = makeMockService({
+      getMediaBytes: async () => ({ bytes: Buffer.from([0xff, 0xd8, 0xff]), mimetype: 'image/jpeg' }),
+    });
+    const { getMedia } = createChatController(svc);
+
+    const res = makeRes();
+    await getMedia(makeReq(), res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res._headers['X-Content-Type-Options'], 'nosniff');
+  });
+
+  it('sets Content-Disposition: attachment on a media response', async () => {
+    const svc = makeMockService({
+      getMediaBytes: async () => ({ bytes: Buffer.from([0xff, 0xd8, 0xff]), mimetype: 'image/jpeg' }),
+    });
+    const { getMedia } = createChatController(svc);
+
+    const res = makeRes();
+    await getMedia(makeReq(), res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    assert.match(res._headers['Content-Disposition'], /^attachment/);
+  });
+});
+
+// ── chatId / messageId validation (path-traversal hardening) ────────────────────
+// chatId/messageId reach WAHA URL paths. A cashier-supplied value containing a
+// path separator or `..` segment could break out of the session scope (IDOR).
+// The controller must reject these with 400 BEFORE touching the service.
+
+describe('chat.controller — chatId/messageId validation', () => {
+  it('getChatHistory returns 400 when chatId contains a path separator', async () => {
+    let called = false;
+    const svc = makeMockService({
+      getChatHistory: async () => { called = true; return []; },
+    });
+    const { getChatHistory } = createChatController(svc);
+
+    const res = makeRes();
+    await getChatHistory(
+      makeReq({ params: { sessionId: 'session-uuid-1', chatId: '../../other/chats/x' } }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(called, false, 'service must not be called on invalid chatId');
+  });
+
+  it('getChatHistory returns 400 when chatId is a bare ".." segment', async () => {
+    const svc = makeMockService();
+    const { getChatHistory } = createChatController(svc);
+
+    const res = makeRes();
+    await getChatHistory(
+      makeReq({ params: { sessionId: 'session-uuid-1', chatId: '..' } }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('getMedia returns 400 when chatId contains a traversal segment', async () => {
+    let called = false;
+    const svc = makeMockService({
+      getMediaBytes: async () => { called = true; return null; },
+    });
+    const { getMedia } = createChatController(svc);
+
+    const res = makeRes();
+    await getMedia(
+      makeReq({ params: { sessionId: 'session-uuid-1', chatId: 'a/../b@c.us', messageId: 'msg-001' } }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(called, false, 'service must not be called on invalid chatId');
+  });
+
+  it('getMedia returns 400 when messageId contains a path separator', async () => {
+    const svc = makeMockService();
+    const { getMedia } = createChatController(svc);
+
+    const res = makeRes();
+    await getMedia(
+      makeReq({ params: { sessionId: 'session-uuid-1', chatId: 'chat@c.us', messageId: '../../x' } }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('getChatHistory accepts a valid group chatId (g.us)', async () => {
+    const svc = makeMockService();
+    const { getChatHistory } = createChatController(svc);
+
+    const res = makeRes();
+    await getChatHistory(
+      makeReq({ params: { sessionId: 'session-uuid-1', chatId: '120363000000000001@g.us' } }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 200);
+  });
+
+  it('getMedia accepts a valid serialized WAHA messageId', async () => {
+    const svc = makeMockService();
+    const { getMedia } = createChatController(svc);
+
+    const res = makeRes();
+    await getMedia(
+      makeReq({
+        params: {
+          sessionId: 'session-uuid-1',
+          chatId: '5491112345678@c.us',
+          messageId: 'false_5491112345678@c.us_3EB0ABCDEF',
+        },
+      }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 200);
+  });
+});
+
 // ── publishTextStatus ───────────────────────────────────────────────────────────
 
 describe('chat.controller — publishTextStatus', () => {
@@ -876,6 +1008,78 @@ describe('chat.controller — listChats pagination', () => {
     await listChats(req, res as unknown as import('express').Response);
 
     assert.equal(res.statusCode, 400);
+  });
+});
+
+// ── input length caps (abuse / minor DoS hardening) ──────────────────────────────
+
+describe('chat.controller — input length caps', () => {
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+
+  function fileReq(body: Record<string, unknown>) {
+    const file = {
+      fieldname: 'file',
+      originalname: 'a.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      buffer: jpeg,
+      size: jpeg.length,
+    } as Express.Multer.File;
+    return makeReq({ file, body }) as unknown as import('express').Request;
+  }
+
+  it('sendText returns 400 when replyTo exceeds the max length', async () => {
+    let called = false;
+    const svc = makeMockService({ sendText: async () => { called = true; } });
+    const { sendText } = createChatController(svc);
+
+    const res = makeRes();
+    await sendText(
+      makeReq({ body: { text: 'hi', replyTo: 'x'.repeat(257) } }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(called, false);
+  });
+
+  it('sendReaction returns 400 when reaction exceeds the max length', async () => {
+    let called = false;
+    const svc = makeMockService({ sendReaction: async () => { called = true; } });
+    const { sendReaction } = createChatController(svc);
+
+    const res = makeRes();
+    await sendReaction(
+      makeReq({ body: { reaction: 'x'.repeat(33) } }),
+      res as unknown as import('express').Response,
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(called, false);
+  });
+
+  it('sendPhoto returns 400 when caption exceeds the max length', async () => {
+    let called = false;
+    const svc = makeMockService({ sendPhoto: async () => { called = true; } });
+    const { sendPhoto } = createChatController(svc);
+
+    const res = makeRes();
+    await sendPhoto(fileReq({ caption: 'x'.repeat(1025) }), res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(called, false);
+  });
+
+  it('publishImageStatus returns 400 when caption exceeds the max length', async () => {
+    let called = false;
+    const svc = makeMockService({ publishImageStatus: async () => { called = true; } });
+    const { publishImageStatus } = createChatController(svc);
+
+    const res = makeRes();
+    await publishImageStatus(fileReq({ caption: 'x'.repeat(1025) }), res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(called, false);
   });
 });
 

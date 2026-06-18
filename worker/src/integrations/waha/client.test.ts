@@ -730,6 +730,72 @@ test('updateSessionConfig throws on 500', async () => {
 // createSessionIfNotExists — events includes message.reaction
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// getChatMessages / getMessageById — URL path encoding (path-traversal hardening)
+// chatId/messageId are cashier-controlled and interpolated into the WAHA URL
+// path. They MUST be percent-encoded so a `/` or `..` cannot escape the session
+// scope (IDOR between cashiers).
+// ---------------------------------------------------------------------------
+
+test('getChatMessages percent-encodes chatId in the URL path', async () => {
+  const stub = stubFetch([makeResponse(200, '[]')]);
+  try {
+    const { getChatMessages } = await import('./client.js');
+    await getChatMessages('session-01', 'a/b@c.us', { limit: 10 });
+    const url = stub.calls[0].url;
+    assert.ok(!url.includes('a/b@c.us'), `raw chatId must not appear in path: ${url}`);
+    assert.ok(
+      url.includes(`/chats/${encodeURIComponent('a/b@c.us')}/messages`),
+      `encoded chatId expected in path: ${url}`,
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+test('getChatMessages keeps a normal chatId resolvable (encoded @)', async () => {
+  const stub = stubFetch([makeResponse(200, '[]')]);
+  try {
+    const { getChatMessages } = await import('./client.js');
+    await getChatMessages('session-01', '5491112345678@c.us', { limit: 10 });
+    const url = stub.calls[0].url;
+    assert.ok(
+      url.includes(`/chats/${encodeURIComponent('5491112345678@c.us')}/messages`),
+      `encoded chatId expected in path: ${url}`,
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+test('getMessageById percent-encodes chatId and messageId in the URL path', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { getMessageById } = await import('./client.js');
+    await getMessageById(
+      'session-01',
+      '5491112345678@c.us',
+      'false_5491112345678@c.us_ABC/../x',
+    );
+    const url = stub.calls[0].url;
+    assert.ok(!url.includes('ABC/../x'), `raw messageId must not appear in path: ${url}`);
+    assert.ok(
+      url.includes(encodeURIComponent('5491112345678@c.us')),
+      `encoded chatId expected in path: ${url}`,
+    );
+    assert.ok(
+      url.includes(encodeURIComponent('false_5491112345678@c.us_ABC/../x')),
+      `encoded messageId expected in path: ${url}`,
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// createSessionIfNotExists — events includes message.reaction
+// ---------------------------------------------------------------------------
+
 test('createSessionIfNotExists sends webhook events including message.reaction', async () => {
   // First call: GET /api/sessions returns empty array (no existing session)
   // Second call: POST /api/sessions (creates the session)

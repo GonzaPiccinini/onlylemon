@@ -35,6 +35,25 @@ import { sniffImageMagicBytes } from './upload.middleware.js';
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
+// chatId / messageId are cashier-controlled and get interpolated into WAHA URL
+// paths (GET .../chats/:chatId/messages and .../messages/:messageId). Reject any
+// value with a path separator or a `..` traversal segment so a cashier cannot
+// escape their own session scope (IDOR between cashiers). The WAHA client also
+// percent-encodes these as a second layer of defense.
+const WaChatIdSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[A-Za-z0-9._@-]+$/)
+  .refine((v) => v.includes('@') && !v.includes('..'));
+
+const WaMessageIdSchema = z
+  .string()
+  .min(1)
+  .max(256)
+  .regex(/^[A-Za-z0-9._@-]+$/)
+  .refine((v) => !v.includes('..'));
+
 const HistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(30),
   offset: z.coerce.number().int().min(0).optional(),
@@ -48,13 +67,16 @@ const ListChatsQuerySchema = z.object({
 
 const SendTextBodySchema = z.object({
   text: z.string().min(1).max(4096),
-  replyTo: z.string().optional(),
+  replyTo: z.string().max(256).optional(),
 });
 
-/** reaction may be empty string (remove reaction). */
+/** reaction may be empty string (remove reaction); cap length to block abuse. */
 const SendReactionBodySchema = z.object({
-  reaction: z.string(),
+  reaction: z.string().max(32),
 });
+
+/** Optional media caption (multipart body). WhatsApp caps captions at 1024 chars. */
+const CaptionSchema = z.string().max(1024);
 
 /** WhatsApp caps status text around 700 chars. backgroundColor is a hex color. */
 const PublishTextStatusBodySchema = z.object({
@@ -143,6 +165,11 @@ export function createChatController(service: ChatService): ChatController {
       const requesterRole = req.authUser!.role;
       const requesterCashierId = req.authUser!.cashierId;
 
+      if (!WaChatIdSchema.safeParse(chatId).success) {
+        res.status(400).json({ error: 'Invalid chatId' });
+        return;
+      }
+
       const parsed = HistoryQuerySchema.safeParse(req.query);
       if (!parsed.success) {
         res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
@@ -223,6 +250,10 @@ export function createChatController(service: ChatService): ChatController {
 
       // Optional caption from multipart body. replyTo deliberately NOT read (V2).
       const caption = typeof req.body?.caption === 'string' ? req.body.caption : undefined;
+      if (caption !== undefined && !CaptionSchema.safeParse(caption).success) {
+        res.status(400).json({ error: 'Invalid caption' });
+        return;
+      }
 
       try {
         await service.sendPhoto({
@@ -284,6 +315,15 @@ export function createChatController(service: ChatService): ChatController {
       const requesterRole = req.authUser!.role;
       const requesterCashierId = req.authUser!.cashierId;
 
+      if (!WaChatIdSchema.safeParse(chatId).success) {
+        res.status(400).json({ error: 'Invalid chatId' });
+        return;
+      }
+      if (!WaMessageIdSchema.safeParse(messageId).success) {
+        res.status(400).json({ error: 'Invalid messageId' });
+        return;
+      }
+
       try {
         const result = await service.getMediaBytes({
           sessionId,
@@ -298,7 +338,12 @@ export function createChatController(service: ChatService): ChatController {
           return;
         }
 
+        // Incoming media is proxied with a contact-controlled Content-Type and
+        // is NOT magic-byte verified. Stop the browser from sniffing/rendering
+        // it as active content, and force download rather than inline display.
         res.set('Content-Type', result.mimetype);
+        res.set('X-Content-Type-Options', 'nosniff');
+        res.set('Content-Disposition', 'attachment');
         res.status(200).send(result.bytes);
       } catch (err) {
         if (!mapServiceError(err, res)) {
@@ -355,6 +400,10 @@ export function createChatController(service: ChatService): ChatController {
       }
 
       const caption = typeof req.body?.caption === 'string' ? req.body.caption : undefined;
+      if (caption !== undefined && !CaptionSchema.safeParse(caption).success) {
+        res.status(400).json({ error: 'Invalid caption' });
+        return;
+      }
 
       try {
         await service.publishImageStatus({

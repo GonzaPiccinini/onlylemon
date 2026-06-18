@@ -134,6 +134,63 @@ describe('rate-limiter — session isolation', () => {
   });
 });
 
+describe('rate-limiter — idle bucket eviction (memory bound)', () => {
+  it('exposes the live bucket count via size()', () => {
+    let now = 0;
+    const limiter = createRateLimiter({ capacity: 5, refillIntervalMs: 500, nowFn: () => now });
+
+    assert.equal(limiter.size(), 0);
+    limiter.tryConsume('a');
+    limiter.tryConsume('b');
+    assert.equal(limiter.size(), 2);
+  });
+
+  it('evicts buckets that have been idle long enough to fully refill', () => {
+    let now = 0;
+    const limiter = createRateLimiter({ capacity: 5, refillIntervalMs: 500, nowFn: () => now });
+
+    limiter.tryConsume('a');
+    limiter.tryConsume('b');
+    limiter.tryConsume('c');
+    assert.equal(limiter.size(), 3);
+
+    // idleTtl defaults to capacity*refill = 2500ms; jump well past it, then poke
+    // a new session — the stale buckets should be swept.
+    now = 10_000;
+    limiter.tryConsume('d');
+
+    assert.equal(limiter.size(), 1, 'a/b/c evicted, only d remains');
+  });
+
+  it('does not evict a bucket still within the idle TTL', () => {
+    let now = 0;
+    const limiter = createRateLimiter({ capacity: 5, refillIntervalMs: 500, nowFn: () => now });
+
+    limiter.tryConsume('a');
+    now = 100; // far below idleTtl (2500ms)
+    limiter.tryConsume('b');
+
+    assert.equal(limiter.size(), 2);
+  });
+
+  it('eviction never grants more burst than a normal refill would', () => {
+    let now = 0;
+    const limiter = createRateLimiter({ capacity: 3, refillIntervalMs: 500, nowFn: () => now });
+
+    // drain 'a'
+    for (let i = 0; i < 3; i++) limiter.tryConsume('a');
+    assert.equal(limiter.tryConsume('a'), false);
+
+    // idle exactly to the full-refill TTL (3*500 = 1500ms): the bucket would be
+    // full from refill anyway, so eviction+recreate yields the same full bucket.
+    now = 1500;
+    for (let i = 0; i < 3; i++) {
+      assert.equal(limiter.tryConsume('a'), true, `consume #${i + 1} after eviction`);
+    }
+    assert.equal(limiter.tryConsume('a'), false, 'no extra burst granted by eviction');
+  });
+});
+
 describe('rate-limiter — default options', () => {
   it('uses default capacity=10 and refillIntervalMs=500 when no options provided', () => {
     let now = 0;
