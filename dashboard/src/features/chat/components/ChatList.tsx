@@ -83,7 +83,13 @@ export const ChatList = ({
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border">
+    // shrink-0 is required: this <ul> is a flex child of the scrollable region
+    // (flex flex-col overflow-y-auto). Because the <ul> has overflow-hidden, its
+    // flex auto min-height resolves to 0, so without shrink-0 flexbox shrinks it
+    // to the container height and overflow-hidden clips the rows below — the list
+    // then never overflows its scroll container, so it can't scroll. shrink-0
+    // keeps the <ul> at its content height so the parent scrolls instead.
+    <ul className="flex shrink-0 flex-col divide-y divide-border overflow-hidden rounded-lg border">
       {chats.map((chat) => {
         const isSelected = chat.chatId === selectedChatId;
         const isUnread = unreadChatIds?.has(chat.chatId) ?? false;

@@ -46,6 +46,7 @@ function makeChatMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
     mediaMimetype: null,
     reactions: [],
     quotedMessage: null,
+    senderName: null,
     ...overrides,
   };
 }

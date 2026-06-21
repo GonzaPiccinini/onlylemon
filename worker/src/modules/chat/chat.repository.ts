@@ -13,6 +13,7 @@
  */
 
 import type { ChatListEntry, ChatMessage, ChatReactionSummary, QuotedMessage } from './chat.types.js';
+import { extractGroupSenderName } from './group-sender.js';
 
 // ── Injected deps (WAHA client function signatures) ────────────────────────────
 
@@ -149,6 +150,7 @@ function mapWahaMessageToChatMessage(msg: WahaMessageShape): ChatMessage {
     mediaMimetype: msg.hasMedia && msg.media?.mimetype ? msg.media.mimetype : null,
     reactions: mapWahaReactions(msg.reactions),
     quotedMessage: mapWahaReplyTo(msg.replyTo),
+    senderName: extractGroupSenderName(msg),
   };
 }
 

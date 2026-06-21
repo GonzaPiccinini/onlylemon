@@ -235,6 +235,35 @@ describe('chat.repository — getChatHistory', () => {
     assert.equal(args.opts.offset, 30);
   });
 
+  it('maps the group sender name from _data.Info.PushName for incoming group messages', async () => {
+    const deps = makeDeps({
+      getChatMessages: async () => [
+        makeWahaMessage({
+          from: '120363427669598042@g.us',
+          fromMe: false,
+          participant: '47408553701472@lid',
+          _data: { Info: { PushName: 'Soporte', IsGroup: true } },
+        }),
+      ],
+    });
+
+    const repo = createChatRepository(deps);
+    const [msg] = await repo.getChatHistory('session', '120363427669598042@g.us', { limit: 20 });
+
+    assert.equal(msg.senderName, 'Soporte');
+  });
+
+  it('leaves senderName null for 1:1 chats', async () => {
+    const deps = makeDeps({
+      getChatMessages: async () => [makeWahaMessage()], // default from is @c.us
+    });
+
+    const repo = createChatRepository(deps);
+    const [msg] = await repo.getChatHistory('session', '5491112345678@c.us', { limit: 20 });
+
+    assert.equal(msg.senderName, null);
+  });
+
   it('handles missing reactions field gracefully (defaults to [])', async () => {
     const deps = makeDeps({
       getChatMessages: async () => [makeWahaMessage({ reactions: undefined })],

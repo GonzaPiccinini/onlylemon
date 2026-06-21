@@ -29,6 +29,7 @@ function makeChatMessageEvent(
       mediaMimetype: null,
       reactions: [],
       quotedMessage: null,
+      senderName: null,
     },
     ...overrides,
   };

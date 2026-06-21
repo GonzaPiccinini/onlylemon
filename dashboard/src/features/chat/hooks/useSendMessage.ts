@@ -94,6 +94,7 @@ export const useSendMessage = (
         mediaMimetype: null,
         reactions: [],
         quotedMessage: null,
+        senderName: null,
       };
 
       queryClient.setQueryData<{ pages: ChatMessage[][]; pageParams: (string | undefined)[] }>(

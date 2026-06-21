@@ -69,6 +69,8 @@ export type MirrorChatMessagePayload = {
   hasMedia: boolean;
   mediaMimetype?: string | null;
   quotedMessage?: { id: string; body?: string | null; fromMe?: boolean } | null;
+  /** Group-chat sender display name (null for 1:1 / outbound). */
+  senderName?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -124,6 +126,7 @@ export function createChatMessageFanout(
               fromMe: payload.quotedMessage.fromMe ?? false,
             }
           : null,
+        senderName: payload.senderName ?? null,
       };
 
       const event: ChatMessageEvent = {

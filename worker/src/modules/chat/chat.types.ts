@@ -21,6 +21,11 @@ export type ChatMessage = {
   mediaMimetype: string | null;
   reactions: ChatReactionSummary[];
   quotedMessage: QuotedMessage | null;
+  /**
+   * Display name of the sender for GROUP chats (the label WhatsApp shows above
+   * each incoming group message). null for 1:1 chats and for outbound messages.
+   */
+  senderName: string | null;
 };
 
 // Adapted from Batch 0 findings: WAHA /api/{session}/chats only returns

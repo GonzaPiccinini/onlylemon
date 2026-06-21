@@ -50,7 +50,7 @@ export const MessageItem = ({
   onReact,
 }: MessageItemProps) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const { fromMe, body, hasMedia, mediaMimetype, quotedMessage, reactions, timestamp } = message;
+  const { fromMe, body, hasMedia, mediaMimetype, quotedMessage, reactions, timestamp, senderName } = message;
 
   const handleEmojiPick = (emoji: string) => {
     onReact(message.id, emoji);
@@ -108,6 +108,15 @@ export const MessageItem = ({
                 : 'rounded-bl-sm bg-muted text-foreground'),
         ].join(' ')}
       >
+        {/* Sender name — only for incoming GROUP messages (WhatsApp-style). The
+            worker leaves senderName null for 1:1 chats and outbound messages.
+            A thin bottom rule separates the name from the message body. */}
+        {!fromMe && senderName && (
+          <p className="border-b border-primary/30 pb-1 text-xs font-semibold text-primary">
+            {senderName}
+          </p>
+        )}
+
         {/* Quoted reply preview */}
         {quotedMessage && (
           <QuotedReply quoted={quotedMessage} />

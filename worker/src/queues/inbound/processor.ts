@@ -1,6 +1,7 @@
 import { Job } from 'bullmq';
 import { z } from 'zod';
 import { SETTING_KEYS } from '../../modules/system-settings/keys.js';
+import { extractGroupSenderName } from '../../modules/chat/group-sender.js';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -231,6 +232,7 @@ export type InboundProcessorDeps = {
     hasMedia: boolean;
     mediaMimetype?: string | null;
     quotedMessage?: { id: string; body?: string | null; fromMe?: boolean } | null;
+    senderName?: string | null;
   }) => Promise<void>;
   /**
    * Fan-out seam for chat UI — called for every message.reaction event.
@@ -413,6 +415,7 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
               fromMe: data.payload.fromMe ?? false,
               hasMedia: data.payload.hasMedia ?? false,
               mediaMimetype: (data.payload.media as { mimetype?: string } | null | undefined)?.mimetype ?? null,
+              senderName: extractGroupSenderName(data.payload as Record<string, unknown>),
             });
 
             const durationSeconds =

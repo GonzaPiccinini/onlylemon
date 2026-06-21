@@ -150,6 +150,42 @@ describe('createChatMessageFanout', () => {
       assert.equal(publishedEvents[0].message.hasMedia, true);
       assert.equal(publishedEvents[0].message.mediaMimetype, 'image/jpeg');
     });
+
+    it('passes the group senderName through to the message (and defaults to null)', async () => {
+      const publishedEvents: ChatMessageEvent[] = [];
+      const deps = makeDeps({
+        publishChatMessage: (event) => { publishedEvents.push(event); },
+      });
+      const fanout = createChatMessageFanout(deps);
+
+      await fanout({
+        sessionName: 'my-session',
+        chatId: '120363427669598042@g.us',
+        messageId: 'msg-grp-1',
+        timestamp: 1716200000,
+        body: 'hola grupo',
+        fromMe: false,
+        hasMedia: false,
+        mediaMimetype: null,
+        quotedMessage: null,
+        senderName: 'Soporte',
+      });
+      assert.equal(publishedEvents[0].message.senderName, 'Soporte');
+
+      // Omitted senderName → null (1:1 / outbound).
+      await fanout({
+        sessionName: 'my-session',
+        chatId: '5491112345678@c.us',
+        messageId: 'msg-dm-1',
+        timestamp: 1716200001,
+        body: 'hola',
+        fromMe: false,
+        hasMedia: false,
+        mediaMimetype: null,
+        quotedMessage: null,
+      });
+      assert.equal(publishedEvents[1].message.senderName, null);
+    });
   });
 
   describe('CF.2 — session NOT found: logs warn, does NOT call publishChatMessage, does NOT throw', () => {

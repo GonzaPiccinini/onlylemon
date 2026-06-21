@@ -74,6 +74,7 @@ function makeChatMessage(): ChatMessage {
     mediaMimetype: null,
     reactions: [],
     quotedMessage: null,
+    senderName: null,
   };
 }
 
