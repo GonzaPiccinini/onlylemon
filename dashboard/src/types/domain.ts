@@ -36,6 +36,7 @@ export interface WhatsappSession {
   cashierId: string;
   sessionName: string;
   whatsappPhoneNumber: string | null;
+  alias?: string | null;
   refreshCount: number;
   lastRefreshAt: string | null;
   wahaStatus?: string;
@@ -126,6 +127,7 @@ export interface MyWhatsappSession {
   id: string;
   sessionName: string;
   whatsappPhoneNumber: string | null;
+  alias?: string | null;
   wahaStatus: string;
   refreshCount: number;
   lastRefreshAt: string | null;

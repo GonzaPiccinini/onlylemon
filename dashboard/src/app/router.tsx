@@ -16,6 +16,8 @@ import { CashierSessionPage } from "@/features/cashier/cashier-session-page";
 import { CashierAddFundsPage } from "@/features/cashier/cashier-add-funds-page";
 import { CashierAccountPage } from "@/features/cashier/cashier-account-page";
 import { CashierConversionsPage } from "@/features/cashier/cashier-conversions-page";
+import { CashierChatPage } from "@/features/chat/cashier-chat-page";
+import { AdminChatPage } from "@/features/chat/admin-chat-page";
 
 // RoleGuard diff (task 23):
 // Before: RoleGuard roles={["ADMIN"]} on all /admin/* routes
@@ -68,6 +70,10 @@ export const router = createBrowserRouter([
                 path: "/admin/settings",
                 element: <AdminSettingsPage />,
               },
+              {
+                path: "/admin/chat",
+                element: <AdminChatPage />,
+              },
             ],
           },
           {
@@ -97,6 +103,10 @@ export const router = createBrowserRouter([
               {
                 path: "/cashier/account",
                 element: <CashierAccountPage />,
+              },
+              {
+                path: "/cashier/chat",
+                element: <CashierChatPage />,
               },
             ],
           },

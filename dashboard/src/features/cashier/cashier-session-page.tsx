@@ -55,6 +55,8 @@ import {
   useStartSession,
 } from '@/features/cashier/cashier-hooks';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { SessionAliasEditor } from '@/features/chat/components';
+import type { ChatScope } from '@/api/chat.service';
 import type { MyWhatsappSession } from '@/types/domain';
 
 const REFRESH_INTERVAL_SECONDS = 45;
@@ -219,6 +221,16 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
           <span>
             Intentos: {refreshCount}/{REFRESH_CAP}
           </span>
+        </div>
+
+        {/* Alias — assign/edit a friendly name for this session. */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Alias:</span>
+          <SessionAliasEditor
+            scope={{ kind: 'cashier', cashierId: '' } satisfies ChatScope}
+            sessionId={session.id}
+            alias={session.alias}
+          />
         </div>
 
         {isWorking ? (
@@ -495,8 +507,14 @@ export const CashierSessionPage = () => {
           ) : (
             <ul className="flex flex-col gap-2">
               {myWhatsappSessions.map((ws) => {
-                const title = ws.whatsappPhoneNumber ?? 'Sin número vinculado';
+                const aliasName = ws.alias?.trim();
+                const title =
+                  aliasName || ws.whatsappPhoneNumber || 'Sin número vinculado';
                 const metaParts: string[] = [];
+                // When the alias is the title, surface the phone number too.
+                if (aliasName && ws.whatsappPhoneNumber) {
+                  metaParts.push(`+${ws.whatsappPhoneNumber}`);
+                }
                 if (ws.whatsappPhoneNumber) {
                   metaParts.push(`Intentos ${ws.refreshCount}/3`);
                   if (ws.lastRefreshAt) {

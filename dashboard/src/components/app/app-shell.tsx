@@ -15,6 +15,7 @@ import {
   ShieldCheckIcon,
   ArrowRightLeftIcon,
   SettingsIcon,
+  MessageCircleIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ const adminLinks: ShellLink[] = [
   { to: "/admin/leads", label: "Leads", icon: ListChecksIcon },
   { to: "/admin/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/admin/landings", label: "Landings", icon: TagsIcon },
+  { to: "/admin/chat", label: "WhatsApp", icon: MessageCircleIcon },
   { to: "/admin/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
   { to: "/admin/settings", label: "Configuracion", icon: SettingsIcon },
 ];
@@ -56,6 +58,7 @@ const superAdminLinks: ShellLink[] = [
 
 const cashierLinks: ShellLink[] = [
   { to: "/cashier", label: "Sesion", icon: Clock3Icon },
+  { to: "/cashier/chat", label: "WhatsApp", icon: MessageCircleIcon },
   { to: "/cashier/add-funds", label: "Cargas", icon: CircleDollarSignIcon },
   { to: "/cashier/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/cashier/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
@@ -108,8 +111,8 @@ export const AppShell = () => {
       });
 
   return (
-    <div className="relative mx-auto flex min-h-svh w-full max-w-[1360px] gap-4 px-3 py-3 md:gap-6 md:px-6 md:py-6">
-      <aside className="sticky top-4 hidden h-[calc(100svh-2rem)] w-[250px] flex-col justify-between rounded-2xl border bg-sidebar/90 p-5 shadow-sm backdrop-blur md:flex">
+    <div className="relative mx-auto flex h-svh w-full max-w-[1360px] gap-4 overflow-hidden px-3 py-3 md:gap-6 md:px-6 md:py-6">
+      <aside className="hidden h-full w-[250px] shrink-0 flex-col justify-between overflow-y-auto rounded-2xl border bg-sidebar/90 p-5 shadow-sm backdrop-blur md:flex">
         <div className="flex flex-col gap-6">
           <Link to={isAdminRole ? "/admin" : "/cashier"} className="block">
             <BrandLogo className="h-8 w-auto object-contain" />
@@ -160,7 +163,7 @@ export const AppShell = () => {
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col gap-4 md:pb-10">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
         <header className="flex items-center justify-between rounded-2xl border bg-card/95 px-3 py-3 shadow-sm md:hidden">
           <div className="flex items-center gap-2">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>

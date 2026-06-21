@@ -756,6 +756,7 @@ export const listMySessionsService = async (cashierId: string) => {
         id: s.id,
         sessionName: s.sessionName,
         whatsappPhoneNumber: s.whatsappPhoneNumber,
+        alias: s.alias,
         wahaStatus,
         refreshCount: s.refreshCount,
         lastRefreshAt: s.lastRefreshAt,

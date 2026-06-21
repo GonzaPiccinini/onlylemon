@@ -14,6 +14,17 @@ export type WahaMessage = {
   };
 };
 
+/**
+ * A single chat list entry returned by GET /api/{session}/chats.
+ * WAHA Plus 2026.3.4 GOWS only returns these three fields — no lastMessage,
+ * unreadCount, or isGroup are present in this version.
+ */
+export type ChatListEntry = {
+  id: string;
+  name: string | null;
+  conversationTimestamp: number;
+};
+
 type WahaSession = {
   name: string;
   status: string;
@@ -32,7 +43,9 @@ type WahaQrResponse = {
 
 export type GetChatMessagesOptions = {
   limit: number;
+  offset?: number;
   sortBy?: 'timestamp' | 'messageTimestamp';
+  sortOrder?: 'asc' | 'desc';
   downloadMedia?: boolean;
 };
 
@@ -172,11 +185,49 @@ export async function getChatMessages(
   chatId: string,
   options: GetChatMessagesOptions,
 ) {
-  return wahaGet<WahaMessage[]>(`/api/${session}/chats/${chatId}/messages`, {
+  // chatId is cashier-controlled — encode it so a `/` or `..` cannot escape the
+  // session scope in the WAHA URL path (IDOR hardening).
+  return wahaGet<WahaMessage[]>(`/api/${session}/chats/${encodeURIComponent(chatId)}/messages`, {
     limit: options.limit.toString(),
     sortBy: options.sortBy ?? 'timestamp',
+    sortOrder: options.sortOrder ?? 'desc',
     downloadMedia: String(options.downloadMedia ?? false),
+    ...(options.offset !== undefined ? { offset: String(options.offset) } : {}),
   });
+}
+
+/**
+ * Fetches a SINGLE message by id via GET
+ * /api/{session}/chats/{chatId}/messages/{messageId}.
+ *
+ * Returns null when WAHA responds 404 (message not found). With
+ * `downloadMedia: true`, WAHA populates `media.url` on demand even for older
+ * messages — this is what lets media resolve regardless of how far back the
+ * message is (the previous list-scan approach missed anything beyond its limit).
+ */
+export async function getMessageById(
+  session: string,
+  chatId: string,
+  messageId: string,
+  options: { downloadMedia?: boolean } = {},
+): Promise<WahaMessage | null> {
+  const query = new URLSearchParams({
+    downloadMedia: String(options.downloadMedia ?? true),
+  });
+  // chatId/messageId are cashier-controlled — encode them so a `/` or `..`
+  // cannot escape the session scope in the WAHA URL path (IDOR hardening).
+  const response = await wahaGetRaw(
+    `/api/${session}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}?${query.toString()}`,
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`WAHA getMessageById failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as WahaMessage;
 }
 
 export async function getSessions() {
@@ -202,7 +253,7 @@ export async function createSessionIfNotExists(
     .map((event) => event.trim())
     .filter(Boolean);
   const events = Array.from(
-    new Set([...configuredEvents, 'message.any', 'session.status']),
+    new Set([...configuredEvents, 'message.any', 'message.reaction', 'session.status']),
   );
 
   await wahaCallJson('/api/sessions', {
@@ -338,18 +389,190 @@ export async function deleteSession(sessionName: string): Promise<void> {
   await wahaDelete(`/api/sessions/${sessionName}`);
 }
 
+/**
+ * Lists all chats for a session.
+ * Calls GET /api/{session}/chats and returns an array of ChatListEntry.
+ * WAHA Plus 2026.3.4 only returns {id, name, conversationTimestamp} per entry.
+ */
+export type ListChatsOptions = {
+  limit?: number;
+  offset?: number;
+};
+
+export async function listChats(
+  session: string,
+  options: ListChatsOptions = {},
+): Promise<ChatListEntry[]> {
+  // Sort newest-first at the WAHA layer so offset pagination is stable.
+  const params = new URLSearchParams({
+    sortBy: 'conversationTimestamp',
+    sortOrder: 'desc',
+  });
+  if (options.limit !== undefined) params.set('limit', String(options.limit));
+  if (options.offset !== undefined) params.set('offset', String(options.offset));
+
+  const response = await fetch(
+    `${config.WAHA_BASE_URL}/api/${session}/chats?${params.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': config.WAHA_API_KEY,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`WAHA listChats failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as Array<{
+    id: string;
+    name?: string | null;
+    conversationTimestamp?: number | null;
+  }>;
+
+  return data.map((entry) => ({
+    id: entry.id,
+    name: entry.name ?? null,
+    conversationTimestamp: entry.conversationTimestamp ?? 0,
+  }));
+}
+
+/**
+ * Sends an image to a WhatsApp chat.
+ * Calls POST /api/sendImage with base64-encoded file data.
+ * `file.data` must be base64-encoded bytes WITHOUT a `data:` prefix.
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendImage(
+  session: string,
+  chatId: string,
+  file: { data: string; mimetype: string },
+  caption?: string,
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    session,
+    chatId,
+    file: { data: file.data, mimetype: file.mimetype },
+  };
+
+  if (caption !== undefined) {
+    payload.caption = caption;
+  }
+
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/sendImage`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendImage failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Publishes a text status (story). Calls POST /api/{session}/status/text.
+ * `backgroundColor` is a hex color (e.g. "#38b42f"); `font` is a WAHA font index.
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendTextStatus(
+  session: string,
+  payload: { text: string; backgroundColor?: string; font?: number },
+): Promise<void> {
+  const body: Record<string, unknown> = { text: payload.text };
+  if (payload.backgroundColor !== undefined) body.backgroundColor = payload.backgroundColor;
+  if (payload.font !== undefined) body.font = payload.font;
+
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/${session}/status/text`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendTextStatus failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Publishes an image status (story). Calls POST /api/{session}/status/image.
+ * `file.data` is base64-encoded image content.
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendImageStatus(
+  session: string,
+  payload: { file: { data: string; mimetype: string }; caption?: string },
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    file: { data: payload.file.data, mimetype: payload.file.mimetype },
+  };
+  if (payload.caption !== undefined) body.caption = payload.caption;
+
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/${session}/status/image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendImageStatus failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Sends or removes a reaction on a WhatsApp message.
+ * Calls PUT /api/reaction (WAHA uses PUT, not POST — confirmed Batch 0).
+ * `reaction` is the emoji string; pass `""` to remove the reaction.
+ * `messageId` is the full serialized WhatsApp message ID (e.g. "false_{chatId}_{id}").
+ * Throws if WAHA responds with non-2xx.
+ */
+export async function sendReaction(
+  session: string,
+  messageId: string,
+  reaction: string,
+): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/reaction`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ session, messageId, reaction }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendReaction failed with status ${response.status}`);
+  }
+}
+
 export async function sendText(
   session: string,
   chatId: string,
   text: string,
+  replyTo?: string,
 ): Promise<void> {
+  const payload: Record<string, unknown> = { session, chatId, text };
+  if (replyTo !== undefined) {
+    payload.reply_to = replyTo;
+  }
+
   const response = await fetch(`${config.WAHA_BASE_URL}/api/sendText`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Api-Key': config.WAHA_API_KEY,
     },
-    body: JSON.stringify({ session, chatId, text }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -368,6 +591,36 @@ export async function getOwnChatId(sessionName: string): Promise<string | null> 
   const sessions = await getSessions();
   const session = sessions.find((s) => s.name === sessionName);
   return session?.me?.id ?? null;
+}
+
+/**
+ * Updates an existing WAHA session's config via PUT /api/sessions/{name}.
+ * Used by the boot-time fixup to add missing webhook events (e.g. message.reaction)
+ * to sessions that were created before that event was included in the default set.
+ *
+ * The request body is wrapped as `{ config }` per WAHA Plus 2026.3.4 API.
+ * Throws on any non-2xx response.
+ *
+ * NOTE: The exact PUT /api/sessions/{name} shape was not live-verified in Batch 0
+ * (the session in the smoke test had config.webhooks = []). This should be
+ * smoke-verified in Batch 14 manual QA against a real session.
+ */
+export async function updateSessionConfig(
+  sessionName: string,
+  sessionConfig: object,
+): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/sessions/${sessionName}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ config: sessionConfig }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA updateSessionConfig failed with status ${response.status}`);
+  }
 }
 
 export async function downloadMedia(

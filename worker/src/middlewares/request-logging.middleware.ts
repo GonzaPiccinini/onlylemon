@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { logger } from '../lib/logger.js';
 import { httpRequestDurationSeconds } from '../lib/metrics.js';
+import { redactUrlSecrets } from '../lib/redact-url.js';
 
 const REQUEST_ID_HEADER = 'x-request-id';
 
@@ -29,7 +30,8 @@ export const requestLoggingMiddleware = (
       event: 'http_request',
       requestId,
       method: req.method,
-      path: req.originalUrl,
+      // Strip secrets (e.g. the SSE ?token=<JWT>) from the logged URL.
+      path: redactUrlSecrets(req.originalUrl),
       route,
       statusCode: res.statusCode,
       durationMs: Number(durationMs.toFixed(2)),

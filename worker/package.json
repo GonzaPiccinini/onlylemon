@@ -31,6 +31,7 @@
     "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
     "nanoid": "^5.1.7",
     "pdf-to-png-converter": "^4.0.0",
     "pg": "^8.20.0",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@testcontainers/postgresql": "^11.14.0",
     "@types/express": "^4.17.23",
+    "@types/multer": "^2.1.0",
     "@types/node": "^22.15.3",
     "@types/pg": "^8.20.0",
     "prisma": "^7.6.0",

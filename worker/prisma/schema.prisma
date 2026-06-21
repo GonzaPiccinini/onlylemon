@@ -143,6 +143,7 @@ model WhatsappSession {
   cashier             Cashier                  @relation(fields: [cashierId], references: [id])
   sessionName         String                   @unique
   whatsappPhoneNumber String?
+  alias               String?
   refreshCount        Int                      @default(0)
   lastRefreshAt       DateTime?
   landings            WhatsappSessionLanding[]

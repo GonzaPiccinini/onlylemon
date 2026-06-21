@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { formatDateTime } from '@/lib/format';
 import { wahaStatusLabel, wahaStatusVariant } from '@/lib/waha-status';
+import { SessionAliasEditor } from '@/features/chat/components';
+import type { ChatScope } from '@/api/chat.service';
 import {
   useCashierSessions,
   useCreateCashierSession,
@@ -439,8 +441,13 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
         <ul className='flex flex-col gap-2'>
           {sessions.map((session) => {
             const isWorking = session.wahaStatus === 'WORKING';
-            const title = session.whatsappPhoneNumber ?? 'Sin numero vinculado';
+            const aliasName = session.alias?.trim();
+            const title =
+              aliasName || session.whatsappPhoneNumber || 'Sin numero vinculado';
             const metaParts: string[] = [];
+            if (aliasName && session.whatsappPhoneNumber) {
+              metaParts.push(`+${session.whatsappPhoneNumber}`);
+            }
             if (session.whatsappPhoneNumber) {
               metaParts.push(`Intentos ${session.refreshCount}/3`);
               if (session.lastRefreshAt) {
@@ -465,6 +472,11 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                         {metaParts.join(' · ')}
                       </span>
                     </div>
+                    <SessionAliasEditor
+                      scope={{ kind: 'admin', cashierId: cashier.id } satisfies ChatScope}
+                      sessionId={session.id}
+                      alias={session.alias}
+                    />
                   </div>
                   <div className='flex shrink-0 items-center gap-1'>
                     {isWorking ? (

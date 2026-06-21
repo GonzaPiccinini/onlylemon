@@ -9,8 +9,25 @@ import {
 import {
   subscribeCashierRuntimeStateChanged,
 } from '../cashier/runtime-events.js';
+import {
+  subscribeChatMessage,
+  subscribeChatReaction,
+} from '../chat/chat.events.js';
+import { listCashiers as defaultListCashiers } from '../admin/admin.repository.js';
+import {
+  resolveVisibleCashierIds,
+  isEventVisible,
+} from './chat-stream.helpers.js';
+import { createConnectionLimiter } from './connection-limiter.js';
 
 export const realtimeRouter = Router();
+
+// Cap concurrent SSE connections per user so one authenticated user cannot open
+// unbounded streams (each adds emitter listeners + a heartbeat timer → DoS/memory).
+// Generous enough for normal multi-tab dashboard use; tune if needed.
+const MAX_SSE_CONNECTIONS_PER_USER = 5;
+const runtimeStreamLimiter = createConnectionLimiter(MAX_SSE_CONNECTIONS_PER_USER);
+const chatStreamLimiter = createConnectionLimiter(MAX_SSE_CONNECTIONS_PER_USER);
 
 realtimeRouter.get('/cashier/runtime-state/stream', async (req, res) => {
   const rawToken =
@@ -41,6 +58,11 @@ realtimeRouter.get('/cashier/runtime-state/stream', async (req, res) => {
   } catch (err) {
     logger.error({ err, cashierId }, 'sse runtime-state initial fetch failed');
     return res.status(500).json({ error: 'Internal server error' });
+  }
+
+  // Enforce the per-user connection cap before committing to an SSE response.
+  if (!runtimeStreamLimiter.tryAcquire(authUser.userId)) {
+    return res.status(429).json({ error: 'Too many concurrent connections' });
   }
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -78,11 +100,92 @@ realtimeRouter.get('/cashier/runtime-state/stream', async (req, res) => {
     cleanedUp = true;
     clearInterval(heartbeat);
     unsubscribe();
+    runtimeStreamLimiter.release(authUser.userId);
   };
 
   req.on('close', cleanup);
   res.on('error', (err) => {
     logger.warn({ err, cashierId }, 'sse runtime-state response error');
+    cleanup();
+  });
+});
+
+// ── GET /chat/stream?token=... ─────────────────────────────────────────────
+// One SSE connection per user.
+// CASHIER: events scoped to own cashierId.
+// ADMIN / SUPER_ADMIN: events for ALL cashiers (resolved once at connect).
+// Events emitted: chat-message-received, chat-message-reaction, ping (20s).
+
+realtimeRouter.get('/chat/stream', async (req, res) => {
+  const rawToken =
+    typeof req.query.token === 'string'
+      ? req.query.token
+      : req.header('authorization')?.replace(/^Bearer\s+/i, '') ?? null;
+
+  if (!rawToken) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  let authUser: AuthenticatedUser;
+  try {
+    authUser = jwt.verify(rawToken, config.JWT_SECRET) as AuthenticatedUser;
+  } catch {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Resolve the visible cashier set once at connect time.
+  let visibleCashierIds: Set<string>;
+  try {
+    visibleCashierIds = await resolveVisibleCashierIds(authUser, defaultListCashiers);
+  } catch (err) {
+    logger.warn({ err, userId: authUser.userId, role: authUser.role }, 'sse chat-stream cashier resolution failed');
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  // Enforce the per-user connection cap before committing to an SSE response.
+  if (!chatStreamLimiter.tryAcquire(authUser.userId)) {
+    return res.status(429).json({ error: 'Too many concurrent connections' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const writeEvent = (event: string, data: unknown) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const unsubscribeMessage = subscribeChatMessage((event) => {
+    if (isEventVisible(event, visibleCashierIds)) {
+      writeEvent('chat-message-received', event);
+    }
+  });
+
+  const unsubscribeReaction = subscribeChatReaction((event) => {
+    if (isEventVisible(event, visibleCashierIds)) {
+      writeEvent('chat-message-reaction', event);
+    }
+  });
+
+  const heartbeat = setInterval(() => {
+    writeEvent('ping', Date.now());
+  }, 20_000);
+
+  let cleanedUp = false;
+  const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    clearInterval(heartbeat);
+    unsubscribeMessage();
+    unsubscribeReaction();
+    chatStreamLimiter.release(authUser.userId);
+  };
+
+  req.on('close', cleanup);
+  res.on('error', (err) => {
+    logger.warn({ err, userId: authUser.userId, role: authUser.role }, 'sse chat-stream response error');
     cleanup();
   });
 });

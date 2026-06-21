@@ -45,6 +45,43 @@ export const endpoints = {
     currencyOptions: "/admin/settings/currency-options",
     settingByKey: (key: string) => `/admin/settings/${key}`,
   },
+  chat: {
+    // Cashier-scoped endpoints
+    cashierChats: (sessionId: string) =>
+      `/chat/sessions/${sessionId}/chats`,
+    cashierMessages: (sessionId: string, chatId: string) =>
+      `/chat/sessions/${sessionId}/chats/${chatId}/messages`,
+    cashierReactions: (sessionId: string, chatId: string, messageId: string) =>
+      `/chat/sessions/${sessionId}/chats/${chatId}/messages/${messageId}/reactions`,
+    cashierMedia: (sessionId: string, chatId: string, messageId: string) =>
+      `/chat/sessions/${sessionId}/chats/${chatId}/messages/${messageId}/media`,
+    cashierSendMedia: (sessionId: string, chatId: string) =>
+      `/chat/sessions/${sessionId}/chats/${chatId}/media`,
+    cashierStatusText: (sessionId: string) =>
+      `/chat/sessions/${sessionId}/status/text`,
+    cashierStatusImage: (sessionId: string) =>
+      `/chat/sessions/${sessionId}/status/image`,
+    cashierSessionAlias: (sessionId: string) =>
+      `/chat/sessions/${sessionId}/alias`,
+
+    // Admin-scoped endpoints
+    adminChats: (cashierId: string, sessionId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats`,
+    adminMessages: (cashierId: string, sessionId: string, chatId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats/${chatId}/messages`,
+    adminReactions: (cashierId: string, sessionId: string, chatId: string, messageId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats/${chatId}/messages/${messageId}/reactions`,
+    adminMedia: (cashierId: string, sessionId: string, chatId: string, messageId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats/${chatId}/messages/${messageId}/media`,
+    adminSendMedia: (cashierId: string, sessionId: string, chatId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats/${chatId}/media`,
+    adminStatusText: (cashierId: string, sessionId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/status/text`,
+    adminStatusImage: (cashierId: string, sessionId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/status/image`,
+    adminSessionAlias: (cashierId: string, sessionId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/alias`,
+  },
   cashier: {
     sessions: "/cashier/sessions",
     currentSession: "/cashier/sessions/current",

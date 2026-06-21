@@ -108,16 +108,27 @@ export const useCashierRuntimeStateStream = (
 
         // Sync mySessions list directly from the SSE payload (no extra HTTP).
         // Field mapping: status → wahaStatus, phone → whatsappPhoneNumber.
-        queryClient.setQueryData(
+        // MERGE by id against the cached entry: the runtime-state payload does
+        // NOT carry `alias` (nor createdAt/updatedAt), so rebuilding objects from
+        // scratch would clobber the alias on every SSE event — making it vanish
+        // until the next full refetch. Spread the previous entry first to keep
+        // those server-only fields intact.
+        queryClient.setQueryData<MyWhatsappSession[]>(
           cashierKeys.mySessions,
-          payload.sessions.map((s) => ({
-            id: s.id,
-            sessionName: s.sessionName,
-            whatsappPhoneNumber: s.phone,
-            wahaStatus: s.status,
-            refreshCount: s.refreshCount,
-            lastRefreshAt: s.lastRefreshAt,
-          })),
+          (previousSessions) => {
+            const byId = new Map(
+              (previousSessions ?? []).map((session) => [session.id, session]),
+            );
+            return payload.sessions.map((s) => ({
+              ...byId.get(s.id),
+              id: s.id,
+              sessionName: s.sessionName,
+              whatsappPhoneNumber: s.phone,
+              wahaStatus: s.status,
+              refreshCount: s.refreshCount,
+              lastRefreshAt: s.lastRefreshAt,
+            }));
+          },
         );
 
         // Detect changes that the runtime payload alone can't represent

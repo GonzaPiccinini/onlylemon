@@ -1218,6 +1218,7 @@ export const listCashierSessionsService = async (cashierId: string) => {
     cashierId: s.cashierId,
     sessionName: s.sessionName,
     whatsappPhoneNumber: s.whatsappPhoneNumber,
+    alias: s.alias,
     refreshCount: s.refreshCount,
     lastRefreshAt: s.lastRefreshAt,
     wahaStatus: wahaStatusByName.get(s.sessionName) ?? 'STOPPED',

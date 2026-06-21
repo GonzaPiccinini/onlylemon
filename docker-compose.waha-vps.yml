@@ -58,7 +58,7 @@ services:
       WAHA_S3_PROXY_FILES: 'True'
       WAHA_DOWNLOAD_MEDIA: 'True'
       WHATSAPP_DOWNLOAD_MEDIA: 'True'
-      WHATSAPP_FILES_MIMETYPES: ${WHATSAPP_FILES_MIMETYPES:-image/jpeg,image/png,application/pdf}
+      WHATSAPP_FILES_MIMETYPES: ${WHATSAPP_FILES_MIMETYPES:-image/jpeg,image/png,image/webp,application/pdf}
       WHATSAPP_FILES_LIFETIME: ${WHATSAPP_FILES_LIFETIME:-7200}
     volumes:
       - waha_data:/app/.sessions
