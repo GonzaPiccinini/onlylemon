@@ -16,14 +16,43 @@ type MetaEventName =
 
 type HighValueTierName = 'HighValueTier1' | 'HighValueTier2' | 'HighValueTier3';
 
+type TierKey = 'tier1' | 'tier2' | 'tier3';
+
+/**
+ * Currency + high-value thresholds applied to a conversion. Read from
+ * SystemSetting at runtime (see system-settings/conversion-config.ts) and
+ * passed into sendMetaConversion. Defaults below preserve the original
+ * hardcoded behaviour (ARS + 10k/25k/50k/100k) so callers — and tests — that
+ * omit it keep working unchanged.
+ */
+export interface ConversionConfig {
+  currency: string;
+  thresholds: {
+    highValue: number;
+    tier1: number;
+    tier2: number;
+    tier3: number;
+  };
+}
+
+export const DEFAULT_CONVERSION_CONFIG: ConversionConfig = {
+  currency: 'ARS',
+  thresholds: {
+    highValue: 10_000,
+    tier1: 25_000,
+    tier2: 50_000,
+    tier3: 100_000,
+  },
+};
+
 const HIGH_VALUE_TIERS: ReadonlyArray<{
-  threshold: number;
+  key: TierKey;
   eventName: HighValueTierName;
   idSuffix: string;
 }> = [
-  { threshold: 25_000, eventName: 'HighValueTier1', idSuffix: 'hvt1' },
-  { threshold: 50_000, eventName: 'HighValueTier2', idSuffix: 'hvt2' },
-  { threshold: 100_000, eventName: 'HighValueTier3', idSuffix: 'hvt3' },
+  { key: 'tier1', eventName: 'HighValueTier1', idSuffix: 'hvt1' },
+  { key: 'tier2', eventName: 'HighValueTier2', idSuffix: 'hvt2' },
+  { key: 'tier3', eventName: 'HighValueTier3', idSuffix: 'hvt3' },
 ];
 
 interface MetaEventBase {
@@ -85,11 +114,16 @@ const postMetaEvent = async (input: {
   const startedAt = process.hrtime.bigint();
 
   const userData: Record<string, unknown> = {
-    fbc: input.base.fbc,
-    fbp: input.base.fbp,
     client_user_agent: input.base.userAgent,
     external_id: [input.hashedExternalId],
   };
+  // Omit fbc/fbp when empty (pixel was blocked) — sending '' degrades match quality.
+  if (input.base.fbc) {
+    userData.fbc = input.base.fbc;
+  }
+  if (input.base.fbp) {
+    userData.fbp = input.base.fbp;
+  }
   if (input.hashedPhone) {
     userData.ph = [input.hashedPhone];
   }
@@ -167,11 +201,12 @@ const toBase = (payload: MetaEventBase): MetaEventBase => ({
 
 export const sendMetaConversion = async (
   payload: ConversionPayload,
+  config: ConversionConfig = DEFAULT_CONVERSION_CONFIG,
 ): Promise<MetaConversionResult> => {
   const hashedPhone = await sha256(normalizePhone(payload.phone));
   const hashedExternalId = await sha256(payload.leadCode.trim().toLowerCase());
   const base = toBase(payload);
-  const customData = { currency: 'ARS', value: payload.value };
+  const customData = { currency: config.currency, value: payload.value };
 
   const purchaseSent = await postMetaEvent({
     eventName: 'Purchase',
@@ -182,7 +217,7 @@ export const sendMetaConversion = async (
     customData,
   });
 
-  const highValueRequired = payload.value >= 10_000;
+  const highValueRequired = payload.value >= config.thresholds.highValue;
   let highValueSent = false;
 
   if (highValueRequired) {
@@ -198,7 +233,7 @@ export const sendMetaConversion = async (
 
   const tiers: HighValueTierResult[] = [];
   for (const tier of HIGH_VALUE_TIERS) {
-    const required = payload.value >= tier.threshold;
+    const required = payload.value >= config.thresholds[tier.key];
     let sent = false;
     if (required) {
       sent = await postMetaEvent({

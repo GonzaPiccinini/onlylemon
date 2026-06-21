@@ -31,8 +31,22 @@ const generateCode = customAlphabet(
 );
 
 export const CreateLeadPayloadSchema = z.object({
-  fbc: z.string().trim().min(1).max(1024),
-  fbp: z.string().trim().min(1).max(1024),
+  // fbc/fbp come from cookies set by the Meta pixel. Ad-blockers block the
+  // pixel (net::ERR_BLOCKED_BY_CLIENT), so the cookies never get created and
+  // the landing sends null. Accept the lead anyway (contact must succeed) and
+  // normalize to '' — attribution degrades gracefully via CAPI.
+  fbc: z
+    .string()
+    .trim()
+    .max(1024)
+    .nullish()
+    .transform((value) => value ?? ''),
+  fbp: z
+    .string()
+    .trim()
+    .max(1024)
+    .nullish()
+    .transform((value) => value ?? ''),
   userAgent: z.string().trim().min(1).max(2048),
   metaPixelId: z.string().trim().min(1).max(256),
   adCode: z.string().trim().min(1).max(256).optional(),
@@ -447,9 +461,14 @@ export async function createLeadWithDependencies(
 
   const resolvedNumber = selectedNumber.ok ? selectedNumber.number : '';
 
-  const existingLeadByFbc = await dependencies.getLeadByFbc(payload.fbc);
-  if (existingLeadByFbc) {
-    throw new LeadFbcConflictError();
+  // Only dedup when we actually have an fbc. Leads from blocked-pixel visitors
+  // share an empty fbc, so dedup-ing on '' would reject every one after the
+  // first.
+  if (payload.fbc) {
+    const existingLeadByFbc = await dependencies.getLeadByFbc(payload.fbc);
+    if (existingLeadByFbc) {
+      throw new LeadFbcConflictError();
+    }
   }
 
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {

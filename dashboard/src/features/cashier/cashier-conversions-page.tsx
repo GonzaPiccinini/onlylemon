@@ -22,11 +22,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useCashierConversions } from '@/features/cashier/cashier-hooks';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
+import { useMoneyFormatter } from '@/lib/use-currency';
 
 const PAGE_SIZE = 25;
 
 export const CashierConversionsPage = () => {
+  const money = useMoneyFormatter();
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -186,7 +188,7 @@ export const CashierConversionsPage = () => {
                     <TableCell>{conversion.code}</TableCell>
                     <TableCell>{conversion.phone ?? '-'}</TableCell>
                     <TableCell>
-                      {formatCurrency(Number(conversion.amount))}
+                      {money.format(Number(conversion.amount))}
                     </TableCell>
                     <TableCell>{formatDateTime(conversion.createdAt)}</TableCell>
                   </TableRow>

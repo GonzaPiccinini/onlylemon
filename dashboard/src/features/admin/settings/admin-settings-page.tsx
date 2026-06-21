@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/common/page-header';
 import { AutoConversionSettings } from './auto-conversion-settings';
+import { CurrencySettings } from './currency-settings';
 
 export const AdminSettingsPage = () => {
   return (
@@ -10,6 +11,7 @@ export const AdminSettingsPage = () => {
       />
 
       <AutoConversionSettings />
+      <CurrencySettings />
     </section>
   );
 };

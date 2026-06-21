@@ -407,6 +407,141 @@ test('sendMetaConversion sends all tiers when value is 100000', async () => {
   }
 });
 
+test('sendMetaConversion uses the currency from the provided config', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return { ok: true, status: 200, json: async () => ({}), text: async () => '' } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendMetaConversion } = await import('./conversion.js');
+    await sendMetaConversion(
+      {
+        phone: '+55 11 99999-0000',
+        value: 500,
+        fbc: 'fb.1.brl',
+        fbp: 'fb.1.brl',
+        userAgent: 'Mozilla/5.0',
+        metaPixelId: 'pixel-brl',
+        metaAccessToken: 'token-brl',
+        eventId: 'lead-brl',
+        eventSourceUrl: 'https://cajero1.onlylemon.app',
+        leadCode: 'BR12CD34',
+      },
+      {
+        currency: 'BRL',
+        thresholds: { highValue: 10_000, tier1: 25_000, tier2: 50_000, tier3: 100_000 },
+      },
+    );
+
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(String(calls[0].init?.body)) as {
+      data: Array<{ custom_data: { currency: string; value: number } }>;
+    };
+    assert.deepEqual(body.data[0].custom_data, { currency: 'BRL', value: 500 });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('sendMetaConversion honors custom high-value thresholds from config', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return { ok: true, status: 200, json: async () => ({}), text: async () => '' } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendMetaConversion } = await import('./conversion.js');
+    // value 100 with low thresholds → Purchase + HighValueCustomer + Tier1, but not Tier2/Tier3.
+    const result = await sendMetaConversion(
+      {
+        phone: '+1 555 000 0000',
+        value: 100,
+        fbc: 'fb.1.usd',
+        fbp: 'fb.1.usd',
+        userAgent: 'Mozilla/5.0',
+        metaPixelId: 'pixel-usd',
+        metaAccessToken: 'token-usd',
+        eventId: 'lead-usd',
+        eventSourceUrl: 'https://cajero1.onlylemon.app',
+        leadCode: 'US12CD34',
+      },
+      {
+        currency: 'USD',
+        thresholds: { highValue: 50, tier1: 100, tier2: 250, tier3: 500 },
+      },
+    );
+
+    assert.deepEqual(result, {
+      purchaseSent: true,
+      highValueRequired: true,
+      highValueSent: true,
+      tiers: [
+        { eventName: 'HighValueTier1', required: true, sent: true },
+        { eventName: 'HighValueTier2', required: false, sent: false },
+        { eventName: 'HighValueTier3', required: false, sent: false },
+      ],
+    });
+
+    const eventNames = calls.map((c) => {
+      const body = JSON.parse(String(c.init?.body)) as { data: Array<{ event_name: string }> };
+      return body.data[0].event_name;
+    });
+    assert.deepEqual(eventNames, ['Purchase', 'HighValueCustomer', 'HighValueTier1']);
+
+    // currency propagates to every money event
+    for (const c of calls) {
+      const body = JSON.parse(String(c.init?.body)) as {
+        data: Array<{ custom_data: { currency: string } }>;
+      };
+      assert.equal(body.data[0].custom_data.currency, 'USD');
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('sendMetaConversion defaults to ARS and original thresholds when no config passed', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ init });
+    return { ok: true, status: 200, json: async () => ({}), text: async () => '' } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendMetaConversion } = await import('./conversion.js');
+    await sendMetaConversion({
+      phone: '+54 9 11 5555-5555',
+      value: 9999,
+      fbc: 'fb.1.def',
+      fbp: 'fb.1.def',
+      userAgent: 'Mozilla/5.0',
+      metaPixelId: 'pixel-def',
+      metaAccessToken: 'token-def',
+      eventId: 'lead-def',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'DE12CD34',
+    });
+
+    // 9999 < default highValue (10000) → only Purchase, currency ARS
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(String(calls[0].init?.body)) as {
+      data: Array<{ custom_data: { currency: string; value: number } }>;
+    };
+    assert.deepEqual(body.data[0].custom_data, { currency: 'ARS', value: 9999 });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('sendMetaConversion does not send Tier1 when value is just below threshold', async () => {
   const originalFetch = globalThis.fetch;
 
@@ -442,6 +577,48 @@ test('sendMetaConversion does not send Tier1 when value is just below threshold'
       ],
     });
     assert.equal(calls.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('omits fbc/fbp from user_data when they are empty (blocked pixel)', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => '',
+    } as Response;
+  }) as typeof fetch;
+
+  try {
+    const { sendContactEvent } = await import('./conversion.js');
+
+    await sendContactEvent({
+      fbc: '',
+      fbp: '',
+      phone: '+5491100000000',
+      userAgent: 'Mozilla/5.0',
+      metaPixelId: 'pixel-blocked',
+      metaAccessToken: 'token-blocked',
+      eventId: 'contact-blocked',
+      eventSourceUrl: 'https://cajero1.onlylemon.app',
+      leadCode: 'BLOCKED1',
+    });
+
+    assert.equal(calls.length, 1);
+    const body = JSON.parse(String(calls[0]!.init!.body)) as {
+      data: Array<{ user_data: Record<string, unknown> }>;
+    };
+    const userData = body.data[0]!.user_data;
+    assert.equal('fbc' in userData, false, 'fbc must be omitted when empty');
+    assert.equal('fbp' in userData, false, 'fbp must be omitted when empty');
+    assert.equal(userData.client_user_agent, 'Mozilla/5.0');
   } finally {
     globalThis.fetch = originalFetch;
   }

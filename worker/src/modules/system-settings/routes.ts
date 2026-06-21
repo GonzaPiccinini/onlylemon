@@ -29,11 +29,16 @@ import { Router } from 'express';
 import {
   getAutoConversionTriggerHandler,
   updateAutoConversionTriggerHandler,
+  getCurrencyOptionsHandler,
   getSettingHandler,
   updateSettingHandler,
 } from './controller.js';
 
 export const systemSettingsRouter = Router();
+
+// Specific route — list supported currencies for the admin selector.
+// Registered BEFORE the generic `/:key` so it is not treated as a setting key.
+systemSettingsRouter.get('/currency-options', getCurrencyOptionsHandler);
 
 // Legacy specific routes — kept for backwards compatibility
 systemSettingsRouter.get(

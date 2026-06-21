@@ -520,3 +520,172 @@ test('generic PUT: non-amount key skips cross-validation', async () => {
 
   assert.equal(res.statusCode, 200);
 });
+
+// ---------------------------------------------------------------------------
+// Platform currency validation
+// ---------------------------------------------------------------------------
+
+test('generic PUT platform_currency: supported code → 200', async () => {
+  const mod = await import('./controller.js');
+
+  let saved = '';
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async (_key: string, value: string) => {
+      saved = value;
+    },
+    getSettingFn: async () => '',
+  });
+
+  const req = makeReq({ params: { key: 'platform_currency' }, body: { value: 'BRL' } });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, { value: 'BRL' });
+  assert.equal(saved, 'BRL');
+});
+
+test('generic PUT platform_currency: unsupported code → 400 and not saved', async () => {
+  const mod = await import('./controller.js');
+
+  let upserted = false;
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {
+      upserted = true;
+    },
+    getSettingFn: async () => '',
+  });
+
+  const req = makeReq({ params: { key: 'platform_currency' }, body: { value: 'XYZ' } });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(upserted, false);
+});
+
+// ---------------------------------------------------------------------------
+// High-value threshold validation
+// ---------------------------------------------------------------------------
+
+test('generic PUT high_value_threshold: positive integer → 200', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {},
+    getSettingFn: async () => '',
+  });
+
+  const req = makeReq({ params: { key: 'high_value_threshold' }, body: { value: '15000' } });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, { value: '15000' });
+});
+
+test('generic PUT high_value_tier1_threshold: non-numeric → 400', async () => {
+  const mod = await import('./controller.js');
+
+  let upserted = false;
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {
+      upserted = true;
+    },
+    getSettingFn: async () => '',
+  });
+
+  const req = makeReq({ params: { key: 'high_value_tier1_threshold' }, body: { value: 'abc' } });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(upserted, false);
+});
+
+test('generic PUT high_value_tier2_threshold: zero → 400', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeUpdateSettingHandler({
+    upsertSettingFn: async () => {},
+    getSettingFn: async () => '',
+  });
+
+  const req = makeReq({ params: { key: 'high_value_tier2_threshold' }, body: { value: '0' } });
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+// ---------------------------------------------------------------------------
+// Currency options endpoint
+// ---------------------------------------------------------------------------
+
+test('getCurrencyOptionsHandler: returns supported currencies with code/label/symbol', async () => {
+  const mod = await import('./controller.js');
+
+  const req = makeReq();
+  const res = makeRes();
+
+  mod.getCurrencyOptionsHandler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  const body = res.body as {
+    currencies: Array<{ code: string; label: string; symbol: string }>;
+  };
+  assert.ok(Array.isArray(body.currencies));
+  assert.ok(body.currencies.some((c) => c.code === 'ARS'));
+  assert.ok(body.currencies.some((c) => c.code === 'BRL'));
+  // Paraguay added
+  const pyg = body.currencies.find((c) => c.code === 'PYG');
+  assert.ok(pyg, 'PYG should be supported');
+  assert.equal(pyg?.symbol, '₲');
+});
+
+// ---------------------------------------------------------------------------
+// Active currency endpoint (any authenticated user)
+// ---------------------------------------------------------------------------
+
+test('getActiveCurrencyHandler: returns selected currency meta (PYG)', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeGetActiveCurrencyHandler({
+    getSettingFn: async () => 'PYG',
+  });
+
+  const req = makeReq();
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, {
+    code: 'PYG',
+    label: 'Guaraní paraguayo (PYG)',
+    symbol: '₲',
+  });
+});
+
+test('getActiveCurrencyHandler: unset setting falls back to ARS default', async () => {
+  const mod = await import('./controller.js');
+
+  const handler = mod.makeGetActiveCurrencyHandler({
+    getSettingFn: async () => '',
+  });
+
+  const req = makeReq();
+  const res = makeRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  const body = res.body as { code: string; symbol: string };
+  assert.equal(body.code, 'ARS');
+  assert.equal(body.symbol, '$');
+});

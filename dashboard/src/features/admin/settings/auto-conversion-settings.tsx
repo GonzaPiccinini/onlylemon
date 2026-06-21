@@ -32,6 +32,7 @@ import {
   useAutoConversionMaxAmount,
   useUpdateAutoConversionMaxAmount,
 } from '@/features/admin/admin-hooks';
+import { useMoneyFormatter } from '@/lib/use-currency';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -84,7 +85,7 @@ type AmountsFormValues = z.infer<typeof amountsSchema>;
 // Helpers
 // ---------------------------------------------------------------------------
 
-const formatARS = (raw: string | undefined) => {
+const formatGroup = (raw: string | undefined) => {
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
   if (!Number.isFinite(n) || n <= 0) return null;
@@ -305,6 +306,7 @@ const TriggerPhraseSection = () => {
 // ---------------------------------------------------------------------------
 
 const AmountsSection = () => {
+  const money = useMoneyFormatter();
   const minQuery = useAutoConversionMinAmount();
   const maxQuery = useAutoConversionMaxAmount();
   const updateMin = useUpdateAutoConversionMinAmount();
@@ -375,8 +377,8 @@ const AmountsSection = () => {
 
   const onReset = () => form.reset(serverValues);
 
-  const minPretty = formatARS(current.min);
-  const maxPretty = formatARS(current.max);
+  const minPretty = formatGroup(current.min);
+  const maxPretty = formatGroup(current.max);
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
@@ -385,7 +387,7 @@ const AmountsSection = () => {
           <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
             <WalletIcon className="size-4" />
           </div>
-          <h3 className="font-medium leading-tight">Limites de monto (ARS)</h3>
+          <h3 className="font-medium leading-tight">Limites de monto ({money.code})</h3>
         </div>
         <p className="text-sm text-muted-foreground">
           Conversiones fuera de este rango se rechazan automaticamente. Usa 0 para
@@ -407,7 +409,7 @@ const AmountsSection = () => {
                 <FieldContent>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-0 grid w-9 place-items-center text-sm text-muted-foreground">
-                      $
+                      {money.symbol}
                     </span>
                     <Input
                       id="auto-conversion-min-amount"
@@ -422,7 +424,7 @@ const AmountsSection = () => {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {minPretty ? `$ ${minPretty} ARS` : 'Sin minimo'}
+                    {minPretty ? `${money.symbol} ${minPretty} ${money.code}` : 'Sin minimo'}
                   </p>
                   <FieldError errors={[form.formState.errors.min]} />
                 </FieldContent>
@@ -435,7 +437,7 @@ const AmountsSection = () => {
                 <FieldContent>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-0 grid w-9 place-items-center text-sm text-muted-foreground">
-                      $
+                      {money.symbol}
                     </span>
                     <Input
                       id="auto-conversion-max-amount"
@@ -450,7 +452,7 @@ const AmountsSection = () => {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {maxPretty ? `$ ${maxPretty} ARS` : 'Sin maximo'}
+                    {maxPretty ? `${money.symbol} ${maxPretty} ${money.code}` : 'Sin maximo'}
                   </p>
                   <FieldError errors={[form.formState.errors.max]} />
                 </FieldContent>

@@ -24,27 +24,45 @@ import {
 } from "@/components/ui/table";
 import { PaginationControls } from "@/components/common/pagination-controls";
 import { getDefaultDateRange } from "@/lib/date-range";
-import { formatCurrency, formatHours, formatPercentage } from "@/lib/format";
+import { formatHours, formatPercentage } from "@/lib/format";
+import { useMoneyFormatter } from "@/lib/use-currency";
 import {
   useAdminSummary,
   useCashierStats,
   useFundsSeries,
 } from "@/features/admin/admin-hooks";
 
+type StatsView = "total" | "contacted" | "gross" | "first";
+
 export const AdminStatsPage = () => {
+  const money = useMoneyFormatter();
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
-  const [selectedSeries, setSelectedSeries] = useState<"contacted" | "gross" | "first">("contacted");
+  const [view, setView] = useState<StatsView>("total");
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const { data: summary, isLoading: summaryLoading } = useAdminSummary(dateRange);
   const { data: cashierStats = [], isLoading: cashierStatsLoading } = useCashierStats(dateRange);
   const { data: fundsSeries, isLoading: seriesLoading } = useFundsSeries(dateRange);
+  // "total" charts overall gross income; each category view charts its own series.
   const chartData =
-    selectedSeries === "contacted"
+    view === "contacted"
       ? (fundsSeries?.incomeByContactedDate ?? [])
-      : selectedSeries === "gross"
-      ? (fundsSeries?.grossByConversionDate ?? [])
-      : (fundsSeries?.firstChargesByDate ?? []);
+      : view === "first"
+      ? (fundsSeries?.firstChargesByDate ?? [])
+      : (fundsSeries?.grossByConversionDate ?? []);
+  // In a category view, chartData IS that category's series, so derive its cards from it.
+  const categoryTotals = chartData.reduce(
+    (acc, point) => ({ count: acc.count + point.count, sum: acc.sum + point.sum }),
+    { count: 0, sum: 0 },
+  );
+  const categoryAverage =
+    categoryTotals.count > 0 ? categoryTotals.sum / categoryTotals.count : 0;
+  const categoryCountLabel =
+    view === "contacted"
+      ? "Conversiones (por contacto)"
+      : view === "first"
+      ? "Primeras cargas"
+      : "Conversiones";
   const totalPages = Math.max(1, Math.ceil(cashierStats.length / pageSize));
   const normalizedPage = Math.min(page, totalPages);
   const start = (normalizedPage - 1) * pageSize;
@@ -65,42 +83,60 @@ export const AdminStatsPage = () => {
         }}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {summaryLoading || !summary ? (
-          Array.from({ length: 5 }).map((_, index) => <LoadingCard key={index} />)
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground">Vista:</span>
+        <ToggleGroup
+          type="single"
+          value={view}
+          onValueChange={(nextValue) => setView(nextValue as StatsView)}
+        >
+          <ToggleGroupItem value="total">Totales</ToggleGroupItem>
+          <ToggleGroupItem value="contacted">Por contacto</ToggleGroupItem>
+          <ToggleGroupItem value="gross">Bruto por conversion</ToggleGroupItem>
+          <ToggleGroupItem value="first">Primeras cargas</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      <div
+        className={
+          view === "total"
+            ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+            : "grid gap-3 sm:grid-cols-3"
+        }
+      >
+        {view === "total" ? (
+          summaryLoading || !summary ? (
+            Array.from({ length: 5 }).map((_, index) => <LoadingCard key={index} />)
+          ) : (
+            <>
+              <MetricCard label="Leads totales" value={String(summary.totalLeads)} />
+              <MetricCard label="Leads convertidos" value={String(summary.convertedLeads)} />
+              <MetricCard label="Tasa conversion" value={formatPercentage(summary.conversionRate)} />
+              <MetricCard label="Valor convertido" value={money.format(summary.totalConvertedValue)} />
+              <MetricCard label="Horas activas" value={formatHours(summary.totalActiveHours)} />
+            </>
+          )
+        ) : seriesLoading || !fundsSeries ? (
+          Array.from({ length: 3 }).map((_, index) => <LoadingCard key={index} />)
         ) : (
           <>
-            <MetricCard label="Leads totales" value={String(summary.totalLeads)} />
-            <MetricCard label="Leads convertidos" value={String(summary.convertedLeads)} />
-            <MetricCard label="Tasa conversion" value={formatPercentage(summary.conversionRate)} />
-            <MetricCard label="Valor convertido" value={formatCurrency(summary.totalConvertedValue)} />
-            <MetricCard label="Horas activas" value={formatHours(summary.totalActiveHours)} />
+            <MetricCard label={categoryCountLabel} value={String(categoryTotals.count)} />
+            <MetricCard label="Monto total" value={money.format(categoryTotals.sum)} />
+            <MetricCard label="Monto promedio" value={money.format(categoryAverage)} />
           </>
         )}
       </div>
 
       <Card>
-        <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
-          <div>
-            <CardTitle>Evolucion de ingresos</CardTitle>
-            <CardDescription>
-              {selectedSeries === "contacted"
-                ? "Ingreso por dia segun fecha de contacto del lead."
-                : selectedSeries === "gross"
-                ? "Ingreso bruto por dia segun fecha de conversion."
-                : "Primeras cargas por dia (primera conversion historica de cada lead)."}
-            </CardDescription>
-          </div>
-          <ToggleGroup
-            type="single"
-            value={selectedSeries}
-            onValueChange={(nextValue) => setSelectedSeries(nextValue as "contacted" | "gross" | "first")}
-            className="self-start"
-          >
-            <ToggleGroupItem value="contacted">Por contacto</ToggleGroupItem>
-            <ToggleGroupItem value="gross">Bruto por conversion</ToggleGroupItem>
-            <ToggleGroupItem value="first">Primeras cargas</ToggleGroupItem>
-          </ToggleGroup>
+        <CardHeader>
+          <CardTitle>Evolucion de ingresos</CardTitle>
+          <CardDescription>
+            {view === "contacted"
+              ? "Ingreso por dia segun fecha de contacto del lead."
+              : view === "first"
+              ? "Primeras cargas por dia (primera conversion historica de cada lead)."
+              : "Ingreso bruto por dia segun fecha de conversion."}
+          </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px]">
           {seriesLoading ? (
@@ -113,7 +149,7 @@ export const AdminStatsPage = () => {
                 <CartesianGrid strokeDasharray="4 4" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value) => money.format(Number(value))} />
                 <Bar dataKey="sum" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -158,7 +194,7 @@ export const AdminStatsPage = () => {
                     <TableCell>{cashier.contactedLeads}</TableCell>
                     <TableCell>{cashier.convertedLeads}</TableCell>
                     <TableCell>{formatPercentage(cashier.conversionRate)}</TableCell>
-                    <TableCell>{formatCurrency(cashier.convertedValue)}</TableCell>
+                    <TableCell>{money.format(cashier.convertedValue)}</TableCell>
                     <TableCell>{formatHours(cashier.activeHours)}</TableCell>
                   </TableRow>
                 ))
