@@ -15,6 +15,12 @@
 import type { ChatListEntry, ChatMessage, ChatReactionSummary, QuotedMessage } from './chat.types.js';
 import { extractGroupSenderName } from './group-sender.js';
 
+/**
+ * How many recent messages getMediaBytes scans when a direct id lookup misses
+ * (the @lid/@c.us addressing fallback). Covers a couple of history pages.
+ */
+const MEDIA_SCAN_LIMIT = 100;
+
 // ── Injected deps (WAHA client function signatures) ────────────────────────────
 
 export type ChatListOptions = { limit?: number; offset?: number };
@@ -70,6 +76,13 @@ export type ChatRepositoryDeps = {
 
   /** Calls WAHA POST /api/{session}/status/image */
   sendImageStatus(session: string, payload: ImageStatusPayload): Promise<void>;
+
+  /**
+   * Optional structured logger (pino-compatible). Injected so the repository
+   * stays a pure deps layer — unit tests need no env/config to import it. The
+   * default wiring passes the real worker logger; tests leave it undefined.
+   */
+  logger?: { warn(obj: Record<string, unknown>, msg: string): void };
 };
 
 // ── Status payloads ────────────────────────────────────────────────────────────
@@ -180,6 +193,40 @@ export type ChatRepository = {
   sendImageStatus(sessionName: string, payload: ImageStatusPayload): Promise<void>;
 };
 
+/**
+ * Stable WhatsApp message hash = the last `_`-delimited segment of a WAHA
+ * message id (`{fromMe}_{chatJid}_{hash}`). It is identical across the @c.us
+ * and @lid serializations of the SAME message, so it's the reliable key for
+ * matching when a chat mixes a contact's phone JID and LID.
+ */
+function messageHash(id: string): string {
+  const i = id.lastIndexOf('_');
+  return i >= 0 ? id.slice(i + 1) : id;
+}
+
+/**
+ * Turns a WAHA message into downloadable media bytes, or null when the message
+ * carries no usable media (no media / no url) or the download fails.
+ * mimetype is taken from MESSAGE METADATA, not the downloadMedia response header
+ * (which returns application/octet-stream — the V1 octet-stream quirk).
+ */
+async function downloadMessageMedia(
+  msg: WahaMessageShape,
+  downloadMedia: ChatRepositoryDeps['downloadMedia'],
+): Promise<{ bytes: Buffer; mimetype: string } | null> {
+  if (!msg.hasMedia || !msg.media) return null;
+  const mediaUrl = msg.media.url;
+  if (!mediaUrl) return null;
+  const mimetype = msg.media.mimetype ?? 'application/octet-stream';
+  try {
+    const { buffer } = await downloadMedia(mediaUrl);
+    return { bytes: buffer, mimetype };
+  } catch {
+    // R2 deletion gap / proxy failure — caller falls through to 404.
+    return null;
+  }
+}
+
 export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
   const {
     listChats,
@@ -191,6 +238,7 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
     sendReaction,
     sendTextStatus,
     sendImageStatus,
+    logger,
   } = deps;
 
   return {
@@ -225,36 +273,46 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
       chatId: string,
       messageId: string,
     ): Promise<{ bytes: Buffer; mimetype: string } | null> {
-      // Fetch the target message DIRECTLY by id (with downloadMedia=true so WAHA
-      // populates media.url on demand). The previous implementation scanned the
-      // 50 most-recent messages and `find`-ed the target — which silently 404'd
-      // media on anything older than that window, even when WAHA had the URL.
-      let msg: WahaMessageShape | null;
+      // 1. Fast path — fetch the target message DIRECTLY by id (downloadMedia=true
+      //    so WAHA populates media.url on demand, even for old messages).
+      let direct: WahaMessageShape | null = null;
       try {
-        msg = await getMessageById(sessionName, chatId, messageId, { downloadMedia: true });
+        direct = await getMessageById(sessionName, chatId, messageId, { downloadMedia: true });
       } catch {
-        return null;
+        direct = null; // transient WAHA failure — fall through to the scan
+      }
+      if (direct) {
+        const bytes = await downloadMessageMedia(direct, downloadMedia);
+        if (bytes) return bytes;
       }
 
-      if (!msg) return null;
-      if (!msg.hasMedia) return null;
-      if (!msg.media) return null;
-
-      const mediaUrl = msg.media.url;
-      if (!mediaUrl) return null;
-
-      // Capture mimetype from MESSAGE METADATA — not from the WAHA download response
-      // header (which returns application/octet-stream). This is the V1 octet-stream
-      // quirk documented in auto-conversion/service.ts.
-      const mimetypeFromMetadata = msg.media.mimetype ?? 'application/octet-stream';
-
+      // 2. Fallback — WAHA can't always resolve a message 1×1 when a chat mixes a
+      //    contact's phone JID (@c.us) and LID (@lid): inbound and outbound
+      //    messages serialize under different JIDs, so getMessageById(chatId=…@c.us)
+      //    misses an id carrying …@lid (and vice-versa) and returns null. The
+      //    chat-history LIST does return these messages (merged) with media.url, so
+      //    scan it and match by the stable trailing hash, which is identical across
+      //    addressing modes. (The real wiring passes downloadMedia=true on the list.)
+      const wantedHash = messageHash(messageId);
+      let scanned: WahaMessageShape[] = [];
       try {
-        const { buffer } = await downloadMedia(mediaUrl as string);
-        return { bytes: buffer, mimetype: mimetypeFromMetadata };
+        scanned = await getChatMessages(sessionName, chatId, { limit: MEDIA_SCAN_LIMIT });
       } catch {
-        // R2 deletion gap — media is gone; controller will return 404 MEDIA_UNAVAILABLE
-        return null;
+        scanned = [];
       }
+      const match = scanned.find(
+        (m) => m.id === messageId || messageHash(m.id) === wantedHash,
+      );
+      if (match) {
+        const bytes = await downloadMessageMedia(match, downloadMedia);
+        if (bytes) return bytes;
+      }
+
+      logger?.warn(
+        { event: 'chat_media_unresolved', sessionName, chatId, messageId, scannedCount: scanned.length },
+        'chat media could not be resolved via getMessageById or chat-history scan',
+      );
+      return null;
     },
 
     async sendText(
@@ -312,6 +370,7 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
     sendTextStatus,
     sendImageStatus,
   } = await import('../../integrations/waha/client.js');
+  const { logger } = await import('../../lib/logger.js');
 
   return createChatRepository({
     listChats: (session, opts) => listChats(session, opts),
@@ -325,5 +384,6 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
     sendReaction: (session, messageId, reaction) => sendReaction(session, messageId, reaction),
     sendTextStatus: (session, payload) => sendTextStatus(session, payload),
     sendImageStatus: (session, payload) => sendImageStatus(session, payload),
+    logger,
   });
 }
