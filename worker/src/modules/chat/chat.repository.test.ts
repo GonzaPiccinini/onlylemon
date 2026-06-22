@@ -394,6 +394,59 @@ describe('chat.repository — getMediaBytes', () => {
     const result = await repo.getMediaBytes('session', 'chat@c.us', 'gone-msg');
     assert.equal(result, null);
   });
+
+  it('falls back to a chat-history scan (matched by message hash) when getMessageById misses the @lid/@c.us message', async () => {
+    // Real WAHA/GOWS quirk: a contact has both a phone JID (@c.us) and a LID
+    // (@lid); inbound and outbound messages serialize under different JIDs, so
+    // getMessageById(chatId=…@c.us) can't resolve an id carrying …@lid — even
+    // though the chat-history LIST returns that message with media.url. The repo
+    // must fall back to a list scan and match by the stable trailing hash.
+    const expectedBytes = Buffer.from([0xff, 0xd8, 0xff]);
+    let scannedChatId: string | null = null;
+    const deps = makeDeps({
+      getMessageById: async () => null, // WAHA can't resolve it 1×1
+      getChatMessages: async (_session, chatId) => {
+        scannedChatId = chatId;
+        return [
+          makeWahaMessage({ id: 'false_37830675939455@lid_AAAA', hasMedia: false, media: null }),
+          // same message the dashboard rendered — listed under @c.us serialization,
+          // identical trailing hash 2ACF1BB83DA687CE0863.
+          makeWahaMessage({
+            id: 'true_5493472502738@c.us_2ACF1BB83DA687CE0863',
+            hasMedia: true,
+            media: { url: 'http://waha/api/s3/img', mimetype: 'image/png' },
+          }),
+        ];
+      },
+      downloadMedia: async () => ({ buffer: expectedBytes, mimetype: 'application/octet-stream' }),
+    });
+
+    const repo = createChatRepository(deps);
+    // requested with the @lid serialization the dashboard captured from history
+    const result = await repo.getMediaBytes(
+      'session',
+      '5493472502738@c.us',
+      'true_37830675939455@lid_2ACF1BB83DA687CE0863',
+    );
+
+    assert.ok(result, 'media should resolve via the chat-history scan');
+    assert.equal(result!.mimetype, 'image/png');
+    assert.deepEqual(result!.bytes, expectedBytes);
+    assert.equal(scannedChatId, '5493472502738@c.us');
+  });
+
+  it('returns null when neither the direct lookup nor the scan finds the message', async () => {
+    const deps = makeDeps({
+      getMessageById: async () => null,
+      getChatMessages: async () => [
+        makeWahaMessage({ id: 'false_other@c.us_UNRELATED', hasMedia: false }),
+      ],
+    });
+
+    const repo = createChatRepository(deps);
+    const result = await repo.getMediaBytes('session', 'chat@c.us', 'true_x@lid_NOTHERE');
+    assert.equal(result, null);
+  });
 });
 
 // ── send pass-throughs ────────────────────────────────────────────────────────
