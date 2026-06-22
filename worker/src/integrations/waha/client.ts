@@ -630,10 +630,16 @@ export async function downloadMedia(
   // `http://localhost:3000/api/s3/...` because it advertises its own external
   // address; from inside this container `localhost` doesn't reach WAHA. Rewrite
   // the origin to the configured WAHA base URL when we detect the proxy prefix.
-  const rewritten = url.replace(
-    /^https?:\/\/(localhost|127\.0\.0\.1):3000/,
-    config.WAHA_BASE_URL,
-  );
+  let rewritten = url;
+  try {
+    const target = new URL(url);
+    const base = new URL(config.WAHA_BASE_URL);
+    target.protocol = base.protocol;
+    target.host = base.host;
+    rewritten = target.toString();
+  } catch {
+    rewritten = url; // si no parsea, dejamos la original
+  }
   const response = await fetch(rewritten, {
     method: 'GET',
     headers: {
