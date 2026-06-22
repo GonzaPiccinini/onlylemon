@@ -75,6 +75,7 @@ export const CashierChatPage = () => {
         <PageHeader
           title="WhatsApp"
           description="Cargando sesiones de WhatsApp..."
+          descriptionClassName="hidden md:block"
         />
         <Skeleton className="h-[400px] w-full rounded-2xl" />
       </section>
@@ -86,6 +87,7 @@ export const CashierChatPage = () => {
       <PageHeader
         title="WhatsApp"
         description="Chateá con tus clientes desde tus sesiones de WhatsApp."
+        descriptionClassName="hidden md:block"
       />
       <ChatPage
         scope={cashierScope}

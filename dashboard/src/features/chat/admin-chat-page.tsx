@@ -167,6 +167,7 @@ export const AdminChatPage = () => {
       <PageHeader
         title="WhatsApp"
         description="Supervisá y enviá mensajes desde las sesiones de los cajeros."
+        descriptionClassName="hidden md:block"
       />
 
       {selectedCashierId ? (
