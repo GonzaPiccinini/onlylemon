@@ -218,16 +218,40 @@ function messageHash(id: string): string {
 async function downloadMessageMedia(
   msg: WahaMessageShape,
   downloadMedia: ChatRepositoryDeps['downloadMedia'],
+  logger?: ChatRepositoryDeps['logger'],
 ): Promise<{ bytes: Buffer; mimetype: string } | null> {
   if (!msg.hasMedia || !msg.media) return null;
   const mediaUrl = msg.media.url;
-  if (!mediaUrl) return null;
+  if (!mediaUrl) {
+    logger?.warn(
+      {
+        event: 'chat_media_url_missing',
+        messageId: msg.id,
+        mediaMimetype: msg.media.mimetype ?? null,
+        mediaError: msg.media.error ?? null,
+        mediaKeys: Object.keys(msg.media),
+        timestamp: msg.timestamp ?? null,
+      },
+      'WAHA reports media but returned no url',
+    );
+    return null;
+  }
   const mimetype = msg.media.mimetype ?? 'application/octet-stream';
   try {
     const { buffer } = await downloadMedia(mediaUrl);
     return { bytes: buffer, mimetype };
-  } catch {
-    // R2 deletion gap / proxy failure — caller falls through to 404.
+  } catch (err) {
+    // R2 deletion gap / proxy failure / unreachable host — surface the REAL
+    // reason (status, url) instead of collapsing every cause into a bare 404.
+    logger?.warn(
+      {
+        event: 'chat_media_download_failed',
+        messageId: msg.id,
+        mediaUrl,
+        err: err instanceof Error ? err.message : String(err),
+      },
+      'WAHA media download failed',
+    );
     return null;
   }
 }
@@ -287,7 +311,7 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
         direct = null; // transient WAHA failure — fall through to the scan
       }
       if (direct) {
-        const bytes = await downloadMessageMedia(direct, downloadMedia);
+        const bytes = await downloadMessageMedia(direct, downloadMedia, logger);
         if (bytes) return bytes;
       }
 
@@ -318,7 +342,7 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
         if (match) {
           // Found the target — return its media (or null if WAHA has purged it).
           // Either way this IS the message, so don't keep paging.
-          return await downloadMessageMedia(match, downloadMedia);
+          return await downloadMessageMedia(match, downloadMedia, logger);
         }
         if (page.length < MEDIA_SCAN_PAGE) break; // reached the end of the history
       }

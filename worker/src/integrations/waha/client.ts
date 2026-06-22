@@ -626,14 +626,20 @@ export async function updateSessionConfig(
 export async function downloadMedia(
   url: string,
 ): Promise<{ buffer: Buffer; mimetype: string }> {
-  // WAHA Plus with S3 proxy returns URLs like
-  // `http://localhost:3000/api/s3/...` because it advertises its own external
-  // address; from inside this container `localhost` doesn't reach WAHA. Rewrite
-  // the origin to the configured WAHA base URL when we detect the proxy prefix.
-  const rewritten = url.replace(
-    /^https?:\/\/(localhost|127\.0\.0\.1):3000/,
-    config.WAHA_BASE_URL,
-  );
+  // WAHA Plus with S3 proxy returns media URLs pointing at whatever address
+  // WAHA advertises for itself (`localhost:3000` locally, its public domain in
+  // prod) — which the worker container can't always reach. Rewrite the origin to
+  // the WAHA base URL the worker is actually configured to use, regardless of host.
+  let rewritten = url;
+  try {
+    const target = new URL(url);
+    const base = new URL(config.WAHA_BASE_URL);
+    target.protocol = base.protocol;
+    target.host = base.host;
+    rewritten = target.toString();
+  } catch {
+    rewritten = url; // si no parsea, dejamos la original
+  }
   const response = await fetch(rewritten, {
     method: 'GET',
     headers: {
@@ -642,7 +648,10 @@ export async function downloadMedia(
   });
 
   if (!response.ok) {
-    throw new Error(`WAHA downloadMedia failed with status ${response.status}`);
+    const body = await response.text().catch(() => '');
+    throw new Error(
+      `WAHA downloadMedia failed: status=${response.status} url=${rewritten} body=${body.slice(0, 300)}`,
+    );
   }
 
   const mimetype = response.headers.get('content-type') ?? 'application/octet-stream';
