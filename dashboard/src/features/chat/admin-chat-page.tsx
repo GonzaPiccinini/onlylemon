@@ -18,7 +18,7 @@
  *   - Admin sends text → delivered from cashier's number.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { UsersIcon } from 'lucide-react';
 import {
   Select,
@@ -51,6 +51,14 @@ const CashierPicker = ({
   onSelect,
   isLoading,
 }: CashierPickerProps) => {
+  // Base UI's Select.Value resolves the trigger label from the root `items`
+  // map (value → label). Without it the trigger renders the raw value (the
+  // cashier id) instead of the name. Same pattern as currency-settings.tsx.
+  const items = useMemo(
+    () => Object.fromEntries(cashiers.map((c) => [c.id, c.name])),
+    [cashiers],
+  );
+
   if (isLoading) {
     return <Skeleton className="h-9 w-full rounded-md" />;
   }
@@ -60,6 +68,7 @@ const CashierPicker = ({
       <p className="text-xs font-medium text-muted-foreground">Cajero</p>
       <Select
         value={selectedCashierId ?? ''}
+        items={items}
         onValueChange={(value: string | null) => {
           if (value) onSelect(value);
         }}
