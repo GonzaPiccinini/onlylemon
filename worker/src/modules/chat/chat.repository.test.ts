@@ -395,6 +395,39 @@ describe('chat.repository — getMediaBytes', () => {
     assert.equal(result, null);
   });
 
+  it('logs the real download failure (mediaUrl + error) when downloadMedia throws', async () => {
+    // Observability regression: the swallowed catch hid WHY media 404'd in prod
+    // (unreachable host vs WAHA proxy 404 vs R2 gap). The repo must surface the
+    // actual mediaUrl and error so the failure mode is diagnosable from logs.
+    const logged: Array<{ obj: Record<string, unknown>; msg: string }> = [];
+    const deps = makeDeps({
+      getMessageById: async () =>
+        makeWahaMessage({
+          id: 'gone-msg',
+          hasMedia: true,
+          media: { url: 'http://waha/api/s3/gone', mimetype: 'image/png' },
+        }),
+      getChatMessages: async () => [], // scan finds nothing → result stays null
+      downloadMedia: async () => {
+        throw new Error('WAHA downloadMedia failed: status=404 url=https://waha.example/api/s3/gone body=not found');
+      },
+      logger: {
+        warn: (obj, msg) => {
+          logged.push({ obj, msg });
+        },
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    const result = await repo.getMediaBytes('session', 'chat@c.us', 'gone-msg');
+
+    assert.equal(result, null);
+    const failure = logged.find((l) => l.obj.event === 'chat_media_download_failed');
+    assert.ok(failure, 'should log the download failure with its real reason');
+    assert.equal(failure!.obj.mediaUrl, 'http://waha/api/s3/gone');
+    assert.match(String(failure!.obj.err), /status=404/);
+  });
+
   it('falls back to a chat-history scan (matched by message hash) when getMessageById misses the @lid/@c.us message', async () => {
     // Real WAHA/GOWS quirk: a contact has both a phone JID (@c.us) and a LID
     // (@lid); inbound and outbound messages serialize under different JIDs, so
