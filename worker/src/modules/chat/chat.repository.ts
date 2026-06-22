@@ -16,9 +16,14 @@ import type { ChatListEntry, ChatMessage, ChatReactionSummary, QuotedMessage } f
 import { extractGroupSenderName } from './group-sender.js';
 
 /**
- * How many recent messages getMediaBytes scans when a direct id lookup misses
- * (the @lid/@c.us addressing fallback). Covers a couple of history pages.
+ * getMediaBytes fallback scan (the @lid/@c.us addressing case): the chat-history
+ * list is fetched with downloadMedia=true, which makes WAHA (re)resolve the media
+ * of EVERY message in the page — expensive (~seconds for a full page, worse when
+ * it retries already-purged media). So we page through in small batches and stop
+ * the moment the target message is found, instead of always pulling MEDIA_SCAN_LIMIT
+ * at once. MEDIA_SCAN_LIMIT bounds the deepest we look back.
  */
+const MEDIA_SCAN_PAGE = 25;
 const MEDIA_SCAN_LIMIT = 100;
 
 // ── Injected deps (WAHA client function signatures) ────────────────────────────
@@ -293,23 +298,33 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
       //    chat-history LIST does return these messages (merged) with media.url, so
       //    scan it and match by the stable trailing hash, which is identical across
       //    addressing modes. (The real wiring passes downloadMedia=true on the list.)
+      //    Page through and STOP at the first page containing the message — the
+      //    list download is expensive, so don't pull the whole window every time.
       const wantedHash = messageHash(messageId);
-      let scanned: WahaMessageShape[] = [];
-      try {
-        scanned = await getChatMessages(sessionName, chatId, { limit: MEDIA_SCAN_LIMIT });
-      } catch {
-        scanned = [];
-      }
-      const match = scanned.find(
-        (m) => m.id === messageId || messageHash(m.id) === wantedHash,
-      );
-      if (match) {
-        const bytes = await downloadMessageMedia(match, downloadMedia);
-        if (bytes) return bytes;
+      let scannedCount = 0;
+      for (let offset = 0; offset < MEDIA_SCAN_LIMIT; offset += MEDIA_SCAN_PAGE) {
+        let page: WahaMessageShape[];
+        try {
+          page = await getChatMessages(sessionName, chatId, { limit: MEDIA_SCAN_PAGE, offset });
+        } catch {
+          break; // transient WAHA failure — give up the scan
+        }
+        if (page.length === 0) break;
+        scannedCount += page.length;
+
+        const match = page.find(
+          (m) => m.id === messageId || messageHash(m.id) === wantedHash,
+        );
+        if (match) {
+          // Found the target — return its media (or null if WAHA has purged it).
+          // Either way this IS the message, so don't keep paging.
+          return await downloadMessageMedia(match, downloadMedia);
+        }
+        if (page.length < MEDIA_SCAN_PAGE) break; // reached the end of the history
       }
 
       logger?.warn(
-        { event: 'chat_media_unresolved', sessionName, chatId, messageId, scannedCount: scanned.length },
+        { event: 'chat_media_unresolved', sessionName, chatId, messageId, scannedCount },
         'chat media could not be resolved via getMessageById or chat-history scan',
       );
       return null;
