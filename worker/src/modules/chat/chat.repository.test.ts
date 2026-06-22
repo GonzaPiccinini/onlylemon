@@ -480,6 +480,38 @@ describe('chat.repository — getMediaBytes', () => {
     const result = await repo.getMediaBytes('session', 'chat@c.us', 'true_x@lid_NOTHERE');
     assert.equal(result, null);
   });
+
+  it('pages the scan and stops at the first page containing the message (no full-window download)', async () => {
+    // The list download (downloadMedia=true) is expensive, so when the target is
+    // near the top we must not keep paging through the whole window.
+    const calls: Array<{ limit: number; offset?: number }> = [];
+    const deps = makeDeps({
+      getMessageById: async () => null,
+      getChatMessages: async (_session, _chatId, opts) => {
+        calls.push(opts);
+        // A full page of unrelated messages on page 0 EXCEPT the target, so the
+        // scan resolves on the first page and never requests offset 25.
+        const page = Array.from({ length: 25 }, (_v, i) =>
+          makeWahaMessage({ id: `false_x@c.us_FILLER${i}`, hasMedia: false }),
+        );
+        page[10] = makeWahaMessage({
+          id: 'true_5493472502738@c.us_HASHWANTED',
+          hasMedia: true,
+          media: { url: 'http://waha/api/s3/img', mimetype: 'image/jpeg' },
+        });
+        return page;
+      },
+      downloadMedia: async () => ({ buffer: Buffer.from([0x01]), mimetype: 'application/octet-stream' }),
+    });
+
+    const repo = createChatRepository(deps);
+    const result = await repo.getMediaBytes('session', 'chat@c.us', 'true_37830675939455@lid_HASHWANTED');
+
+    assert.ok(result, 'should resolve from the first page');
+    assert.equal(result!.mimetype, 'image/jpeg');
+    assert.equal(calls.length, 1, 'should stop after the first page, not scan the whole window');
+    assert.deepEqual(calls[0], { limit: 25, offset: 0 });
+  });
 });
 
 // ── send pass-throughs ────────────────────────────────────────────────────────
