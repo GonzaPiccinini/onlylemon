@@ -131,13 +131,13 @@ export const MediaPreview = ({
         <button
           type="button"
           onClick={() => setEnlargeOpen(true)}
-          className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="block max-w-full self-start overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Ver imagen completa"
         >
           <img
             src={objectUrl}
             alt="Imagen adjunta"
-            className="max-h-48 max-w-xs rounded-lg object-cover"
+            className="block h-auto max-h-64 w-auto max-w-full rounded-lg object-contain"
           />
         </button>
 
