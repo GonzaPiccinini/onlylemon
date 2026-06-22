@@ -219,7 +219,14 @@ async function downloadMessageMedia(
   const mediaUrl = msg.media.url;
   if (!mediaUrl) {
     logger?.warn(
-      { event: 'chat_media_url_missing', messageId: msg.id },
+      {
+        event: 'chat_media_url_missing',
+        messageId: msg.id,
+        mediaMimetype: msg.media.mimetype ?? null,
+        mediaError: msg.media.error ?? null,
+        mediaKeys: Object.keys(msg.media),
+        timestamp: msg.timestamp ?? null,
+      },
       'WAHA reports media but returned no url',
     );
     return null;
