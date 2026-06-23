@@ -349,16 +349,6 @@ export const getLandingByMetaPixelId = (metaPixelId: string) =>
     },
   });
 
-export const listLeads = (filters: {
-  statuses?: Array<'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'>;
-  cashierId?: string;
-  cashierIds?: string[];
-  adCode?: string;
-  code?: string;
-  phone?: string;
-}) =>
-  prisma.lead.findMany(buildListLeadsQuery(filters));
-
 export const getConversionsAggregateForLeads = async (leadIds: string[]) => {
   if (leadIds.length === 0) {
     return new Map<string, { count: number; lastAt: Date | null }>();
@@ -424,8 +414,15 @@ export const buildListLeadsQuery = (filters: {
   adCode?: string;
   code?: string;
   phone?: string;
-}) =>
-  ({
+  page?: number;
+  pageSize?: number;
+}) => {
+  const page = filters.page ?? undefined;
+  const pageSize = filters.pageSize ?? undefined;
+  const skip = page !== undefined && pageSize !== undefined ? (page - 1) * pageSize : undefined;
+  const take = pageSize;
+
+  return {
     where: {
       ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
       ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
@@ -460,10 +457,163 @@ export const buildListLeadsQuery = (filters: {
         take: 1,
       },
     },
-    orderBy: {
-      updateAt: 'desc' as const,
+    orderBy: [{ updateAt: 'desc' as const }, { id: 'desc' as const }],
+    ...(skip !== undefined ? { skip } : {}),
+    ...(take !== undefined ? { take } : {}),
+  } satisfies Prisma.LeadFindManyArgs;
+};
+
+type LeadRow = Awaited<ReturnType<typeof prisma.lead.findMany<{
+  include: {
+    cashier: { include: { user: true } };
+    conversions: { select: { createdAt: true }; orderBy: { createdAt: 'asc' }; take: 1 };
+  };
+}>>>[number];
+
+type ListLeadsAdminFilters = {
+  statuses?: Array<'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED'>;
+  cashierId?: string;
+  cashierIds?: string[];
+  adCode?: string;
+  code?: string;
+  phone?: string;
+  conversionCount?: { kind: 'gte' | 'lte'; value: number };
+};
+
+/**
+ * Resolve the full set of lead ids that match the base filters AND the
+ * conversion-count directive (RECARGA / converted-strict). Returns the ids and
+ * the total count. This is the load-bearing part of the count-threshold filter
+ * and is exported so it can be exercised against a real DB without depending on
+ * the cashier `include` (which would touch columns subject to live-DB drift).
+ *
+ * Semantics (mirrors dashboard/src/lib/lead-status.ts):
+ *   RECARGA ⊆ CONVERTED. A lead is recarga iff status='CONVERTED' AND it has
+ *   >= value conversions; converted-strict iff status='CONVERTED' AND <= value.
+ *   Non-CONVERTED selected leads always pass through by their raw status,
+ *   regardless of conversion count.
+ */
+// Narrow surface of the Prisma client used by the resolver. Accepting this as a
+// parameter (defaulting to the shared singleton) lets tests inject a client
+// pointed at an explicit DB without depending on the singleton's frozen URL.
+type LeadIdResolverClient = {
+  $queryRaw: typeof prisma.$queryRaw;
+  lead: { findMany: typeof prisma.lead.findMany };
+};
+
+export const resolveConversionCountLeadIds = async (
+  baseWhere: Prisma.LeadWhereInput,
+  conversionCount: { kind: 'gte' | 'lte'; value: number },
+  client: LeadIdResolverClient = prisma,
+): Promise<string[]> => {
+  // baseWhere.status is produced by buildListLeadsQuery as `{ in: LeadStatus[] }`.
+  type LeadStatusLiteral = 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+  const selectedStatuses = baseWhere.status
+    ? (baseWhere.status as { in: LeadStatusLiteral[] }).in
+    : undefined;
+
+  if (conversionCount.kind === 'gte') {
+    // recarga selected (possibly alongside plain statuses like CONTACTED).
+    // Matching set = UNION of:
+    //   (a) recarga ids: CONVERTED leads with >= value conversions ∩ baseWhere
+    //   (b) plain ids:   leads matching baseWhere with status in (selected − CONVERTED)
+    // `count(*) >= value` is computed at the DB (pinned to status='CONVERTED' so a
+    // non-CONVERTED anomaly is never treated as recarga); the candidate set is
+    // then intersected with the FULL base filters so the returned ids — and the
+    // total derived from them — stay consistent with the paginated page.
+    const recargaCandidates = await client.$queryRaw<Array<{ leadId: string }>>(
+      Prisma.sql`
+        SELECT c."leadId"
+        FROM "Conversion" c
+        INNER JOIN "Lead" l ON l."id" = c."leadId"
+        WHERE l."status" = 'CONVERTED'::"LeadStatus"
+        GROUP BY c."leadId"
+        HAVING COUNT(*) >= ${conversionCount.value}
+      `,
+    );
+    const recargaCandidateIds = recargaCandidates.map((r) => r.leadId);
+    const plainStatuses = (selectedStatuses ?? []).filter((s) => s !== 'CONVERTED');
+
+    const [recargaMatches, plainMatches] = await Promise.all([
+      recargaCandidateIds.length > 0
+        ? client.lead.findMany({
+            where: { id: { in: recargaCandidateIds }, ...baseWhere },
+            select: { id: true },
+          })
+        : Promise.resolve([] as Array<{ id: string }>),
+      plainStatuses.length > 0
+        ? client.lead.findMany({
+            where: { ...baseWhere, status: { in: plainStatuses } },
+            select: { id: true },
+          })
+        : Promise.resolve([] as Array<{ id: string }>),
+    ]);
+
+    return Array.from(
+      new Set([...recargaMatches.map((r) => r.id), ...plainMatches.map((r) => r.id)]),
+    );
+  }
+
+  // converted-strict selected (possibly alongside plain statuses like CONTACTED).
+  // Strategy:
+  //   allIds  = every lead matching the full baseWhere (includes plain statuses
+  //             AND CONVERTED leads; CONVERTED-with-0-conversions are kept here
+  //             because they never appear in the conversion groupBy).
+  //   recarga = CONVERTED leads with >= (value+1) conversions (status pinned to
+  //             CONVERTED so a non-CONVERTED anomaly is never treated as recarga).
+  //   result  = allIds − recarga.
+  const [allIds, recargaRows] = await Promise.all([
+    client.lead.findMany({ where: baseWhere, select: { id: true } }),
+    client.$queryRaw<Array<{ leadId: string }>>(
+      Prisma.sql`
+        SELECT c."leadId"
+        FROM "Conversion" c
+        INNER JOIN "Lead" l ON l."id" = c."leadId"
+        WHERE l."status" = 'CONVERTED'::"LeadStatus"
+        GROUP BY c."leadId"
+        HAVING COUNT(*) >= ${conversionCount.value + 1}
+      `,
+    ),
+  ]);
+  const recargaSet = new Set(recargaRows.map((r) => r.leadId));
+  return allIds.map((r) => r.id).filter((id) => !recargaSet.has(id));
+};
+
+export const listLeadsAdmin = async (
+  filters: ListLeadsAdminFilters,
+  page: number,
+  pageSize: number,
+): Promise<[LeadRow[], number]> => {
+  const { conversionCount, ...baseFilters } = filters;
+
+  // mode='none': no conversionCount directive — use the existing common path unchanged.
+  if (!conversionCount) {
+    const q = buildListLeadsQuery({ ...baseFilters, page, pageSize });
+    return Promise.all([
+      prisma.lead.findMany(q),
+      prisma.lead.count({ where: q.where }),
+    ]) as Promise<[LeadRow[], number]>;
+  }
+
+  // Count-threshold mode: resolve the matching id set (consistent with `total`),
+  // then fetch the requested page over those ids with the stable order.
+  const baseWhere = buildListLeadsQuery({ ...baseFilters }).where;
+  const matchingIds = await resolveConversionCountLeadIds(baseWhere, conversionCount);
+  const total = matchingIds.length;
+  if (total === 0) return [[], 0];
+
+  const leads = await prisma.lead.findMany({
+    where: { id: { in: matchingIds } },
+    include: {
+      cashier: { include: { user: true } },
+      conversions: { select: { createdAt: true }, orderBy: { createdAt: 'asc' as const }, take: 1 },
     },
-  }) satisfies Prisma.LeadFindManyArgs;
+    orderBy: [{ updateAt: 'desc' as const }, { id: 'desc' as const }],
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  });
+  return [leads as LeadRow[], total];
+};
 
 // ---------------------------------------------------------------------------
 // M2.5 — Conversion admin queries

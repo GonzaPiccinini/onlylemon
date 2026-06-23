@@ -95,6 +95,8 @@ export const leadsFilterSchema = z.object({
   adCode: z.string().trim().min(1).optional(),
   code: z.string().trim().min(1).optional(),
   phone: z.string().trim().min(1).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
 });
 
 export type DateRangeQuery = z.infer<typeof dateRangeSchema>;
