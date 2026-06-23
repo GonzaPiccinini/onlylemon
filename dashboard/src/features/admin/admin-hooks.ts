@@ -169,6 +169,7 @@ export const useAdminLeads = (filters: LeadsFilters) =>
     queryFn: () => adminService.listLeads(filters),
     refetchInterval: 15000,
     refetchIntervalInBackground: true,
+    staleTime: 0,
   });
 
 export const useAdminLeadHistory = (

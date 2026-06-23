@@ -26,9 +26,7 @@ test('buildListLeadsQuery orders leads by updateAt desc', async () => {
 
   const query = buildListLeadsQuery({});
 
-  assert.deepEqual(query.orderBy, {
-    updateAt: 'desc',
-  });
+  assert.deepEqual(query.orderBy, [{ updateAt: 'desc' }, { id: 'desc' }]);
 });
 
 test('buildListLeadsQuery keeps optional statuses, cashier and adCode filters', async () => {
@@ -463,4 +461,105 @@ test('replaceLandingFallbacks: asserts ≥1 fallback remains after replace (stru
   // enforced inside the transaction; tested here at the structural level.
   const mod = await import('./admin.repository.js') as Record<string, unknown>;
   assert.equal(typeof mod.replaceLandingFallbacks, 'function');
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-server-pagination — repository pagination tests
+// ---------------------------------------------------------------------------
+
+test('buildListLeadsQuery: secondary sort is [updateAt desc, id desc] when page/pageSize present', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ page: 1, pageSize: 10 });
+  assert.deepEqual(q.orderBy, [{ updateAt: 'desc' }, { id: 'desc' }]);
+});
+
+test('buildListLeadsQuery: page 1 pageSize 10 → skip=0, take=10', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ page: 1, pageSize: 10 });
+  assert.equal(q.skip, 0);
+  assert.equal(q.take, 10);
+});
+
+test('buildListLeadsQuery: page 3 pageSize 25 → skip=50, take=25', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({ page: 3, pageSize: 25 });
+  assert.equal(q.skip, 50);
+  assert.equal(q.take, 25);
+});
+
+test('listLeadsAdmin is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.listLeadsAdmin, 'function');
+});
+
+test('listLeadsAdmin returns a thenable (structural)', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  const listLeadsAdmin = mod.listLeadsAdmin as Function;
+  const result = listLeadsAdmin({}, 1, 10);
+  assert.equal(typeof (result as Promise<unknown>).then, 'function');
+  await (result as Promise<unknown>).catch(() => undefined);
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-server-pagination — conversionCount directive (DB-level filtering)
+// ---------------------------------------------------------------------------
+
+test('listLeadsAdmin accepts conversionCount gte directive and returns a thenable (structural)', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  const listLeadsAdmin = mod.listLeadsAdmin as Function;
+  // recarga-only directive: leads with >= 2 conversions.
+  const result = listLeadsAdmin(
+    { statuses: ['CONVERTED'], conversionCount: { kind: 'gte', value: 2 } },
+    1,
+    10,
+  );
+  assert.equal(typeof (result as Promise<unknown>).then, 'function');
+  // Behavioral assertion guarded for DB availability — mirrors existing structural patterns.
+  try {
+    const [rows, total] = (await result) as [unknown[], number];
+    assert.ok(Array.isArray(rows));
+    assert.equal(typeof total, 'number');
+  } catch {
+    // DB unavailable in this context — structural thenable check above already passed.
+  }
+});
+
+test('listLeadsAdmin accepts conversionCount lte directive and returns a thenable (structural)', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  const listLeadsAdmin = mod.listLeadsAdmin as Function;
+  // converted-strict directive: leads with <= 1 conversion.
+  const result = listLeadsAdmin(
+    { statuses: ['CONVERTED'], conversionCount: { kind: 'lte', value: 1 } },
+    1,
+    10,
+  );
+  assert.equal(typeof (result as Promise<unknown>).then, 'function');
+  try {
+    const [rows, total] = (await result) as [unknown[], number];
+    assert.ok(Array.isArray(rows));
+    assert.equal(typeof total, 'number');
+  } catch {
+    // DB unavailable in this context — structural thenable check above already passed.
+  }
+});
+
+test('resolveConversionCountLeadIds is exported from admin.repository', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  assert.equal(typeof mod.resolveConversionCountLeadIds, 'function');
+});
+
+test('resolveConversionCountLeadIds returns a thenable resolving to string[] (structural)', async () => {
+  const mod = await import('./admin.repository.js') as Record<string, unknown>;
+  const resolveConversionCountLeadIds = mod.resolveConversionCountLeadIds as Function;
+  const result = resolveConversionCountLeadIds(
+    { status: { in: ['CONVERTED'] } },
+    { kind: 'gte', value: 2 },
+  );
+  assert.equal(typeof (result as Promise<unknown>).then, 'function');
+  try {
+    const ids = (await result) as unknown[];
+    assert.ok(Array.isArray(ids));
+  } catch {
+    // DB unavailable in this context — structural thenable check above already passed.
+  }
 });

@@ -942,11 +942,11 @@ test('listLeadsServiceImpl: CONVERTED-only includes lead with count===1', async 
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   const l1 = makeStubLead('lead-1', 'CONVERTED');
@@ -954,40 +954,41 @@ test('listLeadsServiceImpl: CONVERTED-only includes lead with count===1', async 
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => [l1],
+      listLeads: async () => [[l1], 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['CONVERTED'] },
   );
 
-  assert.equal(result.length, 1);
-  assert.equal((result[0] as Record<string, unknown>).id, 'lead-1');
+  assert.equal(result.items.length, 1);
+  assert.equal((result.items[0] as Record<string, unknown>).id, 'lead-1');
 });
 
-// B3.2 — CONVERTED-only: lead with count===2 excluded
+// B3.2 — CONVERTED-only: lead with count===2 excluded (DB-level filtering; stub pre-filtered)
 test('listLeadsServiceImpl: CONVERTED-only excludes lead with count===2', async () => {
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
-  const l2 = makeStubLead('lead-2', 'CONVERTED');
-  const aggregate = new Map([['lead-2', { count: 2, lastAt: null }]]);
+  // DB-level filter (conversionCount directive) excludes count===2 for converted-strict.
+  // Stub simulates a correctly-filtered DB response: empty result.
+  const aggregate = new Map<string, { count: number; lastAt: Date | null }>();
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => [l2],
+      listLeads: async () => [[], 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['CONVERTED'] },
   );
 
-  assert.equal(result.length, 0);
+  assert.equal(result.items.length, 0);
 });
 
 // B3.3 — CONVERTED-only: lead with count===0 anomaly included (fallback)
@@ -995,11 +996,11 @@ test('listLeadsServiceImpl: CONVERTED-only includes count===0 anomaly (fallback)
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   const l3 = makeStubLead('lead-3', 'CONVERTED');
@@ -1007,14 +1008,14 @@ test('listLeadsServiceImpl: CONVERTED-only includes count===0 anomaly (fallback)
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => [l3],
+      listLeads: async () => [[l3], 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['CONVERTED'] },
   );
 
-  assert.equal(result.length, 1);
-  assert.equal((result[0] as Record<string, unknown>).id, 'lead-3');
+  assert.equal(result.items.length, 1);
+  assert.equal((result.items[0] as Record<string, unknown>).id, 'lead-3');
 });
 
 // B3.4 — RECARGA-only: lead with count===2+ included
@@ -1022,11 +1023,11 @@ test('listLeadsServiceImpl: RECARGA-only includes lead with count===2', async ()
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   const l4 = makeStubLead('lead-4', 'CONVERTED');
@@ -1034,66 +1035,68 @@ test('listLeadsServiceImpl: RECARGA-only includes lead with count===2', async ()
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => [l4],
+      listLeads: async () => [[l4], 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['RECARGA'] },
   );
 
-  assert.equal(result.length, 1);
-  assert.equal((result[0] as Record<string, unknown>).id, 'lead-4');
+  assert.equal(result.items.length, 1);
+  assert.equal((result.items[0] as Record<string, unknown>).id, 'lead-4');
 });
 
-// B3.5 — RECARGA-only: lead with count===1 excluded
+// B3.5 — RECARGA-only: lead with count===1 excluded (DB-level filtering; stub pre-filtered)
 test('listLeadsServiceImpl: RECARGA-only excludes lead with count===1', async () => {
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
-  const l5 = makeStubLead('lead-5', 'CONVERTED');
-  const aggregate = new Map([['lead-5', { count: 1, lastAt: null }]]);
+  // DB-level filter (conversionCount directive) excludes count===1 for recarga-only.
+  // Stub simulates a correctly-filtered DB response: empty result.
+  const aggregate = new Map<string, { count: number; lastAt: Date | null }>();
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => [l5],
+      listLeads: async () => [[], 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['RECARGA'] },
   );
 
-  assert.equal(result.length, 0);
+  assert.equal(result.items.length, 0);
 });
 
-// B3.6 — RECARGA-only: lead with count===0 anomaly excluded
+// B3.6 — RECARGA-only: lead with count===0 anomaly excluded (DB-level filtering; stub pre-filtered)
 test('listLeadsServiceImpl: RECARGA-only excludes count===0 anomaly', async () => {
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
-  const l6 = makeStubLead('lead-6', 'CONVERTED');
-  const aggregate = new Map([['lead-6', { count: 0, lastAt: null }]]);
+  // DB-level filter (conversionCount directive) excludes count===0 for recarga-only (requires >=2).
+  // Stub simulates a correctly-filtered DB response: empty result.
+  const aggregate = new Map<string, { count: number; lastAt: Date | null }>();
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => [l6],
+      listLeads: async () => [[], 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['RECARGA'] },
   );
 
-  assert.equal(result.length, 0);
+  assert.equal(result.items.length, 0);
 });
 
 // B3.7 — [CONVERTED, RECARGA] union: ALL CONVERTED leads included regardless of count
@@ -1101,11 +1104,11 @@ test('listLeadsServiceImpl: CONVERTED+RECARGA returns ALL CONVERTED leads (union
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   const leads = [
@@ -1123,45 +1126,45 @@ test('listLeadsServiceImpl: CONVERTED+RECARGA returns ALL CONVERTED leads (union
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => leads,
+      listLeads: async () => [leads, 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['CONVERTED', 'RECARGA'] },
   );
 
-  assert.equal(result.length, 4, 'All 4 CONVERTED leads should be returned regardless of count');
+  assert.equal(result.items.length, 4, 'All 4 CONVERTED leads should be returned regardless of count');
 });
 
 // B3.8 — [CONTACTED, RECARGA]: CONTACTED pass through + only count>=2 CONVERTED
+// (DB-level filtering via conversionCount directive; stub pre-filtered — converted1 excluded by DB)
 test('listLeadsServiceImpl: CONTACTED+RECARGA returns CONTACTED + count>=2 CONVERTED only', async () => {
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   const contacted = makeStubLead('lead-ct', 'CONTACTED');
-  const converted1 = makeStubLead('lead-cv1', 'CONVERTED'); // count 1 → excluded
-  const converted3 = makeStubLead('lead-cv3', 'CONVERTED'); // count 3 → included
+  // converted1 (count 1) is excluded at the DB level — not in stub result
+  const converted3 = makeStubLead('lead-cv3', 'CONVERTED'); // count 3 → included by DB
   const aggregate = new Map([
-    ['lead-cv1', { count: 1, lastAt: null }],
     ['lead-cv3', { count: 3, lastAt: null }],
   ]);
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => [contacted, converted1, converted3],
+      listLeads: async () => [[contacted, converted3], 2],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['CONTACTED', 'RECARGA'] },
   );
 
-  const ids = (result as Array<Record<string, unknown>>).map(r => r.id);
-  assert.equal(result.length, 2);
+  const ids = (result.items as Array<Record<string, unknown>>).map(r => r.id);
+  assert.equal(result.items.length, 2);
   assert.ok(ids.includes('lead-ct'), 'CONTACTED lead should pass through');
   assert.ok(ids.includes('lead-cv3'), 'CONVERTED count>=2 should be included');
   assert.ok(!ids.includes('lead-cv1'), 'CONVERTED count===1 should be excluded under RECARGA-only mode');
@@ -1172,11 +1175,11 @@ test('listLeadsServiceImpl: all statuses including RECARGA applies no post-filte
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   const leads = [
@@ -1192,13 +1195,13 @@ test('listLeadsServiceImpl: all statuses including RECARGA applies no post-filte
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => leads,
+      listLeads: async () => [leads, 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     { statuses: ['NOT_CONTACTED', 'CONTACTED', 'CONVERTED', 'RECARGA'] },
   );
 
-  assert.equal(result.length, 4, 'All 4 leads should be returned when both CONVERTED and RECARGA are selected');
+  assert.equal(result.items.length, 4, 'All 4 leads should be returned when both CONVERTED and RECARGA are selected');
 });
 
 // B3.10 — RECARGA→CONVERTED normalization: DB query never receives 'RECARGA'
@@ -1206,11 +1209,11 @@ test('listLeadsServiceImpl: RECARGA is normalized to CONVERTED before calling li
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   let capturedFilters: { statuses?: string[] } = {};
@@ -1219,7 +1222,7 @@ test('listLeadsServiceImpl: RECARGA is normalized to CONVERTED before calling li
     {
       listLeads: async (filters) => {
         capturedFilters = filters as { statuses?: string[] };
-        return [];
+        return [[], 0];
       },
       getConversionsAggregateForLeads: async () => new Map(),
     },
@@ -1236,11 +1239,11 @@ test('listLeadsServiceImpl: [RECARGA, CONVERTED] deduped to single CONVERTED bef
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   let capturedFilters: { statuses?: string[] } = {};
@@ -1249,7 +1252,7 @@ test('listLeadsServiceImpl: [RECARGA, CONVERTED] deduped to single CONVERTED bef
     {
       listLeads: async (filters) => {
         capturedFilters = filters as { statuses?: string[] };
-        return [];
+        return [[], 0];
       },
       getConversionsAggregateForLeads: async () => new Map(),
     },
@@ -1267,11 +1270,11 @@ test('listLeadsServiceImpl: undefined statuses applies no post-filter (regressio
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<unknown[]>;
+    ) => Promise<{ items: unknown[]; total: number }>;
   };
 
   const leads = [
@@ -1285,13 +1288,13 @@ test('listLeadsServiceImpl: undefined statuses applies no post-filter (regressio
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => leads,
+      listLeads: async () => [leads, 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     {},
   );
 
-  assert.equal(result.length, 2, 'All leads returned when no filter applied');
+  assert.equal(result.items.length, 2, 'All leads returned when no filter applied');
 });
 
 // ---------------------------------------------------------------------------
@@ -1635,11 +1638,11 @@ test('listLeadsServiceImpl: every returned lead has numeric conversionsCount fie
   const mod = await import('./admin.service.js') as Record<string, unknown> as {
     listLeadsServiceImpl: (
       deps: {
-        listLeads: (filters: unknown) => Promise<StubLead[]>;
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
         getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
       },
       filters: { statuses?: string[] },
-    ) => Promise<Array<Record<string, unknown>>>;
+    ) => Promise<{ items: Array<Record<string, unknown>>; total: number }>;
   };
 
   const leads = [
@@ -1651,14 +1654,14 @@ test('listLeadsServiceImpl: every returned lead has numeric conversionsCount fie
 
   const result = await mod.listLeadsServiceImpl(
     {
-      listLeads: async () => leads,
+      listLeads: async () => [leads, 0],
       getConversionsAggregateForLeads: async () => aggregate,
     },
     {},
   );
 
-  assert.equal(result.length, 3);
-  for (const dto of result) {
+  assert.equal(result.items.length, 3);
+  for (const dto of result.items) {
     assert.equal(typeof dto.conversionsCount, 'number', `Expected numeric conversionsCount but got ${typeof dto.conversionsCount}`);
   }
 });
@@ -1888,4 +1891,234 @@ test('listCashiersServiceImpl: sessions default to STOPPED when WAHA throws', as
   const c1 = result[0];
   const sessions = c1?.sessions as Array<{ sessionName: string; wahaStatus: string }>;
   assert.equal(sessions[0]?.wahaStatus, 'STOPPED', 'should default to STOPPED when WAHA fails');
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-server-pagination — service pagination tests
+// ---------------------------------------------------------------------------
+
+test('listLeadsServiceImpl: passes page and pageSize to repo', async () => {
+  const { listLeadsServiceImpl } = await import('./admin.service.js');
+
+  let capturedPage: unknown;
+  let capturedPageSize: unknown;
+
+  const stubListLeads = async (opts: Record<string, unknown>) => {
+    capturedPage = opts.page;
+    capturedPageSize = opts.pageSize;
+    return [[], 0] as [unknown[], number];
+  };
+  const stubAggregate = async (_ids: string[]) => new Map();
+
+  await listLeadsServiceImpl(
+    { listLeads: stubListLeads as never, getConversionsAggregateForLeads: stubAggregate },
+    { page: 2, pageSize: 15 },
+  );
+
+  assert.equal(capturedPage, 2);
+  assert.equal(capturedPageSize, 15);
+});
+
+test('listLeadsServiceImpl: returns { items, total } shape', async () => {
+  const { listLeadsServiceImpl } = await import('./admin.service.js');
+
+  const fakeLeads = [
+    {
+      id: 'l1', code: 'C1', adCode: null, status: 'NOT_CONTACTED' as const,
+      phone: null, metaPixelId: 'px', contactedAt: null,
+      createdAt: new Date(), updateAt: new Date(),
+      cashier: null, conversions: [],
+    },
+  ];
+
+  const stubListLeads = async () => [fakeLeads, 42] as [typeof fakeLeads, number];
+  const stubAggregate = async (_ids: string[]) => new Map();
+
+  const result = await listLeadsServiceImpl(
+    { listLeads: stubListLeads as never, getConversionsAggregateForLeads: stubAggregate },
+    { page: 1, pageSize: 25 },
+  );
+
+  assert.ok(result !== null && typeof result === 'object');
+  assert.ok('items' in (result as object));
+  assert.ok('total' in (result as object));
+  const r = result as { items: unknown[]; total: number };
+  assert.equal(r.total, 42);
+  assert.equal(r.items.length, 1);
+});
+
+test('listLeadsServiceImpl: defaults page=1 pageSize=25 when not provided', async () => {
+  const { listLeadsServiceImpl } = await import('./admin.service.js');
+
+  let capturedPage: unknown;
+  let capturedPageSize: unknown;
+
+  const stubListLeads = async (opts: Record<string, unknown>) => {
+    capturedPage = opts.page;
+    capturedPageSize = opts.pageSize;
+    return [[], 0] as [unknown[], number];
+  };
+  const stubAggregate = async (_ids: string[]) => new Map();
+
+  await listLeadsServiceImpl(
+    { listLeads: stubListLeads as never, getConversionsAggregateForLeads: stubAggregate },
+    {},
+  );
+
+  assert.equal(capturedPage, 1);
+  assert.equal(capturedPageSize, 25);
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-server-pagination — leadsFilterSchema pagination params
+// ---------------------------------------------------------------------------
+
+test('leadsFilterSchema: defaults page=1 pageSize=25 when omitted', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({});
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.page, 1);
+    assert.equal(result.data.pageSize, 25);
+  }
+});
+
+test('leadsFilterSchema: rejects pageSize > 100', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ pageSize: '101' });
+  assert.equal(result.success, false);
+});
+
+test('leadsFilterSchema: accepts page=3 pageSize=50', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ page: '3', pageSize: '50' });
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.page, 3);
+    assert.equal(result.data.pageSize, 50);
+  }
+});
+
+test('leadsFilterSchema: rejects page=0', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ page: '0' });
+  assert.equal(result.success, false);
+});
+
+// ---------------------------------------------------------------------------
+// admin-leads-server-pagination — conversionCount directive (DB-level filtering)
+// ---------------------------------------------------------------------------
+
+// SP-1 — RECARGA-only passes conversionCount {kind:'gte', value:2} to repo
+test('listLeadsServiceImpl: RECARGA-only passes conversionCount {kind:gte, value:2} to repo', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown> as {
+    listLeadsServiceImpl: (
+      deps: {
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
+        getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
+      },
+      filters: { statuses?: string[] },
+    ) => Promise<{ items: unknown[]; total: number }>;
+  };
+
+  let capturedFilters: Record<string, unknown> = {};
+
+  const result = await mod.listLeadsServiceImpl(
+    {
+      listLeads: async (filters) => {
+        capturedFilters = filters as Record<string, unknown>;
+        return [[], 42];
+      },
+      getConversionsAggregateForLeads: async () => new Map(),
+    },
+    { statuses: ['RECARGA'] },
+  );
+
+  assert.deepEqual(capturedFilters['conversionCount'], { kind: 'gte', value: 2 });
+  assert.equal(result.total, 42);
+});
+
+// SP-2 — CONVERTED-only passes conversionCount {kind:'lte', value:1} to repo
+test('listLeadsServiceImpl: CONVERTED-only passes conversionCount {kind:lte, value:1} to repo', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown> as {
+    listLeadsServiceImpl: (
+      deps: {
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
+        getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
+      },
+      filters: { statuses?: string[] },
+    ) => Promise<{ items: unknown[]; total: number }>;
+  };
+
+  let capturedFilters: Record<string, unknown> = {};
+
+  const result = await mod.listLeadsServiceImpl(
+    {
+      listLeads: async (filters) => {
+        capturedFilters = filters as Record<string, unknown>;
+        return [[], 17];
+      },
+      getConversionsAggregateForLeads: async () => new Map(),
+    },
+    { statuses: ['CONVERTED'] },
+  );
+
+  assert.deepEqual(capturedFilters['conversionCount'], { kind: 'lte', value: 1 });
+  assert.equal(result.total, 17);
+});
+
+// SP-3 — CONVERTED+RECARGA (mode=none) passes NO conversionCount to repo
+test('listLeadsServiceImpl: CONVERTED+RECARGA (mode=none) passes NO conversionCount to repo', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown> as {
+    listLeadsServiceImpl: (
+      deps: {
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
+        getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
+      },
+      filters: { statuses?: string[] },
+    ) => Promise<{ items: unknown[]; total: number }>;
+  };
+
+  let capturedFilters: Record<string, unknown> = {};
+
+  await mod.listLeadsServiceImpl(
+    {
+      listLeads: async (filters) => {
+        capturedFilters = filters as Record<string, unknown>;
+        return [[], 0];
+      },
+      getConversionsAggregateForLeads: async () => new Map(),
+    },
+    { statuses: ['CONVERTED', 'RECARGA'] },
+  );
+
+  assert.equal(capturedFilters['conversionCount'], undefined);
+});
+
+// SP-4 — no status filter passes NO conversionCount to repo
+test('listLeadsServiceImpl: no status filter passes NO conversionCount to repo', async () => {
+  const mod = await import('./admin.service.js') as Record<string, unknown> as {
+    listLeadsServiceImpl: (
+      deps: {
+        listLeads: (filters: unknown) => Promise<[StubLead[], number]>;
+        getConversionsAggregateForLeads: (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
+      },
+      filters: Record<string, unknown>,
+    ) => Promise<{ items: unknown[]; total: number }>;
+  };
+
+  let capturedFilters: Record<string, unknown> = {};
+
+  await mod.listLeadsServiceImpl(
+    {
+      listLeads: async (filters) => {
+        capturedFilters = filters as Record<string, unknown>;
+        return [[], 0];
+      },
+      getConversionsAggregateForLeads: async () => new Map(),
+    },
+    {},
+  );
+
+  assert.equal(capturedFilters['conversionCount'], undefined);
 });

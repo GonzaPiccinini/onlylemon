@@ -29,7 +29,7 @@ import {
   listConversionsAdmin,
   listLandingFallbackPhonesByLandingId,
   listLandings,
-  listLeads,
+  listLeadsAdmin,
   replaceLandingFallbacks,
   setAdminStatus,
   setLandingStatus,
@@ -655,6 +655,19 @@ export const getFundsSeriesService = async (query: DateRangeQuery) =>
   );
 
 type DbLeadStatus = 'NOT_CONTACTED' | 'CONTACTED' | 'CONVERTED';
+type LeadRow = {
+  id: string;
+  code: string;
+  adCode: string | null;
+  status: DbLeadStatus;
+  phone: string | null;
+  metaPixelId: string;
+  contactedAt: Date | null;
+  createdAt: Date;
+  updateAt: Date;
+  cashier?: { id: string; user: { name: string; username: string } } | null;
+  conversions?: Array<{ createdAt: Date }>;
+};
 type ListLeadsFn = (filters: {
   statuses?: DbLeadStatus[];
   cashierId?: string;
@@ -662,21 +675,10 @@ type ListLeadsFn = (filters: {
   adCode?: string;
   code?: string;
   phone?: string;
-}) => Promise<
-  Array<{
-    id: string;
-    code: string;
-    adCode: string | null;
-    status: DbLeadStatus;
-    phone: string | null;
-    metaPixelId: string;
-    contactedAt: Date | null;
-    createdAt: Date;
-    updateAt: Date;
-    cashier?: { id: string; user: { name: string; username: string } } | null;
-    conversions?: Array<{ createdAt: Date }>;
-  }>
->;
+  page?: number;
+  pageSize?: number;
+  conversionCount?: { kind: 'gte' | 'lte'; value: number };
+}) => Promise<[LeadRow[], number]>;
 
 type GetConversionsAggregateFn = (ids: string[]) => Promise<Map<string, { count: number; lastAt: Date | null }>>;
 
@@ -684,8 +686,11 @@ type PostFilterMode = 'none' | 'converted-strict' | 'recarga-only';
 
 export const listLeadsServiceImpl = async (
   deps: { listLeads: ListLeadsFn; getConversionsAggregateForLeads: GetConversionsAggregateFn },
-  filters: { statuses?: string[]; cashierId?: string; cashierIds?: string[]; adCode?: string; code?: string; phone?: string },
+  filters: { statuses?: string[]; cashierId?: string; cashierIds?: string[]; adCode?: string; code?: string; phone?: string; page?: number; pageSize?: number },
 ) => {
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? 25;
+
   const requested = filters.statuses;
   const requestedSet = new Set(requested ?? []);
   const hasConverted = requestedSet.has('CONVERTED');
@@ -696,33 +701,40 @@ export const listLeadsServiceImpl = async (
     ? (Array.from(new Set(requested.map((s) => (s === 'RECARGA' ? 'CONVERTED' : s)))) as DbLeadStatus[])
     : undefined;
 
-  const leads = await deps.listLeads({ ...filters, statuses: dbStatuses });
-  const aggregateById = await deps.getConversionsAggregateForLeads(leads.map((lead) => lead.id));
-
-  // Determine post-filter mode
+  // Determine filter mode
   let mode: PostFilterMode = 'none';
   if (hasRecarga && !hasConverted) mode = 'recarga-only';
   else if (hasConverted && !hasRecarga) mode = 'converted-strict';
 
-  // Apply post-filter
-  const filtered =
-    mode === 'none'
-      ? leads
-      : leads.filter((lead) => {
-          if (lead.status !== 'CONVERTED') return true;
-          const count = aggregateById.get(lead.id)?.count ?? 0;
-          if (mode === 'converted-strict') return count <= 1;
-          // mode === 'recarga-only'
-          return count >= 2;
-        });
+  // Pass conversionCount directive to the repo for DB-level filtering (mode != 'none')
+  const conversionCount =
+    mode === 'recarga-only'
+      ? ({ kind: 'gte', value: 2 } as const)
+      : mode === 'converted-strict'
+        ? ({ kind: 'lte', value: 1 } as const)
+        : undefined;
 
-  return filtered.map((lead) =>
-    toLeadDto(lead, aggregateById.get(lead.id) ?? { count: 0, lastAt: null }),
-  );
+  const [leads, total] = await deps.listLeads({ ...filters, statuses: dbStatuses, page, pageSize, conversionCount });
+  const aggregateById = await deps.getConversionsAggregateForLeads(leads.map((lead) => lead.id));
+
+  return {
+    items: leads.map((lead) =>
+      toLeadDto(lead, aggregateById.get(lead.id) ?? { count: 0, lastAt: null }),
+    ),
+    total,
+    page,
+    pageSize,
+  };
 };
 
 export const listLeadsService = async (filters: LeadsFilterQuery) =>
-  listLeadsServiceImpl({ listLeads, getConversionsAggregateForLeads }, filters);
+  listLeadsServiceImpl(
+    {
+      listLeads: (f) => listLeadsAdmin(f, f.page ?? 1, f.pageSize ?? 25),
+      getConversionsAggregateForLeads,
+    },
+    filters,
+  );
 
 type GetLeadHistoryFn = (
   leadId: string,
