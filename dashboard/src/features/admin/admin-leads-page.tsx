@@ -225,7 +225,7 @@ export const AdminLeadsPage = () => {
   const [page, setPage] = useState(1);
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const pageSize = 10;
+  const pageSize = 15;
 
   const activeFiltersCount =
     (statuses.length > 0 ? 1 : 0) +
@@ -246,14 +246,26 @@ export const AdminLeadsPage = () => {
       adCode: adCode.trim() || undefined,
       code: code.trim() || undefined,
       phone: phone.trim() || undefined,
+      page,
+      pageSize,
     }),
-    [adCode, cashierIds, code, phone, statuses],
+    [adCode, cashierIds, code, page, pageSize, phone, statuses],
   );
-  const { data: leads = [], isLoading } = useAdminLeads(filters);
-  const totalPages = Math.max(1, Math.ceil(leads.length / pageSize));
+  const { data, isLoading } = useAdminLeads(filters);
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  // After the data has settled (e.g. the 15s refetch shrank `total` below the
+  // current page), clamp `page` down so the query stops requesting an
+  // out-of-range page and stranding the user on an empty table. Adjusting state
+  // during render (rather than in an effect) lets React re-render immediately
+  // without an extra commit. Guarded on `data` so it never fights an in-flight
+  // page change while data is briefly undefined.
+  if (data && page > totalPages) {
+    setPage(totalPages);
+  }
   const normalizedPage = Math.min(page, totalPages);
-  const start = (normalizedPage - 1) * pageSize;
-  const paginatedLeads = leads.slice(start, start + pageSize);
 
   const toggleExpanded = (leadId: string) => {
     setExpandedLeads((prev) => {
@@ -392,14 +404,14 @@ export const AdminLeadsPage = () => {
                 <TableRow>
                   <TableCell colSpan={COLUMN_COUNT}>Cargando leads...</TableCell>
                 </TableRow>
-              ) : leads.length === 0 ? (
+              ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={COLUMN_COUNT}>
                     No hay leads para el filtro seleccionado.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedLeads.map((lead) => {
+                items.map((lead) => {
                   const displayStatus = leadDisplayStatus(lead);
                   const isExpanded = expandedLeads.has(lead.id);
                   const lastUpdate = lead.lastStatusChangeAt ?? lead.activityAt;
@@ -468,7 +480,7 @@ export const AdminLeadsPage = () => {
           <PaginationControls
             page={normalizedPage}
             totalPages={totalPages}
-            onPageChange={setPage}
+            onPageChange={(p) => setPage(p)}
           />
         </CardContent>
       </Card>

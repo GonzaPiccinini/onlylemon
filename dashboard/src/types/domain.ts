@@ -258,6 +258,8 @@ export interface LeadsFilters {
   adCode?: string;
   code?: string;
   phone?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface ConversionsFilters {

@@ -119,8 +119,8 @@ export const adminService = {
     return data;
   },
 
-  async listLeads(filters: LeadsFilters): Promise<Lead[]> {
-    const { data } = await http.get<Lead[]>(endpoints.admin.leads, {
+  async listLeads(filters: LeadsFilters): Promise<PaginatedResult<Lead>> {
+    const { data } = await http.get<PaginatedResult<Lead>>(endpoints.admin.leads, {
       params: {
         ...(filters.statuses?.length ? { statuses: filters.statuses } : {}),
         ...(filters.cashierId ? { cashierId: filters.cashierId } : {}),
@@ -128,9 +128,10 @@ export const adminService = {
         ...(filters.adCode ? { adCode: filters.adCode } : {}),
         ...(filters.code ? { code: filters.code } : {}),
         ...(filters.phone ? { phone: filters.phone } : {}),
+        ...(filters.page !== undefined ? { page: filters.page } : {}),
+        ...(filters.pageSize !== undefined ? { pageSize: filters.pageSize } : {}),
       },
     });
-
     return data;
   },
 
