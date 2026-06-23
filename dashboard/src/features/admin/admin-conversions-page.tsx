@@ -26,7 +26,7 @@ import {
 import { formatDateTime } from '@/lib/format';
 import { useMoneyFormatter } from '@/lib/use-currency';
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 15;
 
 export const AdminConversionsPage = () => {
   const money = useMoneyFormatter();
