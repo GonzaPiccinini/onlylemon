@@ -132,6 +132,18 @@ export const ChatPage = ({
     setSelectedSessionId(resolveSessionId(null, sessions));
   }
 
+  // Auto-select once sessions arrive after mount. The useState initializer above
+  // runs only on the first render; in the admin flow ChatPage mounts before the
+  // cashier's sessions have loaded (initial list is empty), so the single-session
+  // default never fired and the chats wouldn't load. Re-resolve while nothing is
+  // selected yet — a no-op when a session is already chosen or the list is empty.
+  if (selectedSessionId === null) {
+    const autoSelected = resolveSessionId(lastSessionId, sessions);
+    if (autoSelected !== null) {
+      setSelectedSessionId(autoSelected);
+    }
+  }
+
   const handleSelectSession = useCallback(
     (sessionId: string) => {
       setSelectedSessionId(sessionId);
