@@ -11,7 +11,9 @@ export const MetricCard = ({ label, value, hint }: MetricCardProps) => {
     <Card>
       <CardHeader>
         <CardDescription>{label}</CardDescription>
-        <CardTitle className="font-heading text-2xl">{value}</CardTitle>
+        <CardTitle className="font-heading text-xl tabular-nums whitespace-nowrap">
+          {value}
+        </CardTitle>
       </CardHeader>
       {hint ? (
         <CardContent>
