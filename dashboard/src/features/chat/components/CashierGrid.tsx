@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { ChevronRightIcon, SearchIcon, SmartphoneIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ContactAvatar } from './contact-avatar';
 
 // Combining diacritical marks (U+0300–U+036F); built from a string so the
 // source stays plain ASCII (no invisible combining chars in the file).
@@ -109,11 +110,9 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
                     key={c.id}
                     type="button"
                     onClick={() => onSelect(c.id)}
-                    className="group flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-[#25d366]/50 hover:bg-[#25d366]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="group flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                      {initials(c.name)}
-                    </span>
+                    <ContactAvatar className="size-10">{initials(c.name)}</ContactAvatar>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm font-medium">{c.name}</span>
                       <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
@@ -122,14 +121,14 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
                           {connected} conectado{connected === 1 ? '' : 's'}
                         </span>
                         {onTurn && (
-                          <span className="flex items-center gap-1 font-medium text-[#25d366]">
-                            <span className="size-1.5 rounded-full bg-[#25d366]" />
+                          <span className="flex items-center gap-1 font-medium text-primary">
+                            <span className="size-1.5 rounded-full bg-primary" />
                             En turno
                           </span>
                         )}
                       </span>
                     </span>
-                    <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-[#25d366]" />
+                    <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
                   </button>
                 );
               })}

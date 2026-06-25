@@ -3,6 +3,8 @@ import { isAxiosError } from 'axios';
 import {
   ChevronRightIcon,
   CheckIcon,
+  CheckCircle2Icon,
+  CircleDashedIcon,
   PlayIcon,
   QrCodeIcon,
   RefreshCcwIcon,
@@ -24,6 +26,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/status-badge';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +42,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
-import { wahaStatusLabel, wahaStatusVariant } from '@/lib/waha-status';
+import {
+  wahaStatusIcon,
+  wahaStatusLabel,
+  wahaStatusVariant,
+} from '@/lib/waha-status';
 import {
   useCashierRuntimeState,
   useCashierSessions,
@@ -66,7 +73,9 @@ const REFRESH_INTERVAL_SECONDS = 45;
 // ---------------------------------------------------------------------------
 
 const WahaStatusBadge = ({ status }: { status: string | undefined | null }) => (
-  <Badge variant={wahaStatusVariant(status)}>{wahaStatusLabel(status)}</Badge>
+  <StatusBadge variant={wahaStatusVariant(status)} icon={wahaStatusIcon(status)}>
+    {wahaStatusLabel(status)}
+  </StatusBadge>
 );
 
 // ---------------------------------------------------------------------------
@@ -597,9 +606,13 @@ export const CashierSessionPage = () => {
             {currentLoading ? (
               <Badge variant="outline">Cargando...</Badge>
             ) : currentSession?.isActive ? (
-              <Badge>Sesion activa</Badge>
+              <StatusBadge variant="default" icon={CheckCircle2Icon}>
+                Sesion activa
+              </StatusBadge>
             ) : (
-              <Badge variant="outline">Sin sesion activa</Badge>
+              <StatusBadge variant="outline" icon={CircleDashedIcon}>
+                Sin sesion activa
+              </StatusBadge>
             )}
             {currentSession?.startDate ? (
               <p className="text-sm text-muted-foreground">
@@ -667,9 +680,12 @@ export const CashierSessionPage = () => {
                       {session.endDate ? formatDateTime(session.endDate) : '-'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={session.isActive ? 'default' : 'outline'}>
+                      <StatusBadge
+                        variant={session.isActive ? 'default' : 'outline'}
+                        icon={session.isActive ? CheckCircle2Icon : CircleDashedIcon}
+                      >
                         {session.isActive ? 'Activa' : 'Finalizada'}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell>{session.activeMinutes.toFixed(2)}</TableCell>
                   </TableRow>

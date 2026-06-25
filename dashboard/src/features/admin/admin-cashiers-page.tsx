@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import {
   CheckCircle2Icon,
+  CircleDashedIcon,
+  ClockIcon,
   LinkIcon,
   LogOutIcon,
   MoreHorizontalIcon,
@@ -34,7 +36,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/status-badge';
 import {
   Table,
   TableBody,
@@ -326,21 +328,33 @@ export const AdminCashiersPage = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
+                    <StatusBadge
                       variant={
                         cashier.status === 'ACTIVE' ? 'default' : 'outline'
                       }
+                      icon={
+                        cashier.status === 'ACTIVE'
+                          ? CheckCircle2Icon
+                          : CircleDashedIcon
+                      }
                     >
                       {cashier.status === 'ACTIVE' ? 'Activo' : 'Deshabilitado'}
-                    </Badge>
+                    </StatusBadge>
                   </TableCell>
                   <TableCell>
                     {(() => {
                       const state = operationalState(cashier);
+                      const StateIcon = cashier.hasActiveWorkSession
+                        ? ClockIcon
+                        : CircleDashedIcon;
                       return (
-                        <Badge variant={state.variant} className="w-fit">
+                        <StatusBadge
+                          variant={state.variant}
+                          icon={StateIcon}
+                          className="w-fit"
+                        >
                           {state.label}
-                        </Badge>
+                        </StatusBadge>
                       );
                     })()}
                   </TableCell>

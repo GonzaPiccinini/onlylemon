@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatListEntry } from '@/types/chat';
 import { resolveContactTitle } from '../contact';
+import { ContactAvatar } from './contact-avatar';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -107,9 +108,9 @@ export const ChatList = ({
               ].join(' ')}
             >
               {/* Avatar — initial of the saved name, or a person icon for numbers. */}
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+              <ContactAvatar className="size-9">
                 {isPhone ? <UserIcon className="size-4" /> : displayName.charAt(0).toUpperCase()}
-              </div>
+              </ContactAvatar>
 
               {/* Name + timestamp */}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">

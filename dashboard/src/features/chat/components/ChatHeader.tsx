@@ -12,6 +12,7 @@ import { ArrowLeftIcon, UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ChatListEntry } from '@/types/chat';
 import { resolveContactTitle, resolveContactPhone } from '../contact';
+import { ContactAvatar } from './contact-avatar';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,9 +58,9 @@ export const ChatHeader = ({ chat, onBack, sessionLabel }: ChatHeaderProps) => {
       )}
 
       {/* Avatar — initial of the saved name, or a person icon for numbers. */}
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+      <ContactAvatar className="size-9">
         {initial ?? <UserIcon className="size-4" />}
-      </div>
+      </ContactAvatar>
 
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-medium">{title}</span>

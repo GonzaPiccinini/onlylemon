@@ -4,6 +4,8 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import {
+  CheckCircle2Icon,
+  CircleDashedIcon,
   MoreHorizontalIcon,
   PencilLineIcon,
   PhoneIcon,
@@ -34,7 +36,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/status-badge";
 import {
   Table,
   TableBody,
@@ -637,9 +639,16 @@ export const AdminLandingsPage = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={landing.status === "ACTIVE" ? "default" : "outline"}>
+                      <StatusBadge
+                        variant={landing.status === "ACTIVE" ? "default" : "outline"}
+                        icon={
+                          landing.status === "ACTIVE"
+                            ? CheckCircle2Icon
+                            : CircleDashedIcon
+                        }
+                      >
                         {landing.status === "ACTIVE" ? "Activa" : "Deshabilitada"}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell>{formatDateTime(landing.updatedAt)}</TableCell>
                     <TableCell className="text-right">
