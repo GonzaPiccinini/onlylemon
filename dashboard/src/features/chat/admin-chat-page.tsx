@@ -173,11 +173,15 @@ export const AdminChatPage = () => {
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4">
-      <PageHeader
-        title="WhatsApp"
-        description="Supervisá y enviá mensajes desde las sesiones de los cajeros."
-        descriptionClassName="hidden md:block"
-      />
+      {/* Section title — hidden on mobile to give the chat more vertical space
+          (the section is obvious from the nav there). */}
+      <div className="hidden md:block">
+        <PageHeader
+          title="WhatsApp"
+          description="Supervisá y enviá mensajes desde las sesiones de los cajeros."
+          descriptionClassName="hidden md:block"
+        />
+      </div>
 
       {selectedCashierId ? (
         <AdminChatInner

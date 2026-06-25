@@ -72,11 +72,15 @@ export const CashierChatPage = () => {
   if (isLoading) {
     return (
       <section className="flex min-h-0 flex-1 flex-col gap-4">
-        <PageHeader
-          title="WhatsApp"
-          description="Cargando sesiones de WhatsApp..."
-          descriptionClassName="hidden md:block"
-        />
+        {/* Section title — hidden on mobile to give the chat more vertical space
+            (the section is obvious from the nav there). */}
+        <div className="hidden md:block">
+          <PageHeader
+            title="WhatsApp"
+            description="Cargando sesiones de WhatsApp..."
+            descriptionClassName="hidden md:block"
+          />
+        </div>
         <Skeleton className="h-[400px] w-full rounded-2xl" />
       </section>
     );
@@ -84,11 +88,15 @@ export const CashierChatPage = () => {
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4">
-      <PageHeader
-        title="WhatsApp"
-        description="Chateá con tus clientes desde tus sesiones de WhatsApp."
-        descriptionClassName="hidden md:block"
-      />
+      {/* Section title — hidden on mobile to give the chat more vertical space
+          (the section is obvious from the nav there). */}
+      <div className="hidden md:block">
+        <PageHeader
+          title="WhatsApp"
+          description="Chateá con tus clientes desde tus sesiones de WhatsApp."
+          descriptionClassName="hidden md:block"
+        />
+      </div>
       <ChatPage
         scope={cashierScope}
         sessions={workingSessions}
