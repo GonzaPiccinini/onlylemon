@@ -36,3 +36,17 @@ export function resolveContactTitle(chat: ChatListEntry): {
   const title = /^\d+$/.test(digits) ? `+${digits}` : digits;
   return { title, isPhone: true };
 }
+
+/**
+ * Resolves the contact's phone number (`+digits`) from the chatId, or null when
+ * the chat has no real phone number — i.e. groups (`@g.us`) and linked-device
+ * ids (`@lid`), whose local part is an internal id rather than a phone.
+ *
+ * Used by ChatHeader to show the number under a saved contact's name.
+ */
+export function resolveContactPhone(chat: ChatListEntry): string | null {
+  const [local, domain] = chat.chatId.split('@');
+  if (domain !== 'c.us') return null;
+  if (!local || !/^\d+$/.test(local)) return null;
+  return `+${local}`;
+}

@@ -335,8 +335,9 @@ export const ChatPage = ({
 
   const selectedChatName = selectedChat?.displayName ?? 'Chat';
 
-  // Label of the session in use (alias → +phone → code), shown in the header
-  // so the user always sees which number they're chatting from.
+  // Session label (alias → +phone → code) — shown in the ChatHeader ONLY on
+  // mobile, where the session picker is hidden behind the conversation overlay.
+  // On desktop the picker is always visible on the left, so it's omitted there.
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
   const selectedSessionLabel = selectedSession
     ? (selectedSession.alias?.trim() ||
@@ -406,7 +407,7 @@ export const ChatPage = ({
           <ChatHeader
             chat={selectedChat}
             onBack={isMobile ? () => setSheetOpen(false) : undefined}
-            sessionLabel={selectedSessionLabel}
+            sessionLabel={isMobile ? selectedSessionLabel : undefined}
           />
         )}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

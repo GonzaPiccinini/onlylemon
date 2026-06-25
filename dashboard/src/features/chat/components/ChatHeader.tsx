@@ -11,7 +11,7 @@
 import { ArrowLeftIcon, UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ChatListEntry } from '@/types/chat';
-import { resolveContactTitle } from '../contact';
+import { resolveContactTitle, resolveContactPhone } from '../contact';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,8 +22,10 @@ interface ChatHeaderProps {
   /** When provided (mobile), renders a back button on the left. */
   onBack?: () => void;
   /**
-   * Display name of the WhatsApp session being used (alias → phone → code).
-   * Shown as a subtitle so the user always sees which number they're on.
+   * WhatsApp session label (alias → phone → code) the cashier is chatting from.
+   * Passed only on mobile (on desktop it's visible in the always-on session
+   * picker). Rendered with a "Sesión:" prefix so it can't be confused with the
+   * contact's phone number shown above it.
    */
   sessionLabel?: string;
 }
@@ -35,6 +37,9 @@ interface ChatHeaderProps {
 export const ChatHeader = ({ chat, onBack, sessionLabel }: ChatHeaderProps) => {
   const { title, isPhone } = resolveContactTitle(chat);
   const initial = !isPhone ? title.charAt(0).toUpperCase() : null;
+  // Show the contact's phone under their name. Skip it when the title is already
+  // the phone (unsaved contact) or when the chat has no real phone (group/@lid).
+  const contactPhone = isPhone ? null : resolveContactPhone(chat);
 
   return (
     <div className="flex shrink-0 items-center gap-3 border-b bg-black px-3 py-2.5">
@@ -58,9 +63,14 @@ export const ChatHeader = ({ chat, onBack, sessionLabel }: ChatHeaderProps) => {
 
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-medium">{title}</span>
+        {contactPhone && (
+          <span className="truncate text-xs text-muted-foreground">
+            {contactPhone}
+          </span>
+        )}
         {sessionLabel && (
           <span className="truncate text-xs text-muted-foreground">
-            {sessionLabel}
+            Sesión: {sessionLabel}
           </span>
         )}
       </div>
