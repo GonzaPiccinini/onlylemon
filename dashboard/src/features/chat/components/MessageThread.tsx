@@ -16,7 +16,7 @@
  * Delegates per-message rendering to MessageItem.
  */
 
-import { Fragment, useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { MessageItem } from './MessageItem';
@@ -100,6 +100,25 @@ export const MessageThread = ({
     prevScrollHeightRef.current = el.scrollHeight;
   }, [messages.length, chatId]);
 
+  // Group consecutive messages by calendar day. Each day renders as a section
+  // whose divider is sticky WITHIN that section — so a day's date pill floats at
+  // the top only while its messages are in view and then scrolls away with them.
+  // Flat sticky-top-0 siblings all share the scroll container as their containing
+  // block, so they pile up at the same top and overlap; sticky-per-section fixes
+  // that (and keeps the divider from floating over the "Cargar anteriores" button).
+  const dayGroups = useMemo(() => {
+    const groups: { key: string; label: string; items: ChatMessage[] }[] = [];
+    for (const msg of messages) {
+      const current = groups[groups.length - 1];
+      if (current && isSameDay(current.items[current.items.length - 1]!.timestamp, msg.timestamp)) {
+        current.items.push(msg);
+      } else {
+        groups.push({ key: msg.id, label: formatDayLabel(msg.timestamp), items: [msg] });
+      }
+    }
+    return groups;
+  }, [messages]);
+
   if (isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-2 overflow-hidden p-4">
@@ -140,20 +159,16 @@ export const MessageThread = ({
         </div>
       )}
 
-      {messages.map((msg, i) => {
-        const prev = i > 0 ? messages[i - 1] : undefined;
-        const showDayDivider =
-          !prev || !isSameDay(prev.timestamp, msg.timestamp);
-        return (
-          <Fragment key={msg.id}>
-            {showDayDivider && (
-              <div className="sticky top-0 z-10 flex justify-center py-1">
-                <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-                  {formatDayLabel(msg.timestamp)}
-                </span>
-              </div>
-            )}
+      {dayGroups.map((group) => (
+        <div key={group.key} className="flex flex-col gap-1.5">
+          <div className="sticky top-0 z-10 flex justify-center py-1">
+            <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+              {group.label}
+            </span>
+          </div>
+          {group.items.map((msg) => (
             <MessageItem
+              key={msg.id}
               message={msg}
               scope={scope}
               sessionId={sessionId}
@@ -161,9 +176,9 @@ export const MessageThread = ({
               onReply={onReply}
               onReact={onReact}
             />
-          </Fragment>
-        );
-      })}
+          ))}
+        </div>
+      ))}
     </div>
   );
 };
