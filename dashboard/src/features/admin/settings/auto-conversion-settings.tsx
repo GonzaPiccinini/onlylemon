@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/status-badge';
 import { Separator } from '@/components/ui/separator';
 import {
   useAutoConversionTrigger,
@@ -186,17 +187,13 @@ const TriggerPhraseSection = () => {
           </div>
           <h3 className="font-medium leading-tight">Frases disparadoras</h3>
           {!isLoading && (
-            <Badge variant={isActive ? 'default' : 'outline'} className="ml-auto shrink-0">
-              {isActive ? (
-                <>
-                  <CheckCircle2Icon /> Activo ({serverPhrases.length})
-                </>
-              ) : (
-                <>
-                  <CircleDashedIcon /> Inactivo
-                </>
-              )}
-            </Badge>
+            <StatusBadge
+              variant={isActive ? 'default' : 'outline'}
+              icon={isActive ? CheckCircle2Icon : CircleDashedIcon}
+              className="ml-auto shrink-0"
+            >
+              {isActive ? `Activo (${serverPhrases.length})` : 'Inactivo'}
+            </StatusBadge>
           )}
         </div>
         <p className="text-sm text-muted-foreground">

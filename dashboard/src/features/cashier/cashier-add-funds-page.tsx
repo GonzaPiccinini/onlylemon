@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/status-badge';
 import { Separator } from '@/components/ui/separator';
 import { useMoneyFormatter } from '@/lib/use-currency';
 import { formatDateTime } from '@/lib/format';
@@ -30,7 +31,7 @@ import {
   useCashierRuntimeState,
   useCashierConversionLimits,
 } from '@/features/cashier/cashier-hooks';
-import { leadStatusLabel } from '@/lib/lead-status';
+import { leadStatusBadge, leadStatusLabel } from '@/lib/lead-status';
 import { toApiError } from '@/api/http';
 import type { Lead } from '@/types/domain';
 
@@ -242,12 +243,15 @@ export const CashierAddFundsPage = () => {
                                           {lead.phone}
                                         </span>
                                       )}
-                                      <Badge
-                                        variant='outline'
+                                      <StatusBadge
+                                        variant={
+                                          leadStatusBadge(lead.status).variant
+                                        }
+                                        icon={leadStatusBadge(lead.status).icon}
                                         className='ml-auto'
                                       >
                                         {leadStatusLabel(lead.status)}
-                                      </Badge>
+                                      </StatusBadge>
                                     </button>
                                   </li>
                                 ))}
@@ -266,9 +270,12 @@ export const CashierAddFundsPage = () => {
                 <div className='flex flex-col gap-2'>
                   <div className='flex flex-wrap gap-2'>
                     <Badge variant='outline'>Codigo: {selectedLead.code}</Badge>
-                    <Badge variant='outline'>
+                    <StatusBadge
+                      variant={leadStatusBadge(selectedLead.status).variant}
+                      icon={leadStatusBadge(selectedLead.status).icon}
+                    >
                       Estado: {leadStatusLabel(selectedLead.status)}
-                    </Badge>
+                    </StatusBadge>
                   </div>
 
                   <div className='grid gap-2 rounded-lg border p-3 text-sm'>

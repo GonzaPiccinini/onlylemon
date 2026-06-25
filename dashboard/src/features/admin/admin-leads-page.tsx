@@ -7,6 +7,7 @@ import {
   useAdminLeads,
 } from '@/features/admin/admin-hooks';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,7 +32,7 @@ import {
   buildFullStatusTimeline,
   leadDisplayStatus,
   leadDisplayStatusLabel,
-  leadStatusLabel,
+  leadStatusBadge,
   type FullTimelineEntry,
   type LeadDisplayStatus,
 } from '@/lib/lead-status';
@@ -49,55 +50,24 @@ const STATUS_OPTIONS: Array<{ label: string; value: LeadFilterStatus }> = [
 const COLUMN_COUNT = 7;
 
 const renderDisplayStatusBadge = (status: LeadDisplayStatus) => {
-  if (status === 'RECARGA') {
-    return (
-      <Badge
-        variant='outline'
-        className='border-primary/40! bg-primary/10 text-primary'
-      >
-        {leadDisplayStatusLabel(status)}
-      </Badge>
-    );
-  }
+  const { variant, icon, className } = leadStatusBadge(status);
   return (
-    <Badge
-      variant={
-        status === 'CONVERTED'
-          ? 'default'
-          : status === 'CONTACTED'
-            ? 'secondary'
-            : 'outline'
-      }
-    >
-      {leadStatusLabel(status)}
-    </Badge>
+    <StatusBadge variant={variant} icon={icon} className={className}>
+      {leadDisplayStatusLabel(status)}
+    </StatusBadge>
   );
 };
 
 const renderTimelineEntryBadge = (entry: FullTimelineEntry) => {
-  if (entry.status === 'RECARGA') {
-    return (
-      <Badge
-        variant='outline'
-        className='border-primary/40! bg-primary/10 text-primary'
-      >
-        {leadDisplayStatusLabel(entry.status)}
-      </Badge>
-    );
-  }
+  const { variant, icon, className } = leadStatusBadge(entry.status);
   return (
-    <Badge
-      variant={
-        entry.status === 'CONVERTED'
-          ? 'default'
-          : entry.status === 'CONTACTED'
-            ? 'secondary'
-            : 'outline'
-      }
-      className='shrink-0'
+    <StatusBadge
+      variant={variant}
+      icon={icon}
+      className={cn('shrink-0', className)}
     >
-      {leadStatusLabel(entry.status)}
-    </Badge>
+      {leadDisplayStatusLabel(entry.status)}
+    </StatusBadge>
   );
 };
 

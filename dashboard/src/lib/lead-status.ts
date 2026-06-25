@@ -1,3 +1,10 @@
+import {
+  CheckCircle2Icon,
+  CircleDashedIcon,
+  CircleDotIcon,
+  RefreshCwIcon,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Lead, LeadHistoryPage, LeadStatus } from '@/types/domain';
 
 export type LeadDisplayStatus = LeadStatus | 'RECARGA';
@@ -18,6 +25,28 @@ export const leadStatusLabel = (status: LeadStatus): string =>
 
 export const leadDisplayStatusLabel = (status: LeadDisplayStatus): string =>
   displayStatusLabelMap[status] ?? status;
+
+type LeadBadgeVariant = 'default' | 'secondary' | 'outline';
+
+export const leadStatusBadge = (
+  status: LeadDisplayStatus,
+): { variant: LeadBadgeVariant; icon: LucideIcon; className?: string } => {
+  switch (status) {
+    case 'CONVERTED':
+      return { variant: 'default', icon: CheckCircle2Icon };
+    case 'CONTACTED':
+      return { variant: 'secondary', icon: CircleDotIcon };
+    case 'RECARGA':
+      return {
+        variant: 'default',
+        icon: RefreshCwIcon,
+        className: 'bg-primary/10 text-primary',
+      };
+    case 'NOT_CONTACTED':
+    default:
+      return { variant: 'outline', icon: CircleDashedIcon };
+  }
+};
 
 export const leadDisplayStatus = (
   lead: Pick<Lead, 'status' | 'conversionsCount'>,

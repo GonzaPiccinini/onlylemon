@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import {
+  CheckCircle2Icon,
+  CircleDashedIcon,
   MoreHorizontalIcon,
   PencilLineIcon,
   PlusIcon,
@@ -32,6 +34,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/status-badge";
 import {
   Table,
   TableBody,
@@ -263,9 +266,16 @@ export const AdminManagementPage = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={admin.status === "ACTIVE" ? "default" : "outline"}>
+                    <StatusBadge
+                      variant={admin.status === "ACTIVE" ? "default" : "outline"}
+                      icon={
+                        admin.status === "ACTIVE"
+                          ? CheckCircle2Icon
+                          : CircleDashedIcon
+                      }
+                    >
                       {admin.status === "ACTIVE" ? "Activo" : "Deshabilitado"}
-                    </Badge>
+                    </StatusBadge>
                   </TableCell>
                   <TableCell>{formatDateTime(admin.createdAt)}</TableCell>
                   <TableCell className="text-right">

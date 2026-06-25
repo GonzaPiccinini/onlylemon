@@ -4,6 +4,7 @@ import { CheckIcon, PencilIcon, PlusIcon, QrCodeIcon, SmartphoneIcon, Trash2Icon
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/status-badge';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -14,7 +15,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatDateTime } from '@/lib/format';
-import { wahaStatusLabel, wahaStatusVariant } from '@/lib/waha-status';
+import {
+  wahaStatusIcon,
+  wahaStatusLabel,
+  wahaStatusVariant,
+} from '@/lib/waha-status';
 import { SessionAliasEditor } from '@/features/chat/components';
 import type { ChatScope } from '@/api/chat.service';
 import {
@@ -465,9 +470,12 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                   <div className='flex min-w-0 flex-1 flex-col gap-1'>
                     <p className='truncate text-sm font-medium'>{title}</p>
                     <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-                      <Badge variant={wahaStatusVariant(session.wahaStatus)}>
+                      <StatusBadge
+                        variant={wahaStatusVariant(session.wahaStatus)}
+                        icon={wahaStatusIcon(session.wahaStatus)}
+                      >
                         {wahaStatusLabel(session.wahaStatus)}
-                      </Badge>
+                      </StatusBadge>
                       <span className='truncate text-xs text-muted-foreground'>
                         {metaParts.join(' · ')}
                       </span>

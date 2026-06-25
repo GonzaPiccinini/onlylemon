@@ -121,8 +121,8 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
                           {connected} conectado{connected === 1 ? '' : 's'}
                         </span>
                         {onTurn && (
-                          <span className="flex items-center gap-1 font-medium text-[#25d366]">
-                            <span className="size-1.5 rounded-full bg-[#25d366]" />
+                          <span className="flex items-center gap-1 font-medium text-primary">
+                            <span className="size-1.5 rounded-full bg-primary" />
                             En turno
                           </span>
                         )}

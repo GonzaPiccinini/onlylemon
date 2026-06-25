@@ -4,10 +4,14 @@ import { ChevronDownIcon, ChevronUpIcon, SmartphoneIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/status-badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter } from '@/components/ui/dialog';
-import { wahaStatusLabel, wahaStatusVariant } from '@/lib/waha-status';
+import {
+  wahaStatusIcon,
+  wahaStatusLabel,
+  wahaStatusVariant,
+} from '@/lib/waha-status';
 import {
   adminKeys,
   useSessionLandings,
@@ -202,9 +206,13 @@ export const AdminCashierLandingsPanel = ({ cashier }: AdminCashierLandingsPanel
                   <div className='min-w-0 flex-1'>
                     <p className='truncate text-sm font-medium'>{title}</p>
                   </div>
-                  <Badge variant={wahaStatusVariant(session.wahaStatus)} className='shrink-0 text-xs'>
+                  <StatusBadge
+                    variant={wahaStatusVariant(session.wahaStatus)}
+                    icon={wahaStatusIcon(session.wahaStatus)}
+                    className='shrink-0 text-xs'
+                  >
                     {wahaStatusLabel(session.wahaStatus)}
-                  </Badge>
+                  </StatusBadge>
                   {isOpen ? (
                     <ChevronUpIcon className='size-4 shrink-0 text-muted-foreground' />
                   ) : (
