@@ -399,6 +399,101 @@ test('stopTyping throws on 500 response', async () => {
 });
 
 // ---------------------------------------------------------------------------
+// sendSeen tests
+// Marks a chat's messages as read (POST /api/sendSeen, body { session, chatId }).
+// Same idiom as sendText/startTyping: throws on non-2xx; the chat service treats
+// it as best-effort.
+// ---------------------------------------------------------------------------
+
+test('sendSeen POSTs to ${WAHA_BASE_URL}/api/sendSeen', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendSeen } = await import('./client.js');
+    await sendSeen('session-01', '5491112345678@c.us');
+    assert.equal(stub.calls.length, 1);
+    assert.equal(stub.calls[0].url, `${WAHA_BASE_URL}/api/sendSeen`);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendSeen uses POST method', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendSeen } = await import('./client.js');
+    await sendSeen('session-01', '5491112345678@c.us');
+    assert.equal(stub.calls[0].init.method, 'POST');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendSeen sends X-Api-Key header with WAHA_API_KEY value', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendSeen } = await import('./client.js');
+    await sendSeen('session-01', '5491112345678@c.us');
+    const headers = stub.calls[0].init.headers as Record<string, string>;
+    assert.equal(headers['X-Api-Key'], WAHA_API_KEY);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendSeen sends Content-Type: application/json header', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendSeen } = await import('./client.js');
+    await sendSeen('session-01', '5491112345678@c.us');
+    const headers = stub.calls[0].init.headers as Record<string, string>;
+    assert.equal(headers['Content-Type'], 'application/json');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendSeen body contains session and chatId', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendSeen } = await import('./client.js');
+    await sendSeen('session-05', '5491100000000@c.us');
+    const body = JSON.parse(stub.calls[0].init.body as string);
+    assert.equal(body.session, 'session-05');
+    assert.equal(body.chatId, '5491100000000@c.us');
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendSeen resolves void on 200 response', async () => {
+  const stub = stubFetch([makeResponse(200, '{}')]);
+  try {
+    const { sendSeen } = await import('./client.js');
+    const result = await sendSeen('session-01', '5491112345678@c.us');
+    assert.equal(result, undefined);
+  } finally {
+    stub.restore();
+  }
+});
+
+test('sendSeen throws on 500 response', async () => {
+  const stub = stubFetch([makeResponse(500, '{"error":"internal"}')]);
+  try {
+    const { sendSeen } = await import('./client.js');
+    await assert.rejects(
+      () => sendSeen('session-01', '5491112345678@c.us'),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok((err as Error).message.includes('500'));
+        return true;
+      },
+    );
+  } finally {
+    stub.restore();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // downloadMedia tests
 // ---------------------------------------------------------------------------
 

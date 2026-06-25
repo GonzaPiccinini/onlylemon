@@ -196,6 +196,18 @@ export type ChatService = {
     requesterCashierId?: string;
     requesterRole: Role;
   }): Promise<void>;
+
+  /**
+   * Marks a chat's messages as read (WhatsApp blue ticks). Best-effort and
+   * idempotent — fires on chat open; swallows WAHA errors and never throws a
+   * rate-limit error.
+   */
+  markSeen(args: {
+    sessionId: string;
+    chatId: string;
+    requesterCashierId?: string;
+    requesterRole: Role;
+  }): Promise<void>;
 };
 
 export function createChatService(deps: ChatServiceDeps): ChatService {
@@ -360,6 +372,19 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
         }
       } catch {
         // swallow — presence failures are non-fatal
+      }
+    },
+
+    async markSeen({ sessionId, chatId, requesterCashierId, requesterRole }) {
+      const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
+
+      // Best-effort + idempotent: sendSeen on already-read messages is a no-op,
+      // and it fires only on chat open (low frequency), so no rate bucket is
+      // needed. Swallow WAHA errors so marking-as-read never disrupts the cashier.
+      try {
+        await repository.sendSeen(session.sessionName, chatId);
+      } catch {
+        // swallow — best-effort
       }
     },
   };

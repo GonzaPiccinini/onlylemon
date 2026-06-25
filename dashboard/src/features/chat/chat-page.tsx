@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/auth-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { toMillis } from './time';
-import type { ChatScope } from '@/api/chat.service';
+import { chatService, type ChatScope } from '@/api/chat.service';
 import type { ChatMessage } from '@/types/chat';
 import {
   useChatList,
@@ -212,6 +212,8 @@ export const ChatPage = ({
       setSelectedSessionId(sessionId);
       setSelectedChatId(chatId);
       setReplyingTo(null);
+      // Mark as read on WhatsApp when opening via a notification. Best-effort.
+      void chatService.markSeen(scope, sessionId, chatId).catch(() => {});
       if (isMobile) setSheetOpen(true);
     },
     [scope, rememberSession, isMobile],
@@ -236,12 +238,16 @@ export const ChatPage = ({
       setReplyingTo(null);
       // Opening a chat clears its unread notification dot.
       markChatRead(chatId);
+      // Mark the chat's messages as read on WhatsApp (blue ticks). Best-effort.
+      if (selectedSessionId) {
+        void chatService.markSeen(scope, selectedSessionId, chatId).catch(() => {});
+      }
       // Desktop is a persistent two-pane layout (WhatsApp Web): selecting a
       // chat just swaps the right pane. The full-screen Sheet is mobile-only.
       if (isMobile) setSheetOpen(true);
       rememberChat(chatId);
     },
-    [isMobile, markChatRead, rememberChat],
+    [isMobile, markChatRead, rememberChat, scope, selectedSessionId],
   );
 
   // ------------------------------------------------------------------

@@ -60,7 +60,21 @@ export function useTypingPresence(
     if (!activeRef.current) {
       const target: TypingTarget = { scope, sessionId, chatId };
       activeRef.current = target;
-      ping(target, "start");
+      // A human reads before they type. Mark the chat read FIRST and only then
+      // show "typing…", so the recipient never sees the typing indicator land
+      // before the read receipt — markSeen and startTyping are independent async
+      // calls that would otherwise race. Skip the start if typing already
+      // stopped / switched chats during the markSeen round-trip.
+      void (async () => {
+        try {
+          await chatService.markSeen(target.scope, target.sessionId, target.chatId);
+        } catch {
+          // best-effort — ignore
+        }
+        if (activeRef.current === target) {
+          ping(target, "start");
+        }
+      })();
     }
   }, [scope, sessionId, chatId, stop]);
 

@@ -137,6 +137,7 @@ function makeMockService(overrides: Partial<ChatService> = {}): ChatService {
     publishImageStatus: async () => {},
     setSessionAlias: async () => {},
     setTyping: async () => {},
+    markSeen: async () => {},
     ...overrides,
   };
 }
@@ -559,6 +560,63 @@ describe('chat.controller — setTyping', () => {
     const req = makeReq({ body: { state: 'start' } });
     const res = makeRes();
     await setTyping(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 404);
+  });
+});
+
+// ── markSeen ──────────────────────────────────────────────────────────────────
+
+describe('chat.controller — markSeen', () => {
+  it('returns 200 and forwards chatId to the service', async () => {
+    let captured: unknown = null;
+    const svc = makeMockService({
+      markSeen: async (args) => { captured = args; },
+    });
+    const { markSeen } = createChatController(svc);
+
+    const req = makeReq();
+    const res = makeRes();
+    await markSeen(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    const args = captured as { chatId: string };
+    assert.equal(args.chatId, 'chat@c.us');
+  });
+
+  it('returns 400 when chatId is invalid (no @)', async () => {
+    const svc = makeMockService();
+    const { markSeen } = createChatController(svc);
+
+    const req = makeReq({ params: { sessionId: 'session-uuid-1', chatId: 'invalid-no-at' } });
+    const res = makeRes();
+    await markSeen(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('returns 403 on ChatForbiddenError', async () => {
+    const svc = makeMockService({
+      markSeen: async () => { throw new ChatForbiddenError(); },
+    });
+    const { markSeen } = createChatController(svc);
+
+    const req = makeReq();
+    const res = makeRes();
+    await markSeen(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 403);
+  });
+
+  it('returns 404 on ChatSessionNotFoundError', async () => {
+    const svc = makeMockService({
+      markSeen: async () => { throw new ChatSessionNotFoundError('x'); },
+    });
+    const { markSeen } = createChatController(svc);
+
+    const req = makeReq();
+    const res = makeRes();
+    await markSeen(req, res as unknown as import('express').Response);
 
     assert.equal(res.statusCode, 404);
   });

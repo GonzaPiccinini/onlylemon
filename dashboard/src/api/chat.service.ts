@@ -118,6 +118,12 @@ function typingUrl(scope: ChatScope, sessionId: string, chatId: string): string 
     : endpoints.chat.adminTyping(scope.cashierId, sessionId, chatId);
 }
 
+function seenUrl(scope: ChatScope, sessionId: string, chatId: string): string {
+  return scope.kind === "cashier"
+    ? endpoints.chat.cashierSeen(sessionId, chatId)
+    : endpoints.chat.adminSeen(scope.cashierId, sessionId, chatId);
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -205,6 +211,20 @@ export const chatService = {
     state: TypingState,
   ): Promise<void> {
     await http.post(typingUrl(scope, sessionId, chatId), { state });
+  },
+
+  /**
+   * Mark a chat's messages as read (WhatsApp blue ticks).
+   *
+   * Best-effort and idempotent: re-marking already-read messages is a no-op on
+   * WhatsApp's side. Callers fire-and-forget on chat open and ignore failures.
+   */
+  async markSeen(
+    scope: ChatScope,
+    sessionId: string,
+    chatId: string,
+  ): Promise<void> {
+    await http.post(seenUrl(scope, sessionId, chatId));
   },
 
   /**
