@@ -581,6 +581,68 @@ export async function sendText(
 }
 
 /**
+ * Sends the "typing…" (composing) presence to a chat via POST /api/startTyping.
+ * Body is { session, chatId }. Throws on non-2xx — the chat service treats
+ * presence as best-effort and swallows the error so a flaky ping never blocks
+ * a real send.
+ */
+export async function startTyping(session: string, chatId: string): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/startTyping`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ session, chatId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA startTyping failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Clears the "typing…" presence on a chat via POST /api/stopTyping.
+ * Body is { session, chatId }. Throws on non-2xx (the service swallows it —
+ * presence is best-effort).
+ */
+export async function stopTyping(session: string, chatId: string): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/stopTyping`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ session, chatId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA stopTyping failed with status ${response.status}`);
+  }
+}
+
+/**
+ * Marks a chat's messages as read via POST /api/sendSeen. Body is
+ * { session, chatId }. Idempotent on WAHA's side (re-marking already-read
+ * messages is a no-op). Throws on non-2xx; the chat service swallows it
+ * (best-effort, like the typing presence pings).
+ */
+export async function sendSeen(session: string, chatId: string): Promise<void> {
+  const response = await fetch(`${config.WAHA_BASE_URL}/api/sendSeen`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': config.WAHA_API_KEY,
+    },
+    body: JSON.stringify({ session, chatId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`WAHA sendSeen failed with status ${response.status}`);
+  }
+}
+
+/**
  * Returns the cashier's own WhatsApp JID (`me.id`) for the given session.
  * Returns null if the session is not found or hasn't connected (me is null/undefined).
  *

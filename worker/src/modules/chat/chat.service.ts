@@ -87,6 +87,13 @@ const RATE_REFILL_INTERVAL_MS = 500;
 const REACTION_RATE_CAPACITY = 20;
 const REACTION_RATE_REFILL_INTERVAL_MS = 250;
 
+// Typing presence (the real-time indicator) gets its OWN lenient bucket too.
+// The real cadence control is the frontend debounce — this is just a backend
+// guard against a buggy/abusive client. On exhaustion setTyping DROPS SILENTLY
+// (no 429): a rate-limited presence ping is meaningless to surface.
+const TYPING_RATE_CAPACITY = 20;
+const TYPING_RATE_REFILL_INTERVAL_MS = 250;
+
 // ── Owner check ────────────────────────────────────────────────────────────────
 
 function isOwner(session: WhatsappSessionRow, role: Role, requesterCashierId?: string): boolean {
@@ -175,6 +182,32 @@ export type ChatService = {
     requesterCashierId?: string;
     requesterRole: Role;
   }): Promise<void>;
+
+  /**
+   * Real-time typing presence. `state: 'start'` shows "typing…" to the
+   * recipient; `'stop'` clears it. Best-effort and guarded by its own lenient
+   * bucket — never throws ChatRateLimitError (over-budget pings are dropped
+   * silently), and swallows WAHA errors so presence never blocks a real send.
+   */
+  setTyping(args: {
+    sessionId: string;
+    chatId: string;
+    state: 'start' | 'stop';
+    requesterCashierId?: string;
+    requesterRole: Role;
+  }): Promise<void>;
+
+  /**
+   * Marks a chat's messages as read (WhatsApp blue ticks). Best-effort and
+   * idempotent — fires on chat open; swallows WAHA errors and never throws a
+   * rate-limit error.
+   */
+  markSeen(args: {
+    sessionId: string;
+    chatId: string;
+    requesterCashierId?: string;
+    requesterRole: Role;
+  }): Promise<void>;
 };
 
 export function createChatService(deps: ChatServiceDeps): ChatService {
@@ -192,6 +225,14 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
   const reactionLimiter: RateLimiter = createRateLimiter({
     capacity: REACTION_RATE_CAPACITY,
     refillIntervalMs: REACTION_RATE_REFILL_INTERVAL_MS,
+    nowFn,
+  });
+
+  // Dedicated bucket for typing presence — keyed by sessionId, separate from
+  // both `limiter` and `reactionLimiter`. On exhaustion setTyping drops silently.
+  const typingLimiter: RateLimiter = createRateLimiter({
+    capacity: TYPING_RATE_CAPACITY,
+    refillIntervalMs: TYPING_RATE_REFILL_INTERVAL_MS,
     nowFn,
   });
 
@@ -309,6 +350,42 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
       const value = trimmed ? trimmed : null;
 
       return deps.setSessionAlias(sessionId, value);
+    },
+
+    async setTyping({ sessionId, chatId, state, requesterCashierId, requesterRole }) {
+      const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
+
+      // Presence has its OWN lenient bucket. Drop silently when exhausted — a
+      // rate-limited typing ping is not worth surfacing as a 429 (the real
+      // cadence control is the frontend debounce; this is only a backend guard).
+      if (!typingLimiter.tryConsume(sessionId)) {
+        return;
+      }
+
+      // Best-effort: presence is cosmetic, so a flaky WAHA ping must never
+      // surface an error to the cashier — let alone block their real send.
+      try {
+        if (state === 'start') {
+          await repository.startTyping(session.sessionName, chatId);
+        } else {
+          await repository.stopTyping(session.sessionName, chatId);
+        }
+      } catch {
+        // swallow — presence failures are non-fatal
+      }
+    },
+
+    async markSeen({ sessionId, chatId, requesterCashierId, requesterRole }) {
+      const session = await resolveAndAuthorize(sessionId, requesterRole, requesterCashierId);
+
+      // Best-effort + idempotent: sendSeen on already-read messages is a no-op,
+      // and it fires only on chat open (low frequency), so no rate bucket is
+      // needed. Swallow WAHA errors so marking-as-read never disrupts the cashier.
+      try {
+        await repository.sendSeen(session.sessionName, chatId);
+      } catch {
+        // swallow — best-effort
+      }
     },
   };
 }

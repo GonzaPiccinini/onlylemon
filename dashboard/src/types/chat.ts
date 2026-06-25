@@ -94,3 +94,6 @@ export type SendTextRequest = {
 export type SendReactionRequest = {
   reaction: string;
 };
+
+/** Real-time typing presence state sent to the worker. */
+export type TypingState = "start" | "stop";

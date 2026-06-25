@@ -53,6 +53,9 @@ function makeDeps(overrides: Partial<ChatRepositoryDeps> = {}): ChatRepositoryDe
     sendReaction: async () => {},
     sendTextStatus: async () => {},
     sendImageStatus: async () => {},
+    startTyping: async () => {},
+    stopTyping: async () => {},
+    sendSeen: async () => {},
     ...overrides,
   };
 }
@@ -582,6 +585,60 @@ describe('chat.repository — send pass-throughs', () => {
     const repo = createChatRepository(deps);
     await repo.sendReaction('sess', 'msg-id', '');
     assert.equal(capturedReaction, '');
+  });
+});
+
+// ── typing pass-throughs ────────────────────────────────────────────────────────
+
+describe('chat.repository — typing pass-throughs', () => {
+  it('startTyping passes sessionName and chatId to WAHA', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      startTyping: async (session, chatId) => {
+        captured = { session, chatId };
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    await repo.startTyping('sess', 'chat@c.us');
+
+    const args = captured as { session: string; chatId: string };
+    assert.equal(args.session, 'sess');
+    assert.equal(args.chatId, 'chat@c.us');
+  });
+
+  it('stopTyping passes sessionName and chatId to WAHA', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      stopTyping: async (session, chatId) => {
+        captured = { session, chatId };
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    await repo.stopTyping('sess', 'chat@c.us');
+
+    const args = captured as { session: string; chatId: string };
+    assert.equal(args.session, 'sess');
+    assert.equal(args.chatId, 'chat@c.us');
+  });
+});
+
+describe('chat.repository — sendSeen pass-through', () => {
+  it('sendSeen passes sessionName and chatId to WAHA', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      sendSeen: async (session, chatId) => {
+        captured = { session, chatId };
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    await repo.sendSeen('sess', 'chat@c.us');
+
+    const args = captured as { session: string; chatId: string };
+    assert.equal(args.session, 'sess');
+    assert.equal(args.chatId, 'chat@c.us');
   });
 });
 

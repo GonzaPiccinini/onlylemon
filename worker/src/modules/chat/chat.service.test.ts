@@ -66,6 +66,9 @@ function makeDeps(overrides: Partial<ChatServiceDeps> = {}): ChatServiceDeps {
       getMediaBytes: async () => ({ bytes: Buffer.from('fake'), mimetype: 'image/jpeg' }),
       sendTextStatus: async () => {},
       sendImageStatus: async () => {},
+      startTyping: async () => {},
+      stopTyping: async () => {},
+      sendSeen: async () => {},
     },
     nowFn: () => 0,
     ...overrides,
@@ -447,6 +450,9 @@ describe('chat.service — getMediaBytes', () => {
         getMediaBytes: async () => ({ bytes: fakeBytes, mimetype: 'image/png' }),
         sendTextStatus: async () => {},
         sendImageStatus: async () => {},
+        startTyping: async () => {},
+        stopTyping: async () => {},
+        sendSeen: async () => {},
       },
     }));
 
@@ -474,6 +480,9 @@ describe('chat.service — getMediaBytes', () => {
         getMediaBytes: async () => null,
         sendTextStatus: async () => {},
         sendImageStatus: async () => {},
+        startTyping: async () => {},
+        stopTyping: async () => {},
+        sendSeen: async () => {},
       },
     }));
 
@@ -526,6 +535,9 @@ describe('chat.service — sendText forwards replyTo', () => {
         getMediaBytes: async () => null,
         sendTextStatus: async () => {},
         sendImageStatus: async () => {},
+        startTyping: async () => {},
+        stopTyping: async () => {},
+        sendSeen: async () => {},
       },
     }));
 
@@ -731,5 +743,236 @@ describe('chat.service — setSessionAlias', () => {
       requesterRole: 'ADMIN',
     });
     assert.equal(called, true);
+  });
+});
+
+// ── setTyping (real-time typing presence) ──────────────────────────────────────
+
+describe('chat.service — setTyping', () => {
+  it('start delegates to repository.startTyping with the resolved sessionName + chatId', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ sessionName: 'waha-sess', cashierId: 'cashier-1' }),
+    });
+    deps.repository.startTyping = async (sessionName, chatId) => {
+      captured = { sessionName, chatId };
+    };
+
+    const service = createChatService(deps);
+    await service.setTyping({
+      sessionId: 'session-uuid-1',
+      chatId: 'chat@c.us',
+      state: 'start',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    assert.deepEqual(captured, { sessionName: 'waha-sess', chatId: 'chat@c.us' });
+  });
+
+  it('stop delegates to repository.stopTyping with the resolved sessionName + chatId', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ sessionName: 'waha-sess', cashierId: 'cashier-1' }),
+    });
+    deps.repository.stopTyping = async (sessionName, chatId) => {
+      captured = { sessionName, chatId };
+    };
+
+    const service = createChatService(deps);
+    await service.setTyping({
+      sessionId: 'session-uuid-1',
+      chatId: 'chat@c.us',
+      state: 'stop',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    assert.deepEqual(captured, { sessionName: 'waha-sess', chatId: 'chat@c.us' });
+  });
+
+  it('CASHIER setTyping on a foreign session throws ChatForbiddenError', async () => {
+    const service = createChatService(makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-OTHER' }),
+    }));
+
+    await assert.rejects(
+      () => service.setTyping({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        state: 'start',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+      (err) => err instanceof ChatForbiddenError,
+    );
+  });
+
+  it('throws ChatSessionNotFoundError when the session does not exist', async () => {
+    const service = createChatService(makeDeps({
+      getWhatsappSession: async () => null,
+    }));
+
+    await assert.rejects(
+      () => service.setTyping({
+        sessionId: 'missing',
+        chatId: 'chat@c.us',
+        state: 'start',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+      (err) => err instanceof ChatSessionNotFoundError,
+    );
+  });
+
+  it('swallows repository/WAHA errors (presence is best-effort)', async () => {
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-1' }),
+    });
+    deps.repository.startTyping = async () => {
+      throw new Error('WAHA startTyping failed with status 500');
+    };
+
+    const service = createChatService(deps);
+    await assert.doesNotReject(() =>
+      service.setTyping({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        state: 'start',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+    );
+  });
+
+  it('does NOT consume the send rate bucket (independent)', async () => {
+    let now = 0;
+    const service = createChatService(makeDeps({
+      nowFn: () => now,
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-1' }),
+    }));
+
+    // Many typing pings...
+    for (let i = 0; i < 15; i++) {
+      await service.setTyping({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        state: i % 2 === 0 ? 'start' : 'stop',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      });
+    }
+
+    // ...must not eat into the text/photo budget.
+    await assert.doesNotReject(() =>
+      service.sendText({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        text: 'still in budget',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+    );
+  });
+
+  it('drops silently when its own bucket is exhausted (no throw, not forwarded)', async () => {
+    let calls = 0;
+    const deps = makeDeps({
+      nowFn: () => 0,
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-1' }),
+    });
+    deps.repository.startTyping = async () => { calls += 1; };
+
+    const service = createChatService(deps);
+    const args = {
+      sessionId: 'session-uuid-1',
+      chatId: 'chat@c.us',
+      state: 'start' as const,
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER' as const,
+    };
+
+    // Drain the typing bucket (capacity 20) — none should throw.
+    for (let i = 0; i < 20; i++) {
+      await service.setTyping(args);
+    }
+    // The 21st is over budget: it must NOT throw and must NOT reach the repository.
+    await assert.doesNotReject(() => service.setTyping(args));
+    assert.equal(calls, 20);
+  });
+});
+
+// ── markSeen (mark a chat's messages as read) ──────────────────────────────────
+
+describe('chat.service — markSeen', () => {
+  it('delegates to repository.sendSeen with the resolved sessionName + chatId', async () => {
+    let captured: unknown = null;
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ sessionName: 'waha-sess', cashierId: 'cashier-1' }),
+    });
+    deps.repository.sendSeen = async (sessionName, chatId) => {
+      captured = { sessionName, chatId };
+    };
+
+    const service = createChatService(deps);
+    await service.markSeen({
+      sessionId: 'session-uuid-1',
+      chatId: 'chat@c.us',
+      requesterCashierId: 'cashier-1',
+      requesterRole: 'CASHIER',
+    });
+
+    assert.deepEqual(captured, { sessionName: 'waha-sess', chatId: 'chat@c.us' });
+  });
+
+  it('CASHIER markSeen on a foreign session throws ChatForbiddenError', async () => {
+    const service = createChatService(makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-OTHER' }),
+    }));
+
+    await assert.rejects(
+      () => service.markSeen({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+      (err) => err instanceof ChatForbiddenError,
+    );
+  });
+
+  it('throws ChatSessionNotFoundError when the session does not exist', async () => {
+    const service = createChatService(makeDeps({
+      getWhatsappSession: async () => null,
+    }));
+
+    await assert.rejects(
+      () => service.markSeen({
+        sessionId: 'missing',
+        chatId: 'chat@c.us',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+      (err) => err instanceof ChatSessionNotFoundError,
+    );
+  });
+
+  it('swallows repository/WAHA errors (best-effort)', async () => {
+    const deps = makeDeps({
+      getWhatsappSession: async () => makeSession({ cashierId: 'cashier-1' }),
+    });
+    deps.repository.sendSeen = async () => {
+      throw new Error('WAHA sendSeen failed with status 500');
+    };
+
+    const service = createChatService(deps);
+    await assert.doesNotReject(() =>
+      service.markSeen({
+        sessionId: 'session-uuid-1',
+        chatId: 'chat@c.us',
+        requesterCashierId: 'cashier-1',
+        requesterRole: 'CASHIER',
+      }),
+    );
   });
 });

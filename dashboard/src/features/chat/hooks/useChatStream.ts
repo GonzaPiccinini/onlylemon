@@ -203,6 +203,25 @@ export const useChatStream = (
           );
         }
 
+        // Auto-mark-read: an incoming message that lands while the cashier is
+        // actively viewing a chat in this session is marked read on WhatsApp
+        // immediately (blue ticks), mirroring WhatsApp Web with the conversation
+        // open. Gated on tab visibility + active session; we send to the
+        // canonical activeChatId because the event's chatId may arrive in a
+        // different JID form (@lid vs @c.us). markSeen is idempotent, so if the
+        // message was for another chat in the session it's a harmless no-op.
+        if (
+          !message.fromMe &&
+          !document.hidden &&
+          activeSessionId &&
+          activeChatId &&
+          sessionId === activeSessionId
+        ) {
+          void chatService
+            .markSeen(scope, activeSessionId, activeChatId)
+            .catch(() => {});
+        }
+
         // In-app browser notification (Option A). Suppress ONLY when the user is
         // actively viewing this exact chat: tab focused AND the message's session
         // is the one selected in the picker AND its chat is the open one. In every
