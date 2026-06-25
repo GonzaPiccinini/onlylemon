@@ -36,6 +36,8 @@ const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 interface ComposerProps {
   onSendText: (text: string, replyTo?: string) => void;
   onSendPhoto: (file: File, caption?: string) => void;
+  /** Called on each keystroke to drive the real-time typing indicator. */
+  onTyping?: () => void;
   replyingTo?: ChatMessage | null;
   onCancelReply: () => void;
   sending: boolean;
@@ -62,6 +64,7 @@ function validateFile(file: File): string | null {
 export const Composer = ({
   onSendText,
   onSendPhoto,
+  onTyping,
   replyingTo,
   onCancelReply,
   sending,
@@ -206,7 +209,10 @@ export const Composer = ({
           <Textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              onTyping?.();
+            }}
             onKeyDown={handleKeyDown}
             placeholder={attachment ? 'Añadí un pie de foto (opcional)…' : 'Escribí un mensaje…'}
             disabled={sending}

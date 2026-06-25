@@ -63,6 +63,8 @@ export const endpoints = {
       `/chat/sessions/${sessionId}/status/image`,
     cashierSessionAlias: (sessionId: string) =>
       `/chat/sessions/${sessionId}/alias`,
+    cashierTyping: (sessionId: string, chatId: string) =>
+      `/chat/sessions/${sessionId}/chats/${chatId}/typing`,
 
     // Admin-scoped endpoints
     adminChats: (cashierId: string, sessionId: string) =>
@@ -81,6 +83,8 @@ export const endpoints = {
       `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/status/image`,
     adminSessionAlias: (cashierId: string, sessionId: string) =>
       `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/alias`,
+    adminTyping: (cashierId: string, sessionId: string, chatId: string) =>
+      `/admin/chat/cashiers/${cashierId}/sessions/${sessionId}/chats/${chatId}/typing`,
   },
   cashier: {
     sessions: "/cashier/sessions",

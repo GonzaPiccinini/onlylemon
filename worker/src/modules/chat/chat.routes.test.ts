@@ -105,6 +105,7 @@ function makeMockService(overrides: Partial<ChatService> = {}): ChatService {
     publishTextStatus: async () => {},
     publishImageStatus: async () => {},
     setSessionAlias: async () => {},
+    setTyping: async () => {},
     ...overrides,
   };
 }
@@ -905,6 +906,46 @@ describe('chat.routes — setSessionAlias', () => {
     const app = makeTestApp(async (id) => (id === 'session-uuid-1' ? ownedSession : null));
     const { status } = await request(
       app, 'PATCH', '/api/chat/sessions/session-uuid-1/alias', { body: { alias: 'x' } },
+    );
+    assert.equal(status, 401);
+  });
+});
+
+// ── typing routes ─────────────────────────────────────────────────────────────
+
+describe('chat.routes — typing', () => {
+  it('POST /chat/sessions/:sessionId/chats/:chatId/typing returns 200 for owner', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-1' ? ownedSession : null));
+    const { status } = await request(
+      app, 'POST', '/api/chat/sessions/session-uuid-1/chats/chat@c.us/typing',
+      { headers: { authorization: `Bearer ${cashier1Token}` }, body: { state: 'start' } },
+    );
+    assert.equal(status, 200);
+  });
+
+  it('POST .../typing returns 403 for a foreign session', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-2' ? foreignSession : null));
+    const { status } = await request(
+      app, 'POST', '/api/chat/sessions/session-uuid-2/chats/chat@c.us/typing',
+      { headers: { authorization: `Bearer ${cashier1Token}` }, body: { state: 'start' } },
+    );
+    assert.equal(status, 403);
+  });
+
+  it('POST /admin/chat/.../typing returns 200 for admin', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-2' ? foreignSession : null));
+    const { status } = await request(
+      app, 'POST', '/api/admin/chat/cashiers/cashier-2/sessions/session-uuid-2/chats/chat@c.us/typing',
+      { headers: { authorization: `Bearer ${adminToken}` }, body: { state: 'stop' } },
+    );
+    assert.equal(status, 200);
+  });
+
+  it('POST .../typing returns 401 unauthenticated', async () => {
+    const app = makeTestApp(async (id) => (id === 'session-uuid-1' ? ownedSession : null));
+    const { status } = await request(
+      app, 'POST', '/api/chat/sessions/session-uuid-1/chats/chat@c.us/typing',
+      { body: { state: 'start' } },
     );
     assert.equal(status, 401);
   });

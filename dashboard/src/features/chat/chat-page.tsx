@@ -48,6 +48,7 @@ import {
   useLastSession,
   useLastChat,
   rememberChatFor,
+  useTypingPresence,
 } from './hooks';
 import {
   SessionPicker,
@@ -276,19 +277,28 @@ export const ChatPage = ({
   const sendPhoto = useSendPhoto(scope, activeSessionId, activeChatId);
   const sendReaction = useSendReaction(scope, activeSessionId, activeChatId);
 
+  // Real-time "escribiendo…" presence — driven by composer keystrokes.
+  const { onType: onTyping, stop: stopTyping } = useTypingPresence(
+    scope,
+    activeSessionId,
+    activeChatId,
+  );
+
   const handleSendText = useCallback(
     (text: string, replyTo?: string) => {
+      stopTyping();
       sendMessage.mutate({ text, replyTo });
       setReplyingTo(null);
     },
-    [sendMessage],
+    [sendMessage, stopTyping],
   );
 
   const handleSendPhoto = useCallback(
     (file: File, caption?: string) => {
+      stopTyping();
       sendPhoto.mutate({ file, caption });
     },
-    [sendPhoto],
+    [sendPhoto, stopTyping],
   );
 
   const handleReact = useCallback(
@@ -413,6 +423,7 @@ export const ChatPage = ({
           <Composer
             onSendText={handleSendText}
             onSendPhoto={handleSendPhoto}
+            onTyping={onTyping}
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
             sending={isSending}

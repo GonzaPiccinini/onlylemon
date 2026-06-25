@@ -82,6 +82,12 @@ export type ChatRepositoryDeps = {
   /** Calls WAHA POST /api/{session}/status/image */
   sendImageStatus(session: string, payload: ImageStatusPayload): Promise<void>;
 
+  /** Calls WAHA POST /api/startTyping */
+  startTyping(session: string, chatId: string): Promise<void>;
+
+  /** Calls WAHA POST /api/stopTyping */
+  stopTyping(session: string, chatId: string): Promise<void>;
+
   /**
    * Optional structured logger (pino-compatible). Injected so the repository
    * stays a pure deps layer — unit tests need no env/config to import it. The
@@ -196,6 +202,8 @@ export type ChatRepository = {
   sendReaction(sessionName: string, messageId: string, reaction: string): Promise<void>;
   sendTextStatus(sessionName: string, payload: TextStatusPayload): Promise<void>;
   sendImageStatus(sessionName: string, payload: ImageStatusPayload): Promise<void>;
+  startTyping(sessionName: string, chatId: string): Promise<void>;
+  stopTyping(sessionName: string, chatId: string): Promise<void>;
 };
 
 /**
@@ -267,6 +275,8 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
     sendReaction,
     sendTextStatus,
     sendImageStatus,
+    startTyping,
+    stopTyping,
     logger,
   } = deps;
 
@@ -387,6 +397,14 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
     async sendImageStatus(sessionName: string, payload: ImageStatusPayload): Promise<void> {
       return sendImageStatus(sessionName, payload);
     },
+
+    async startTyping(sessionName: string, chatId: string): Promise<void> {
+      return startTyping(sessionName, chatId);
+    },
+
+    async stopTyping(sessionName: string, chatId: string): Promise<void> {
+      return stopTyping(sessionName, chatId);
+    },
   };
 }
 
@@ -408,6 +426,8 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
     sendReaction,
     sendTextStatus,
     sendImageStatus,
+    startTyping,
+    stopTyping,
   } = await import('../../integrations/waha/client.js');
   const { logger } = await import('../../lib/logger.js');
 
@@ -423,6 +443,8 @@ export async function createDefaultChatRepository(): Promise<ChatRepository> {
     sendReaction: (session, messageId, reaction) => sendReaction(session, messageId, reaction),
     sendTextStatus: (session, payload) => sendTextStatus(session, payload),
     sendImageStatus: (session, payload) => sendImageStatus(session, payload),
+    startTyping: (session, chatId) => startTyping(session, chatId),
+    stopTyping: (session, chatId) => stopTyping(session, chatId),
     logger,
   });
 }

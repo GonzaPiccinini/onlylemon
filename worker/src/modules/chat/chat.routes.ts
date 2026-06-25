@@ -109,6 +109,12 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     wrapAsync(controller.sendReaction.bind(controller)),
   );
 
+  router.post(
+    '/chat/sessions/:sessionId/chats/:chatId/typing',
+    ...cashierMiddleware,
+    wrapAsync(controller.setTyping.bind(controller)),
+  );
+
   router.get(
     '/chat/sessions/:sessionId/chats/:chatId/messages/:messageId/media',
     ...cashierMiddleware,
@@ -186,6 +192,12 @@ export function createChatRouter(opts: ChatRouterOptions): Router {
     '/admin/chat/cashiers/:cashierId/sessions/:sessionId/chats/:chatId/messages/:messageId/reactions',
     ...adminMiddleware,
     wrapAsync(controller.sendReaction.bind(controller)),
+  );
+
+  router.post(
+    '/admin/chat/cashiers/:cashierId/sessions/:sessionId/chats/:chatId/typing',
+    ...adminMiddleware,
+    wrapAsync(controller.setTyping.bind(controller)),
   );
 
   router.get(

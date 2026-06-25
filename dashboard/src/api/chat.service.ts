@@ -27,6 +27,7 @@ import type {
   ChatMessage,
   SendReactionRequest,
   SendTextRequest,
+  TypingState,
 } from "@/types/chat";
 
 // ---------------------------------------------------------------------------
@@ -111,6 +112,12 @@ function sessionAliasUrl(scope: ChatScope, sessionId: string): string {
     : endpoints.chat.adminSessionAlias(scope.cashierId, sessionId);
 }
 
+function typingUrl(scope: ChatScope, sessionId: string, chatId: string): string {
+  return scope.kind === "cashier"
+    ? endpoints.chat.cashierTyping(sessionId, chatId)
+    : endpoints.chat.adminTyping(scope.cashierId, sessionId, chatId);
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -181,6 +188,23 @@ export const chatService = {
   ): Promise<void> {
     const body: SendReactionRequest = { reaction };
     await http.post(reactionsUrl(scope, sessionId, chatId, messageId), body);
+  },
+
+  /**
+   * Send a real-time typing presence ping. `state: "start"` shows "typing…" to
+   * the recipient; `"stop"` clears it.
+   *
+   * Best-effort: presence is cosmetic — the worker swallows WAHA errors and
+   * never rate-limits this with a 4xx. Callers should fire-and-forget: do not
+   * await-block on it and ignore failures (see useTypingPresence).
+   */
+  async setTyping(
+    scope: ChatScope,
+    sessionId: string,
+    chatId: string,
+    state: TypingState,
+  ): Promise<void> {
+    await http.post(typingUrl(scope, sessionId, chatId), { state });
   },
 
   /**

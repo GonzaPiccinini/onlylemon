@@ -89,6 +89,11 @@ const SetSessionAliasBodySchema = z.object({
   alias: z.string().max(60).nullable(),
 });
 
+/** Typing presence state — only 'start' or 'stop' are valid. */
+const SetTypingBodySchema = z.object({
+  state: z.enum(['start', 'stop']),
+});
+
 // ── Error → HTTP status mapping ───────────────────────────────────────────────
 
 function mapServiceError(error: unknown, res: Response): boolean {
@@ -125,6 +130,7 @@ export type ChatController = {
   /** publishImageStatus — runs AFTER uploadSingleFile middleware (like sendPhoto). */
   publishImageStatus(req: Request, res: Response): Promise<void>;
   setSessionAlias(req: Request, res: Response): Promise<void>;
+  setTyping(req: Request, res: Response): Promise<void>;
 };
 
 export function createChatController(service: ChatService): ChatController {
@@ -440,6 +446,44 @@ export function createChatController(service: ChatService): ChatController {
         await service.setSessionAlias({
           sessionId,
           alias: parsed.data.alias,
+          requesterRole,
+          requesterCashierId,
+        });
+        res.status(200).json({ ok: true });
+      } catch (err) {
+        if (!mapServiceError(err, res)) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      }
+    },
+
+    // ── POST /chat/sessions/:sessionId/chats/:chatId/typing ──────────────────
+    // Real-time typing presence. Best-effort: the service swallows WAHA errors
+    // and never throws a rate-limit error here (over-budget pings are dropped),
+    // so this normally returns 200 unless auth/ownership fails (403/404).
+    async setTyping(req: Request, res: Response): Promise<void> {
+      const { sessionId, chatId } = req.params;
+      const requesterRole = req.authUser!.role;
+      const requesterCashierId = req.authUser!.cashierId;
+
+      if (!WaChatIdSchema.safeParse(chatId).success) {
+        res.status(400).json({ error: 'Invalid chatId' });
+        return;
+      }
+
+      const parsed = SetTypingBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+        return;
+      }
+
+      const { state } = parsed.data;
+
+      try {
+        await service.setTyping({
+          sessionId,
+          chatId,
+          state,
           requesterRole,
           requesterCashierId,
         });

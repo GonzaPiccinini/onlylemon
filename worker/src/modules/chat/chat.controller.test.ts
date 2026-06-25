@@ -136,6 +136,7 @@ function makeMockService(overrides: Partial<ChatService> = {}): ChatService {
     publishTextStatus: async () => {},
     publishImageStatus: async () => {},
     setSessionAlias: async () => {},
+    setTyping: async () => {},
     ...overrides,
   };
 }
@@ -464,6 +465,100 @@ describe('chat.controller — sendReaction', () => {
     const req = makeReq({ body: { reaction: '👍' } });
     const res = makeRes();
     await sendReaction(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 404);
+  });
+});
+
+// ── setTyping ─────────────────────────────────────────────────────────────────
+
+describe('chat.controller — setTyping', () => {
+  it('returns 200 and forwards state=start + chatId to the service', async () => {
+    let captured: unknown = null;
+    const svc = makeMockService({
+      setTyping: async (args) => { captured = args; },
+    });
+    const { setTyping } = createChatController(svc);
+
+    const req = makeReq({ body: { state: 'start' } });
+    const res = makeRes();
+    await setTyping(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+    const args = captured as { chatId: string; state: string };
+    assert.equal(args.state, 'start');
+    assert.equal(args.chatId, 'chat@c.us');
+  });
+
+  it('returns 200 for state=stop', async () => {
+    const svc = makeMockService();
+    const { setTyping } = createChatController(svc);
+
+    const req = makeReq({ body: { state: 'stop' } });
+    const res = makeRes();
+    await setTyping(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 200);
+  });
+
+  it('returns 400 when state is missing', async () => {
+    const svc = makeMockService();
+    const { setTyping } = createChatController(svc);
+
+    const req = makeReq({ body: {} });
+    const res = makeRes();
+    await setTyping(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('returns 400 when state is not "start" or "stop"', async () => {
+    const svc = makeMockService();
+    const { setTyping } = createChatController(svc);
+
+    const req = makeReq({ body: { state: 'composing' } });
+    const res = makeRes();
+    await setTyping(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('returns 400 when chatId is invalid (no @)', async () => {
+    const svc = makeMockService();
+    const { setTyping } = createChatController(svc);
+
+    const req = makeReq({
+      params: { sessionId: 'session-uuid-1', chatId: 'invalid-no-at' },
+      body: { state: 'start' },
+    });
+    const res = makeRes();
+    await setTyping(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('returns 403 on ChatForbiddenError', async () => {
+    const svc = makeMockService({
+      setTyping: async () => { throw new ChatForbiddenError(); },
+    });
+    const { setTyping } = createChatController(svc);
+
+    const req = makeReq({ body: { state: 'start' } });
+    const res = makeRes();
+    await setTyping(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 403);
+  });
+
+  it('returns 404 on ChatSessionNotFoundError', async () => {
+    const svc = makeMockService({
+      setTyping: async () => { throw new ChatSessionNotFoundError('x'); },
+    });
+    const { setTyping } = createChatController(svc);
+
+    const req = makeReq({ body: { state: 'start' } });
+    const res = makeRes();
+    await setTyping(req, res as unknown as import('express').Response);
 
     assert.equal(res.statusCode, 404);
   });
