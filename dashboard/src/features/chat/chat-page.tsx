@@ -31,7 +31,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { CircleFadingPlusIcon } from 'lucide-react';
+import { CircleFadingPlusIcon, MessagesSquareIcon, SmartphoneIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/auth-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
@@ -55,6 +55,7 @@ import {
   ChatList,
   MessageThread,
   ChatHeader,
+  ChatEmptyState,
   Composer,
   StatusComposerDialog,
   NotificationToggle,
@@ -438,9 +439,15 @@ export const ChatPage = ({
         </div>
       </div>
     ) : (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Seleccioná un chat para ver los mensajes
-      </div>
+      <ChatEmptyState
+        icon={selectedSessionId ? MessagesSquareIcon : SmartphoneIcon}
+        title={selectedSessionId ? 'Elegí un chat' : 'Elegí una sesión'}
+        description={
+          selectedSessionId
+            ? 'Abrí una conversación de la izquierda para ver el historial y responder.'
+            : 'Seleccioná un número de WhatsApp para ver sus chats.'
+        }
+      />
     );
 
   // ------------------------------------------------------------------

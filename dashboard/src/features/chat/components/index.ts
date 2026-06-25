@@ -12,3 +12,4 @@ export { Composer } from './Composer';
 export { AttachmentPreview } from './AttachmentPreview';
 export { StatusComposerDialog } from './StatusComposerDialog';
 export { SessionAliasEditor } from './SessionAliasEditor';
+export { ChatEmptyState } from './ChatEmptyState';
