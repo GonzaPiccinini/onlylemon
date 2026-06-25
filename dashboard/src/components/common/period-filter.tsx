@@ -52,7 +52,7 @@ export const PeriodFilter = ({ value, onChange }: PeriodFilterProps) => {
         <Field data-invalid={Boolean(form.formState.errors.from)}>
           <FieldLabel htmlFor="from">Desde</FieldLabel>
           <FieldContent>
-            <Input id="from" type="date" aria-invalid={Boolean(form.formState.errors.from)} {...form.register("from")} />
+            <Input id="from" type="date" className="appearance-none md:appearance-auto" aria-invalid={Boolean(form.formState.errors.from)} {...form.register("from")} />
             <FieldError errors={[form.formState.errors.from]} />
           </FieldContent>
         </Field>
@@ -60,7 +60,7 @@ export const PeriodFilter = ({ value, onChange }: PeriodFilterProps) => {
         <Field data-invalid={Boolean(form.formState.errors.to)}>
           <FieldLabel htmlFor="to">Hasta</FieldLabel>
           <FieldContent>
-            <Input id="to" type="date" aria-invalid={Boolean(form.formState.errors.to)} {...form.register("to")} />
+            <Input id="to" type="date" className="appearance-none md:appearance-auto" aria-invalid={Boolean(form.formState.errors.to)} {...form.register("to")} />
             <FieldError errors={[form.formState.errors.to]} />
           </FieldContent>
         </Field>
