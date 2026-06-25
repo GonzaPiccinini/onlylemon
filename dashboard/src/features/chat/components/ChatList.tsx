@@ -10,6 +10,7 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatListEntry } from '@/types/chat';
@@ -83,17 +84,15 @@ export const ChatList = ({
   }
 
   return (
-    // shrink-0 is required: this <ul> is a flex child of the scrollable region
-    // (flex flex-col overflow-y-auto). Because the <ul> has overflow-hidden, its
-    // flex auto min-height resolves to 0, so without shrink-0 flexbox shrinks it
-    // to the container height and overflow-hidden clips the rows below — the list
-    // then never overflows its scroll container, so it can't scroll. shrink-0
-    // keeps the <ul> at its content height so the parent scrolls instead.
-    <ul className="flex shrink-0 flex-col divide-y divide-border overflow-hidden rounded-lg border">
+    // shrink-0 keeps the <ul> at its content height (not squashed to the scroll
+    // container's height), so the parent scroll region scrolls the rows instead.
+    // No outer border/radius: the list is flush rows separated by divide-y, so it
+    // can't collide with the header or the card edge while scrolling.
+    <ul className="flex shrink-0 flex-col divide-y divide-border">
       {chats.map((chat) => {
         const isSelected = chat.chatId === selectedChatId;
         const isUnread = unreadChatIds?.has(chat.chatId) ?? false;
-        const { title: displayName } = resolveContactTitle(chat);
+        const { title: displayName, isPhone } = resolveContactTitle(chat);
 
         return (
           <li key={chat.chatId}>
@@ -107,6 +106,11 @@ export const ChatList = ({
                   : 'hover:bg-muted/60 text-foreground',
               ].join(' ')}
             >
+              {/* Avatar — initial of the saved name, or a person icon for numbers. */}
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                {isPhone ? <UserIcon className="size-4" /> : displayName.charAt(0).toUpperCase()}
+              </div>
+
               {/* Name + timestamp */}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <p

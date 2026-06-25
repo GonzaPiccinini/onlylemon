@@ -18,88 +18,14 @@
  *   - Admin sends text → delivered from cashier's number.
  */
 
-import { useCallback, useMemo, useState } from 'react';
-import { UsersIcon } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { useCallback, useState } from 'react';
+import { ArrowLeftIcon } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAdminCashiers, useCashierSessions } from '@/features/admin/admin-hooks';
 import type { ChatScope } from '@/api/chat.service';
-import type { SessionOption } from './components';
+import { CashierGrid, type SessionOption } from './components';
 import { ChatPage } from './chat-page';
-
-// ---------------------------------------------------------------------------
-// Cashier picker sub-component
-// ---------------------------------------------------------------------------
-
-interface CashierPickerProps {
-  cashiers: { id: string; name: string }[];
-  selectedCashierId: string | null;
-  onSelect: (cashierId: string) => void;
-  isLoading?: boolean;
-}
-
-const CashierPicker = ({
-  cashiers,
-  selectedCashierId,
-  onSelect,
-  isLoading,
-}: CashierPickerProps) => {
-  // Base UI's Select.Value resolves the trigger label from the root `items`
-  // map (value → label). Without it the trigger renders the raw value (the
-  // cashier id) instead of the name. Same pattern as currency-settings.tsx.
-  const items = useMemo(
-    () => Object.fromEntries(cashiers.map((c) => [c.id, c.name])),
-    [cashiers],
-  );
-
-  if (isLoading) {
-    return <Skeleton className="h-9 w-full rounded-md" />;
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="text-xs font-medium text-muted-foreground">Cajero</p>
-      <Select
-        value={selectedCashierId ?? ''}
-        items={items}
-        onValueChange={(value: string | null) => {
-          if (value) onSelect(value);
-        }}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Elegí un cajero..." />
-        </SelectTrigger>
-        <SelectContent>
-          {cashiers.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Empty state — before cashier is selected
-// ---------------------------------------------------------------------------
-
-const NoCashierSelected = () => (
-  <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center">
-    <UsersIcon className="size-10 text-muted-foreground/50" />
-    <p className="text-sm text-muted-foreground">
-      Elegí un cajero para ver sus chats
-    </p>
-  </div>
-);
 
 // ---------------------------------------------------------------------------
 // Inner component — loads sessions for a specific cashier
@@ -162,35 +88,63 @@ export const AdminChatPage = () => {
     setSelectedCashierId(cashierId);
   }, []);
 
-  const cashierPickerNode = (
-    <CashierPicker
-      cashiers={cashiers}
-      selectedCashierId={selectedCashierId}
-      onSelect={handleSelectCashier}
-      isLoading={cashiersLoading}
-    />
+  const handleBackToCashiers = useCallback(() => {
+    setSelectedCashierId(null);
+  }, []);
+
+  const selectedCashierName =
+    cashiers.find((c) => c.id === selectedCashierId)?.name ?? 'Cajero';
+
+  // Slot rendered at the top of the chat's left panel once a cashier is open:
+  // a back control that returns to the cashier grid (and shows who's open).
+  const cashierBackNode = (
+    <button
+      type="button"
+      onClick={handleBackToCashiers}
+      title="Cambiar de cajero"
+      className="group flex w-full items-center gap-2 rounded-md border bg-card px-3 py-2 text-left transition-colors hover:border-[#25d366]/50 hover:bg-[#25d366]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <ArrowLeftIcon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-[#25d366]" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
+          Cajero
+        </span>
+        <span className="block truncate text-sm font-medium">{selectedCashierName}</span>
+      </span>
+    </button>
   );
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4">
-      <PageHeader
-        title="WhatsApp"
-        description="Supervisá y enviá mensajes desde las sesiones de los cajeros."
-        descriptionClassName="hidden md:block"
-      />
+      {/* Section title — hidden on mobile to give the chat more vertical space
+          (the section is obvious from the nav there). */}
+      <div className="hidden md:block">
+        <PageHeader
+          title="WhatsApp"
+          description="Supervisá y enviá mensajes desde las sesiones de los cajeros."
+          descriptionClassName="hidden md:block"
+        />
+      </div>
 
       {selectedCashierId ? (
         <AdminChatInner
           key={selectedCashierId}
           cashierId={selectedCashierId}
-          cashierPicker={cashierPickerNode}
+          cashierPicker={cashierBackNode}
         />
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
-            {cashierPickerNode}
-            <NoCashierSelected />
+          <div className="shrink-0 border-b p-5 md:p-6">
+            <p className="text-base font-medium">Elegí un cajero</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Abrí los chats de un cajero para ver sus conversaciones y responder por él.
+            </p>
           </div>
+          <CashierGrid
+            cashiers={cashiers}
+            onSelect={handleSelectCashier}
+            isLoading={cashiersLoading}
+          />
         </div>
       )}
     </section>

@@ -31,7 +31,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { CircleFadingPlusIcon } from 'lucide-react';
+import { CircleFadingPlusIcon, MessagesSquareIcon, SmartphoneIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/auth-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
@@ -55,6 +55,7 @@ import {
   ChatList,
   MessageThread,
   ChatHeader,
+  ChatEmptyState,
   Composer,
   StatusComposerDialog,
   NotificationToggle,
@@ -129,6 +130,18 @@ export const ChatPage = ({
     sessions.some((s) => s.id === selectedSessionId);
   if (!sessionStillExists) {
     setSelectedSessionId(resolveSessionId(null, sessions));
+  }
+
+  // Auto-select once sessions arrive after mount. The useState initializer above
+  // runs only on the first render; in the admin flow ChatPage mounts before the
+  // cashier's sessions have loaded (initial list is empty), so the single-session
+  // default never fired and the chats wouldn't load. Re-resolve while nothing is
+  // selected yet — a no-op when a session is already chosen or the list is empty.
+  if (selectedSessionId === null) {
+    const autoSelected = resolveSessionId(lastSessionId, sessions);
+    if (autoSelected !== null) {
+      setSelectedSessionId(autoSelected);
+    }
   }
 
   const handleSelectSession = useCallback(
@@ -335,8 +348,9 @@ export const ChatPage = ({
 
   const selectedChatName = selectedChat?.displayName ?? 'Chat';
 
-  // Label of the session in use (alias → +phone → code), shown in the header
-  // so the user always sees which number they're chatting from.
+  // Session label (alias → +phone → code) — shown in the ChatHeader ONLY on
+  // mobile, where the session picker is hidden behind the conversation overlay.
+  // On desktop the picker is always visible on the left, so it's omitted there.
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
   const selectedSessionLabel = selectedSession
     ? (selectedSession.alias?.trim() ||
@@ -353,7 +367,7 @@ export const ChatPage = ({
     <div className="flex h-full min-h-0 flex-col bg-black">
       {/* Pinned header — cashier/session pickers + status action stay fixed
           at the top while the contacts list scrolls below them. */}
-      <div className="flex shrink-0 flex-col gap-3 px-3 pt-3">
+      <div className="flex shrink-0 flex-col gap-3 p-3">
         <NotificationToggle />
         {cashierPicker}
         {sessions.length > 0 && (
@@ -379,9 +393,9 @@ export const ChatPage = ({
 
       {/* Scrollable contacts region — grows with chat count and scrolls in
           place, so the list never overflows the (viewport-locked) layout. */}
-      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto border-t">
         {sessions.length === 0 ? (
-          (emptyCta ?? null)
+          <div className="p-3">{emptyCta ?? null}</div>
         ) : (
           <ChatList
             chats={chats}
@@ -406,7 +420,7 @@ export const ChatPage = ({
           <ChatHeader
             chat={selectedChat}
             onBack={isMobile ? () => setSheetOpen(false) : undefined}
-            sessionLabel={selectedSessionLabel}
+            sessionLabel={isMobile ? selectedSessionLabel : undefined}
           />
         )}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -437,9 +451,15 @@ export const ChatPage = ({
         </div>
       </div>
     ) : (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Seleccioná un chat para ver los mensajes
-      </div>
+      <ChatEmptyState
+        icon={selectedSessionId ? MessagesSquareIcon : SmartphoneIcon}
+        title={selectedSessionId ? 'Elegí un chat' : 'Elegí una sesión'}
+        description={
+          selectedSessionId
+            ? 'Abrí una conversación de la izquierda para ver el historial y responder.'
+            : 'Seleccioná un número de WhatsApp para ver sus chats.'
+        }
+      />
     );
 
   // ------------------------------------------------------------------
