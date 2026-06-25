@@ -367,7 +367,7 @@ export const ChatPage = ({
     <div className="flex h-full min-h-0 flex-col bg-black">
       {/* Pinned header — cashier/session pickers + status action stay fixed
           at the top while the contacts list scrolls below them. */}
-      <div className="flex shrink-0 flex-col gap-3 px-3 pt-3">
+      <div className="flex shrink-0 flex-col gap-3 p-3">
         <NotificationToggle />
         {cashierPicker}
         {sessions.length > 0 && (
@@ -393,9 +393,9 @@ export const ChatPage = ({
 
       {/* Scrollable contacts region — grows with chat count and scrolls in
           place, so the list never overflows the (viewport-locked) layout. */}
-      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto border-t">
         {sessions.length === 0 ? (
-          (emptyCta ?? null)
+          <div className="p-3">{emptyCta ?? null}</div>
         ) : (
           <ChatList
             chats={chats}
