@@ -10,6 +10,7 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatListEntry } from '@/types/chat';
@@ -91,7 +92,7 @@ export const ChatList = ({
       {chats.map((chat) => {
         const isSelected = chat.chatId === selectedChatId;
         const isUnread = unreadChatIds?.has(chat.chatId) ?? false;
-        const { title: displayName } = resolveContactTitle(chat);
+        const { title: displayName, isPhone } = resolveContactTitle(chat);
 
         return (
           <li key={chat.chatId}>
@@ -105,6 +106,11 @@ export const ChatList = ({
                   : 'hover:bg-muted/60 text-foreground',
               ].join(' ')}
             >
+              {/* Avatar — initial of the saved name, or a person icon for numbers. */}
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                {isPhone ? <UserIcon className="size-4" /> : displayName.charAt(0).toUpperCase()}
+              </div>
+
               {/* Name + timestamp */}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <p
