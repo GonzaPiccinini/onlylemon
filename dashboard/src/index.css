@@ -28,6 +28,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-accent-violet: var(--accent-violet);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -66,6 +67,32 @@ body {
   min-height: 100svh;
 }
 
+/* Custom scrollbars across the whole app — slim, rounded, translucent thumb
+   that tints to the accent on hover. Replaces the browser default everywhere. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--primary) 55%, transparent);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -79,6 +106,36 @@ body {
 }
 
 @layer utilities {
+  /* Frosted glass — the signature of the new component language: a translucent
+     themed surface, a real backdrop blur, and a lit top edge. */
+  .glass {
+    background-color: color-mix(in oklab, var(--card) 68%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 9%, transparent),
+      0 10px 30px -14px rgb(0 0 0 / 0.55);
+  }
+  /* More opaque — for overlays above content (dialogs, sheets, dropdowns,
+     selects) where legibility matters most. */
+  .glass-strong {
+    background-color: color-mix(in oklab, var(--popover) 86%, transparent);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 9%, transparent),
+      0 18px 50px -18px rgb(0 0 0 / 0.6);
+  }
+  /* Lighter veil — for inputs, chips and inline controls. */
+  .glass-subtle {
+    background-color: color-mix(in oklab, var(--card) 45%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  }
+
   /* Thin, modern scrollbar — slim track, rounded translucent thumb that
      darkens on hover. Used in scrollable chat panes. */
   .scrollbar-thin {
@@ -99,5 +156,63 @@ body {
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+  }
+
+  /* Two-colour futuristic accent — blue → violet. */
+  .accent-gradient {
+    background-image: linear-gradient(135deg, var(--primary), var(--accent-violet));
+  }
+  .accent-gradient-animated {
+    background-image: linear-gradient(
+      135deg,
+      var(--primary),
+      var(--accent-violet),
+      var(--primary)
+    );
+    background-size: 200% 200%;
+    animation: gradient-pan 6s ease infinite;
+  }
+  .text-accent-gradient {
+    background-image: linear-gradient(135deg, var(--primary), var(--accent-violet));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .animate-glow-pulse {
+    animation: glow-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 20px 2px color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+}
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accent-gradient-animated,
+  .animate-glow-pulse {
+    animation: none;
   }
 }

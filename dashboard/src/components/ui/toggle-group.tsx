@@ -25,7 +25,7 @@ export function ToggleGroup({
 }: ToggleGroupProps) {
   return (
     <ToggleGroupContext.Provider value={{ value, onValueChange }}>
-      <div role="group" className={cn('inline-flex flex-wrap items-center gap-1', className)}>
+      <div role="group" className={cn('inline-flex flex-wrap items-center gap-1 p-0.5', className)}>
         {children}
       </div>
     </ToggleGroupContext.Provider>
@@ -56,7 +56,7 @@ export function ToggleGroupItem({
       aria-pressed={isActive}
       data-active={isActive ? 'true' : undefined}
       className={cn(
-        'inline-flex h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-transparent px-2.5 text-xs font-medium text-foreground/60 transition-all hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm dark:data-[active=true]:border-input dark:data-[active=true]:bg-input/30',
+        'glass-subtle inline-flex h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-transparent px-2.5 text-xs font-medium text-foreground/60 transition-all duration-150 hover:bg-white/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 data-[active=true]:bg-primary/20 data-[active=true]:border-primary/30 data-[active=true]:text-primary data-[active=true]:shadow-sm data-[active=true]:shadow-primary/20',
         className,
       )}
       onClick={(event) => {

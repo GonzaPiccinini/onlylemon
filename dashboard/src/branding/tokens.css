@@ -1,73 +1,76 @@
 /* dashboard/src/branding/tokens.css
  * Brand palette + branded background. Forks edit this file to recolor.
  *
- * "Lime Signal" — a futuristic dark palette built around the brand lime.
- * Formula (per futuristic-palette research): deep near-black neutral base +
- * lime as the single hero accent + a cool teal/cyan companion that lives in the
- * data-viz spectrum and the ambient glow. Lime leads; cool signals follow.
+ * "FUTURE GLASS" — a refined-futuristic dark theme.
+ * Cool-neutral slate base + a TWO-COLOUR accent system: electric blue (primary)
+ * paired with violet (accent-violet), used together as a blue→violet gradient on
+ * key surfaces. Frosted glass + subtle motion carry the futuristic feel.
  */
 
 :root {
   --radius: 0.5rem;
 
-  /* Deep neutral-cool charcoal — off pure black to avoid OLED halation. The
-     futurism comes from the accents, never from a saturated background. */
-  --background: #0c0d0f;
-  --foreground: #e7eaec;
+  /* Cool-neutral slate base (faint blue-violet undertone) — futuristic, not warm. */
+  --background: #0e0f16;
+  --foreground: #e9eaf0;
 
   /* Elevation 1 — cards / panels / tables. */
-  --card: #16181b;
-  --card-foreground: #e7eaec;
+  --card: #181a24;
+  --card-foreground: #e9eaf0;
 
   /* Elevation 2 — popovers, dropdowns, menus. */
-  --popover: #1e2126;
-  --popover-foreground: #e7eaec;
+  --popover: #1f2230;
+  --popover-foreground: #e9eaf0;
 
-  /* Lime — the hero signal accent: buttons, active states, key metrics. */
-  --primary: #c7f246;
-  --primary-foreground: #0c1100;
+  /* Electric blue — primary of the two-colour accent. */
+  --primary: #3f78ea;
+  --primary-foreground: #f3f6ff;
 
-  /* Cool-neutral surfaces. */
-  --secondary: #1b1e22;
-  --secondary-foreground: #d4d8db;
-  --muted: #181b1f;
-  --muted-foreground: #8a9099;
-  --accent: #232830;
-  --accent-foreground: #e7eaec;
+  /* Violet — second of the two-colour accent (pairs with primary as a gradient). */
+  --accent-violet: #9d6bff;
+  --accent-violet-foreground: #0c0718;
 
-  /* Clean neon rose-red — NOT orange (orange clashes with lime). */
-  --destructive: #f43f5e;
-  --destructive-foreground: #f8f8f8;
+  /* Cool neutral surfaces. */
+  --secondary: #1c1f2a;
+  --secondary-foreground: #d7dae5;
+  --muted: #181b25;
+  --muted-foreground: #9197a8;
+  --accent: #232739;
+  --accent-foreground: #e9eaf0;
 
-  /* Near-invisible neutral hairlines — panels are defined by light, not lines. */
-  --border: rgb(255 255 255 / 0.06);
-  --input: rgb(255 255 255 / 0.1);
-  --ring: #c7f246;
+  /* Semantic — a cool pink-red, on-theme. */
+  --destructive: #f0556a;
+  --destructive-foreground: #f6eef0;
 
-  /* Sidebar — a single breath off the canvas. */
-  --sidebar: #0e0f12;
-  --sidebar-foreground: #e7eaec;
-  --sidebar-primary: #c7f246;
-  --sidebar-primary-foreground: #0c1100;
-  --sidebar-accent: #1e2126;
-  --sidebar-accent-foreground: #e7eaec;
-  --sidebar-border: rgb(255 255 255 / 0.05);
-  --sidebar-ring: #c7f246;
+  /* Cool, faintly-blue hairlines — a subtle futuristic edge. */
+  --border: rgb(180 195 255 / 0.12);
+  --input: rgb(180 195 255 / 0.16);
+  --ring: #3f78ea;
 
-  /* Data viz — the futuristic "bio-tech → digital" spectrum: lime → mint → teal
-     → cyan → sky. This is where the cool companion accent lives. */
-  --chart-1: #c7f246;
-  --chart-2: #5fe3a1;
-  --chart-3: #2dd4bf;
-  --chart-4: #22d3ee;
-  --chart-5: #38bdf8;
+  /* Sidebar — a touch deeper than the canvas. */
+  --sidebar: #0c0d14;
+  --sidebar-foreground: #e9eaf0;
+  --sidebar-primary: #3f78ea;
+  --sidebar-primary-foreground: #f3f6ff;
+  --sidebar-accent: #1f2230;
+  --sidebar-accent-foreground: #e9eaf0;
+  --sidebar-border: rgb(180 195 255 / 0.1);
+  --sidebar-ring: #3f78ea;
+
+  /* Data viz — electric, cool, futuristic: blue, violet, cyan, teal, pink. */
+  --chart-1: #3f78ea;
+  --chart-2: #9d6bff;
+  --chart-3: #34d3e0;
+  --chart-4: #2dd4bf;
+  --chart-5: #f072b6;
 }
 
 body {
-  /* Near-black canvas with two faint signal glows — lime (top-left) and cyan
-     (top-right) — hinting the dual-accent system without washing the base. */
+  /* Cool canvas with two ambient blooms — blue + violet — matching the dual
+     accent and giving the frosted glass something to refract. Subtle, fixed. */
   background-color: var(--background);
   background-image:
-    radial-gradient(circle at 6% 0%, rgb(199 242 70 / 0.06), transparent 30%),
-    radial-gradient(circle at 94% 2%, rgb(34 211 238 / 0.05), transparent 32%);
+    radial-gradient(40rem 32rem at 8% -8%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 60%),
+    radial-gradient(36rem 30rem at 96% 0%, color-mix(in oklab, var(--accent-violet) 14%, transparent), transparent 58%);
+  background-attachment: fixed;
 }
