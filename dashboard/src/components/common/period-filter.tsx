@@ -1,14 +1,11 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CalendarIcon, CalendarSearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
-  FieldContent,
-  FieldDescription,
   FieldError,
-  FieldGroup,
-  FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { DateRangeFilters } from "@/types/domain";
@@ -46,30 +43,41 @@ export const PeriodFilter = ({ value, onChange }: PeriodFilterProps) => {
   return (
     <form
       onSubmit={form.handleSubmit(handleSubmit)}
-      className="rounded-xl border bg-card p-4"
+      className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-500"
     >
-      <FieldGroup className="gap-4 md:grid md:grid-cols-[1fr_1fr_auto] md:items-end">
-        <Field data-invalid={Boolean(form.formState.errors.from)}>
-          <FieldLabel htmlFor="from">Desde</FieldLabel>
-          <FieldContent>
-            <Input id="from" type="date" className="appearance-none md:appearance-auto" aria-invalid={Boolean(form.formState.errors.from)} {...form.register("from")} />
-            <FieldError errors={[form.formState.errors.from]} />
-          </FieldContent>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg accent-gradient text-white shadow-[0_0_10px_-2px_color-mix(in_oklab,var(--primary)_30%,transparent)]">
+          <CalendarSearchIcon className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+        <span className="text-sm font-medium text-muted-foreground">Filtrar por período</span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Field data-invalid={Boolean(form.formState.errors.from)} className="gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <CalendarIcon className="size-3.5" />
+            </span>
+            <span className="text-xs font-semibold text-foreground/80">Desde</span>
+          </div>
+          <Input id="from" type="date" className="appearance-none transition-all duration-200 md:appearance-auto" aria-invalid={Boolean(form.formState.errors.from)} {...form.register("from")} />
+          <FieldError errors={[form.formState.errors.from]} />
         </Field>
 
-        <Field data-invalid={Boolean(form.formState.errors.to)}>
-          <FieldLabel htmlFor="to">Hasta</FieldLabel>
-          <FieldContent>
-            <Input id="to" type="date" className="appearance-none md:appearance-auto" aria-invalid={Boolean(form.formState.errors.to)} {...form.register("to")} />
-            <FieldError errors={[form.formState.errors.to]} />
-          </FieldContent>
+        <Field data-invalid={Boolean(form.formState.errors.to)} className="gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <CalendarIcon className="size-3.5" />
+            </span>
+            <span className="text-xs font-semibold text-foreground/80">Hasta</span>
+          </div>
+          <Input id="to" type="date" className="appearance-none transition-all duration-200 md:appearance-auto" aria-invalid={Boolean(form.formState.errors.to)} {...form.register("to")} />
+          <FieldError errors={[form.formState.errors.to]} />
         </Field>
 
-        <Field>
-          <Button type="submit">Aplicar periodo</Button>
-          <FieldDescription>Actualiza estadisticas por rango</FieldDescription>
-        </Field>
-      </FieldGroup>
+        <div className="flex flex-col justify-end">
+          <Button type="submit">Aplicar</Button>
+        </div>
+      </div>
     </form>
   );
 };

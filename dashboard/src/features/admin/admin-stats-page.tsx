@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { MetricCard } from "@/components/common/metric-card";
 import { LoadingCard } from "@/components/common/loading-card";
 import { PeriodFilter } from "@/components/common/period-filter";
+import { FilterChips } from "@/components/common/filter-chips";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -33,6 +34,33 @@ import {
 } from "@/features/admin/admin-hooks";
 
 type StatsView = "total" | "contacted" | "gross" | "first";
+
+// Compact axis labels (e.g. "1.2M", "350K") so wide currency values never clip.
+const compactNumber = new Intl.NumberFormat(undefined, {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+type ChartTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ value?: number | string }>;
+  label?: string | number;
+  formatValue?: (n: number) => string;
+};
+
+// Glass tooltip card — legible on the dark theme (replaces recharts' white box).
+const ChartTooltip = ({ active, payload, label, formatValue }: ChartTooltipProps) => {
+  if (!active || !payload || payload.length === 0) return null;
+  const value = Number(payload[0]?.value ?? 0);
+  return (
+    <div className="glass-strong rounded-lg px-3 py-2 shadow-lg">
+      <p className="mb-0.5 text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground">
+        {formatValue ? formatValue(value) : value}
+      </p>
+    </div>
+  );
+};
 
 export const AdminStatsPage = () => {
   const money = useMoneyFormatter();
@@ -83,8 +111,23 @@ export const AdminStatsPage = () => {
         }}
       />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground">Vista:</span>
+      <FilterChips
+        chips={[
+          ...(dateRange.from !== getDefaultDateRange().from
+            ? [{ key: 'from', label: `Desde: ${dateRange.from}`, onRemove: () => { setDateRange({ ...dateRange, from: getDefaultDateRange().from }); setPage(1); } }]
+            : []),
+          ...(dateRange.to !== getDefaultDateRange().to
+            ? [{ key: 'to', label: `Hasta: ${dateRange.to}`, onRemove: () => { setDateRange({ ...dateRange, to: getDefaultDateRange().to }); setPage(1); } }]
+            : []),
+          ...(view !== 'total'
+            ? [{ key: 'view', label: `Vista: ${view === 'contacted' ? 'Por contacto' : view === 'gross' ? 'Bruto' : 'Primeras cargas'}`, onRemove: () => setView('total') }]
+            : []),
+        ]}
+        onClearAll={() => { setDateRange(getDefaultDateRange()); setView('total'); setPage(1); }}
+      />
+
+      <div className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vista</span>
         <ToggleGroup
           type="single"
           value={view}
@@ -96,6 +139,7 @@ export const AdminStatsPage = () => {
           <ToggleGroupItem value="first">Primeras cargas</ToggleGroupItem>
         </ToggleGroup>
       </div>
+
 
       <div
         className={
@@ -146,11 +190,40 @@ export const AdminStatsPage = () => {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 20, left: 8, right: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="4 4" />
+                <defs>
+                  {/* Frosted bar fill — violet→blue vertical gradient, translucent
+                      at the base so bars read like glass over the canvas. */}
+                  <linearGradient id="barGlass" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--accent-violet)" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.45} />
+                  </linearGradient>
+                </defs>
+                {/* Clean, futuristic grid: faint solid horizontal lines only —
+                    no dashes, no vertical clutter. */}
+                <CartesianGrid
+                  vertical={false}
+                  stroke="rgba(180, 195, 255, 0.1)"
+                  strokeWidth={1}
+                />
                 <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip formatter={(value) => money.format(Number(value))} />
-                <Bar dataKey="sum" fill="var(--chart-1)" radius={[8, 8, 0, 0]} />
+                <YAxis
+                  width={76}
+                  tickFormatter={(value) => compactNumber.format(Number(value))}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(180, 195, 255, 0.06)" }}
+                  content={<ChartTooltip formatValue={(n) => money.format(n)} />}
+                />
+                <Bar
+                  dataKey="sum"
+                  fill="url(#barGlass)"
+                  radius={[8, 8, 0, 0]}
+                  stroke="var(--accent-violet)"
+                  strokeOpacity={0.35}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
