@@ -51,6 +51,7 @@ services:
       R2_ENDPOINT: ${R2_ENDPOINT}
       R2_REGION: ${R2_REGION:-auto}
       TZ: America/Argentina/Buenos_Aires
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
     depends_on:
       postgres:
         condition: service_healthy
