@@ -8,6 +8,7 @@ import {
 } from './service.js';
 import { logger } from '../../lib/logger.js';
 import { leadsCreatedTotal, leadsMatchedTotal } from '../../lib/metrics.js';
+import { verifyTurnstileToken } from '../turnstile.js';
 
 type HttpErrorResponse = {
   status: number;
@@ -70,6 +71,16 @@ export function resolveCreateLeadHttpError(
 }
 
 export async function leadsPost(req: Request, res: Response) {
+  const turnstileToken = req.body?.turnstileToken;
+  if (typeof turnstileToken !== 'string' || turnstileToken.trim().length === 0) {
+    return res.status(400).json({ message: 'Captcha token required' });
+  }
+
+  const captchaValid = await verifyTurnstileToken(turnstileToken, req.ip);
+  if (!captchaValid) {
+    return res.status(403).json({ message: 'Captcha verification failed' });
+  }
+
   const adCode = extractAdCodeFromQueryParam(req.query.utm_content);
   const parseResult = CreateLeadPayloadSchema.safeParse({
     ...req.body,

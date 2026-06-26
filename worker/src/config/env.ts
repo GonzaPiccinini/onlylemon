@@ -30,6 +30,7 @@ export const envSchema = z.object({
   WAHA_WEBHOOK_EVENTS: z.string().default('message.any,session.status'),
   WAHA_WEBHOOK_TOKEN_HEADER: z.string(),
   WAHA_WEBHOOK_TOKEN_VALUE: z.string(),
+  TURNSTILE_SECRET_KEY: z.string().min(1),
   JWT_SECRET: z.string().min(16),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRES: z
