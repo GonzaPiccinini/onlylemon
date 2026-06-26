@@ -1,46 +1,73 @@
 /* dashboard/src/branding/tokens.css
  * Brand palette + branded background. Forks edit this file to recolor.
+ *
+ * "Lime Signal" — a futuristic dark palette built around the brand lime.
+ * Formula (per futuristic-palette research): deep near-black neutral base +
+ * lime as the single hero accent + a cool teal/cyan companion that lives in the
+ * data-viz spectrum and the ambient glow. Lime leads; cool signals follow.
  */
 
 :root {
-  --radius: 0.75rem;
-  --background: #11150f;
-  --foreground: #e8f3d4;
-  --card: #1a2115;
-  --card-foreground: #e8f3d4;
-  --popover: #1d2518;
-  --popover-foreground: #e8f3d4;
+  --radius: 0.5rem;
+
+  /* Deep neutral-cool charcoal — off pure black to avoid OLED halation. The
+     futurism comes from the accents, never from a saturated background. */
+  --background: #0c0d0f;
+  --foreground: #e7eaec;
+
+  /* Elevation 1 — cards / panels / tables. */
+  --card: #16181b;
+  --card-foreground: #e7eaec;
+
+  /* Elevation 2 — popovers, dropdowns, menus. */
+  --popover: #1e2126;
+  --popover-foreground: #e7eaec;
+
+  /* Lime — the hero signal accent: buttons, active states, key metrics. */
   --primary: #c7f246;
-  --primary-foreground: #141b10;
-  --secondary: #293521;
-  --secondary-foreground: #d7e8b9;
-  --muted: #25301e;
-  --muted-foreground: #98ad7d;
-  --accent: #2e3d24;
-  --accent-foreground: #def0bf;
-  --destructive: #e17463;
+  --primary-foreground: #0c1100;
+
+  /* Cool-neutral surfaces. */
+  --secondary: #1b1e22;
+  --secondary-foreground: #d4d8db;
+  --muted: #181b1f;
+  --muted-foreground: #8a9099;
+  --accent: #232830;
+  --accent-foreground: #e7eaec;
+
+  /* Clean neon rose-red — NOT orange (orange clashes with lime). */
+  --destructive: #f43f5e;
   --destructive-foreground: #f8f8f8;
-  --border: rgb(233 247 194 / 0.14);
-  --input: rgb(233 247 194 / 0.2);
-  --ring: #b9de3f;
-  --sidebar: #161e12;
-  --sidebar-foreground: #e8f3d4;
+
+  /* Near-invisible neutral hairlines — panels are defined by light, not lines. */
+  --border: rgb(255 255 255 / 0.06);
+  --input: rgb(255 255 255 / 0.1);
+  --ring: #c7f246;
+
+  /* Sidebar — a single breath off the canvas. */
+  --sidebar: #0e0f12;
+  --sidebar-foreground: #e7eaec;
   --sidebar-primary: #c7f246;
-  --sidebar-primary-foreground: #13180f;
-  --sidebar-accent: #25301e;
-  --sidebar-accent-foreground: #ddefbf;
-  --sidebar-border: rgb(233 247 194 / 0.13);
-  --sidebar-ring: #b9de3f;
+  --sidebar-primary-foreground: #0c1100;
+  --sidebar-accent: #1e2126;
+  --sidebar-accent-foreground: #e7eaec;
+  --sidebar-border: rgb(255 255 255 / 0.05);
+  --sidebar-ring: #c7f246;
+
+  /* Data viz — the futuristic "bio-tech → digital" spectrum: lime → mint → teal
+     → cyan → sky. This is where the cool companion accent lives. */
   --chart-1: #c7f246;
-  --chart-2: #9fc632;
-  --chart-3: #74981f;
-  --chart-4: #4c6715;
-  --chart-5: #dbef90;
+  --chart-2: #5fe3a1;
+  --chart-3: #2dd4bf;
+  --chart-4: #22d3ee;
+  --chart-5: #38bdf8;
 }
 
 body {
+  /* Near-black canvas with two faint signal glows — lime (top-left) and cyan
+     (top-right) — hinting the dual-accent system without washing the base. */
+  background-color: var(--background);
   background-image:
-    radial-gradient(circle at 8% 0%, rgb(199 242 70 / 0.24), transparent 30%),
-    radial-gradient(circle at 92% 4%, rgb(156 198 50 / 0.15), transparent 32%),
-    linear-gradient(160deg, #10140e 0%, #12180f 55%, #141b12 100%);
+    radial-gradient(circle at 6% 0%, rgb(199 242 70 / 0.06), transparent 30%),
+    radial-gradient(circle at 94% 2%, rgb(34 211 238 / 0.05), transparent 32%);
 }
