@@ -373,24 +373,13 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
             try {
               // WAHA returns `payload.from` as a LID (e.g.
               // `37830675939455@lid`) when the chat is addressed via LID. The
-              // real phone JID lives in different fields depending on engine:
-              //   NOWEB: `payload._data.key.remoteJidAlt`
-              //   GOWS (outbound): `payload._data.Info.RecipientAlt`
-              //   GOWS (inbound):  `payload._data.Info.SenderAlt`
-              // We only branch on outbound (fromMe=true) so RecipientAlt is
-              // what we want; fall back to the legacy NOWEB path and finally
-              // to `payload.from`.
-              const payloadAny = data.payload as Record<string, unknown>;
-              const dataAny = payloadAny._data as
-                | {
-                    Info?: { RecipientAlt?: string; SenderAlt?: string };
-                    key?: { remoteJidAlt?: string };
-                  }
-                | undefined;
-              const resolvedChatId =
-                dataAny?.Info?.RecipientAlt ??
-                dataAny?.key?.remoteJidAlt ??
-                data.payload.from;
+              // real phone JID lives in different fields depending on engine.
+              // Use the same canonical resolver as the fan-out path: it skips
+              // EMPTY-STRING Alt fields (which GOWS returns for `sendText`
+              // outbound — i.e. dashboard-originated triggers) and normalizes to
+              // the `@c.us` form. A raw `??` chain would short-circuit on `""`
+              // and yield an empty chatId, breaking the comprobante flow.
+              const resolvedChatId = resolveCanonicalChatId(data.payload, true);
               await deps.handleCashierTriggerMessage({
                 sessionName: data.session,
                 chatId: resolvedChatId,
