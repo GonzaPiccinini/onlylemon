@@ -364,36 +364,44 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   const listPanel = (
-    <div className="flex h-full min-h-0 flex-col bg-black">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Pinned header — cashier/session pickers + status action stay fixed
           at the top while the contacts list scrolls below them. */}
-      <div className="flex shrink-0 flex-col gap-3 p-3">
+      <div className="flex shrink-0 flex-col gap-1.5 p-3">
         <NotificationToggle />
-        {cashierPicker}
+        {cashierPicker && (
+          <div className="glass rounded-lg p-1">
+            {cashierPicker}
+          </div>
+        )}
         {sessions.length > 0 && (
-          <SessionPicker
-            sessions={sessions}
-            selectedSessionId={selectedSessionId}
-            onSelect={handleSelectSession}
-          />
+          <div className="glass rounded-lg p-1">
+            <SessionPicker
+              sessions={sessions}
+              selectedSessionId={selectedSessionId}
+              onSelect={handleSelectSession}
+            />
+          </div>
         )}
         {sessions.length > 0 && selectedSessionId && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setStatusDialogOpen(true)}
-            className="shrink-0 justify-start gap-2"
-          >
-            <CircleFadingPlusIcon className="size-4" />
-            Publicar estado
-          </Button>
+          <div className="glass rounded-lg p-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setStatusDialogOpen(true)}
+              className="w-full justify-start gap-2"
+            >
+              <CircleFadingPlusIcon className="size-4" />
+              Publicar estado
+            </Button>
+          </div>
         )}
       </div>
 
       {/* Scrollable contacts region — grows with chat count and scrolls in
           place, so the list never overflows the (viewport-locked) layout. */}
-      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto border-t">
+      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto">
         {sessions.length === 0 ? (
           <div className="p-3">{emptyCta ?? null}</div>
         ) : (
@@ -467,19 +475,19 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl border bg-black shadow-sm">
-      {/* Desktop: left column — list */}
-      <div className="hidden w-72 shrink-0 flex-col border-r md:flex">
+    <div className="relative flex min-h-0 flex-1 gap-3">
+      {/* Desktop: left column — list (no panel bg; controls + list float). */}
+      <div className="hidden w-80 shrink-0 flex-col md:flex">
         {listPanel}
       </div>
 
-      {/* Desktop: right column — thread */}
-      <div className="hidden flex-1 flex-col overflow-hidden md:flex">
+      {/* Desktop: right column — thread (floating glass card) */}
+      <div className="hidden flex-1 flex-col overflow-hidden rounded-2xl glass md:flex">
         {threadPanel}
       </div>
 
-      {/* Mobile: full-width list */}
-      <div className="flex flex-1 flex-col overflow-hidden md:hidden">
+      {/* Mobile: full-width list (no panel bg; controls + list float). */}
+      <div className="flex flex-1 flex-col md:hidden">
         {listPanel}
       </div>
 
@@ -492,7 +500,7 @@ export const ChatPage = ({
         aria-label={selectedChatName}
         aria-hidden={!(isMobile && sheetOpen)}
         className={[
-          'absolute inset-0 z-50 flex flex-col bg-black transition-transform duration-200 md:hidden',
+          'absolute inset-0 z-50 flex flex-col overflow-hidden rounded-2xl glass transition-transform duration-200 md:hidden',
           isMobile && sheetOpen
             ? 'translate-x-0'
             : 'pointer-events-none translate-x-full',

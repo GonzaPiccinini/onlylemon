@@ -43,7 +43,7 @@ export const ChatHeader = ({ chat, onBack, sessionLabel }: ChatHeaderProps) => {
   const contactPhone = isPhone ? null : resolveContactPhone(chat);
 
   return (
-    <div className="flex shrink-0 items-center gap-3 border-b bg-black px-3 py-2.5">
+    <div className="flex shrink-0 items-center gap-3 border-b px-3 py-2.5">
       {onBack && (
         <Button
           type="button"

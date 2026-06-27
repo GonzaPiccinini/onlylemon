@@ -178,10 +178,10 @@ function SessionSelect({
         onClick={() => setOpen((v) => !v)}
         onKeyDown={onTriggerKeyDown}
         className={cn(
-          'group flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-left text-sm font-medium text-foreground shadow-sm transition-colors',
-          'hover:border-foreground/25 hover:bg-accent/40',
+          'group flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-sm font-medium text-foreground transition-colors',
+          'hover:bg-accent/40',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
-          open && 'border-ring/60 bg-accent/40',
+          open && 'bg-accent/40',
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -274,7 +274,7 @@ export const SessionPicker = ({
   if (sessions.length === 1) {
     const s = sessions[0]!;
     return (
-      <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5">
+      <div className="flex items-center gap-2 px-3 py-1.5">
         <StatusDot status={s.wahaStatus} />
         <span className="truncate text-sm font-medium">{sessionLabel(s)}</span>
       </div>

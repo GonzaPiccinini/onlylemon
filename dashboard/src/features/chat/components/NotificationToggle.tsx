@@ -17,36 +17,42 @@ export const NotificationToggle = () => {
 
   if (permission === 'granted') {
     return (
-      <div className="flex shrink-0 items-center gap-2 px-1 text-xs text-muted-foreground">
-        <BellIcon className="size-3.5" />
-        Avisos activados
+      <div className="glass rounded-lg p-1">
+        <div className="flex shrink-0 items-center gap-2 px-1 text-xs text-muted-foreground">
+          <BellIcon className="size-3.5" />
+          Avisos activados
+        </div>
       </div>
     );
   }
 
   if (permission === 'denied') {
     return (
-      <div
-        className="flex shrink-0 items-center gap-2 px-1 text-xs text-muted-foreground"
-        title="Las notificaciones están bloqueadas. Habilitalas en la configuración del navegador para este sitio."
-      >
-        <BellOffIcon className="size-3.5" />
-        Avisos bloqueados
+      <div className="glass rounded-lg p-1">
+        <div
+          className="flex shrink-0 items-center gap-2 px-1 text-xs text-muted-foreground"
+          title="Las notificaciones están bloqueadas. Habilitalas en la configuración del navegador para este sitio."
+        >
+          <BellOffIcon className="size-3.5" />
+          Avisos bloqueados
+        </div>
       </div>
     );
   }
 
   // permission === 'default' — not yet asked.
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={() => void enable()}
-      className="shrink-0 justify-start gap-2"
-    >
-      <BellIcon className="size-4" />
-      Activar avisos
-    </Button>
+    <div className="glass rounded-lg p-1">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => void enable()}
+        className="w-full justify-start gap-2"
+      >
+        <BellIcon className="size-4" />
+        Activar avisos
+      </Button>
+    </div>
   );
 };

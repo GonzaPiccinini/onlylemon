@@ -147,7 +147,7 @@ export const Composer = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 border-t bg-black p-3">
+    <div className="flex flex-col gap-2 border-t p-3">
       {/* Reply preview — hidden when an attachment is staged */}
       {effectiveReplyingTo && (
         <QuotedReply
