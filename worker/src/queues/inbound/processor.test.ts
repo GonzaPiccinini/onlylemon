@@ -346,6 +346,46 @@ describe('fromMe=true + trigger match → handleCashierTriggerMessage', () => {
     assert.equal(triggerCalls.length, 1);
     assert.equal(mapLeadsCalls.length, 0);
   });
+
+  it('H1.8 — dashboard sendText trigger (empty Alts) resolves chatId to real JID, not empty string', async () => {
+    // Production bug: when the trigger is sent from the dashboard chat (WAHA
+    // `POST sendText`), GOWS returns `_data.Info.RecipientAlt`/`SenderAlt` as
+    // EMPTY STRINGS (not absent), with the real phone JID in `Info.Chat`
+    // (@s.whatsapp.net form). The auto-conversion branch used `??` which
+    // short-circuits on "" → chatId became "" → empty "Cliente:" and the whole
+    // comprobante flow failed. Must use the same empty-skipping resolver as the
+    // fan-out path (see B2.13). Native WhatsApp sends omit these fields, which is
+    // why that path worked.
+    const triggerCalls: Array<[{ sessionName: string; chatId: string; messageId: string; body: string; fromMe: boolean }]> = [];
+    const deps = makeDefaultDeps({
+      getSetting: async () => 'convertir',
+      handleCashierTriggerMessage: async (payload) => {
+        triggerCalls.push([payload as never]);
+      },
+    });
+    const processor = createInboundProcessor(deps);
+    await processor(makeJob({
+      event: 'message.any',
+      session: 'sess-dash-out',
+      payload: {
+        id: 'msg-dash-trigger-1',
+        from: '5493512692202@c.us',
+        body: 'convertir',
+        fromMe: true,
+        hasMedia: false,
+        _data: {
+          Info: {
+            Chat: '5493512692202@s.whatsapp.net',
+            SenderAlt: '',
+            RecipientAlt: '',
+            AddressingMode: '',
+          },
+        },
+      },
+    }, 'message.any') as never);
+    assert.equal(triggerCalls.length, 1);
+    assert.equal(triggerCalls[0][0].chatId, '5493512692202@c.us');
+  });
 });
 
 // ===========================================================================
