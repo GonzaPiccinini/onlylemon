@@ -160,23 +160,33 @@ export const MessageThread = ({
       )}
 
       {dayGroups.map((group) => (
-        <div key={group.key} className="flex flex-col gap-1.5">
+        <div key={group.key} className="flex flex-col">
           <div className="sticky top-0 z-10 flex justify-center py-1">
             <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
               {group.label}
             </span>
           </div>
-          {group.items.map((msg) => (
-            <MessageItem
-              key={msg.id}
-              message={msg}
-              scope={scope}
-              sessionId={sessionId}
-              chatId={chatId}
-              onReply={onReply}
-              onReact={onReact}
-            />
-          ))}
+          {group.items.map((msg, i) => {
+            // A "run" is a streak of consecutive messages from the same side.
+            // The first gets extra top spacing; the last gets the bubble tail.
+            const prev = group.items[i - 1];
+            const next = group.items[i + 1];
+            const isFirstInGroup = !prev || prev.fromMe !== msg.fromMe;
+            const isLastInGroup = !next || next.fromMe !== msg.fromMe;
+            return (
+              <MessageItem
+                key={msg.id}
+                message={msg}
+                scope={scope}
+                sessionId={sessionId}
+                chatId={chatId}
+                onReply={onReply}
+                onReact={onReact}
+                isFirstInGroup={isFirstInGroup}
+                isLastInGroup={isLastInGroup}
+              />
+            );
+          })}
         </div>
       ))}
     </div>
