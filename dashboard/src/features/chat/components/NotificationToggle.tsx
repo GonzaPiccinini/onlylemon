@@ -2,8 +2,11 @@
  * NotificationToggle.tsx — Opt-in control for in-app browser notifications.
  *
  * Browsers require a user gesture to prompt for notification permission, so we
- * surface a small button. Once granted (or denied) it collapses into a compact
- * status row. Renders nothing when the API is unsupported.
+ * surface a compact icon button. Once granted (or denied) it collapses into a
+ * non-interactive status icon. Renders nothing when the API is unsupported.
+ *
+ * Lives in the WhatsApp section's airy icon action row (chat-page) alongside
+ * "Publicar estado" — so it is icon-only and matches the icon-sm sizing.
  */
 
 import { BellIcon, BellOffIcon } from 'lucide-react';
@@ -17,42 +20,40 @@ export const NotificationToggle = () => {
 
   if (permission === 'granted') {
     return (
-      <div className="glass rounded-lg p-1">
-        <div className="flex shrink-0 items-center gap-2 px-1 text-xs text-muted-foreground">
-          <BellIcon className="size-3.5" />
-          Avisos activados
-        </div>
-      </div>
+      <span
+        title="Avisos activados"
+        aria-label="Avisos activados"
+        className="grid size-7 shrink-0 place-items-center rounded-[min(var(--radius-md),12px)] text-primary/70"
+      >
+        <BellIcon className="size-4" />
+      </span>
     );
   }
 
   if (permission === 'denied') {
     return (
-      <div className="glass rounded-lg p-1">
-        <div
-          className="flex shrink-0 items-center gap-2 px-1 text-xs text-muted-foreground"
-          title="Las notificaciones están bloqueadas. Habilitalas en la configuración del navegador para este sitio."
-        >
-          <BellOffIcon className="size-3.5" />
-          Avisos bloqueados
-        </div>
-      </div>
+      <span
+        title="Las notificaciones están bloqueadas. Habilitalas en la configuración del navegador para este sitio."
+        aria-label="Avisos bloqueados"
+        className="grid size-7 shrink-0 place-items-center rounded-[min(var(--radius-md),12px)] text-muted-foreground/60"
+      >
+        <BellOffIcon className="size-4" />
+      </span>
     );
   }
 
   // permission === 'default' — not yet asked.
   return (
-    <div className="glass rounded-lg p-1">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => void enable()}
-        className="w-full justify-start gap-2"
-      >
-        <BellIcon className="size-4" />
-        Activar avisos
-      </Button>
-    </div>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      onClick={() => void enable()}
+      title="Activar avisos"
+      aria-label="Activar avisos"
+      className="text-muted-foreground hover:text-foreground"
+    >
+      <BellIcon className="size-4" />
+    </Button>
   );
 };

@@ -367,36 +367,36 @@ export const ChatPage = ({
     <div className="flex h-full min-h-0 flex-col">
       {/* Pinned header — cashier/session pickers + status action stay fixed
           at the top while the contacts list scrolls below them. */}
-      <div className="flex shrink-0 flex-col gap-1.5 p-3">
-        <NotificationToggle />
-        {cashierPicker && (
-          <div className="glass rounded-lg p-1">
-            {cashierPicker}
-          </div>
-        )}
+      <div className="flex shrink-0 flex-col gap-2 p-3">
+        {/* Admin cashier back — plain, no box. */}
+        {cashierPicker}
+
+        {/* Session picker — clean control with a subtle border. */}
         {sessions.length > 0 && (
-          <div className="glass rounded-lg p-1">
-            <SessionPicker
-              sessions={sessions}
-              selectedSessionId={selectedSessionId}
-              onSelect={handleSelectSession}
-            />
-          </div>
+          <SessionPicker
+            sessions={sessions}
+            selectedSessionId={selectedSessionId}
+            onSelect={handleSelectSession}
+          />
         )}
-        {sessions.length > 0 && selectedSessionId && (
-          <div className="glass rounded-lg p-1">
+
+        {/* Secondary actions — icon-only, right-aligned, airy. */}
+        <div className="flex items-center justify-end gap-0.5">
+          {sessions.length > 0 && selectedSessionId && (
             <Button
               type="button"
               variant="ghost"
-              size="sm"
+              size="icon-sm"
               onClick={() => setStatusDialogOpen(true)}
-              className="w-full justify-start gap-2"
+              title="Publicar estado"
+              aria-label="Publicar estado"
+              className="text-muted-foreground hover:text-foreground"
             >
               <CircleFadingPlusIcon className="size-4" />
-              Publicar estado
             </Button>
-          </div>
-        )}
+          )}
+          <NotificationToggle />
+        </div>
       </div>
 
       {/* Scrollable contacts region — grows with chat count and scrolls in
