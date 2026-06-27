@@ -1,76 +1,75 @@
 /* dashboard/src/branding/tokens.css
  * Brand palette + branded background. Forks edit this file to recolor.
  *
- * "FUTURE GLASS" — a refined-futuristic dark theme.
- * Cool-neutral slate base + a TWO-COLOUR accent system: electric blue (primary)
- * paired with violet (accent-violet), used together as a blue→violet gradient on
- * key surfaces. Frosted glass + subtle motion carry the futuristic feel.
+ * "Lime Tech" — the OnlyLemon lime restored as the hero accent, paired with a
+ * teal companion. Base, neutrals, charts, gradients and glow are all tuned to a
+ * green-neutral dark so the lime reads clean and never clashes.
  */
 
 :root {
   --radius: 0.5rem;
 
-  /* Cool-neutral slate base (faint blue-violet undertone) — futuristic, not warm. */
-  --background: #0e0f16;
-  --foreground: #e9eaf0;
+  /* Deep green-neutral base — warm-leaning dark so the lime never clashes. */
+  --background: #0e120b;
+  --foreground: #e8f3d4;
 
   /* Elevation 1 — cards / panels / tables. */
-  --card: #181a24;
-  --card-foreground: #e9eaf0;
+  --card: #161b10;
+  --card-foreground: #e8f3d4;
 
   /* Elevation 2 — popovers, dropdowns, menus. */
-  --popover: #1f2230;
-  --popover-foreground: #e9eaf0;
+  --popover: #1c2215;
+  --popover-foreground: #e8f3d4;
 
-  /* Electric blue — primary of the two-colour accent. */
-  --primary: #3f78ea;
-  --primary-foreground: #f3f6ff;
+  /* Lime — the hero brand accent (dark text on top, lime is light). */
+  --primary: #c7f246;
+  --primary-foreground: #141b10;
 
-  /* Violet — second of the two-colour accent (pairs with primary as a gradient). */
-  --accent-violet: #9d6bff;
-  --accent-violet-foreground: #0c0718;
+  /* Teal — the companion accent; pairs with lime as a lime→teal gradient. */
+  --accent-violet: #2dd4bf;
+  --accent-violet-foreground: #04120e;
 
-  /* Cool neutral surfaces. */
-  --secondary: #1c1f2a;
-  --secondary-foreground: #d7dae5;
-  --muted: #181b25;
-  --muted-foreground: #9197a8;
-  --accent: #232739;
-  --accent-foreground: #e9eaf0;
+  /* Green-tinted neutral surfaces. */
+  --secondary: #222a18;
+  --secondary-foreground: #d7e8b9;
+  --muted: #1b2113;
+  --muted-foreground: #98ad7d;
+  --accent: #283017;
+  --accent-foreground: #def0bf;
 
-  /* Semantic — a cool pink-red, on-theme. */
-  --destructive: #f0556a;
-  --destructive-foreground: #f6eef0;
+  /* Clean red — functional error colour. */
+  --destructive: #ec5a52;
+  --destructive-foreground: #f8f8f8;
 
-  /* Cool, faintly-blue hairlines — a subtle futuristic edge. */
-  --border: rgb(180 195 255 / 0.12);
-  --input: rgb(180 195 255 / 0.16);
-  --ring: #3f78ea;
+  /* Lime-white hairlines — a subtle warm edge. */
+  --border: rgb(220 240 180 / 0.12);
+  --input: rgb(220 240 180 / 0.16);
+  --ring: #c7f246;
 
   /* Sidebar — a touch deeper than the canvas. */
-  --sidebar: #0c0d14;
-  --sidebar-foreground: #e9eaf0;
-  --sidebar-primary: #3f78ea;
-  --sidebar-primary-foreground: #f3f6ff;
-  --sidebar-accent: #1f2230;
-  --sidebar-accent-foreground: #e9eaf0;
-  --sidebar-border: rgb(180 195 255 / 0.1);
-  --sidebar-ring: #3f78ea;
+  --sidebar: #0b0e08;
+  --sidebar-foreground: #e8f3d4;
+  --sidebar-primary: #c7f246;
+  --sidebar-primary-foreground: #141b10;
+  --sidebar-accent: #1c2215;
+  --sidebar-accent-foreground: #def0bf;
+  --sidebar-border: rgb(220 240 180 / 0.1);
+  --sidebar-ring: #c7f246;
 
-  /* Data viz — electric, cool, futuristic: blue, violet, cyan, teal, pink. */
-  --chart-1: #3f78ea;
-  --chart-2: #9d6bff;
-  --chart-3: #34d3e0;
-  --chart-4: #2dd4bf;
-  --chart-5: #f072b6;
+  /* Data viz — lime-led and harmonised: lime, teal, cyan, amber, green. */
+  --chart-1: #c7f246;
+  --chart-2: #2dd4bf;
+  --chart-3: #22d3ee;
+  --chart-4: #eab308;
+  --chart-5: #84cc16;
 }
 
 body {
-  /* Cool canvas with two ambient blooms — blue + violet — matching the dual
-     accent and giving the frosted glass something to refract. Subtle, fixed. */
+  /* Green-neutral canvas with two ambient blooms — lime + teal — matching the
+     dual accent so the frosted glass has something to refract. Subtle, fixed. */
   background-color: var(--background);
   background-image:
-    radial-gradient(40rem 32rem at 8% -8%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 60%),
-    radial-gradient(36rem 30rem at 96% 0%, color-mix(in oklab, var(--accent-violet) 14%, transparent), transparent 58%);
+    radial-gradient(40rem 32rem at 8% -8%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%),
+    radial-gradient(36rem 30rem at 96% 0%, color-mix(in oklab, var(--accent-violet) 12%, transparent), transparent 58%);
   background-attachment: fixed;
 }

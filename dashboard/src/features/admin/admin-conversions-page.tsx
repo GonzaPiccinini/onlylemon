@@ -126,7 +126,7 @@ export const AdminConversionsPage = () => {
               <FilterIcon className="size-4 text-muted-foreground" />
               <span>Filtros</span>
               {activeFiltersCount > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full accent-gradient text-[10px] font-bold text-white">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full accent-gradient text-[10px] font-bold text-primary-foreground">
                   {activeFiltersCount}
                 </span>
               )}

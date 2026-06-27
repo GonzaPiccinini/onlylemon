@@ -46,7 +46,7 @@ export const PeriodFilter = ({ value, onChange }: PeriodFilterProps) => {
       className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-500"
     >
       <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg accent-gradient text-white shadow-[0_0_10px_-2px_color-mix(in_oklab,var(--primary)_30%,transparent)]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg accent-gradient text-primary-foreground shadow-[0_0_10px_-2px_color-mix(in_oklab,var(--primary)_30%,transparent)]">
           <CalendarSearchIcon className="h-3.5 w-3.5" aria-hidden="true" />
         </span>
         <span className="text-sm font-medium text-muted-foreground">Filtrar por período</span>
