@@ -181,6 +181,24 @@ body {
   .animate-glow-pulse {
     animation: glow-pulse 2.4s ease-in-out infinite;
   }
+  /* Quoted-reply jump target — a brief "pop" + primary veil on the bubble you
+     land on after tapping a reply preview. The veil is an ::after overlay so it
+     never clobbers the bubble's own background, and inherits its border-radius
+     (tail corner included). */
+  .quote-jump-highlight {
+    position: relative;
+    animation: quote-jump-pop 1.3s ease-out;
+  }
+  .quote-jump-highlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: color-mix(in oklab, var(--primary) 38%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: quote-jump-veil 1.3s ease-out;
+  }
 }
 
 @keyframes gradient-pan {
@@ -209,10 +227,40 @@ body {
     transform: translateX(100%);
   }
 }
+@keyframes quote-jump-pop {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.04);
+  }
+  45% {
+    transform: scale(1);
+  }
+}
+@keyframes quote-jump-veil {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .accent-gradient-animated,
   .animate-glow-pulse {
+    animation: none;
+  }
+  /* No pop/veil — fall back to a static primary ring for the highlight window. */
+  .quote-jump-highlight {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+  .quote-jump-highlight::after {
     animation: none;
   }
 }

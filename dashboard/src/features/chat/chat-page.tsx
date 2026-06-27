@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/auth-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { toMillis } from './time';
+import { resolveContactTitle } from './contact';
 import { chatService, type ChatScope } from '@/api/chat.service';
 import type { ChatMessage } from '@/types/chat';
 import {
@@ -348,6 +349,12 @@ export const ChatPage = ({
 
   const selectedChatName = selectedChat?.displayName ?? 'Chat';
 
+  // Contact's display name (saved name → phone fallback) for labelling quoted
+  // replies — both in the thread and in the composer's reply preview.
+  const contactName = selectedChat
+    ? resolveContactTitle(selectedChat).title
+    : undefined;
+
   // Session label (alias → +phone → code) — shown in the ChatHeader ONLY on
   // mobile, where the session picker is hidden behind the conversation overlay.
   // On desktop the picker is always visible on the left, so it's omitted there.
@@ -445,6 +452,7 @@ export const ChatPage = ({
             onLoadOlder={handleLoadOlder}
             onReply={setReplyingTo}
             onReact={handleReact}
+            contactName={contactName}
           />
         </div>
         <div className="shrink-0 border-t">
@@ -454,6 +462,7 @@ export const ChatPage = ({
             onTyping={onTyping}
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
+            contactName={contactName}
             sending={isSending}
           />
         </div>

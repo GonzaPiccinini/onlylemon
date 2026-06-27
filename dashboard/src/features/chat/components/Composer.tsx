@@ -40,6 +40,8 @@ interface ComposerProps {
   onTyping?: () => void;
   replyingTo?: ChatMessage | null;
   onCancelReply: () => void;
+  /** Chat contact's display name — used to label a quoted reply from them. */
+  contactName?: string;
   sending: boolean;
 }
 
@@ -67,6 +69,7 @@ export const Composer = ({
   onTyping,
   replyingTo,
   onCancelReply,
+  contactName,
   sending,
 }: ComposerProps) => {
   const [text, setText] = useState('');
@@ -156,6 +159,7 @@ export const Composer = ({
             previewText: effectiveReplyingTo.body || null,
             fromMe: effectiveReplyingTo.fromMe,
           }}
+          contactName={contactName}
           onCancel={onCancelReply}
         />
       )}

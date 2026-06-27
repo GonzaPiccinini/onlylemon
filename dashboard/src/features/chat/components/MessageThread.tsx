@@ -16,7 +16,7 @@
  * Delegates per-message rendering to MessageItem.
  */
 
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { MessageItem } from './MessageItem';
@@ -29,6 +29,41 @@ import type { ChatScope } from '@/api/chat.service';
 // ---------------------------------------------------------------------------
 
 const NEAR_BOTTOM_THRESHOLD = 120; // px
+
+// How many older pages to fetch while chasing a quote target that isn't loaded.
+const MAX_JUMP_PAGES = 5;
+
+/**
+ * Stable WhatsApp message hash = the last `_`-delimited id segment. Identical
+ * across a message's @c.us and @lid serializations, so it matches a quoted id
+ * to its rendered bubble even when the addressing differs (mirrors the worker's
+ * chat.repository messageHash).
+ */
+function messageHash(id: string): string {
+  const i = id.lastIndexOf('_');
+  return i >= 0 ? id.slice(i + 1) : id;
+}
+
+/** Finds a rendered message bubble by exact id, then by stable hash. */
+function findBubble(root: HTMLElement, messageId: string): HTMLElement | null {
+  const exact = root.querySelector<HTMLElement>(`[data-mid="${CSS.escape(messageId)}"]`);
+  if (exact) return exact;
+  const wanted = messageHash(messageId);
+  for (const node of root.querySelectorAll<HTMLElement>('[data-mid]')) {
+    const mid = node.getAttribute('data-mid');
+    if (mid && messageHash(mid) === wanted) return node;
+  }
+  return null;
+}
+
+/** Centers a bubble in the scroll pane and plays a one-shot highlight pulse. */
+function revealBubble(node: HTMLElement): void {
+  node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  node.classList.remove('quote-jump-highlight');
+  void node.offsetWidth; // reflow so the animation restarts on repeat taps
+  node.classList.add('quote-jump-highlight');
+  window.setTimeout(() => node.classList.remove('quote-jump-highlight'), 1400);
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +79,8 @@ interface MessageThreadProps {
   onLoadOlder: () => void;
   onReply: (message: ChatMessage) => void;
   onReact: (messageId: string, emoji: string) => void;
+  /** Chat contact's display name — used to label quoted replies from them. */
+  contactName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,11 +97,17 @@ export const MessageThread = ({
   onLoadOlder,
   onReply,
   onReact,
+  contactName,
 }: MessageThreadProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevChatIdRef = useRef(chatId);
   const prevLengthRef = useRef(0);
   const prevScrollHeightRef = useRef(0);
+
+  // Quote-jump: when the target message isn't loaded yet, remember its hash and
+  // page back through history (bounded) until it appears.
+  const pendingHashRef = useRef<string | null>(null);
+  const jumpAttemptsRef = useRef(0);
 
   // useLayoutEffect: adjust scroll before the browser paints to avoid flicker
   // (especially when preserving position after prepending older messages).
@@ -73,6 +116,11 @@ export const MessageThread = ({
     if (!el) return;
 
     const chatChanged = prevChatIdRef.current !== chatId;
+    if (chatChanged) {
+      // Drop any in-flight quote-jump from the previous chat.
+      pendingHashRef.current = null;
+      jumpAttemptsRef.current = 0;
+    }
     const firstLoad = prevLengthRef.current === 0 && messages.length > 0;
     const grew = messages.length > prevLengthRef.current;
 
@@ -99,6 +147,57 @@ export const MessageThread = ({
     prevLengthRef.current = messages.length;
     prevScrollHeightRef.current = el.scrollHeight;
   }, [messages.length, chatId]);
+
+  // Jump to the message a quoted-reply points at. If it's already rendered,
+  // center + flash it; otherwise page back through history (bounded) and the
+  // effect below retries once the newly loaded page mounts.
+  const handleJumpToQuote = useCallback(
+    (messageId: string) => {
+      const root = scrollRef.current;
+      if (!root) return;
+      const node = findBubble(root, messageId);
+      if (node) {
+        revealBubble(node);
+        pendingHashRef.current = null;
+        return;
+      }
+      if (hasOlder) {
+        pendingHashRef.current = messageHash(messageId);
+        jumpAttemptsRef.current = 0;
+        onLoadOlder();
+      }
+    },
+    [hasOlder, onLoadOlder],
+  );
+
+  // Retry a pending quote-jump whenever the message list changes (i.e. after an
+  // older page is prepended). No setState here — refs + DOM only.
+  useEffect(() => {
+    if (pendingHashRef.current === null || messages.length === 0) return;
+    const root = scrollRef.current;
+    if (!root) return;
+
+    const wanted = pendingHashRef.current;
+    let found: HTMLElement | null = null;
+    for (const node of root.querySelectorAll<HTMLElement>('[data-mid]')) {
+      const mid = node.getAttribute('data-mid');
+      if (mid && messageHash(mid) === wanted) {
+        found = node;
+        break;
+      }
+    }
+
+    if (found) {
+      revealBubble(found);
+      pendingHashRef.current = null;
+    } else if (jumpAttemptsRef.current < MAX_JUMP_PAGES && hasOlder) {
+      jumpAttemptsRef.current += 1;
+      onLoadOlder();
+    } else {
+      // Exhausted retries (or no more history) — give up silently.
+      pendingHashRef.current = null;
+    }
+  }, [messages, hasOlder, onLoadOlder]);
 
   // Group consecutive messages by calendar day. Each day renders as a section
   // whose divider is sticky WITHIN that section — so a day's date pill floats at
@@ -182,6 +281,8 @@ export const MessageThread = ({
                 chatId={chatId}
                 onReply={onReply}
                 onReact={onReact}
+                contactName={contactName}
+                onJumpToMessage={handleJumpToQuote}
                 isFirstInGroup={isFirstInGroup}
                 isLastInGroup={isLastInGroup}
               />

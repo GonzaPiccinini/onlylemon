@@ -48,6 +48,10 @@ interface MessageItemProps {
   chatId: string;
   onReply: (message: ChatMessage) => void;
   onReact: (messageId: string, emoji: string) => void;
+  /** Chat contact's display name — used to label quoted replies from them. */
+  contactName?: string;
+  /** Scrolls to + highlights the message with the given id (quote tap). */
+  onJumpToMessage?: (messageId: string) => void;
   /** First message of a same-side run → extra top spacing. */
   isFirstInGroup: boolean;
   /** Last message of a same-side run → render the bubble tail corner. */
@@ -81,6 +85,8 @@ export const MessageItem = ({
   chatId,
   onReply,
   onReact,
+  contactName,
+  onJumpToMessage,
   isFirstInGroup,
   isLastInGroup,
 }: MessageItemProps) => {
@@ -234,6 +240,7 @@ export const MessageItem = ({
           onTouchCancel={handleTouchEnd}
           onClickCapture={handleClickCapture}
           onContextMenu={handleContextMenu}
+          data-mid={message.id}
           className={cn(
             'flex w-fit max-w-full flex-col gap-1 text-sm leading-snug select-none [-webkit-touch-callout:none] md:select-text',
             isStickerOnly
@@ -253,8 +260,18 @@ export const MessageItem = ({
             </p>
           )}
 
-          {/* Quoted reply preview */}
-          {quotedMessage && <QuotedReply quoted={quotedMessage} />}
+          {/* Quoted reply preview — tap to jump to the original message. */}
+          {quotedMessage && (
+            <QuotedReply
+              quoted={quotedMessage}
+              contactName={contactName}
+              onJump={
+                onJumpToMessage
+                  ? () => onJumpToMessage(quotedMessage.id)
+                  : undefined
+              }
+            />
+          )}
 
           {/* Media */}
           {hasMedia && (
