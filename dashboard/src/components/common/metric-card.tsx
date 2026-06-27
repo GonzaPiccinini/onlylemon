@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AccentIconBadge } from "@/components/common/icon-badge";
 
 interface MetricCardProps {
   label: string;
@@ -24,9 +25,9 @@ export const MetricCard = ({ label, value, hint, icon: Icon, trend, delta }: Met
         <div className="flex items-start justify-between gap-2">
           <CardDescription>{label}</CardDescription>
           {Icon ? (
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg accent-gradient text-primary-foreground animate-glow-pulse">
+            <AccentIconBadge size="md" className="animate-glow-pulse">
               <Icon className="h-4 w-4" aria-hidden="true" />
-            </span>
+            </AccentIconBadge>
           ) : null}
         </div>
         <CardTitle className="font-heading text-xl tabular-nums whitespace-nowrap text-accent-gradient">

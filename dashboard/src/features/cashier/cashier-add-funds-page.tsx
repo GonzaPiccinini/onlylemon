@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckIcon, CircleDollarSignIcon, SearchIcon, XIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { IconBadge } from '@/components/common/icon-badge';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -174,9 +175,9 @@ export const CashierAddFundsPage = () => {
             <div className='flex flex-col gap-3 sm:gap-4'>
               <div className='flex flex-col gap-2'>
                 <div className='flex items-center gap-2'>
-                  <div className='grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
+                  <IconBadge size="md">
                     <SearchIcon className='size-4' />
-                  </div>
+                  </IconBadge>
                   <h3 className='font-medium leading-tight'>Buscar lead</h3>
                 </div>
                 <p className='text-sm text-muted-foreground'>
@@ -310,9 +311,9 @@ export const CashierAddFundsPage = () => {
             <div className='flex flex-col gap-3 sm:gap-4'>
               <div className='flex flex-col gap-2'>
                 <div className='flex items-center gap-2'>
-                  <div className='grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
+                  <IconBadge size="md">
                     <CircleDollarSignIcon className='size-4' />
-                  </div>
+                  </IconBadge>
                   <h3 className='font-medium leading-tight'>Monto</h3>
                 </div>
                 <p className='text-sm text-muted-foreground'>

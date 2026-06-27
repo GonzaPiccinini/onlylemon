@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { AccentIconBadge } from "@/components/common/icon-badge";
 
 interface PageHeaderProps {
   title: string;
@@ -23,9 +24,9 @@ export const PageHeader = ({
     <header className="flex shrink-0 flex-col gap-3 rounded-2xl glass p-5 md:flex-row md:items-center md:justify-between animate-in fade-in slide-in-from-top-2 duration-500">
       <div className="flex items-start gap-3">
         {Icon ? (
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl accent-gradient text-primary-foreground shadow-[0_0_14px_-2px_color-mix(in_oklab,var(--primary)_35%,transparent)]">
+          <AccentIconBadge size="lg" className="mt-0.5">
             <Icon className="h-5 w-5" aria-hidden="true" />
-          </span>
+          </AccentIconBadge>
         ) : null}
         <div className="flex flex-col gap-1">
           <h1 className="font-heading text-xl leading-tight md:text-2xl text-accent-gradient">{title}</h1>

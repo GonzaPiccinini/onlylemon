@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon, FilterIcon, HashIcon, MegaphoneIcon, PhoneIcon, TagIcon, UsersIcon } from 'lucide-react';
+import { AccentIconBadge, IconBadge } from '@/components/common/icon-badge';
 import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
 import { TableRowsSkeleton } from '@/components/common/table-skeleton';
@@ -267,9 +268,9 @@ export const AdminLeadsPage = () => {
           <FilterIcon className="size-4 text-muted-foreground" />
           <span>Filtros</span>
           {activeFiltersCount > 0 && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full accent-gradient text-[10px] font-bold text-primary-foreground">
+            <AccentIconBadge size="xs">
               {activeFiltersCount}
-            </span>
+            </AccentIconBadge>
           )}
         </Button>
       </div>
@@ -279,9 +280,9 @@ export const AdminLeadsPage = () => {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <IconBadge>
                   <TagIcon className="size-3.5" />
-                </span>
+                </IconBadge>
                 <span className="text-xs font-semibold text-foreground/80">Estado</span>
               </div>
               <MultiSelect
@@ -301,9 +302,9 @@ export const AdminLeadsPage = () => {
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <IconBadge>
                   <UsersIcon className="size-3.5" />
-                </span>
+                </IconBadge>
                 <span className="text-xs font-semibold text-foreground/80">Cajero</span>
               </div>
               <MultiSelect
@@ -321,9 +322,9 @@ export const AdminLeadsPage = () => {
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <IconBadge>
                   <MegaphoneIcon className="size-3.5" />
-                </span>
+                </IconBadge>
                 <span className="text-xs font-semibold text-foreground/80">Publicidad</span>
               </div>
               <Input
@@ -338,9 +339,9 @@ export const AdminLeadsPage = () => {
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <IconBadge>
                   <HashIcon className="size-3.5" />
-                </span>
+                </IconBadge>
                 <span className="text-xs font-semibold text-foreground/80">Código</span>
               </div>
               <Input
@@ -355,9 +356,9 @@ export const AdminLeadsPage = () => {
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <IconBadge>
                   <PhoneIcon className="size-3.5" />
-                </span>
+                </IconBadge>
                 <span className="text-xs font-semibold text-foreground/80">Teléfono</span>
               </div>
               <Input
