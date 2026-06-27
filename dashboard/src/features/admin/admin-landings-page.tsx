@@ -2,7 +2,6 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import {
   CheckCircle2Icon,
   CircleDashedIcon,
@@ -15,10 +14,16 @@ import {
   ToggleRightIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/page-header";
 import { TableRowsSkeleton } from "@/components/common/table-skeleton";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -608,7 +613,8 @@ export const AdminLandingsPage = () => {
         }
       />
 
-      <div className="rounded-2xl border bg-card p-3 shadow-sm md:p-4">
+      <Card>
+        <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
@@ -655,8 +661,8 @@ export const AdminLandingsPage = () => {
                     <TableCell>{formatDateTime(landing.updatedAt)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end">
-                        <MenuPrimitive.Root>
-                          <MenuPrimitive.Trigger
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
                             render={
                               <Button
                                 variant="outline"
@@ -666,49 +672,32 @@ export const AdminLandingsPage = () => {
                             }
                           >
                             <MoreHorizontalIcon className="size-4" />
-                          </MenuPrimitive.Trigger>
-                          <MenuPrimitive.Portal>
-                            <MenuPrimitive.Positioner
-                              sideOffset={4}
-                              align="end"
-                              className="z-50"
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem
+                              onClick={() => openEditDialog(landing)}
                             >
-                              <MenuPrimitive.Popup
-                                className={cn(
-                                  "min-w-[10rem] overflow-hidden rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none",
-                                  "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-                                  "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-                                )}
-                              >
-                                <MenuPrimitive.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                  onClick={() => openEditDialog(landing)}
-                                >
-                                  <PencilLineIcon className="size-4" />
-                                  Editar
-                                </MenuPrimitive.Item>
-                                <MenuPrimitive.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                  onClick={() => setFallbacksLanding(landing)}
-                                >
-                                  <PhoneIcon className="size-4" />
-                                  Números de respaldo
-                                </MenuPrimitive.Item>
-                                <MenuPrimitive.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                  onClick={() => toggleLanding(landing)}
-                                >
-                                  {landing.status === "ACTIVE" ? (
-                                    <ToggleLeftIcon className="size-4" />
-                                  ) : (
-                                    <ToggleRightIcon className="size-4" />
-                                  )}
-                                  {landing.status === "ACTIVE" ? "Deshabilitar" : "Habilitar"}
-                                </MenuPrimitive.Item>
-                              </MenuPrimitive.Popup>
-                            </MenuPrimitive.Positioner>
-                          </MenuPrimitive.Portal>
-                        </MenuPrimitive.Root>
+                              <PencilLineIcon className="size-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setFallbacksLanding(landing)}
+                            >
+                              <PhoneIcon className="size-4" />
+                              Números de respaldo
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => toggleLanding(landing)}
+                            >
+                              {landing.status === "ACTIVE" ? (
+                                <ToggleLeftIcon className="size-4" />
+                              ) : (
+                                <ToggleRightIcon className="size-4" />
+                              )}
+                              {landing.status === "ACTIVE" ? "Deshabilitar" : "Habilitar"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -723,7 +712,8 @@ export const AdminLandingsPage = () => {
             onPageChange={setPage}
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Edit landing dialog */}
       <Dialog

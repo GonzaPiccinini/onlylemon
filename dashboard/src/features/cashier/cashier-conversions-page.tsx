@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BanknoteIcon, CalendarIcon, FilterIcon, HashIcon, PhoneIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
 import { PaginationControls } from '@/components/common/pagination-controls';
@@ -79,11 +80,11 @@ export const CashierConversionsPage = () => {
       />
 
       <div>
-        <button
-          type='button'
-          onClick={() => setFiltersOpen((prev) => !prev)}
+        <Button
+          variant="outline"
+          size="sm"
           aria-expanded={filtersOpen}
-          className='flex items-center gap-2 glass-subtle rounded-xl px-3 py-2 text-sm font-medium transition-all hover:border-primary/40'
+          onClick={() => setFiltersOpen((prev) => !prev)}
         >
           <FilterIcon className='size-4 text-muted-foreground' />
           <span>Filtros</span>
@@ -92,7 +93,7 @@ export const CashierConversionsPage = () => {
               {activeFiltersCount}
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
       {/* Filter bar */}
