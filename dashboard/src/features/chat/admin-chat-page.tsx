@@ -133,8 +133,9 @@ export const AdminChatPage = () => {
           cashierPicker={cashierBackNode}
         />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div className="shrink-0 border-b p-5 md:p-6">
+        <>
+          {/* Floating step header + search + cashier cards — no wrapper box. */}
+          <div className="shrink-0">
             <p className="text-base font-medium">Elegí un cajero</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Abrí los chats de un cajero para ver sus conversaciones y responder por él.
@@ -145,7 +146,7 @@ export const AdminChatPage = () => {
             onSelect={handleSelectCashier}
             isLoading={cashiersLoading}
           />
-        </div>
+        </>
       )}
     </section>
   );

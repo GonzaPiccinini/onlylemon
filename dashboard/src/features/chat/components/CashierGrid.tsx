@@ -12,9 +12,11 @@
  */
 
 import { useState } from 'react';
-import { ChevronRightIcon, SearchIcon, SmartphoneIcon } from 'lucide-react';
+import { ChevronRightIcon, CircleDotIcon, SearchIcon, SmartphoneIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge } from '@/components/common/status-badge';
+import { cn } from '@/lib/utils';
 import { ContactAvatar } from './contact-avatar';
 
 // Combining diacritical marks (U+0300–U+036F); built from a string so the
@@ -73,7 +75,7 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
   const hiddenCount = matched.length - shown.length;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-5 md:p-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 px-1.5">
       {/* Pinned search — stays put while the grid below scrolls. */}
       <div className="relative shrink-0">
         <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -110,22 +112,37 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
                     key={c.id}
                     type="button"
                     onClick={() => onSelect(c.id)}
-                    className="group flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(
+                      'group relative flex items-center gap-3 rounded-xl border border-border bg-card/40 p-3.5 text-left backdrop-blur-sm transition-all',
+                      'hover:border-primary/40 hover:bg-primary/[0.07]',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      // Dim cashiers that are neither on shift nor connected.
+                      !onTurn && connected === 0 && 'opacity-55',
+                    )}
                   >
-                    <ContactAvatar className="size-10">{initials(c.name)}</ContactAvatar>
-                    <span className="flex min-w-0 flex-1 flex-col">
+                    <ContactAvatar
+                      className={cn(
+                        'size-10 transition-all',
+                        // Lemon status ring + glow when the cashier is on shift.
+                        // On shift: a soft lemon glow halo — no hard ring.
+                        onTurn &&
+                          'shadow-[0_0_12px_-1px_color-mix(in_oklab,var(--primary)_50%,transparent)]',
+                      )}
+                    >
+                      {initials(c.name)}
+                    </ContactAvatar>
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="truncate text-sm font-medium">{c.name}</span>
-                      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {onTurn && (
+                          <StatusBadge variant="success" icon={CircleDotIcon}>
+                            En turno
+                          </StatusBadge>
+                        )}
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                           <SmartphoneIcon className="size-3" />
                           {connected} conectado{connected === 1 ? '' : 's'}
                         </span>
-                        {onTurn && (
-                          <span className="flex items-center gap-1 font-medium text-primary">
-                            <span className="size-1.5 rounded-full bg-primary" />
-                            En turno
-                          </span>
-                        )}
                       </span>
                     </span>
                     <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
