@@ -4,6 +4,8 @@ import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
 import { PaginationControls } from '@/components/common/pagination-controls';
 import { TableRowsSkeleton } from '@/components/common/table-skeleton';
+import { MetricCard } from '@/components/common/metric-card';
+import { LoadingCard } from '@/components/common/loading-card';
 import { useAdminConversions, useAdminCashiers, useAdminConversionsTotals } from '@/features/admin/admin-hooks';
 import {
   Card,
@@ -14,7 +16,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { MultiSelect } from '@/components/ui/multi-select';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -108,6 +109,176 @@ export const AdminConversionsPage = () => {
         description="Historial global de conversiones con filtros por fecha, cajero, monto y mas."
       />
 
+      <div>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((prev) => !prev)}
+          aria-expanded={filtersOpen}
+          className="flex items-center gap-2 glass-subtle rounded-xl px-3 py-2 text-sm font-medium transition-all hover:border-primary/40"
+        >
+          <FilterIcon className="size-4 text-muted-foreground" />
+          <span>Filtros</span>
+          {activeFiltersCount > 0 && (
+            <span className="flex h-4 w-4 items-center justify-center rounded-full accent-gradient text-[10px] font-bold text-primary-foreground">
+              {activeFiltersCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Filter bar */}
+      {filtersOpen && (
+        <div className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <CalendarIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Desde</span>
+              </div>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={handleFilterChange(setDateFrom)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <CalendarIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Hasta</span>
+              </div>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={handleFilterChange(setDateTo)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <UsersIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Cajero</span>
+              </div>
+              <MultiSelect
+                id="admin-conversions-cashiers"
+                options={cashierOptions}
+                value={cashierIds}
+                onChange={(next) => {
+                  setCashierIds(next);
+                  setPage(1);
+                }}
+                placeholder="Todos los cajeros"
+                emptyText="Sin cajeros disponibles"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <HashIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Código</span>
+              </div>
+              <Input
+                value={code}
+                placeholder="Ej. ABC123"
+                onChange={handleFilterChange(setCode)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <MegaphoneIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Publicidad</span>
+              </div>
+              <Input
+                value={adCode}
+                placeholder="Ej. utm_content"
+                onChange={handleFilterChange(setAdCode)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <PhoneIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Teléfono</span>
+              </div>
+              <Input
+                value={phone}
+                placeholder="Ej. 54911..."
+                onChange={handleFilterChange(setPhone)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <BanknoteIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Monto mín.</span>
+              </div>
+              <Input
+                type="number"
+                value={amountMin}
+                min={0}
+                placeholder="Ej. 3000"
+                onChange={handleFilterChange(setAmountMin)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <BanknoteIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Monto máx.</span>
+              </div>
+              <Input
+                type="number"
+                value={amountMax}
+                min={0}
+                placeholder="Ej. 50000"
+                onChange={handleFilterChange(setAmountMax)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <FilterChips
+        chips={[
+          ...(dateFrom ? [{ key: 'dateFrom', label: `Desde: ${dateFrom}`, onRemove: () => { setDateFrom(''); setPage(1); } }] : []),
+          ...(dateTo ? [{ key: 'dateTo', label: `Hasta: ${dateTo}`, onRemove: () => { setDateTo(''); setPage(1); } }] : []),
+          ...cashierIds.map((id) => {
+            const opt = cashierOptions.find((o) => o.value === id);
+            return { key: `cashier-${id}`, label: `Cajero: ${opt?.label ?? id}`, onRemove: () => { setCashierIds((prev) => prev.filter((x) => x !== id)); setPage(1); } };
+          }),
+          ...(code.trim() ? [{ key: 'code', label: `Código: ${code}`, onRemove: () => { setCode(''); setPage(1); } }] : []),
+          ...(adCode.trim() ? [{ key: 'adCode', label: `Publicidad: ${adCode}`, onRemove: () => { setAdCode(''); setPage(1); } }] : []),
+          ...(phone.trim() ? [{ key: 'phone', label: `Teléfono: ${phone}`, onRemove: () => { setPhone(''); setPage(1); } }] : []),
+          ...(amountMin !== '' ? [{ key: 'amountMin', label: `Mínimo: ${amountMin}`, onRemove: () => { setAmountMin(''); setPage(1); } }] : []),
+          ...(amountMax !== '' ? [{ key: 'amountMax', label: `Máximo: ${amountMax}`, onRemove: () => { setAmountMax(''); setPage(1); } }] : []),
+        ]}
+        onClearAll={() => { setDateFrom(''); setDateTo(''); setPhone(''); setCode(''); setAdCode(''); setCashierIds([]); setAmountMin(''); setAmountMax(''); setPage(1); }}
+      />
+
+      {/* Totals grid */}
+      <div className="grid gap-3 md:grid-cols-3">
+        {totalsLoading ? (
+          Array.from({ length: 3 }).map((_, index) => <LoadingCard key={index} />)
+        ) : (
+          <>
+            <MetricCard label="Monto total" value={money.format(totals?.totalAmount ?? 0)} />
+            <MetricCard label="Cantidad" value={String(totals?.count ?? 0)} />
+            <MetricCard label="Monto promedio" value={money.format(totals?.averageAmount ?? 0)} />
+          </>
+        )}
+      </div>
+
+      {/* Table card */}
       <Card>
         <CardHeader>
           <CardTitle>Conversiones del sistema</CardTitle>
@@ -115,189 +286,7 @@ export const AdminConversionsPage = () => {
             Conversiones ordenadas por fecha, mas recientes primero.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((prev) => !prev)}
-              aria-expanded={filtersOpen}
-              className="flex items-center gap-2 glass-subtle rounded-xl px-3 py-2 text-sm font-medium transition-all hover:border-primary/40"
-            >
-              <FilterIcon className="size-4 text-muted-foreground" />
-              <span>Filtros</span>
-              {activeFiltersCount > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full accent-gradient text-[10px] font-bold text-primary-foreground">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-          </div>
-          {/* Filter bar */}
-          {filtersOpen && (
-            <div className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <CalendarIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Desde</span>
-                  </div>
-                  <Input
-                    type="date"
-                    value={dateFrom}
-                    onChange={handleFilterChange(setDateFrom)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <CalendarIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Hasta</span>
-                  </div>
-                  <Input
-                    type="date"
-                    value={dateTo}
-                    onChange={handleFilterChange(setDateTo)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <UsersIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Cajero</span>
-                  </div>
-                  <MultiSelect
-                    id="admin-conversions-cashiers"
-                    options={cashierOptions}
-                    value={cashierIds}
-                    onChange={(next) => {
-                      setCashierIds(next);
-                      setPage(1);
-                    }}
-                    placeholder="Todos los cajeros"
-                    emptyText="Sin cajeros disponibles"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <HashIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Código</span>
-                  </div>
-                  <Input
-                    value={code}
-                    placeholder="Ej. ABC123"
-                    onChange={handleFilterChange(setCode)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <MegaphoneIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Publicidad</span>
-                  </div>
-                  <Input
-                    value={adCode}
-                    placeholder="Ej. utm_content"
-                    onChange={handleFilterChange(setAdCode)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <PhoneIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Teléfono</span>
-                  </div>
-                  <Input
-                    value={phone}
-                    placeholder="Ej. 54911..."
-                    onChange={handleFilterChange(setPhone)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <BanknoteIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Monto mín.</span>
-                  </div>
-                  <Input
-                    type="number"
-                    value={amountMin}
-                    min={0}
-                    placeholder="Ej. 3000"
-                    onChange={handleFilterChange(setAmountMin)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <BanknoteIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Monto máx.</span>
-                  </div>
-                  <Input
-                    type="number"
-                    value={amountMax}
-                    min={0}
-                    placeholder="Ej. 50000"
-                    onChange={handleFilterChange(setAmountMax)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <FilterChips
-            chips={[
-              ...(dateFrom ? [{ key: 'dateFrom', label: `Desde: ${dateFrom}`, onRemove: () => { setDateFrom(''); setPage(1); } }] : []),
-              ...(dateTo ? [{ key: 'dateTo', label: `Hasta: ${dateTo}`, onRemove: () => { setDateTo(''); setPage(1); } }] : []),
-              ...cashierIds.map((id) => {
-                const opt = cashierOptions.find((o) => o.value === id);
-                return { key: `cashier-${id}`, label: `Cajero: ${opt?.label ?? id}`, onRemove: () => { setCashierIds((prev) => prev.filter((x) => x !== id)); setPage(1); } };
-              }),
-              ...(code.trim() ? [{ key: 'code', label: `Código: ${code}`, onRemove: () => { setCode(''); setPage(1); } }] : []),
-              ...(adCode.trim() ? [{ key: 'adCode', label: `Publicidad: ${adCode}`, onRemove: () => { setAdCode(''); setPage(1); } }] : []),
-              ...(phone.trim() ? [{ key: 'phone', label: `Teléfono: ${phone}`, onRemove: () => { setPhone(''); setPage(1); } }] : []),
-              ...(amountMin !== '' ? [{ key: 'amountMin', label: `Mínimo: ${amountMin}`, onRemove: () => { setAmountMin(''); setPage(1); } }] : []),
-              ...(amountMax !== '' ? [{ key: 'amountMax', label: `Máximo: ${amountMax}`, onRemove: () => { setAmountMax(''); setPage(1); } }] : []),
-            ]}
-            onClearAll={() => { setDateFrom(''); setDateTo(''); setPhone(''); setCode(''); setAdCode(''); setCashierIds([]); setAmountMin(''); setAmountMax(''); setPage(1); }}
-          />
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-1">
-                <CardDescription>Monto total</CardDescription>
-              </CardHeader>
-              <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? <Skeleton className="h-8 w-28" /> : money.format(totals?.totalAmount ?? 0)}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-1">
-                <CardDescription>Cantidad</CardDescription>
-              </CardHeader>
-              <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? <Skeleton className="h-8 w-16" /> : String(totals?.count ?? 0)}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-1">
-                <CardDescription>Monto promedio</CardDescription>
-              </CardHeader>
-              <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? <Skeleton className="h-8 w-28" /> : money.format(totals?.averageAmount ?? 0)}
-              </CardContent>
-            </Card>
-          </div>
-
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>

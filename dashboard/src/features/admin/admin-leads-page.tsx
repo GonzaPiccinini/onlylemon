@@ -257,6 +257,139 @@ export const AdminLeadsPage = () => {
         description="Tabla global de leads con filtros por estado y cajero."
       />
 
+      <div>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((prev) => !prev)}
+          aria-expanded={filtersOpen}
+          className="flex items-center gap-2 glass-subtle rounded-xl px-3 py-2 text-sm font-medium transition-all hover:border-primary/40"
+        >
+          <FilterIcon className="size-4 text-muted-foreground" />
+          <span>Filtros</span>
+          {activeFiltersCount > 0 && (
+            <span className="flex h-4 w-4 items-center justify-center rounded-full accent-gradient text-[10px] font-bold text-primary-foreground">
+              {activeFiltersCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {filtersOpen && (
+        <div className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <TagIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Estado</span>
+              </div>
+              <MultiSelect
+                id="admin-leads-statuses"
+                options={STATUS_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+                value={statuses}
+                onChange={(next) => {
+                  setStatuses(next as LeadFilterStatus[]);
+                  setPage(1);
+                }}
+                placeholder="Todos los estados"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <UsersIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Cajero</span>
+              </div>
+              <MultiSelect
+                id="admin-leads-cashiers"
+                options={cashierOptions}
+                value={cashierIds}
+                onChange={(next) => {
+                  setCashierIds(next);
+                  setPage(1);
+                }}
+                placeholder="Todos los cajeros"
+                emptyText="Sin cajeros disponibles"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <MegaphoneIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Publicidad</span>
+              </div>
+              <Input
+                value={adCode}
+                placeholder="Ej. utm_content"
+                onChange={(event) => {
+                  setAdCode(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <HashIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Código</span>
+              </div>
+              <Input
+                value={code}
+                placeholder="Ej. ABC123"
+                onChange={(event) => {
+                  setCode(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <PhoneIcon className="size-3.5" />
+                </span>
+                <span className="text-xs font-semibold text-foreground/80">Teléfono</span>
+              </div>
+              <Input
+                value={phone}
+                placeholder="Ej. 54911..."
+                onChange={(event) => {
+                  setPhone(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <FilterChips
+        chips={[
+          ...statuses.map((s) => {
+            const opt = STATUS_OPTIONS.find((o) => o.value === s);
+            return { key: `status-${s}`, label: `Estado: ${opt?.label ?? s}`, onRemove: () => { setStatuses((prev) => prev.filter((x) => x !== s)); setPage(1); } };
+          }),
+          ...cashierIds.map((id) => {
+            const opt = cashierOptions.find((o) => o.value === id);
+            return { key: `cashier-${id}`, label: `Cajero: ${opt?.label ?? id}`, onRemove: () => { setCashierIds((prev) => prev.filter((x) => x !== id)); setPage(1); } };
+          }),
+          ...(adCode.trim() ? [{ key: 'adCode', label: `Publicidad: ${adCode}`, onRemove: () => { setAdCode(''); setPage(1); } }] : []),
+          ...(code.trim() ? [{ key: 'code', label: `Código: ${code}`, onRemove: () => { setCode(''); setPage(1); } }] : []),
+          ...(phone.trim() ? [{ key: 'phone', label: `Teléfono: ${phone}`, onRemove: () => { setPhone(''); setPage(1); } }] : []),
+        ]}
+        onClearAll={() => { setStatuses([]); setCashierIds([]); setAdCode(''); setCode(''); setPhone(''); setPage(1); }}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Leads del sistema</CardTitle>
@@ -264,139 +397,7 @@ export const AdminLeadsPage = () => {
             Visualiza estados de conversion y asignacion por cajero.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((prev) => !prev)}
-              aria-expanded={filtersOpen}
-              className="flex items-center gap-2 glass-subtle rounded-xl px-3 py-2 text-sm font-medium transition-all hover:border-primary/40"
-            >
-              <FilterIcon className="size-4 text-muted-foreground" />
-              <span>Filtros</span>
-              {activeFiltersCount > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full accent-gradient text-[10px] font-bold text-primary-foreground">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-          </div>
-          {filtersOpen && (
-            <div className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <TagIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Estado</span>
-                  </div>
-                  <MultiSelect
-                    id="admin-leads-statuses"
-                    options={STATUS_OPTIONS.map((o) => ({
-                      value: o.value,
-                      label: o.label,
-                    }))}
-                    value={statuses}
-                    onChange={(next) => {
-                      setStatuses(next as LeadFilterStatus[]);
-                      setPage(1);
-                    }}
-                    placeholder="Todos los estados"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <UsersIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Cajero</span>
-                  </div>
-                  <MultiSelect
-                    id="admin-leads-cashiers"
-                    options={cashierOptions}
-                    value={cashierIds}
-                    onChange={(next) => {
-                      setCashierIds(next);
-                      setPage(1);
-                    }}
-                    placeholder="Todos los cajeros"
-                    emptyText="Sin cajeros disponibles"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <MegaphoneIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Publicidad</span>
-                  </div>
-                  <Input
-                    value={adCode}
-                    placeholder="Ej. utm_content"
-                    onChange={(event) => {
-                      setAdCode(event.target.value);
-                      setPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <HashIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Código</span>
-                  </div>
-                  <Input
-                    value={code}
-                    placeholder="Ej. ABC123"
-                    onChange={(event) => {
-                      setCode(event.target.value);
-                      setPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <PhoneIcon className="size-3.5" />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground/80">Teléfono</span>
-                  </div>
-                  <Input
-                    value={phone}
-                    placeholder="Ej. 54911..."
-                    onChange={(event) => {
-                      setPhone(event.target.value);
-                      setPage(1);
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <FilterChips
-            chips={[
-              ...statuses.map((s) => {
-                const opt = STATUS_OPTIONS.find((o) => o.value === s);
-                return { key: `status-${s}`, label: `Estado: ${opt?.label ?? s}`, onRemove: () => { setStatuses((prev) => prev.filter((x) => x !== s)); setPage(1); } };
-              }),
-              ...cashierIds.map((id) => {
-                const opt = cashierOptions.find((o) => o.value === id);
-                return { key: `cashier-${id}`, label: `Cajero: ${opt?.label ?? id}`, onRemove: () => { setCashierIds((prev) => prev.filter((x) => x !== id)); setPage(1); } };
-              }),
-              ...(adCode.trim() ? [{ key: 'adCode', label: `Publicidad: ${adCode}`, onRemove: () => { setAdCode(''); setPage(1); } }] : []),
-              ...(code.trim() ? [{ key: 'code', label: `Código: ${code}`, onRemove: () => { setCode(''); setPage(1); } }] : []),
-              ...(phone.trim() ? [{ key: 'phone', label: `Teléfono: ${phone}`, onRemove: () => { setPhone(''); setPage(1); } }] : []),
-            ]}
-            onClearAll={() => { setStatuses([]); setCashierIds([]); setAdCode(''); setCode(''); setPhone(''); setPage(1); }}
-          />
-
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
