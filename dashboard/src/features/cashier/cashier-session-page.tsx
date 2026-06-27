@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/common/status-badge';
 import {
   Dialog,
@@ -62,6 +63,7 @@ import {
   useStartSession,
 } from '@/features/cashier/cashier-hooks';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { TableRowsSkeleton } from '@/components/common/table-skeleton';
 import { SessionAliasEditor } from '@/features/chat/components';
 import type { ChatScope } from '@/api/chat.service';
 import type { MyWhatsappSession } from '@/types/domain';
@@ -471,8 +473,10 @@ export const CashierSessionPage = () => {
           description="Cargando estado del cajero."
         />
         <Card>
-          <CardContent className="py-8 text-sm text-muted-foreground">
-            Verificando estado...
+          <CardContent className="flex flex-col gap-3 py-6">
+            <Skeleton className="h-5 w-2/5" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
           </CardContent>
         </Card>
       </section>
@@ -604,7 +608,7 @@ export const CashierSessionPage = () => {
         <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             {currentLoading ? (
-              <Badge variant="outline">Cargando...</Badge>
+              <Skeleton className="h-6 w-28 rounded-full" />
             ) : currentSession?.isActive ? (
               <StatusBadge variant="default" icon={CheckCircle2Icon}>
                 Sesion activa
@@ -665,9 +669,7 @@ export const CashierSessionPage = () => {
             </TableHeader>
             <TableBody>
               {sessionsLoading ? (
-                <TableRow>
-                  <TableCell colSpan={4}>Cargando sesiones...</TableCell>
-                </TableRow>
+                <TableRowsSkeleton rows={5} cols={4} />
               ) : sessions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4}>Aun no registras sesiones.</TableCell>

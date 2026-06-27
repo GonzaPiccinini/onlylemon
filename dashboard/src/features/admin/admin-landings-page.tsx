@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/page-header";
+import { TableRowsSkeleton } from "@/components/common/table-skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +37,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/common/status-badge";
 import {
   Table,
@@ -282,8 +284,10 @@ const FallbackPhonesPanel = ({ landing }: FallbackPhonesPanelProps) => {
 
   if (isLoading) {
     return (
-      <div className="px-4 pb-3 pt-2 text-sm text-muted-foreground">
-        Cargando teléfonos de respaldo...
+      <div className="flex flex-col gap-2 px-4 pb-3 pt-2">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-3/4" />
       </div>
     );
   }
@@ -618,9 +622,7 @@ export const AdminLandingsPage = () => {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6}>Cargando landings...</TableCell>
-              </TableRow>
+              <TableRowsSkeleton rows={5} cols={6} />
             ) : landings.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>No hay landings registradas.</TableCell>

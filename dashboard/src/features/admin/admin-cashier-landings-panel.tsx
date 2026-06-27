@@ -4,6 +4,7 @@ import { ChevronDownIcon, ChevronUpIcon, SmartphoneIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter } from '@/components/ui/dialog';
@@ -174,7 +175,11 @@ export const AdminCashierLandingsPanel = ({ cashier }: AdminCashierLandingsPanel
       </p>
 
       {loadingLandings ? (
-        <p className='text-sm text-muted-foreground'>Cargando landings...</p>
+        <div className='flex flex-col gap-1'>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className='h-12 w-full rounded-lg' />
+          ))}
+        </div>
       ) : activeLandings.length === 0 ? (
         <p className='text-sm text-muted-foreground'>
           No hay landings activas. Crea una primero.
@@ -281,7 +286,11 @@ const SessionLandingRowsConnected = ({
 
   if (isLoading) {
     return (
-      <p className='pl-12 pt-2 pb-1 text-sm text-muted-foreground'>Cargando landings...</p>
+      <div className='flex flex-col gap-1.5 pl-12 pt-2 pb-1'>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className='h-8 w-full rounded-md' />
+        ))}
+      </div>
     );
   }
 

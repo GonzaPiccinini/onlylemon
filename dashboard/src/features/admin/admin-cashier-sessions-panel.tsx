@@ -4,6 +4,7 @@ import { CheckIcon, PencilIcon, PlusIcon, QrCodeIcon, SmartphoneIcon, Trash2Icon
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Input } from '@/components/ui/input';
 import {
@@ -436,7 +437,11 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
 
       {/* Session cards */}
       {isLoading ? (
-        <p className='text-sm text-muted-foreground'>Cargando sesiones...</p>
+        <div className='flex flex-col gap-2'>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className='h-[72px] w-full rounded-lg' />
+          ))}
+        </div>
       ) : sessions.length === 0 ? (
         <div className='flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground'>
           <SmartphoneIcon className='size-8 opacity-40' />

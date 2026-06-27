@@ -3,6 +3,7 @@ import { BanknoteIcon, CalendarIcon, FilterIcon, HashIcon, PhoneIcon } from 'luc
 import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { TableRowsSkeleton } from '@/components/common/table-skeleton';
 import {
   Card,
   CardContent,
@@ -214,9 +215,7 @@ export const CashierConversionsPage = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={4}>Cargando conversiones...</TableCell>
-                </TableRow>
+                <TableRowsSkeleton rows={5} cols={4} />
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4}>

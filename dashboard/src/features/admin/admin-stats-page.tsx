@@ -13,7 +13,9 @@ import { MetricCard } from "@/components/common/metric-card";
 import { LoadingCard } from "@/components/common/loading-card";
 import { PeriodFilter } from "@/components/common/period-filter";
 import { FilterChips } from "@/components/common/filter-chips";
+import { TableRowsSkeleton } from "@/components/common/table-skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Table,
@@ -184,9 +186,7 @@ export const AdminStatsPage = () => {
         </CardHeader>
         <CardContent className="h-[300px]">
           {seriesLoading ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              Cargando grafico...
-            </div>
+            <Skeleton className="h-full w-full rounded-md" />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 20, left: 8, right: 8, bottom: 8 }}>
@@ -252,9 +252,7 @@ export const AdminStatsPage = () => {
             </TableHeader>
             <TableBody>
               {cashierStatsLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7}>Cargando estadisticas...</TableCell>
-                </TableRow>
+                <TableRowsSkeleton rows={5} cols={7} />
               ) : cashierStats.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7}>No hay datos para el periodo seleccionado.</TableCell>

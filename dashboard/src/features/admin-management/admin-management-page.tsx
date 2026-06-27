@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/page-header";
+import { TableRowsSkeleton } from "@/components/common/table-skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -248,9 +249,7 @@ export const AdminManagementPage = () => {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6}>Cargando admins...</TableCell>
-              </TableRow>
+              <TableRowsSkeleton rows={5} cols={6} />
             ) : admins.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>No hay admins registrados.</TableCell>

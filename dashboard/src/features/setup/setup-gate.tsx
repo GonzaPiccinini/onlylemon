@@ -19,6 +19,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { authService } from "@/api/auth.service";
 import { SetupPage } from "@/features/setup/setup-page";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AUTH_STORAGE_KEY = "auth";
 
@@ -79,7 +80,11 @@ export const SetupGate = ({ children }: SetupGateProps) => {
   if (state === "loading") {
     return (
       <div className="flex min-h-svh items-center justify-center">
-        <span className="text-sm text-muted-foreground">Cargando...</span>
+        <div className="flex w-full max-w-xs flex-col items-center gap-3">
+          <Skeleton className="size-12 rounded-full" />
+          <Skeleton className="h-4 w-3/5" />
+          <Skeleton className="h-3 w-2/5" />
+        </div>
       </div>
     );
   }

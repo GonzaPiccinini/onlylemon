@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Separator } from '@/components/ui/separator';
 import { useMoneyFormatter } from '@/lib/use-currency';
@@ -219,9 +220,18 @@ export const CashierAddFundsPage = () => {
                         {debouncedQ.length > 0 && (
                           <div className='mt-1 rounded-lg border bg-popover shadow-sm'>
                             {searching ? (
-                              <p className='px-3 py-2 text-sm text-muted-foreground'>
-                                Buscando...
-                              </p>
+                              <ul className='divide-y'>
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                  <li
+                                    key={i}
+                                    className='flex items-center gap-3 px-3 py-2'
+                                  >
+                                    <Skeleton className='h-4 w-16' />
+                                    <Skeleton className='h-4 w-24' />
+                                    <Skeleton className='ml-auto h-5 w-20 rounded-full' />
+                                  </li>
+                                ))}
+                              </ul>
                             ) : searchResults.length === 0 ? (
                               <p className='px-3 py-2 text-sm text-muted-foreground'>
                                 No se encontraron leads

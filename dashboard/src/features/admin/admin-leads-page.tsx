@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon, FilterIcon, HashIcon, MegaphoneIcon, PhoneIcon, TagIcon, UsersIcon } from 'lucide-react';
 import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
+import { TableRowsSkeleton } from '@/components/common/table-skeleton';
 import {
   useAdminCashiers,
   useAdminLeadHistory,
@@ -410,9 +411,7 @@ export const AdminLeadsPage = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={COLUMN_COUNT}>Cargando leads...</TableCell>
-                </TableRow>
+                <TableRowsSkeleton rows={5} cols={COLUMN_COUNT} />
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={COLUMN_COUNT}>

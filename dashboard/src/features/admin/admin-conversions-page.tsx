@@ -3,6 +3,7 @@ import { BanknoteIcon, CalendarIcon, FilterIcon, HashIcon, MegaphoneIcon, PhoneI
 import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { TableRowsSkeleton } from '@/components/common/table-skeleton';
 import { useAdminConversions, useAdminCashiers, useAdminConversionsTotals } from '@/features/admin/admin-hooks';
 import {
   Card,
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -275,7 +277,7 @@ export const AdminConversionsPage = () => {
                 <CardDescription>Monto total</CardDescription>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : money.format(totals?.totalAmount ?? 0)}
+                {totalsLoading ? <Skeleton className="h-8 w-28" /> : money.format(totals?.totalAmount ?? 0)}
               </CardContent>
             </Card>
             <Card>
@@ -283,7 +285,7 @@ export const AdminConversionsPage = () => {
                 <CardDescription>Cantidad</CardDescription>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : String(totals?.count ?? 0)}
+                {totalsLoading ? <Skeleton className="h-8 w-16" /> : String(totals?.count ?? 0)}
               </CardContent>
             </Card>
             <Card>
@@ -291,7 +293,7 @@ export const AdminConversionsPage = () => {
                 <CardDescription>Monto promedio</CardDescription>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : money.format(totals?.averageAmount ?? 0)}
+                {totalsLoading ? <Skeleton className="h-8 w-28" /> : money.format(totals?.averageAmount ?? 0)}
               </CardContent>
             </Card>
           </div>
@@ -309,9 +311,7 @@ export const AdminConversionsPage = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6}>Cargando conversiones...</TableCell>
-                </TableRow>
+                <TableRowsSkeleton rows={5} cols={6} />
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6}>
