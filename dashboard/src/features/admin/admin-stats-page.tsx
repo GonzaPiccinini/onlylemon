@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { PaginationControls } from "@/components/common/pagination-controls";
 import { getDefaultDateRange } from "@/lib/date-range";
-import { formatHours, formatPercentage } from "@/lib/format";
+import { formatDuration, formatPercentage } from "@/lib/format";
 import { useMoneyFormatter } from "@/lib/use-currency";
 import {
   useAdminSummary,
@@ -157,7 +157,7 @@ export const AdminStatsPage = () => {
               <MetricCard label="Leads convertidos" value={String(summary.convertedLeads)} />
               <MetricCard label="Tasa conversion" value={formatPercentage(summary.conversionRate)} />
               <MetricCard label="Valor convertido" value={money.format(summary.totalConvertedValue)} />
-              <MetricCard label="Horas activas" value={formatHours(summary.totalActiveHours)} />
+              <MetricCard label="Tiempo activo" value={formatDuration(summary.totalActiveHours * 60)} />
             </>
           )
         ) : seriesLoading || !fundsSeries ? (
@@ -247,7 +247,7 @@ export const AdminStatsPage = () => {
                 <TableHead>Convertidos</TableHead>
                 <TableHead>Tasa conversion</TableHead>
                 <TableHead>Valor convertido</TableHead>
-                <TableHead>Horas</TableHead>
+                <TableHead>Tiempo activo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -268,7 +268,7 @@ export const AdminStatsPage = () => {
                     <TableCell>{cashier.convertedLeads}</TableCell>
                     <TableCell>{formatPercentage(cashier.conversionRate)}</TableCell>
                     <TableCell>{money.format(cashier.convertedValue)}</TableCell>
-                    <TableCell>{formatHours(cashier.activeHours)}</TableCell>
+                    <TableCell>{formatDuration(cashier.activeHours * 60)}</TableCell>
                   </TableRow>
                 ))
               )}

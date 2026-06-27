@@ -41,7 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatDuration } from '@/lib/format';
 import {
   wahaStatusIcon,
   wahaStatusLabel,
@@ -660,7 +660,7 @@ export const CashierSessionPage = () => {
                 <TableHead>Inicio</TableHead>
                 <TableHead>Fin</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Minutos activos</TableHead>
+                <TableHead>Tiempo activo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -687,7 +687,7 @@ export const CashierSessionPage = () => {
                         {session.isActive ? 'Activa' : 'Finalizada'}
                       </StatusBadge>
                     </TableCell>
-                    <TableCell>{session.activeMinutes.toFixed(2)}</TableCell>
+                    <TableCell>{formatDuration(session.activeMinutes)}</TableCell>
                   </TableRow>
                 ))
               )}
