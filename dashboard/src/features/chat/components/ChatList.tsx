@@ -53,7 +53,7 @@ export const ChatList = ({
     return (
       <div className="flex flex-col gap-1 p-2">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          <Skeleton key={i} className="h-[60px] w-full" />
         ))}
       </div>
     );

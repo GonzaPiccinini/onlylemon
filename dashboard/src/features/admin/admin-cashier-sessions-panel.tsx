@@ -439,7 +439,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
       {isLoading ? (
         <div className='flex flex-col gap-2'>
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className='h-[72px] w-full rounded-lg' />
+            <Skeleton key={i} className='h-28 w-full rounded-lg' />
           ))}
         </div>
       ) : sessions.length === 0 ? (

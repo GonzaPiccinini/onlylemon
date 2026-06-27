@@ -472,11 +472,44 @@ export const CashierSessionPage = () => {
           title="Sesion y WhatsApp"
           description="Cargando estado del cajero."
         />
+        {/* Skeleton Card 1 — mirrors "Sesiones de WhatsApp" */}
         <Card>
-          <CardContent className="flex flex-col gap-3 py-6">
-            <Skeleton className="h-5 w-2/5" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
+          <CardHeader>
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Skeleton className="h-[72px] w-full rounded-lg" />
+            <Skeleton className="h-[72px] w-full rounded-lg" />
+          </CardContent>
+        </Card>
+        {/* Skeleton Card 2 — mirrors "Estado actual" */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <Skeleton className="h-6 w-28 rounded-full" />
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-9 w-24" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Skeleton Card 3 — mirrors "Ultimas sesiones" */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
           </CardContent>
         </Card>
       </section>

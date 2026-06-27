@@ -50,9 +50,9 @@ const AdminChatInner = ({ cashierId, cashierPicker }: AdminChatInnerProps) => {
   }));
 
   const noSessionsCta = isLoading ? (
-    <Skeleton className="h-16 w-full rounded-xl" />
+    <Skeleton className="h-16 w-full rounded-lg" />
   ) : (
-    <div className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+    <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
       Este cajero no tiene sesiones de WhatsApp.
     </div>
   );
