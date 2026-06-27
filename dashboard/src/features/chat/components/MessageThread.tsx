@@ -16,7 +16,15 @@
  * Delegates per-message rendering to MessageItem.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { ChevronDownIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { MessageItem } from './MessageItem';
@@ -29,6 +37,9 @@ import type { ChatScope } from '@/api/chat.service';
 // ---------------------------------------------------------------------------
 
 const NEAR_BOTTOM_THRESHOLD = 120; // px
+
+// Show the "jump to latest" button once the user scrolls this far from bottom.
+const SCROLL_DOWN_THRESHOLD = 200; // px
 
 // How many older pages to fetch while chasing a quote target that isn't loaded.
 const MAX_JUMP_PAGES = 5;
@@ -108,6 +119,22 @@ export const MessageThread = ({
   // page back through history (bounded) until it appears.
   const pendingHashRef = useRef<string | null>(null);
   const jumpAttemptsRef = useRef(0);
+
+  // "Jump to latest" affordance — shown while the user has scrolled up.
+  const [showScrollDown, setShowScrollDown] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollDown(distance > SCROLL_DOWN_THRESHOLD);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, []);
 
   // useLayoutEffect: adjust scroll before the browser paints to avoid flicker
   // (especially when preserving position after prepending older messages).
@@ -234,62 +261,80 @@ export const MessageThread = ({
   }
 
   return (
-    <div
-      ref={scrollRef}
-      className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-4"
-    >
-      {/* Load older messages */}
-      {hasOlder && (
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onLoadOlder}
-          >
-            Cargar mensajes anteriores
-          </Button>
-        </div>
-      )}
-
-      {messages.length === 0 && !isLoading && (
-        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          No hay mensajes en este chat.
-        </div>
-      )}
-
-      {dayGroups.map((group) => (
-        <div key={group.key} className="flex flex-col">
-          <div className="sticky top-0 z-10 flex justify-center py-1">
-            <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-              {group.label}
-            </span>
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-4"
+      >
+        {/* Load older messages */}
+        {hasOlder && (
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onLoadOlder}
+            >
+              Cargar mensajes anteriores
+            </Button>
           </div>
-          {group.items.map((msg, i) => {
-            // A "run" is a streak of consecutive messages from the same side.
-            // The first gets extra top spacing; the last gets the bubble tail.
-            const prev = group.items[i - 1];
-            const next = group.items[i + 1];
-            const isFirstInGroup = !prev || prev.fromMe !== msg.fromMe;
-            const isLastInGroup = !next || next.fromMe !== msg.fromMe;
-            return (
-              <MessageItem
-                key={msg.id}
-                message={msg}
-                scope={scope}
-                sessionId={sessionId}
-                chatId={chatId}
-                onReply={onReply}
-                onReact={onReact}
-                contactName={contactName}
-                onJumpToMessage={handleJumpToQuote}
-                isFirstInGroup={isFirstInGroup}
-                isLastInGroup={isLastInGroup}
-              />
-            );
-          })}
-        </div>
-      ))}
+        )}
+
+        {messages.length === 0 && !isLoading && (
+          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+            No hay mensajes en este chat.
+          </div>
+        )}
+
+        {dayGroups.map((group) => (
+          <div key={group.key} className="flex flex-col">
+            <div className="sticky top-0 z-10 flex justify-center py-1">
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+                {group.label}
+              </span>
+            </div>
+            {group.items.map((msg, i) => {
+              // A "run" is a streak of consecutive messages from the same side.
+              // The first gets extra top spacing; the last gets the bubble tail.
+              const prev = group.items[i - 1];
+              const next = group.items[i + 1];
+              const isFirstInGroup = !prev || prev.fromMe !== msg.fromMe;
+              const isLastInGroup = !next || next.fromMe !== msg.fromMe;
+              return (
+                <MessageItem
+                  key={msg.id}
+                  message={msg}
+                  scope={scope}
+                  sessionId={sessionId}
+                  chatId={chatId}
+                  onReply={onReply}
+                  onReact={onReact}
+                  contactName={contactName}
+                  onJumpToMessage={handleJumpToQuote}
+                  isFirstInGroup={isFirstInGroup}
+                  isLastInGroup={isLastInGroup}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Jump to latest — appears once the user scrolls up past the threshold. */}
+      {showScrollDown && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon-lg"
+          onClick={scrollToBottom}
+          aria-label="Ir a los mensajes recientes"
+          title="Ir a los mensajes recientes"
+          className="absolute bottom-3 right-3 z-20 rounded-full shadow-lg animate-in fade-in zoom-in-95"
+        >
+          <ChevronDownIcon className="size-5" />
+        </Button>
+      )}
     </div>
   );
 };
