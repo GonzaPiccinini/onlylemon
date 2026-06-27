@@ -2,7 +2,7 @@
  * ChatList.tsx — Renders the list of chats for a selected session.
  *
  * Per spec amendment: shows name + compact timestamp only (no body preview —
- * WAHA does not return a preview in V1). Unread indicator: a yellow dot
+ * WAHA does not return a preview in V1). Unread indicator: a lime (primary) dot
  * (trailing) when chatId is in `unreadChatIds`. The selected row is marked with
  * a left accent bar (not a full primary tint) so it stays sober.
  */
@@ -126,7 +126,7 @@ export const ChatList = ({
                   <span
                     role="status"
                     aria-label="Mensaje sin leer"
-                    className="size-2.5 rounded-full bg-yellow-400 shadow-[0_0_0_3px_rgba(250,204,21,0.25)]"
+                    className="size-2.5 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_25%,transparent)]"
                   />
                 )}
               </div>

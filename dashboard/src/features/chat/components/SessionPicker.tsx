@@ -6,7 +6,7 @@
  *   Select primitive) so it matches the dashboard's lemon/dark theme exactly
  *   and we fully own its look & behaviour.
  *
- * Connection state is a compact dot (yellow = connected, black = disconnected).
+ * Connection state is a compact dot (teal = connected, gray = disconnected).
  * The displayed name prioritises: alias → phone number → session code.
  * The alias is DISPLAY-ONLY here — it is assigned in the WhatsApp sessions
  * management section (cashier session page / admin sessions panel).
@@ -52,7 +52,8 @@ function sessionLabel(s: SessionOption): string {
 }
 
 // ---------------------------------------------------------------------------
-// Status dot — yellow when connected (WORKING), black otherwise.
+// Status dot — teal (with a soft glow) when connected (WORKING), muted grey
+// otherwise.
 // ---------------------------------------------------------------------------
 
 const StatusDot = ({ status }: { status: string | null }) => {
@@ -64,7 +65,9 @@ const StatusDot = ({ status }: { status: string | null }) => {
       aria-label={label}
       className={[
         'inline-block size-2.5 shrink-0 rounded-full',
-        connected ? 'bg-yellow-400' : 'bg-black ring-1 ring-foreground/30',
+        connected
+          ? 'bg-[var(--accent-violet)] shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent-violet)_25%,transparent)]'
+          : 'bg-muted-foreground/40',
       ].join(' ')}
     />
   );
