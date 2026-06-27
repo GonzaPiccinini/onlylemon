@@ -374,11 +374,11 @@ export const ChatPage = ({
     <div className="flex h-full min-h-0 flex-col">
       {/* Pinned header — cashier/session pickers + status action stay fixed
           at the top while the contacts list scrolls below them. */}
-      <div className="flex shrink-0 flex-col gap-2 p-3">
-        {/* Admin cashier back — plain, no box. */}
+      <div className="flex shrink-0 flex-col gap-2 py-3 md:pt-0">
+        {/* Admin cashier back — its own floating glass-subtle chip. */}
         {cashierPicker}
 
-        {/* Session picker — clean control with a subtle border. */}
+        {/* Session picker — its own floating glass-subtle chip. */}
         {sessions.length > 0 && (
           <SessionPicker
             sessions={sessions}
@@ -406,23 +406,27 @@ export const ChatPage = ({
         </div>
       </div>
 
-      {/* Scrollable contacts region — grows with chat count and scrolls in
-          place, so the list never overflows the (viewport-locked) layout. */}
-      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {sessions.length === 0 ? (
-          <div className="p-3">{emptyCta ?? null}</div>
-        ) : (
-          <ChatList
-            chats={chats}
-            selectedChatId={selectedChatId}
-            onSelect={handleSelectChat}
-            unreadChatIds={unreadChatIds}
-            isLoading={chatListQuery.isLoading}
-            hasMore={chatListQuery.hasNextPage}
-            onLoadMore={() => void chatListQuery.fetchNextPage()}
-            isLoadingMore={chatListQuery.isFetchingNextPage}
-          />
-        )}
+      {/* Scrollable contacts region — its own floating glass card, edge-aligned
+          with the page header / mobile nav above. Grows with chat count and
+          scrolls in place, so the list never overflows the (viewport-locked)
+          layout. */}
+      <div className="min-h-0 flex-1">
+        <div className="scrollbar-thin glass flex h-full min-h-0 flex-col overflow-y-auto rounded-2xl">
+          {sessions.length === 0 ? (
+            <div className="p-3">{emptyCta ?? null}</div>
+          ) : (
+            <ChatList
+              chats={chats}
+              selectedChatId={selectedChatId}
+              onSelect={handleSelectChat}
+              unreadChatIds={unreadChatIds}
+              isLoading={chatListQuery.isLoading}
+              hasMore={chatListQuery.hasNextPage}
+              onLoadMore={() => void chatListQuery.fetchNextPage()}
+              isLoadingMore={chatListQuery.isFetchingNextPage}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -484,8 +488,9 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   return (
-    <div className="relative flex min-h-0 flex-1 gap-3">
-      {/* Desktop: left column — list (no panel bg; controls + list float). */}
+    <div className="relative flex min-h-0 flex-1 gap-3 overflow-hidden">
+      {/* Desktop: left column — no column bg; each control + the list float in
+          their own glass surface. */}
       <div className="hidden w-80 shrink-0 flex-col md:flex">
         {listPanel}
       </div>
@@ -495,7 +500,7 @@ export const ChatPage = ({
         {threadPanel}
       </div>
 
-      {/* Mobile: full-width list (no panel bg; controls + list float). */}
+      {/* Mobile: full-width list — same floating-glass treatment as desktop. */}
       <div className="flex flex-1 flex-col md:hidden">
         {listPanel}
       </div>

@@ -75,7 +75,7 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
   const hiddenCount = matched.length - shown.length;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 px-1.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* Pinned search — stays put while the grid below scrolls. */}
       <div className="relative shrink-0">
         <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

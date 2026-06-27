@@ -102,7 +102,7 @@ export const AdminChatPage = () => {
       type="button"
       onClick={handleBackToCashiers}
       title="Cambiar de cajero"
-      className="group flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group glass-subtle flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ArrowLeftIcon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
       <span className="min-w-0 flex-1">
