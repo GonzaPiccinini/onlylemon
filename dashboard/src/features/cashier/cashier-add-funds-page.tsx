@@ -83,9 +83,7 @@ export const CashierAddFundsPage = () => {
 
   useEffect(() => {
     if (runtimeState && !runtimeState.canOperateLeads) {
-      toast.error(
-        `No puedes operar leads. Estado WAHA: ${runtimeState.wahaStatus}`,
-      );
+      toast.error('No podés operar leads: necesitás un WhatsApp conectado.');
       navigate('/cashier', { replace: true });
     }
   }, [navigate, runtimeState]);

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/branding";
+import { wahaStatusLabel } from "@/lib/waha-status";
 import { useAuth } from "@/features/auth/auth-context";
 import {
   useCashierRuntimeState,
@@ -178,7 +179,7 @@ export const AppShell = () => {
               <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
               {user.role === "CASHIER" ? (
                 <p className="truncate text-xs text-muted-foreground">
-                  WAHA: {runtimeState?.wahaStatus ?? "-"}
+                  WhatsApp: {wahaStatusLabel(runtimeState?.wahaStatus)}
                 </p>
               ) : null}
             </div>
@@ -226,7 +227,7 @@ export const AppShell = () => {
                       <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
                       {user.role === "CASHIER" ? (
                         <p className="truncate text-xs text-muted-foreground">
-                          WAHA: {runtimeState?.wahaStatus ?? "-"}
+                          WhatsApp: {wahaStatusLabel(runtimeState?.wahaStatus)}
                         </p>
                       ) : null}
                     </div>

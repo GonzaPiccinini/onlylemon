@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import {
   ChevronRightIcon,
-  CheckIcon,
   CheckCircle2Icon,
   CircleDashedIcon,
   PlayIcon,
@@ -44,11 +43,6 @@ import {
 } from '@/components/ui/table';
 import { formatDateTime, formatDuration } from '@/lib/format';
 import {
-  wahaStatusIcon,
-  wahaStatusLabel,
-  wahaStatusVariant,
-} from '@/lib/waha-status';
-import {
   useCashierRuntimeState,
   useCashierSessions,
   useCreateMySession,
@@ -64,21 +58,15 @@ import {
 } from '@/features/cashier/cashier-hooks';
 import { PaginationControls } from '@/components/common/pagination-controls';
 import { TableRowsSkeleton } from '@/components/common/table-skeleton';
-import { SessionAliasEditor } from '@/features/chat/components';
-import type { ChatScope } from '@/api/chat.service';
+import { SessionLineCard } from '@/components/common/session-line-card';
+import { CapacityMeter } from '@/components/common/capacity-meter';
+import { SessionStatusBadge } from '@/components/common/session-status-badge';
+import { InlineRename } from '@/components/common/inline-rename';
+import { StatusRingAvatar } from '@/components/common/status-ring-avatar';
+import { useSetSessionAlias } from '@/features/chat/hooks/useSetSessionAlias';
 import type { MyWhatsappSession } from '@/types/domain';
 
 const REFRESH_INTERVAL_SECONDS = 45;
-
-// ---------------------------------------------------------------------------
-// Status badge helper
-// ---------------------------------------------------------------------------
-
-const WahaStatusBadge = ({ status }: { status: string | undefined | null }) => (
-  <StatusBadge variant={wahaStatusVariant(status)} icon={wahaStatusIcon(status)}>
-    {wahaStatusLabel(status)}
-  </StatusBadge>
-);
 
 // ---------------------------------------------------------------------------
 // Session modal (per-session QR/pairing/status/refresh/delete)
@@ -86,7 +74,6 @@ const WahaStatusBadge = ({ status }: { status: string | undefined | null }) => (
 
 interface SessionModalProps {
   session: MyWhatsappSession;
-  cashierMaxSessions: number;
   onClose: () => void;
 }
 
@@ -108,6 +95,7 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   const refreshSession = useRefreshMySession();
   const resetRefresh = useResetMySessionRefresh();
   const deleteSession = useDeleteMySession();
+  const setAlias = useSetSessionAlias({ kind: 'cashier', cashierId: '' });
 
   const stopTimer = () => {
     if (timerRef.current) {
@@ -219,40 +207,26 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          WhatsApp Session
-          <WahaStatusBadge status={wahaStatus} />
+        <DialogTitle className="flex items-center gap-2 pr-8">
+          <InlineRename
+            value={session.alias ?? ''}
+            placeholder="Poner un nombre"
+            onSave={(value) =>
+              setAlias.mutateAsync({ sessionId: session.id, alias: value || null })
+            }
+            isPending={setAlias.isPending}
+            className="min-w-0 flex-1"
+          />
+          <SessionStatusBadge status={wahaStatus} className="shrink-0" />
         </DialogTitle>
       </DialogHeader>
 
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span>ID: {session.id.slice(0, 8)}...</span>
-          <span>Nombre: {session.sessionName}</span>
-          <span>
-            Intentos: {refreshCount}/{REFRESH_CAP}
-          </span>
-        </div>
-
-        {/* Alias — assign/edit a friendly name for this session. */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Alias:</span>
-          <SessionAliasEditor
-            scope={{ kind: 'cashier', cashierId: '' } satisfies ChatScope}
-            sessionId={session.id}
-            alias={session.alias}
-          />
-        </div>
-
         {isWorking ? (
-          <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-success/15 text-success ring-1 ring-success/30">
-              <CheckIcon className="size-4" strokeWidth={3} />
-            </div>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <p className="text-sm font-medium leading-tight">
-                Conectado a WhatsApp
-              </p>
+          <div className="flex items-center gap-3 rounded-xl glass-subtle p-3">
+            <StatusRingAvatar status={wahaStatus} size="md" className="shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium leading-tight">Conectado a WhatsApp</p>
               {session.whatsappPhoneNumber && (
                 <p className="truncate font-mono text-xs text-muted-foreground">
                   +{session.whatsappPhoneNumber}
@@ -262,6 +236,17 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
           </div>
         ) : (
           <>
+            <div className="rounded-xl border border-dashed p-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Cómo vincular tu WhatsApp:
+              </p>
+              <ol className="flex list-none flex-col gap-1 text-xs text-muted-foreground">
+                <li>1. Abrí WhatsApp en tu celular</li>
+                <li>2. Tocá <strong>Dispositivos vinculados</strong> › <strong>Vincular dispositivo</strong></li>
+                <li>3. Escaneá el código QR o ingresá el código de vinculación</li>
+              </ol>
+            </div>
+
             <div className="flex flex-col gap-2 rounded-lg border p-3">
               <p className="text-sm font-medium">Numero de telefono</p>
               <Input
@@ -301,8 +286,8 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
             {(pairingCode || qrValue) && (
               <p className="text-xs text-muted-foreground">
                 {reachedAutoLimit
-                  ? 'Limite de refrescos alcanzado. Presiona "Volver a cargar" cuando estes listo.'
-                  : `Proximo refresco en ${countdown}s`}
+                  ? 'Límite de actualizaciones alcanzado. Tocá "Volver a cargar" cuando estés listo.'
+                  : `Se actualiza en ${countdown}s`}
               </p>
             )}
 
@@ -346,12 +331,12 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
               disabled={deleteSession.isPending}
             >
               <Trash2Icon data-icon="inline-start" />
-              Eliminar sesion
+              Desvincular WhatsApp
             </Button>
           ) : (
             <div className="flex items-center gap-2">
               <p className="text-sm text-destructive">
-                ¿Confirmar eliminacion?
+                ¿Desvincular este WhatsApp?
               </p>
               <Button
                 size="sm"
@@ -412,10 +397,6 @@ export const CashierSessionPage = () => {
 
   // Operate gate: at least 1 session WORKING (anyWorking)
   const anyWorking = runtimeState?.anyWorking ?? false;
-  const maxSessions =
-    myWhatsappSessions.length > 0
-      ? myWhatsappSessions.length // use count to infer cap comparison
-      : 0;
 
   // Fetch cashier maxSessions from runtime state indirectly — we check if create is capped
   // by comparing count to the cap. We use the runtimeState sessions array length as a reference.
@@ -535,9 +516,11 @@ export const CashierSessionPage = () => {
               </CardDescription>
             </div>
             {runtimeState && (
-              <Badge variant="outline" className="shrink-0">
-                {runtimeSessionCount}/{runtimeState.maxSessions}
-              </Badge>
+              <CapacityMeter
+                used={runtimeSessionCount}
+                total={runtimeState.maxSessions}
+                className="shrink-0"
+              />
             )}
           </div>
         </CardHeader>
@@ -554,44 +537,22 @@ export const CashierSessionPage = () => {
             <ul className="flex flex-col gap-2">
               {myWhatsappSessions.map((ws) => {
                 const aliasName = ws.alias?.trim();
-                const title =
-                  aliasName || ws.whatsappPhoneNumber || 'Sin número vinculado';
-                const metaParts: string[] = [];
-                // When the alias is the title, surface the phone number too.
-                if (aliasName && ws.whatsappPhoneNumber) {
-                  metaParts.push(`+${ws.whatsappPhoneNumber}`);
-                }
-                if (ws.whatsappPhoneNumber) {
-                  metaParts.push(`Intentos ${ws.refreshCount}/3`);
-                  if (ws.lastRefreshAt) {
-                    metaParts.push(
-                      `Último ${formatDateTime(ws.lastRefreshAt)}`,
-                    );
-                  }
-                } else {
-                  metaParts.push('Tocá para escanear el QR');
-                }
+                const phone = ws.whatsappPhoneNumber;
+                const title = aliasName || (phone ? `+${phone}` : 'Sin número vinculado');
+                const subtitle = aliasName
+                  ? (phone ? `+${phone}` : 'Tocá para conectar')
+                  : phone
+                    ? undefined
+                    : 'Tocá para conectar';
                 return (
                   <li key={ws.id}>
-                    <button
-                      type="button"
+                    <SessionLineCard
+                      status={ws.wahaStatus}
+                      title={title}
+                      subtitle={subtitle}
                       onClick={() => setSelectedSessionId(ws.id)}
-                      className="group flex w-full min-w-0 items-center gap-3 rounded-lg border bg-card p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <SmartphoneIcon className="size-5 text-muted-foreground" />
-                      </div>
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <p className="truncate text-sm font-medium">{title}</p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <WahaStatusBadge status={ws.wahaStatus} />
-                          <span className="truncate text-xs text-muted-foreground">
-                            {metaParts.join(' · ')}
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-                    </button>
+                      trailing={<ChevronRightIcon className="size-4" />}
+                    />
                   </li>
                 );
               })}
@@ -748,7 +709,6 @@ export const CashierSessionPage = () => {
         {selectedSession && (
           <SessionModal
             session={selectedSession}
-            cashierMaxSessions={maxSessions}
             onClose={() => setSelectedSessionId(null)}
           />
         )}
