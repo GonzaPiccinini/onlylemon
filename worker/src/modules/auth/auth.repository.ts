@@ -54,6 +54,14 @@ export const findUserById = async (id: string) =>
     },
   });
 
+export const updateUserPassword = (
+  userId: string,
+  hashedPassword: string,
+): Promise<void> =>
+  prisma.user
+    .update({ where: { id: userId }, data: { password: hashedPassword } })
+    .then(() => undefined);
+
 export const findCashierStatusByUserId = async (userId: string) => {
   const cashier = await prisma.cashier.findUnique({
     where: { userId },

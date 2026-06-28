@@ -255,7 +255,7 @@ export const createCashierService = async (input: {
 }) => {
   const created = await createCashier({
     ...input,
-    password: hashPassword(input.password),
+    password: await hashPassword(input.password),
   });
 
   // B6: Auto-create 1 WhatsappSession after cashier row is created
@@ -286,7 +286,7 @@ export const updateCashierService = async (
 ) => {
   const updated = await updateCashier(cashierId, {
     ...input,
-    ...(input.password ? { password: hashPassword(input.password) } : {}),
+    ...(input.password ? { password: await hashPassword(input.password) } : {}),
   });
   if (!updated) {
     return null;
@@ -787,7 +787,7 @@ export const updateAdminAccountService = async (
 ) => {
   const updated = await updateAdminAccount(userId, {
     ...(input.username ? { username: input.username } : {}),
-    ...(input.password ? { password: hashPassword(input.password) } : {}),
+    ...(input.password ? { password: await hashPassword(input.password) } : {}),
   });
   return { id: updated.id, name: updated.name, username: updated.username };
 };
@@ -853,7 +853,7 @@ export const createAdminService = async (input: {
   const created = await createAdmin({
     name: input.name,
     username: input.username,
-    hashedPassword: hashPassword(input.password),
+    hashedPassword: await hashPassword(input.password),
   });
   return toAdminDto(created);
 };
@@ -881,7 +881,7 @@ export const updateAdminService = async (
   const updated = await updateAdmin(adminId, {
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.username !== undefined ? { username: input.username } : {}),
-    ...(input.password ? { hashedPassword: hashPassword(input.password) } : {}),
+    ...(input.password ? { hashedPassword: await hashPassword(input.password) } : {}),
   });
   if (!updated) throw new AdminNotFoundError();
   return toAdminDto(updated);
