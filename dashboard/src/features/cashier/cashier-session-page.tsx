@@ -534,7 +534,7 @@ export const CashierSessionPage = () => {
               </p>
             </div>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex max-h-[420px] flex-col gap-2 overflow-y-auto scrollbar-thin pr-1">
               {myWhatsappSessions.map((ws) => {
                 const aliasName = ws.alias?.trim();
                 const phone = ws.whatsappPhoneNumber;
