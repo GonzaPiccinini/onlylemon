@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
-import { CheckIcon, PencilIcon, PlusIcon, QrCodeIcon, SmartphoneIcon, Trash2Icon, XIcon } from 'lucide-react';
+import { PlusIcon, QrCodeIcon, SmartphoneIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StatusBadge } from '@/components/common/status-badge';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -15,14 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { formatDateTime } from '@/lib/format';
-import {
-  wahaStatusIcon,
-  wahaStatusLabel,
-  wahaStatusVariant,
-} from '@/lib/waha-status';
-import { SessionAliasEditor } from '@/features/chat/components';
-import type { ChatScope } from '@/api/chat.service';
 import {
   useCashierSessions,
   useCreateCashierSession,
@@ -30,7 +20,13 @@ import {
   useLinkAdminCashierSession,
   useUpdateCashierMaxSessions,
 } from '@/features/admin/admin-hooks';
+import { useSetSessionAlias } from '@/features/chat/hooks/useSetSessionAlias';
 import type { Cashier, WhatsappLinkArtifacts, WhatsappSession } from '@/types/domain';
+import { SessionLineCard } from '@/components/common/session-line-card';
+import { CapacityMeter } from '@/components/common/capacity-meter';
+import { MaxSessionsStepper } from '@/components/common/max-sessions-stepper';
+import { SessionStatusBadge } from '@/components/common/session-status-badge';
+import { InlineRename } from '@/components/common/inline-rename';
 
 type Props = {
   cashier: Cashier;
@@ -46,10 +42,10 @@ const linkErrorMessage = (error: unknown): string => {
   if (isAxiosError<{ error?: string; message?: string }>(error)) {
     const code = error.response?.data?.error;
     const msg = error.response?.data?.message;
-    if (code === 'SESSION_NOT_FOUND') return 'Sesion no encontrada';
-    if (code === 'WAHA_SESSION_NOT_READY') return msg ?? 'La sesion de WhatsApp está iniciando. Intenta de nuevo en unos segundos.';
-    if (code === 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE') return msg ?? 'No se pudo generar el QR o codigo. Intenta de nuevo.';
-    if (code === 'WAHA_SESSION_FAILED') return msg ?? 'La sesion de WhatsApp fallo al iniciar. Intenta de nuevo.';
+    if (code === 'SESSION_NOT_FOUND') return 'Sesión no encontrada';
+    if (code === 'WAHA_SESSION_NOT_READY') return msg ?? 'La sesión de WhatsApp está iniciando. Intentá de nuevo en unos segundos.';
+    if (code === 'WAHA_AUTH_ARTIFACTS_UNAVAILABLE') return msg ?? 'No se pudo generar el QR o código. Intentá de nuevo.';
+    if (code === 'WAHA_SESSION_FAILED') return msg ?? 'La sesión de WhatsApp falló al iniciar. Intentá de nuevo.';
     if (msg) return msg;
   }
   return 'No se pudo iniciar el flujo de WhatsApp';
@@ -74,6 +70,13 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
 
   const linkSession = useLinkAdminCashierSession(cashierId);
 
+  // Human-readable title: alias › phone › fallback
+  const displayName = session.alias?.trim()
+    ? session.alias.trim()
+    : session.whatsappPhoneNumber
+      ? `+${session.whatsappPhoneNumber}`
+      : 'Sin número vinculado';
+
   const stopTimer = () => {
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
@@ -97,7 +100,7 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
 
   // Auto-close when the session becomes WORKING while the dialog is open.
   // Continuing to refresh the QR / pairing code against an already-linked
-  // session can ask WAHA to relink and break the active connection.
+  // session can attempt to relink and break the active connection.
   useEffect(() => {
     if (!open) return;
     if (session.wahaStatus !== 'WORKING') return;
@@ -123,7 +126,7 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
       applyArtifacts(data);
     } catch {
       stopTimer();
-      toast.error('Se alcanzo el limite de refrescos automaticos');
+      toast.error('Se alcanzó el límite de refrescos automáticos');
     }
   }, [linkSession, session.id, phoneNumber, applyArtifacts]);
 
@@ -142,7 +145,7 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
 
   const handleGenerate = async () => {
     if (!phoneNumber.trim()) {
-      toast.error('Ingresa un numero de telefono');
+      toast.error('Ingresá un número de teléfono');
       return;
     }
     try {
@@ -151,7 +154,7 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
       if (data.refreshCount < REFRESH_CAP) {
         startTimer();
       }
-      toast.success('QR y codigo generados correctamente');
+      toast.success('QR y código generados correctamente');
     } catch (error) {
       toast.error(linkErrorMessage(error));
     }
@@ -177,21 +180,32 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle>Generar QR — WhatsApp</DialogTitle>
+          {/* pr-8 reserves space so the badge doesn't collide with the dialog close button */}
+          <DialogTitle className='flex items-center gap-2 pr-8'>
+            <span className='min-w-0 flex-1 truncate'>{displayName}</span>
+            <SessionStatusBadge status={session.wahaStatus ?? 'STOPPED'} className='shrink-0' />
+          </DialogTitle>
           <DialogDescription>
-            Inicia el flujo de vinculacion de WhatsApp para esta sesion.
-            El cajero podra escanear el QR o ingresar el codigo de vinculacion.
+            Iniciá el flujo de vinculación de WhatsApp para esta sesión.
+            El cajero podrá escanear el QR o ingresar el código de vinculación.
           </DialogDescription>
         </DialogHeader>
 
         <div className='flex flex-col gap-4'>
-          <div className='flex flex-wrap gap-2 text-xs text-muted-foreground'>
-            <span>Sesion: <span className='font-mono'>{session.sessionName}</span></span>
-            <span>Intentos: {refreshCount}/{REFRESH_CAP}</span>
+          {/* Step-by-step linking instructions */}
+          <div className='rounded-xl border border-dashed p-3'>
+            <p className='mb-2 text-xs font-medium text-muted-foreground'>
+              Cómo vincular WhatsApp:
+            </p>
+            <ol className='flex list-none flex-col gap-1 text-xs text-muted-foreground'>
+              <li>1. Abrí WhatsApp en el celular del cajero</li>
+              <li>2. Tocá <strong>Dispositivos vinculados</strong> › <strong>Vincular dispositivo</strong></li>
+              <li>3. Escaneá el QR o ingresá el código de vinculación de abajo</li>
+            </ol>
           </div>
 
           <div className='flex flex-col gap-2 rounded-lg border p-3'>
-            <p className='text-sm font-medium'>Numero de telefono</p>
+            <p className='text-sm font-medium'>Número de teléfono</p>
             <Input
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
@@ -202,7 +216,7 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
 
           {pairingCode && (
             <div className='flex flex-col gap-1 rounded-lg border p-3'>
-              <p className='text-sm font-medium'>Codigo de vinculacion</p>
+              <p className='text-sm font-medium'>Código de vinculación</p>
               <p className='text-lg tracking-wide text-primary'>{pairingCode}</p>
             </div>
           )}
@@ -221,8 +235,8 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
           {hasArtifacts && (
             <p className='text-xs text-muted-foreground'>
               {reachedCap
-                ? 'Limite de refrescos alcanzado. Presiona "Volver a cargar" para reiniciar.'
-                : `Proximo refresco automatico en ${countdown}s`}
+                ? 'Límite de refrescos alcanzado. Presioná "Volver a cargar" para reiniciar.'
+                : `Próximo refresco automático en ${countdown}s`}
             </p>
           )}
 
@@ -260,117 +274,6 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
 };
 
 // ---------------------------------------------------------------------------
-// Inline maxSessions editor
-// ---------------------------------------------------------------------------
-
-interface MaxSessionsEditorProps {
-  cashierId: string;
-  maxSessions: number;
-  currentCount: number;
-}
-
-const MaxSessionsEditor = ({ cashierId, maxSessions, currentCount }: MaxSessionsEditorProps) => {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(String(maxSessions));
-  const updateMaxSessions = useUpdateCashierMaxSessions();
-
-  const handleOpen = () => {
-    setValue(String(maxSessions));
-    setEditing(true);
-  };
-
-  const handleCancel = () => {
-    setEditing(false);
-  };
-
-  const handleSave = async () => {
-    const parsed = parseInt(value, 10);
-    if (isNaN(parsed) || parsed < 1) {
-      toast.error('El maximo debe ser al menos 1');
-      return;
-    }
-    try {
-      await updateMaxSessions.mutateAsync({ cashierId, input: { maxSessions: parsed } });
-      toast.success('Limite actualizado');
-      setEditing(false);
-    } catch (error) {
-      if (isAxiosError<{ error?: string; message?: string }>(error)) {
-        const code = error.response?.data?.error;
-        const msg = error.response?.data?.message;
-        if (code === 'MAX_SESSIONS_BELOW_CURRENT' && msg) {
-          toast.error(msg);
-          return;
-        }
-      }
-      toast.error('No se pudo actualizar el limite');
-    }
-  };
-
-  const newCapBelowCount = !isNaN(parseInt(value, 10)) && parseInt(value, 10) < currentCount;
-
-  if (!editing) {
-    return (
-      <Button
-        type='button'
-        size='sm'
-        variant='outline'
-        onClick={handleOpen}
-        className='h-7 gap-1.5 px-2 text-xs'
-        title='Editar límite de sesiones'
-      >
-        <PencilIcon className='size-3' />
-        Máx: {maxSessions}
-      </Button>
-    );
-  }
-
-  return (
-    <div className='flex flex-col gap-1'>
-      <div className='flex items-center gap-1'>
-        <Input
-          type='number'
-          min={1}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          className='h-7 w-16 text-xs'
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void handleSave();
-            if (e.key === 'Escape') handleCancel();
-          }}
-        />
-        <Button
-          size='sm'
-          variant='ghost'
-          className='h-7 w-7 p-0'
-          onClick={() => void handleSave()}
-          disabled={updateMaxSessions.isPending}
-          title='Guardar'
-          aria-label='Guardar'
-        >
-          <CheckIcon className='size-3.5' />
-        </Button>
-        <Button
-          size='sm'
-          variant='ghost'
-          className='h-7 w-7 p-0'
-          onClick={handleCancel}
-          title='Cancelar'
-          aria-label='Cancelar'
-        >
-          <XIcon className='size-3.5' />
-        </Button>
-      </div>
-      {newCapBelowCount && (
-        <p className='text-xs text-warning'>
-          Tenés {currentCount} sesion{currentCount !== 1 ? 'es' : ''} creada{currentCount !== 1 ? 's' : ''}
-        </p>
-      )}
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
 // Main panel
 // ---------------------------------------------------------------------------
 
@@ -378,18 +281,22 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
   const { data: sessions = [], isLoading } = useCashierSessions(cashier.id);
   const createSession = useCreateCashierSession(cashier.id);
   const deleteSession = useDeleteCashierSession(cashier.id);
+  const updateMaxSessions = useUpdateCashierMaxSessions();
+  // Admin alias scope requires the real cashierId (unlike cashier scope which uses '')
+  const setAlias = useSetSessionAlias({ kind: 'admin', cashierId: cashier.id });
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [qrSessionId, setQrSessionId] = useState<string | null>(null);
 
+  // created-count vs cap — same comparison as the create-button guard
   const atCap = sessions.length >= cashier.maxSessions;
 
   const handleCreate = async () => {
     try {
       await createSession.mutateAsync();
-      toast.success('Sesion creada correctamente');
+      toast.success('Sesión creada correctamente');
     } catch {
-      toast.error('No se pudo crear la sesion (limite alcanzado o error)');
+      toast.error('No se pudo crear la sesión (límite alcanzado o error)');
     }
   };
 
@@ -397,10 +304,18 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
     if (!confirmDeleteId) return;
     try {
       await deleteSession.mutateAsync(confirmDeleteId);
-      toast.success('Sesion eliminada');
+      toast.success('Sesión eliminada');
       setConfirmDeleteId(null);
     } catch {
-      toast.error('No se pudo eliminar la sesion');
+      toast.error('No se pudo eliminar la sesión');
+    }
+  };
+
+  const handleMaxSessionsChange = async (value: number) => {
+    try {
+      await updateMaxSessions.mutateAsync({ cashierId: cashier.id, input: { maxSessions: value } });
+    } catch {
+      toast.error('No se pudo actualizar el límite');
     }
   };
 
@@ -410,30 +325,30 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
 
   return (
     <div className='flex w-full min-w-0 flex-col gap-4'>
-      {/* Header: count badge + maxSessions editor + Nueva sesion button */}
-      <div className='flex flex-wrap items-center justify-between gap-2'>
-        <div className='flex flex-wrap items-center gap-2'>
-          <Badge variant='outline' className='text-xs'>
-            {sessions.length} sesion{sessions.length !== 1 ? 'es' : ''}
-          </Badge>
-          <MaxSessionsEditor
-            cashierId={cashier.id}
-            maxSessions={cashier.maxSessions}
-            currentCount={sessions.length}
+      {/* Header: capacity meter + stepper + Nueva sesión button */}
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <div className='flex flex-wrap items-center gap-4'>
+          <CapacityMeter
+            used={sessions.length}
+            total={cashier.maxSessions}
+            label={`${sessions.length} de ${cashier.maxSessions} sesiones`}
           />
-          {atCap && (
-            <Badge variant='outline' className='text-xs'>
-              Limite alcanzado
-            </Badge>
-          )}
+          <MaxSessionsStepper
+            value={cashier.maxSessions}
+            min={sessions.length}
+            onChange={handleMaxSessionsChange}
+            isPending={updateMaxSessions.isPending}
+            label='Máximo'
+          />
         </div>
         <Button
           size='sm'
           onClick={handleCreate}
           disabled={atCap || createSession.isPending}
+          aria-label='Crear nueva sesión de WhatsApp'
         >
           <PlusIcon className='size-4' />
-          {createSession.isPending ? 'Creando...' : 'Nueva sesion'}
+          {createSession.isPending ? 'Creando...' : 'Nueva sesión'}
         </Button>
       </div>
 
@@ -441,95 +356,86 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
       {isLoading ? (
         <div className='flex flex-col gap-2'>
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className='h-28 w-full rounded-lg' />
+            <Skeleton key={i} className='h-16 w-full rounded-xl' />
           ))}
         </div>
       ) : sessions.length === 0 ? (
         <div className='flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground'>
           <SmartphoneIcon className='size-8 opacity-40' />
-          <p>Este cajero no tiene sesiones todavia. Creá una para empezar.</p>
+          <p>Este cajero no tiene sesiones todavía. Creá una para empezar.</p>
         </div>
       ) : (
-        <ul className='flex flex-col gap-2'>
+        <ul className='flex max-h-[420px] flex-col gap-2 overflow-y-auto scrollbar-thin pr-1'>
           {sessions.map((session) => {
             const isWorking = session.wahaStatus === 'WORKING';
             const aliasName = session.alias?.trim();
-            const title =
-              aliasName || session.whatsappPhoneNumber || 'Sin numero vinculado';
-            const metaParts: string[] = [];
-            if (aliasName && session.whatsappPhoneNumber) {
-              metaParts.push(`+${session.whatsappPhoneNumber}`);
-            }
-            if (session.whatsappPhoneNumber) {
-              metaParts.push(`Intentos ${session.refreshCount}/3`);
-              if (session.lastRefreshAt) {
-                metaParts.push(`Ultimo ${formatDateTime(session.lastRefreshAt)}`);
-              }
-            } else {
-              metaParts.push('Tocar QR para vincular');
-            }
+            const phone = session.whatsappPhoneNumber;
+
+            // subtitle: shows phone when alias is the title, omitted otherwise to avoid repetition
+            const subtitle = aliasName
+              ? (phone ? `+${phone}` : 'Sin número vinculado')
+              : undefined;
+
+            // placeholder for InlineRename when no alias is set
+            const renamePlaceholder = phone ? `+${phone}` : 'Sin número vinculado';
+
             return (
               <li key={session.id}>
-                <div className='flex min-w-0 items-center gap-3 rounded-lg border bg-card p-3'>
-                  <div className='flex size-10 shrink-0 items-center justify-center rounded-full bg-muted'>
-                    <SmartphoneIcon className='size-5 text-muted-foreground' />
-                  </div>
-                  <div className='flex min-w-0 flex-1 flex-col gap-1'>
-                    <p className='truncate text-sm font-medium'>{title}</p>
-                    <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-                      <StatusBadge
-                        variant={wahaStatusVariant(session.wahaStatus)}
-                        icon={wahaStatusIcon(session.wahaStatus)}
-                      >
-                        {wahaStatusLabel(session.wahaStatus)}
-                      </StatusBadge>
-                      <span className='truncate text-xs text-muted-foreground'>
-                        {metaParts.join(' · ')}
-                      </span>
-                    </div>
-                    <SessionAliasEditor
-                      scope={{ kind: 'admin', cashierId: cashier.id } satisfies ChatScope}
-                      sessionId={session.id}
-                      alias={session.alias}
+                {/*
+                  No onClick — admin rows have inline action buttons.
+                  Passing onClick AND interactive actions would nest buttons.
+                */}
+                <SessionLineCard
+                  status={session.wahaStatus ?? 'STOPPED'}
+                  title={
+                    <InlineRename
+                      value={session.alias}
+                      placeholder={renamePlaceholder}
+                      onSave={(value) =>
+                        setAlias.mutateAsync({ sessionId: session.id, alias: value || null })
+                      }
+                      isPending={setAlias.isPending}
+                      ariaLabel={aliasName ? `Renombrar: ${aliasName}` : 'Asignar nombre a la sesión'}
+                      className='w-full'
                     />
-                  </div>
-                  <div className='flex shrink-0 items-center gap-1'>
-                    {isWorking ? (
+                  }
+                  subtitle={subtitle}
+                  actions={
+                    <>
+                      {isWorking ? (
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          disabled
+                          className='h-8 w-8 p-0'
+                          aria-label='Ya conectado'
+                        >
+                          <QrCodeIcon className='size-4' />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='h-8 w-8 p-0'
+                          onClick={() => setQrSessionId(session.id)}
+                          aria-label='Generar QR para vincular WhatsApp'
+                        >
+                          <QrCodeIcon className='size-4' />
+                        </Button>
+                      )}
                       <Button
                         variant='ghost'
                         size='sm'
-                        disabled
-                        className='h-8 w-8 p-0'
-                        title='Ya conectado'
-                        aria-label='Ya conectado'
+                        className='h-8 w-8 p-0 text-destructive hover:text-destructive'
+                        onClick={() => setConfirmDeleteId(session.id)}
+                        disabled={deleteSession.isPending}
+                        aria-label='Eliminar sesión'
                       >
-                        <QrCodeIcon className='size-4' />
+                        <Trash2Icon className='size-4' />
                       </Button>
-                    ) : (
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-8 w-8 p-0'
-                        onClick={() => setQrSessionId(session.id)}
-                        title='Generar QR'
-                        aria-label='Generar QR'
-                      >
-                        <QrCodeIcon className='size-4' />
-                      </Button>
-                    )}
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-8 w-8 p-0 text-destructive hover:text-destructive'
-                      onClick={() => setConfirmDeleteId(session.id)}
-                      disabled={deleteSession.isPending}
-                      title='Eliminar sesion'
-                      aria-label='Eliminar sesion'
-                    >
-                      <Trash2Icon className='size-4' />
-                    </Button>
-                  </div>
-                </div>
+                    </>
+                  }
+                />
               </li>
             );
           })}
@@ -545,9 +451,9 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar sesion</DialogTitle>
+            <DialogTitle>Eliminar sesión</DialogTitle>
             <DialogDescription>
-              Se eliminara la sesion de WAHA y todos sus bindings con landings. Esta accion no se puede deshacer.
+              Se eliminará esta sesión de WhatsApp y se desvincularán sus landings. Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
