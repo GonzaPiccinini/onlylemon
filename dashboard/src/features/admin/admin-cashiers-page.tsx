@@ -547,11 +547,9 @@ export const AdminCashiersPage = () => {
       >
         <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
-              Sesiones WhatsApp — {sessionsPanelCashier?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Administra las sesiones de WhatsApp de este cajero.
+            <DialogTitle>Sesiones de WhatsApp</DialogTitle>
+            <DialogDescription className="truncate" title={sessionsPanelCashier?.name}>
+              {sessionsPanelCashier?.name}
             </DialogDescription>
           </DialogHeader>
           {sessionsPanelCashier && (
