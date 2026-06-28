@@ -48,7 +48,7 @@ export const QuotedReply = ({ quoted, contactName, onJump, onCancel }: QuotedRep
   const bar = (
     <span
       aria-hidden
-      className={cn('w-1 shrink-0', isMine ? 'bg-primary' : 'bg-emerald-500')}
+      className={cn('w-1 shrink-0', isMine ? 'bg-primary' : 'bg-success')}
     />
   );
 
@@ -57,7 +57,7 @@ export const QuotedReply = ({ quoted, contactName, onJump, onCancel }: QuotedRep
       <p
         className={cn(
           'truncate text-xs font-semibold',
-          isMine ? 'text-primary' : 'text-emerald-500',
+          isMine ? 'text-primary' : 'text-success',
         )}
       >
         {author}

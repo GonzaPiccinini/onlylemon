@@ -46,6 +46,9 @@
   --font-sans: "Poppins", sans-serif;
   --text-2xs: 0.625rem;     /* 10px */
   --text-xs-plus: 0.6875rem; /* 11px */
+  --color-success: var(--success);
+  --color-negative: var(--negative);
+  --color-chart-grid: var(--chart-grid);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -167,6 +170,21 @@ body {
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+  }
+
+  /* Auth page background — lime radial blooms using design tokens. */
+  .auth-bg-gradient {
+    background-image:
+      radial-gradient(
+        circle at 10% 10%,
+        color-mix(in oklab, var(--primary) 24%, transparent),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at 90% 0%,
+        color-mix(in oklab, color-mix(in oklab, var(--primary) 60%, black) 15%, transparent),
+        transparent 42%
+      );
   }
 
   /* Two-colour futuristic accent — blue → violet. */

@@ -19,7 +19,7 @@ const badgeVariants = cva(
         info:
           "border-cyan-500/30 bg-cyan-500/15 text-cyan-300 transition-colors duration-200 [a]:hover:bg-cyan-500/20",
         success:
-          "border-emerald-500/30 bg-emerald-500/15 text-emerald-300 transition-colors duration-200 [a]:hover:bg-emerald-500/20",
+          "border-success/30 bg-success/15 text-success transition-colors duration-200 [a]:hover:bg-success/20",
         neutral:
           "border-slate-500/30 bg-slate-500/15 text-slate-300 transition-colors duration-200 [a]:hover:bg-slate-500/20",
         recharge:

@@ -202,7 +202,7 @@ export const AdminStatsPage = () => {
                     no dashes, no vertical clutter. */}
                 <CartesianGrid
                   vertical={false}
-                  stroke="rgba(180, 195, 255, 0.1)"
+                  stroke="color-mix(in oklab, var(--chart-grid) 10%, transparent)"
                   strokeWidth={1}
                 />
                 <XAxis dataKey="date" />
@@ -211,7 +211,7 @@ export const AdminStatsPage = () => {
                   tickFormatter={(value) => compactNumber.format(Number(value))}
                 />
                 <Tooltip
-                  cursor={{ fill: "rgba(180, 195, 255, 0.06)" }}
+                  cursor={{ fill: "color-mix(in oklab, var(--chart-grid) 6%, transparent)" }}
                   content={<ChartTooltip formatValue={(n) => money.format(n)} />}
                 />
                 <Bar

@@ -40,7 +40,7 @@ export const MetricCard = ({ label, value, hint, icon: Icon, trend, delta }: Met
             <p
               className={cn(
                 "flex items-center gap-1 text-xs font-medium",
-                trend === "up" ? "text-emerald-500" : "text-rose-500",
+                trend === "up" ? "text-success" : "text-negative",
               )}
             >
               {trend === "up" ? (

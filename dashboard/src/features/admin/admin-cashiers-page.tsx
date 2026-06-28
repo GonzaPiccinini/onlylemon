@@ -371,7 +371,7 @@ export const AdminCashiersPage = () => {
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-1">
                             {wc > 0 ? (
-                              <CheckCircle2Icon className="size-3.5 shrink-0 text-green-500" />
+                              <CheckCircle2Icon className="size-3.5 shrink-0 text-success" />
                             ) : (
                               <span className="size-3.5 shrink-0 rounded-full bg-muted-foreground/30 inline-block" />
                             )}

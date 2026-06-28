@@ -246,7 +246,7 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
 
         {isWorking ? (
           <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-500/30">
+            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-success/15 text-success ring-1 ring-success/30">
               <CheckIcon className="size-4" strokeWidth={3} />
             </div>
             <div className="flex min-w-0 flex-col gap-0.5">

@@ -59,6 +59,15 @@
   /* WhatsApp brand green — used for the chat inbox badge. */
   --whatsapp: #25d366;
 
+  /* Semantic green — matches Tailwind emerald-500; used for success states. */
+  --success: #10b981;
+
+  /* Semantic red — matches Tailwind rose-500; used for negative/downward states. */
+  --negative: #f43f5e;
+
+  /* Chart grid — solid base for grid/tooltip colours; alpha applied at use-site. */
+  --chart-grid: #b4c3ff;
+
   /* Data viz — lime-led and harmonised: lime, teal, cyan, amber, green. */
   --chart-1: #c7f246;
   --chart-2: #2dd4bf;
