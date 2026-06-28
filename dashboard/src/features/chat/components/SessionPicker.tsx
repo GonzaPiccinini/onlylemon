@@ -6,7 +6,7 @@
  *   Select primitive) so it matches the dashboard's lemon/dark theme exactly
  *   and we fully own its look & behaviour.
  *
- * Connection state is a compact dot (yellow = connected, black = disconnected).
+ * Connection state is a compact dot (teal = connected, gray = disconnected).
  * The displayed name prioritises: alias → phone number → session code.
  * The alias is DISPLAY-ONLY here — it is assigned in the WhatsApp sessions
  * management section (cashier session page / admin sessions panel).
@@ -52,7 +52,8 @@ function sessionLabel(s: SessionOption): string {
 }
 
 // ---------------------------------------------------------------------------
-// Status dot — yellow when connected (WORKING), black otherwise.
+// Status dot — teal (with a soft glow) when connected (WORKING), muted grey
+// otherwise.
 // ---------------------------------------------------------------------------
 
 const StatusDot = ({ status }: { status: string | null }) => {
@@ -64,7 +65,9 @@ const StatusDot = ({ status }: { status: string | null }) => {
       aria-label={label}
       className={[
         'inline-block size-2.5 shrink-0 rounded-full',
-        connected ? 'bg-yellow-400' : 'bg-black ring-1 ring-foreground/30',
+        connected
+          ? 'bg-[var(--accent-violet)] glow-ring-violet'
+          : 'bg-muted-foreground/40',
       ].join(' ')}
     />
   );
@@ -178,10 +181,10 @@ function SessionSelect({
         onClick={() => setOpen((v) => !v)}
         onKeyDown={onTriggerKeyDown}
         className={cn(
-          'group flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-left text-sm font-medium text-foreground shadow-sm transition-colors',
-          'hover:border-foreground/25 hover:bg-accent/40',
+          'group glass-subtle flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-sm font-medium text-foreground transition-colors',
+          'hover:border-border hover:bg-accent/40',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
-          open && 'border-ring/60 bg-accent/40',
+          open && 'border-border bg-accent/40',
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -213,7 +216,7 @@ function SessionSelect({
           tabIndex={-1}
           onKeyDown={onListKeyDown}
           className={cn(
-            'absolute inset-x-0 top-full z-50 mt-1.5 origin-top max-h-28 overflow-y-auto scrollbar-thin rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10',
+            'absolute inset-x-0 top-full z-50 mt-1.5 origin-top max-h-28 overflow-y-auto scrollbar-thin rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10',
             'animate-in fade-in-0 zoom-in-95 duration-100',
           )}
         >
@@ -274,7 +277,7 @@ export const SessionPicker = ({
   if (sessions.length === 1) {
     const s = sessions[0]!;
     return (
-      <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5">
+      <div className="glass-subtle flex items-center gap-2 rounded-lg px-3 py-1.5">
         <StatusDot status={s.wahaStatus} />
         <span className="truncate text-sm font-medium">{sessionLabel(s)}</span>
       </div>

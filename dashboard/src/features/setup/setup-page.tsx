@@ -13,7 +13,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangleIcon, KeyRoundIcon } from "lucide-react";
+import { KeyRoundIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -147,7 +147,6 @@ export const SetupPage = () => {
         <CardContent className="flex flex-col gap-4">
           {errorMessage ? (
             <Alert variant="destructive">
-              <AlertTriangleIcon />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>

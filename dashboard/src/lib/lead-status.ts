@@ -26,25 +26,21 @@ export const leadStatusLabel = (status: LeadStatus): string =>
 export const leadDisplayStatusLabel = (status: LeadDisplayStatus): string =>
   displayStatusLabelMap[status] ?? status;
 
-type LeadBadgeVariant = 'default' | 'secondary' | 'outline';
+type LeadBadgeVariant = 'progress' | 'success' | 'neutral' | 'recharge';
 
 export const leadStatusBadge = (
   status: LeadDisplayStatus,
 ): { variant: LeadBadgeVariant; icon: LucideIcon; className?: string } => {
   switch (status) {
     case 'CONVERTED':
-      return { variant: 'default', icon: CheckCircle2Icon };
+      return { variant: 'success', icon: CheckCircle2Icon };
     case 'CONTACTED':
-      return { variant: 'secondary', icon: CircleDotIcon };
+      return { variant: 'progress', icon: CircleDotIcon };
     case 'RECARGA':
-      return {
-        variant: 'default',
-        icon: RefreshCwIcon,
-        className: 'bg-primary/10 text-primary',
-      };
+      return { variant: 'recharge', icon: RefreshCwIcon };
     case 'NOT_CONTACTED':
     default:
-      return { variant: 'outline', icon: CircleDashedIcon };
+      return { variant: 'neutral', icon: CircleDashedIcon };
   }
 };
 

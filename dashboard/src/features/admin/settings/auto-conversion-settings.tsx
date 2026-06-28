@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { ZapIcon, WalletIcon, CheckCircle2Icon, CircleDashedIcon, XIcon } from 'lucide-react';
+import { IconBadge } from '@/components/common/icon-badge';
 import {
   Card,
   CardContent,
@@ -182,9 +183,9 @@ const TriggerPhraseSection = () => {
     <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <IconBadge size="md">
             <ZapIcon className="size-4" />
-          </div>
+          </IconBadge>
           <h3 className="font-medium leading-tight">Frases disparadoras</h3>
           {!isLoading && (
             <StatusBadge
@@ -381,9 +382,9 @@ const AmountsSection = () => {
     <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <IconBadge size="md">
             <WalletIcon className="size-4" />
-          </div>
+          </IconBadge>
           <h3 className="font-medium leading-tight">Limites de monto ({money.code})</h3>
         </div>
         <p className="text-sm text-muted-foreground">

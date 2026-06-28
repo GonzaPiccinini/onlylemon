@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { CircleUserRoundIcon, KeyRoundIcon } from "lucide-react";
+import { IconBadge } from "@/components/common/icon-badge";
 import { PageHeader } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,9 +110,9 @@ export const AccountPage = ({ idPrefix, updateAccount }: AccountPageProps) => {
           <div className="flex flex-col gap-3 sm:gap-4">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                <IconBadge size="md">
                   <CircleUserRoundIcon className="size-4" />
-                </div>
+                </IconBadge>
                 <div className="flex flex-col gap-0.5">
                   <h3 className="font-medium leading-tight">{user?.name ?? "—"}</h3>
                   <span className="text-xs text-muted-foreground">Usuario: {user?.username ?? "—"}</span>
@@ -128,9 +129,9 @@ export const AccountPage = ({ idPrefix, updateAccount }: AccountPageProps) => {
           <div className="flex flex-col gap-3 sm:gap-4">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                <IconBadge size="md">
                   <KeyRoundIcon className="size-4" />
-                </div>
+                </IconBadge>
                 <h3 className="font-medium leading-tight">Credenciales</h3>
               </div>
               <p className="text-sm text-muted-foreground">

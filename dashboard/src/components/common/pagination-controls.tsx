@@ -1,3 +1,4 @@
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PaginationControlsProps {
@@ -25,20 +26,32 @@ export const PaginationControls = ({
         size='sm'
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
+        className="group"
       >
+        <ChevronLeftIcon
+          data-icon="inline-start"
+          className="transition-transform duration-150 group-hover:-translate-x-0.5"
+        />
         Anterior
       </Button>
-      <p className='text-sm text-muted-foreground'>
-        Pagina {page} de {totalPages}
+
+      <p className='accent-gradient rounded-full px-3 py-0.5 text-sm font-medium text-primary-foreground tabular-nums glow-sm'>
+        {page} / {totalPages}
       </p>
+
       <Button
         type='button'
         variant='outline'
         size='sm'
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
+        className="group"
       >
         Siguiente
+        <ChevronRightIcon
+          data-icon="inline-end"
+          className="transition-transform duration-150 group-hover:translate-x-0.5"
+        />
       </Button>
     </div>
   );

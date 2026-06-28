@@ -1,20 +1,19 @@
 /**
  * ChatList.tsx — Renders the list of chats for a selected session.
  *
- * Per spec amendment: shows name + relative timestamp only (no body preview).
- * Unread indicator: a yellow notification dot (trailing) when chatId is in
- * `unreadChatIds`. Rows are separated by a divider line for clear delimitation.
- *
- * Relative time uses `date-fns/formatDistanceToNow` (already a dependency).
+ * Per spec amendment: shows name + compact timestamp only (no body preview —
+ * WAHA does not return a preview in V1). Unread indicator: a lime (primary) dot
+ * (trailing) when chatId is in `unreadChatIds`. The selected row is marked with
+ * a left accent bar (not a full primary tint) so it stays sober.
  */
 
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import type { ChatListEntry } from '@/types/chat';
 import { resolveContactTitle } from '../contact';
+import { formatListTime } from '../time';
 import { ContactAvatar } from './contact-avatar';
 
 // ---------------------------------------------------------------------------
@@ -37,21 +36,6 @@ interface ChatListProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function relativeTime(timestamp: number): string {
-  try {
-    return formatDistanceToNow(new Date(timestamp * 1000), {
-      addSuffix: true,
-      locale: es,
-    });
-  } catch {
-    return '';
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -69,7 +53,7 @@ export const ChatList = ({
     return (
       <div className="flex flex-col gap-1 p-2">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          <Skeleton key={i} className="h-[60px] w-full" />
         ))}
       </div>
     );
@@ -100,41 +84,52 @@ export const ChatList = ({
             <button
               type="button"
               onClick={() => onSelect(chat.chatId)}
-              className={[
-                'group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors',
-                isSelected
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-muted/60 text-foreground',
-              ].join(' ')}
+              className={cn(
+                'group relative flex w-full items-center gap-3 px-3 py-3 text-left text-foreground transition-colors',
+                isSelected ? 'bg-muted/50' : 'hover:bg-muted/60',
+              )}
             >
+              {/* Selected accent bar — sober alternative to a full primary tint. */}
+              {isSelected && (
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-[3px] rounded-r-full bg-primary"
+                />
+              )}
+
               {/* Avatar — initial of the saved name, or a person icon for numbers. */}
               <ContactAvatar className="size-9">
                 {isPhone ? <UserIcon className="size-4" /> : displayName.charAt(0).toUpperCase()}
               </ContactAvatar>
 
-              {/* Name + timestamp */}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <p
-                  className={[
-                    'truncate text-sm',
-                    isUnread ? 'font-semibold' : 'font-medium',
-                  ].join(' ')}
-                >
-                  {displayName}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {relativeTime(chat.lastMessageTimestamp)}
-                </p>
-              </div>
+              {/* Name */}
+              <p
+                className={cn(
+                  'min-w-0 flex-1 truncate text-sm',
+                  isUnread ? 'font-semibold' : 'font-medium',
+                )}
+              >
+                {displayName}
+              </p>
 
-              {/* Unread notification dot — yellow circle, trailing. */}
-              {isUnread && (
+              {/* Trailing cluster — compact timestamp + unread dot. */}
+              <div className="flex shrink-0 items-center gap-2">
                 <span
-                  role="status"
-                  aria-label="Mensaje sin leer"
-                  className="size-2.5 shrink-0 rounded-full bg-yellow-400 shadow-[0_0_0_3px_rgba(250,204,21,0.25)]"
-                />
-              )}
+                  className={cn(
+                    'text-xs tabular-nums',
+                    isUnread ? 'font-medium text-foreground' : 'text-muted-foreground',
+                  )}
+                >
+                  {formatListTime(chat.lastMessageTimestamp)}
+                </span>
+                {isUnread && (
+                  <span
+                    role="status"
+                    aria-label="Mensaje sin leer"
+                    className="size-2.5 rounded-full bg-primary glow-ring"
+                  />
+                )}
+              </div>
             </button>
           </li>
         );

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/branding";
+import { wahaStatusLabel } from "@/lib/waha-status";
 import { useAuth } from "@/features/auth/auth-context";
 import {
   useCashierRuntimeState,
@@ -63,6 +64,17 @@ const cashierLinks: ShellLink[] = [
   { to: "/cashier/conversions", label: "Conversiones", icon: ArrowRightLeftIcon },
   { to: "/cashier/account", label: "Mi cuenta", icon: CircleUserRoundIcon },
 ];
+
+/** Shared nav link className factory for both desktop sidebar and mobile sheet. */
+const navLinkClass = (isActive: boolean) =>
+  cn(
+    "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium",
+    "animate-in fade-in slide-in-from-left-2 [animation-fill-mode:both] [animation-duration:300ms]",
+    "transition-all duration-200",
+    isActive
+      ? "bg-primary/15 text-foreground glow-sm"
+      : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:translate-x-0.5",
+  );
 
 export const AppShell = () => {
   const { user, token, logout } = useAuth();
@@ -110,33 +122,52 @@ export const AppShell = () => {
         return runtimeState?.canOperateLeads ?? true;
       });
 
+  const renderNavLinks = (onLinkClick?: () => void) =>
+    links.map((link, index) => (
+      <NavLink
+        key={link.to}
+        to={link.to}
+        end={link.to === "/admin" || link.to === "/cashier"}
+        onClick={onLinkClick}
+        style={{ animationDelay: `${index * 55}ms` }}
+        className={({ isActive }) => navLinkClass(isActive)}
+      >
+        {({ isActive }) => (
+          <>
+            <link.icon
+              data-icon="inline-start"
+              className={cn(
+                "shrink-0 transition-all duration-200 group-hover:scale-110",
+                isActive ? "text-primary" : "",
+              )}
+            />
+            <span className="flex-1">{link.label}</span>
+            {isActive ? (
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary animate-glow-pulse"
+                aria-hidden="true"
+              />
+            ) : (
+              <span
+                className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-30"
+                aria-hidden="true"
+              />
+            )}
+          </>
+        )}
+      </NavLink>
+    ));
+
   return (
     <div className="relative mx-auto flex h-svh w-full max-w-[1360px] gap-4 overflow-hidden px-3 py-3 md:gap-6 md:px-6 md:py-6">
-      <aside className="hidden h-full w-[250px] shrink-0 flex-col justify-between overflow-y-auto rounded-2xl border bg-sidebar/90 p-5 shadow-sm backdrop-blur md:flex">
+      <aside className="hidden h-full w-[250px] shrink-0 flex-col justify-between overflow-y-auto rounded-2xl glass p-5 md:flex">
         <div className="flex flex-col gap-6">
           <Link to={isAdminRole ? "/admin" : "/cashier"} className="block">
             <BrandLogo className="h-8 w-auto object-contain" />
           </Link>
 
-          <nav className="flex flex-col gap-2">
-            {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.to === "/admin" || link.to === "/cashier"}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  )
-                }
-              >
-                <link.icon data-icon="inline-start" />
-                {link.label}
-              </NavLink>
-            ))}
+          <nav className="flex flex-col gap-1">
+            {renderNavLinks()}
           </nav>
         </div>
 
@@ -148,7 +179,7 @@ export const AppShell = () => {
               <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
               {user.role === "CASHIER" ? (
                 <p className="truncate text-xs text-muted-foreground">
-                  WAHA: {runtimeState?.wahaStatus ?? "-"}
+                  WhatsApp: {wahaStatusLabel(runtimeState?.wahaStatus)}
                 </p>
               ) : null}
             </div>
@@ -164,7 +195,7 @@ export const AppShell = () => {
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <header className="flex items-center justify-between rounded-2xl border bg-card/95 px-3 py-3 shadow-sm md:hidden">
+        <header className="flex items-center justify-between rounded-2xl glass px-3 py-3 md:hidden">
           <div className="flex items-center gap-2">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger
@@ -184,26 +215,8 @@ export const AppShell = () => {
                   <BrandLogo className="h-8 w-auto object-contain" />
                 </Link>
 
-                <nav className="flex flex-col gap-2">
-                  {links.map((link) => (
-                    <NavLink
-                      key={link.to}
-                      to={link.to}
-                      end={link.to === "/admin" || link.to === "/cashier"}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        cn(
-                          "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                          isActive
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                            : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        )
-                      }
-                    >
-                      <link.icon data-icon="inline-start" />
-                      {link.label}
-                    </NavLink>
-                  ))}
+                <nav className="flex flex-col gap-1">
+                  {renderNavLinks(() => setIsMobileMenuOpen(false))}
                 </nav>
 
                 <div className="mt-auto flex flex-col gap-3">
@@ -214,7 +227,7 @@ export const AppShell = () => {
                       <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
                       {user.role === "CASHIER" ? (
                         <p className="truncate text-xs text-muted-foreground">
-                          WAHA: {runtimeState?.wahaStatus ?? "-"}
+                          WhatsApp: {wahaStatusLabel(runtimeState?.wahaStatus)}
                         </p>
                       ) : null}
                     </div>

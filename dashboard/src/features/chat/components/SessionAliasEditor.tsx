@@ -85,6 +85,7 @@ export const SessionAliasEditor = ({
         onClick={handleSave}
         disabled={setAlias.isPending}
         title="Guardar"
+        aria-label="Guardar"
       >
         <CheckIcon className="size-3.5" />
       </Button>
@@ -96,6 +97,7 @@ export const SessionAliasEditor = ({
         onClick={handleCancel}
         disabled={setAlias.isPending}
         title="Cancelar"
+        aria-label="Cancelar"
       >
         <XIcon className="size-3.5" />
       </Button>

@@ -59,3 +59,25 @@ export function formatDayLabel(timestamp: number): string {
     return '';
   }
 }
+
+/**
+ * Compact chat-list timestamp: "14:05" for today, "Ayer", "08/06" within the
+ * current year, or "08/06/24" otherwise. Unit-agnostic via `toMillis`.
+ */
+export function formatListTime(timestamp: number): string {
+  const ms = toMillis(timestamp);
+  const day = startOfDayMs(ms);
+  const today = startOfDayMs(Date.now());
+  if (day === today) return formatMessageTime(timestamp);
+  if (day === today - ONE_DAY_MS) return 'Ayer';
+  const sameYear = new Date(ms).getFullYear() === new Date(today).getFullYear();
+  try {
+    return new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      ...(sameYear ? {} : { year: '2-digit' }),
+    }).format(new Date(ms));
+  } catch {
+    return '';
+  }
+}

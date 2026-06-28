@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { CoinsIcon, TrendingUpIcon } from 'lucide-react';
+import { IconBadge } from '@/components/common/icon-badge';
 import {
   Card,
   CardContent,
@@ -94,9 +95,9 @@ const CurrencySection = () => {
     <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <IconBadge size="md">
             <CoinsIcon className="size-4" />
-          </div>
+          </IconBadge>
           <h3 className="font-medium leading-tight">Divisa de la plataforma</h3>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -271,9 +272,9 @@ const ThresholdsSection = () => {
     <div className="flex flex-col gap-3 sm:gap-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <IconBadge size="md">
             <TrendingUpIcon className="size-4" />
-          </div>
+          </IconBadge>
           <h3 className="font-medium leading-tight">Umbrales de alto valor ({currency})</h3>
         </div>
         <p className="text-sm text-muted-foreground">

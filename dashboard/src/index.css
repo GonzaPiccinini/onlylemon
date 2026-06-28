@@ -28,6 +28,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-accent-violet: var(--accent-violet);
+  --color-whatsapp: var(--whatsapp);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -42,6 +44,14 @@
   --radius-xl: calc(var(--radius) + 4px);
   --font-heading: "Poppins", sans-serif;
   --font-sans: "Poppins", sans-serif;
+  --text-2xs: 0.625rem;     /* 10px */
+  --text-xs-plus: 0.6875rem; /* 11px */
+  --text-sm-tight: 0.8rem;   /* 12.8px — compact control labels (sm buttons) */
+  --color-success: var(--success);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --color-recharge: var(--recharge);
+  --color-chart-grid: var(--chart-grid);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -66,6 +76,32 @@ body {
   min-height: 100svh;
 }
 
+/* Custom scrollbars across the whole app — slim, rounded, translucent thumb
+   that tints to the accent on hover. Replaces the browser default everywhere. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--primary) 55%, transparent);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -79,6 +115,44 @@ body {
 }
 
 @layer utilities {
+  /* Frosted glass — the signature of the new component language: a translucent
+     themed surface, a real backdrop blur, and a lit top edge. */
+  .glass {
+    background-color: color-mix(in oklab, var(--card) 68%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 9%, transparent),
+      0 10px 30px -14px rgb(0 0 0 / 0.55);
+  }
+  /* More opaque — for overlays above content (dialogs, sheets, dropdowns,
+     selects) where legibility matters most. */
+  .glass-strong {
+    background-color: color-mix(in oklab, var(--popover) 86%, transparent);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 9%, transparent),
+      0 18px 50px -18px rgb(0 0 0 / 0.6);
+  }
+  /* Lighter veil — for inputs, chips and inline controls. */
+  .glass-subtle {
+    background-color: color-mix(in oklab, var(--card) 45%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  }
+
+  /* Brand glow scale — soft primary halos for accents and hovers. */
+  .glow-sm { box-shadow: 0 0 10px -2px color-mix(in oklab, var(--primary) 32%, transparent); }
+  .glow-md { box-shadow: 0 0 12px -1px color-mix(in oklab, var(--primary) 50%, transparent); }
+  .glow-lg { box-shadow: 0 0 24px -4px color-mix(in oklab, var(--primary) 20%, transparent); }
+  /* Status-dot focus rings (solid offset ring, not a blur). */
+  .glow-ring { box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 25%, transparent); }
+  .glow-ring-violet { box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-violet) 25%, transparent); }
+
   /* Thin, modern scrollbar — slim track, rounded translucent thumb that
      darkens on hover. Used in scrollable chat panes. */
   .scrollbar-thin {
@@ -99,5 +173,126 @@ body {
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+  }
+
+  /* Auth page background — lime radial blooms using design tokens. */
+  .auth-bg-gradient {
+    background-image:
+      radial-gradient(
+        circle at 10% 10%,
+        color-mix(in oklab, var(--primary) 24%, transparent),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at 90% 0%,
+        color-mix(in oklab, color-mix(in oklab, var(--primary) 60%, black) 15%, transparent),
+        transparent 42%
+      );
+  }
+
+  /* Two-colour futuristic accent — blue → violet. */
+  .accent-gradient {
+    background-image: linear-gradient(135deg, var(--primary), var(--accent-violet));
+  }
+  .accent-gradient-animated {
+    background-image: linear-gradient(
+      135deg,
+      var(--primary),
+      var(--accent-violet),
+      var(--primary)
+    );
+    background-size: 200% 200%;
+    animation: gradient-pan 6s ease infinite;
+  }
+  .text-accent-gradient {
+    background-image: linear-gradient(135deg, var(--primary), var(--accent-violet));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .animate-glow-pulse {
+    animation: glow-pulse 2.4s ease-in-out infinite;
+  }
+  /* Quoted-reply jump target — a brief "pop" + primary veil on the bubble you
+     land on after tapping a reply preview. The veil is an ::after overlay so it
+     never clobbers the bubble's own background, and inherits its border-radius
+     (tail corner included). */
+  .quote-jump-highlight {
+    position: relative;
+    animation: quote-jump-pop 1.3s ease-out;
+  }
+  .quote-jump-highlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: color-mix(in oklab, var(--primary) 38%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: quote-jump-veil 1.3s ease-out;
+  }
+}
+
+@keyframes gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 20px 2px color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+}
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes quote-jump-pop {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.04);
+  }
+  45% {
+    transform: scale(1);
+  }
+}
+@keyframes quote-jump-veil {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accent-gradient-animated,
+  .animate-glow-pulse {
+    animation: none;
+  }
+  /* No pop/veil — fall back to a static primary ring for the highlight window. */
+  .quote-jump-highlight {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+  .quote-jump-highlight::after {
+    animation: none;
   }
 }

@@ -1,3 +1,6 @@
 # Root-level secrets consumed by docker-compose.local.yml
 .env
 .env.local
+
+# playwright-cli session artifacts (snapshots, console logs)
+.playwright-cli/

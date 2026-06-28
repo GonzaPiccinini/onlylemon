@@ -36,3 +36,14 @@ export const formatDateTime = (value: string): string => {
 };
 
 export const formatHours = (value: number): string => `${value.toFixed(2)} h`;
+
+/**
+ * Human-friendly duration from a minute count, e.g. 45 → "45m", 125 → "2h 05m".
+ * Unifies how cashier session time (minutes) and admin active time (hours) read.
+ */
+export const formatDuration = (minutes: number): string => {
+  const total = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return hours === 0 ? `${mins}m` : `${hours}h ${String(mins).padStart(2, "0")}m`;
+};

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import {
   CheckCircle2Icon,
   CircleDashedIcon,
@@ -16,9 +15,16 @@ import {
   UserX2Icon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/common/page-header';
+import { TableRowsSkeleton } from '@/components/common/table-skeleton';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -295,7 +301,8 @@ export const AdminCashiersPage = () => {
         }
       />
 
-      <div className="rounded-2xl border bg-card p-3 shadow-sm md:p-4">
+      <Card>
+        <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
@@ -309,9 +316,7 @@ export const AdminCashiersPage = () => {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6}>Cargando cajeros...</TableCell>
-              </TableRow>
+              <TableRowsSkeleton rows={5} cols={6} />
             ) : cashiers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>No hay cajeros registrados.</TableCell>
@@ -366,7 +371,7 @@ export const AdminCashiersPage = () => {
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-1">
                             {wc > 0 ? (
-                              <CheckCircle2Icon className="size-3.5 shrink-0 text-green-500" />
+                              <CheckCircle2Icon className="size-3.5 shrink-0 text-success" />
                             ) : (
                               <span className="size-3.5 shrink-0 rounded-full bg-muted-foreground/30 inline-block" />
                             )}
@@ -385,8 +390,8 @@ export const AdminCashiersPage = () => {
                   <TableCell>{formatDateTime(cashier.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
-                      <MenuPrimitive.Root>
-                        <MenuPrimitive.Trigger
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
                           render={
                             <Button
                               variant="outline"
@@ -396,74 +401,53 @@ export const AdminCashiersPage = () => {
                           }
                         >
                           <MoreHorizontalIcon className="size-4" />
-                        </MenuPrimitive.Trigger>
-                        <MenuPrimitive.Portal>
-                          <MenuPrimitive.Positioner
-                            sideOffset={4}
-                            align="end"
-                            className="z-50"
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem
+                            onClick={() => setSessionsPanelCashierId(cashier.id)}
                           >
-                            <MenuPrimitive.Popup
-                              className={cn(
-                                'min-w-[10rem] overflow-hidden rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none',
-                                'data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95',
-                                'data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
-                              )}
+                            <SmartphoneIcon className="size-4" />
+                            Gestionar sesiones de WhatsApp
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setLandingsPanelCashier(cashier)}
+                          >
+                            <LinkIcon className="size-4" />
+                            Asignar landings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openEditDialog(cashier)}
+                          >
+                            <PencilLineIcon className="size-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          {cashier.hasActiveWorkSession ? (
+                            <DropdownMenuItem
+                              disabled={finishCashierWorkSession.isPending}
+                              onClick={() => onFinishWorkSession(cashier.id)}
                             >
-                              <MenuPrimitive.Item
-                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                onClick={() => setSessionsPanelCashierId(cashier.id)}
-                              >
-                                <SmartphoneIcon className="size-4" />
-                                Gestionar sesiones de WhatsApp
-                              </MenuPrimitive.Item>
-                              <MenuPrimitive.Item
-                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                onClick={() => setLandingsPanelCashier(cashier)}
-                              >
-                                <LinkIcon className="size-4" />
-                                Asignar landings
-                              </MenuPrimitive.Item>
-                              <MenuPrimitive.Item
-                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                onClick={() => openEditDialog(cashier)}
-                              >
-                                <PencilLineIcon className="size-4" />
-                                Editar
-                              </MenuPrimitive.Item>
-                              {cashier.hasActiveWorkSession ? (
-                                <MenuPrimitive.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                  disabled={finishCashierWorkSession.isPending}
-                                  onClick={() =>
-                                    onFinishWorkSession(cashier.id)
-                                  }
-                                >
-                                  <LogOutIcon className="size-4" />
-                                  Cerrar turno
-                                </MenuPrimitive.Item>
-                              ) : null}
-                              {cashier.status === 'ACTIVE' ? (
-                                <MenuPrimitive.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-destructive outline-none transition-colors hover:bg-destructive/10 hover:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
-                                  onClick={() => onDisable(cashier.id)}
-                                >
-                                  <UserX2Icon className="size-4" />
-                                  Deshabilitar
-                                </MenuPrimitive.Item>
-                              ) : (
-                                <MenuPrimitive.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
-                                  onClick={() => onEnable(cashier.id)}
-                                >
-                                  <CheckCircle2Icon className="size-4" />
-                                  Activar
-                                </MenuPrimitive.Item>
-                              )}
-                            </MenuPrimitive.Popup>
-                          </MenuPrimitive.Positioner>
-                        </MenuPrimitive.Portal>
-                      </MenuPrimitive.Root>
+                              <LogOutIcon className="size-4" />
+                              Cerrar turno
+                            </DropdownMenuItem>
+                          ) : null}
+                          {cashier.status === 'ACTIVE' ? (
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => onDisable(cashier.id)}
+                            >
+                              <UserX2Icon className="size-4" />
+                              Deshabilitar
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => onEnable(cashier.id)}
+                            >
+                              <CheckCircle2Icon className="size-4" />
+                              Activar
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -478,7 +462,8 @@ export const AdminCashiersPage = () => {
             onPageChange={setPage}
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Edit cashier dialog */}
       <Dialog
@@ -562,11 +547,9 @@ export const AdminCashiersPage = () => {
       >
         <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
-              Sesiones WhatsApp — {sessionsPanelCashier?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Administra las sesiones de WhatsApp de este cajero.
+            <DialogTitle>Sesiones de WhatsApp</DialogTitle>
+            <DialogDescription className="truncate" title={sessionsPanelCashier?.name}>
+              {sessionsPanelCashier?.name}
             </DialogDescription>
           </DialogHeader>
           {sessionsPanelCashier && (

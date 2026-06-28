@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckIcon, CircleDollarSignIcon, SearchIcon, XIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { IconBadge } from '@/components/common/icon-badge';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Separator } from '@/components/ui/separator';
 import { useMoneyFormatter } from '@/lib/use-currency';
@@ -81,9 +83,7 @@ export const CashierAddFundsPage = () => {
 
   useEffect(() => {
     if (runtimeState && !runtimeState.canOperateLeads) {
-      toast.error(
-        `No puedes operar leads. Estado WAHA: ${runtimeState.wahaStatus}`,
-      );
+      toast.error('No podés operar leads: necesitás un WhatsApp conectado.');
       navigate('/cashier', { replace: true });
     }
   }, [navigate, runtimeState]);
@@ -173,9 +173,9 @@ export const CashierAddFundsPage = () => {
             <div className='flex flex-col gap-3 sm:gap-4'>
               <div className='flex flex-col gap-2'>
                 <div className='flex items-center gap-2'>
-                  <div className='grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
+                  <IconBadge size="md">
                     <SearchIcon className='size-4' />
-                  </div>
+                  </IconBadge>
                   <h3 className='font-medium leading-tight'>Buscar lead</h3>
                 </div>
                 <p className='text-sm text-muted-foreground'>
@@ -199,12 +199,13 @@ export const CashierAddFundsPage = () => {
                           size='sm'
                           onClick={handleClearLead}
                           className='h-6 w-6 p-0'
+                          aria-label='Limpiar lead seleccionado'
                         >
                           <XIcon className='h-4 w-4' />
                         </Button>
                       </div>
                     ) : (
-                      <>
+                      <div className='relative'>
                         <div className='relative'>
                           <SearchIcon className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
                           <Input
@@ -217,11 +218,20 @@ export const CashierAddFundsPage = () => {
                         </div>
                         {/* Results panel */}
                         {debouncedQ.length > 0 && (
-                          <div className='mt-1 rounded-lg border bg-popover shadow-sm'>
+                          <div className='absolute inset-x-0 top-full z-20 mt-1 rounded-lg border bg-popover shadow-sm'>
                             {searching ? (
-                              <p className='px-3 py-2 text-sm text-muted-foreground'>
-                                Buscando...
-                              </p>
+                              <ul className='divide-y'>
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                  <li
+                                    key={i}
+                                    className='flex items-center gap-3 px-3 py-2'
+                                  >
+                                    <Skeleton className='h-4 w-16' />
+                                    <Skeleton className='h-4 w-24' />
+                                    <Skeleton className='ml-auto h-5 w-20 rounded-full' />
+                                  </li>
+                                ))}
+                              </ul>
                             ) : searchResults.length === 0 ? (
                               <p className='px-3 py-2 text-sm text-muted-foreground'>
                                 No se encontraron leads
@@ -233,7 +243,7 @@ export const CashierAddFundsPage = () => {
                                     <button
                                       type='button'
                                       onClick={() => handleSelectLead(lead)}
-                                      className='flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors'
+                                      className='flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
                                     >
                                       <span className='font-medium'>
                                         {lead.code}
@@ -259,7 +269,7 @@ export const CashierAddFundsPage = () => {
                             )}
                           </div>
                         )}
-                      </>
+                      </div>
                     )}
                   </FieldContent>
                 </Field>
@@ -300,9 +310,9 @@ export const CashierAddFundsPage = () => {
             <div className='flex flex-col gap-3 sm:gap-4'>
               <div className='flex flex-col gap-2'>
                 <div className='flex items-center gap-2'>
-                  <div className='grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
+                  <IconBadge size="md">
                     <CircleDollarSignIcon className='size-4' />
-                  </div>
+                  </IconBadge>
                   <h3 className='font-medium leading-tight'>Monto</h3>
                 </div>
                 <p className='text-sm text-muted-foreground'>

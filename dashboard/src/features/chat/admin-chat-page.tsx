@@ -50,9 +50,9 @@ const AdminChatInner = ({ cashierId, cashierPicker }: AdminChatInnerProps) => {
   }));
 
   const noSessionsCta = isLoading ? (
-    <Skeleton className="h-16 w-full rounded-xl" />
+    <Skeleton className="h-16 w-full rounded-lg" />
   ) : (
-    <div className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+    <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
       Este cajero no tiene sesiones de WhatsApp.
     </div>
   );
@@ -102,11 +102,11 @@ export const AdminChatPage = () => {
       type="button"
       onClick={handleBackToCashiers}
       title="Cambiar de cajero"
-      className="group flex w-full items-center gap-2 rounded-md border bg-card px-3 py-2 text-left transition-colors hover:border-foreground/25 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group glass-subtle flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ArrowLeftIcon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span className="block text-xs-plus uppercase tracking-wide text-muted-foreground">
           Cajero
         </span>
         <span className="block truncate text-sm font-medium">{selectedCashierName}</span>
@@ -133,8 +133,9 @@ export const AdminChatPage = () => {
           cashierPicker={cashierBackNode}
         />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div className="shrink-0 border-b p-5 md:p-6">
+        <>
+          {/* Floating step header + search + cashier cards — no wrapper box. */}
+          <div className="shrink-0">
             <p className="text-base font-medium">Elegí un cajero</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Abrí los chats de un cajero para ver sus conversaciones y responder por él.
@@ -145,7 +146,7 @@ export const AdminChatPage = () => {
             onSelect={handleSelectCashier}
             isLoading={cashiersLoading}
           />
-        </div>
+        </>
       )}
     </section>
   );

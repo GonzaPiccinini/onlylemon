@@ -1,12 +1,14 @@
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronDownIcon, ChevronRightIcon, FilterIcon } from 'lucide-react';
+import { ChevronDownIcon, ChevronRightIcon, FilterIcon, HashIcon, MegaphoneIcon, PhoneIcon, TagIcon, UsersIcon } from 'lucide-react';
+import { AccentIconBadge, IconBadge } from '@/components/common/icon-badge';
+import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
+import { TableRowsSkeleton } from '@/components/common/table-skeleton';
 import {
   useAdminCashiers,
   useAdminLeadHistory,
   useAdminLeads,
 } from '@/features/admin/admin-hooks';
-import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -256,37 +258,33 @@ export const AdminLeadsPage = () => {
         description="Tabla global de leads con filtros por estado y cajero."
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Leads del sistema</CardTitle>
-          <CardDescription>
-            Visualiza estados de conversion y asignacion por cajero.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setFiltersOpen((prev) => !prev)}
-              aria-expanded={filtersOpen}
-            >
-              <FilterIcon className="size-4" />
-              Filtros
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="ml-1">
-                  {activeFiltersCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
-          {filtersOpen && (
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="admin-leads-statuses">
-                Filtrar por estado
-              </FieldLabel>
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((prev) => !prev)}
+        >
+          <FilterIcon className="size-4 text-muted-foreground" />
+          <span>Filtros</span>
+          {activeFiltersCount > 0 && (
+            <AccentIconBadge size="xs">
+              {activeFiltersCount}
+            </AccentIconBadge>
+          )}
+        </Button>
+      </div>
+
+      {filtersOpen && (
+        <div className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <TagIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Estado</span>
+              </div>
               <MultiSelect
                 id="admin-leads-statuses"
                 options={STATUS_OPTIONS.map((o) => ({
@@ -302,10 +300,13 @@ export const AdminLeadsPage = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="admin-leads-cashiers">
-                Filtrar por cajero
-              </FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <UsersIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Cajero</span>
+              </div>
               <MultiSelect
                 id="admin-leads-cashiers"
                 options={cashierOptions}
@@ -319,8 +320,13 @@ export const AdminLeadsPage = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Filtrar por publicidad</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <MegaphoneIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Publicidad</span>
+              </div>
               <Input
                 value={adCode}
                 placeholder="Ej. utm_content"
@@ -331,8 +337,13 @@ export const AdminLeadsPage = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Filtrar por codigo</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <HashIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Código</span>
+              </div>
               <Input
                 value={code}
                 placeholder="Ej. ABC123"
@@ -343,8 +354,13 @@ export const AdminLeadsPage = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Filtrar por telefono</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <PhoneIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Teléfono</span>
+              </div>
               <Input
                 value={phone}
                 placeholder="Ej. 54911..."
@@ -355,8 +371,34 @@ export const AdminLeadsPage = () => {
               />
             </div>
           </div>
-          )}
+        </div>
+      )}
 
+      <FilterChips
+        chips={[
+          ...statuses.map((s) => {
+            const opt = STATUS_OPTIONS.find((o) => o.value === s);
+            return { key: `status-${s}`, label: `Estado: ${opt?.label ?? s}`, onRemove: () => { setStatuses((prev) => prev.filter((x) => x !== s)); setPage(1); } };
+          }),
+          ...cashierIds.map((id) => {
+            const opt = cashierOptions.find((o) => o.value === id);
+            return { key: `cashier-${id}`, label: `Cajero: ${opt?.label ?? id}`, onRemove: () => { setCashierIds((prev) => prev.filter((x) => x !== id)); setPage(1); } };
+          }),
+          ...(adCode.trim() ? [{ key: 'adCode', label: `Publicidad: ${adCode}`, onRemove: () => { setAdCode(''); setPage(1); } }] : []),
+          ...(code.trim() ? [{ key: 'code', label: `Código: ${code}`, onRemove: () => { setCode(''); setPage(1); } }] : []),
+          ...(phone.trim() ? [{ key: 'phone', label: `Teléfono: ${phone}`, onRemove: () => { setPhone(''); setPage(1); } }] : []),
+        ]}
+        onClearAll={() => { setStatuses([]); setCashierIds([]); setAdCode(''); setCode(''); setPhone(''); setPage(1); }}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Leads del sistema</CardTitle>
+          <CardDescription>
+            Visualiza estados de conversion y asignacion por cajero.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -371,9 +413,7 @@ export const AdminLeadsPage = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={COLUMN_COUNT}>Cargando leads...</TableCell>
-                </TableRow>
+                <TableRowsSkeleton rows={5} cols={COLUMN_COUNT} />
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={COLUMN_COUNT}>
@@ -404,7 +444,7 @@ export const AdminLeadsPage = () => {
                           }
                         }}
                         className={cn(
-                          'cursor-pointer',
+                          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                           isExpanded && 'border-b-0',
                         )}
                       >
@@ -447,11 +487,13 @@ export const AdminLeadsPage = () => {
               )}
             </TableBody>
           </Table>
-          <PaginationControls
-            page={normalizedPage}
-            totalPages={totalPages}
-            onPageChange={(p) => setPage(p)}
-          />
+          <div className="mt-3">
+            <PaginationControls
+              page={normalizedPage}
+              totalPages={totalPages}
+              onPageChange={(p) => setPage(p)}
+            />
+          </div>
         </CardContent>
       </Card>
     </section>

@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/auth-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { toMillis } from './time';
+import { resolveContactTitle } from './contact';
 import { chatService, type ChatScope } from '@/api/chat.service';
 import type { ChatMessage } from '@/types/chat';
 import {
@@ -348,6 +349,12 @@ export const ChatPage = ({
 
   const selectedChatName = selectedChat?.displayName ?? 'Chat';
 
+  // Contact's display name (saved name → phone fallback) for labelling quoted
+  // replies — both in the thread and in the composer's reply preview.
+  const contactName = selectedChat
+    ? resolveContactTitle(selectedChat).title
+    : undefined;
+
   // Session label (alias → +phone → code) — shown in the ChatHeader ONLY on
   // mobile, where the session picker is hidden behind the conversation overlay.
   // On desktop the picker is always visible on the left, so it's omitted there.
@@ -364,12 +371,14 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   const listPanel = (
-    <div className="flex h-full min-h-0 flex-col bg-black">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Pinned header — cashier/session pickers + status action stay fixed
           at the top while the contacts list scrolls below them. */}
-      <div className="flex shrink-0 flex-col gap-3 p-3">
-        <NotificationToggle />
+      <div className="flex shrink-0 flex-col gap-2 py-3 md:pt-0">
+        {/* Admin cashier back — its own floating glass-subtle chip. */}
         {cashierPicker}
+
+        {/* Session picker — its own floating glass-subtle chip. */}
         {sessions.length > 0 && (
           <SessionPicker
             sessions={sessions}
@@ -377,37 +386,47 @@ export const ChatPage = ({
             onSelect={handleSelectSession}
           />
         )}
-        {sessions.length > 0 && selectedSessionId && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setStatusDialogOpen(true)}
-            className="shrink-0 justify-start gap-2"
-          >
-            <CircleFadingPlusIcon className="size-4" />
-            Publicar estado
-          </Button>
-        )}
+
+        {/* Secondary actions — icon-only, right-aligned, airy. */}
+        <div className="flex items-center justify-end gap-0.5">
+          {sessions.length > 0 && selectedSessionId && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setStatusDialogOpen(true)}
+              title="Publicar estado"
+              aria-label="Publicar estado"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <CircleFadingPlusIcon className="size-4" />
+            </Button>
+          )}
+          <NotificationToggle />
+        </div>
       </div>
 
-      {/* Scrollable contacts region — grows with chat count and scrolls in
-          place, so the list never overflows the (viewport-locked) layout. */}
-      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto border-t">
-        {sessions.length === 0 ? (
-          <div className="p-3">{emptyCta ?? null}</div>
-        ) : (
-          <ChatList
-            chats={chats}
-            selectedChatId={selectedChatId}
-            onSelect={handleSelectChat}
-            unreadChatIds={unreadChatIds}
-            isLoading={chatListQuery.isLoading}
-            hasMore={chatListQuery.hasNextPage}
-            onLoadMore={() => void chatListQuery.fetchNextPage()}
-            isLoadingMore={chatListQuery.isFetchingNextPage}
-          />
-        )}
+      {/* Scrollable contacts region — its own floating glass card, edge-aligned
+          with the page header / mobile nav above. Grows with chat count and
+          scrolls in place, so the list never overflows the (viewport-locked)
+          layout. */}
+      <div className="min-h-0 flex-1">
+        <div className="scrollbar-thin glass flex h-full min-h-0 flex-col overflow-y-auto rounded-2xl">
+          {sessions.length === 0 ? (
+            <div className="p-3">{emptyCta ?? null}</div>
+          ) : (
+            <ChatList
+              chats={chats}
+              selectedChatId={selectedChatId}
+              onSelect={handleSelectChat}
+              unreadChatIds={unreadChatIds}
+              isLoading={chatListQuery.isLoading}
+              hasMore={chatListQuery.hasNextPage}
+              onLoadMore={() => void chatListQuery.fetchNextPage()}
+              isLoadingMore={chatListQuery.isFetchingNextPage}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -437,15 +456,17 @@ export const ChatPage = ({
             onLoadOlder={handleLoadOlder}
             onReply={setReplyingTo}
             onReact={handleReact}
+            contactName={contactName}
           />
         </div>
-        <div className="shrink-0 border-t">
+        <div className="shrink-0">
           <Composer
             onSendText={handleSendText}
             onSendPhoto={handleSendPhoto}
             onTyping={onTyping}
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
+            contactName={contactName}
             sending={isSending}
           />
         </div>
@@ -467,19 +488,20 @@ export const ChatPage = ({
   // ------------------------------------------------------------------
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl border bg-black shadow-sm">
-      {/* Desktop: left column — list */}
-      <div className="hidden w-72 shrink-0 flex-col border-r md:flex">
+    <div className="relative flex min-h-0 flex-1 gap-3 overflow-hidden">
+      {/* Desktop: left column — no column bg; each control + the list float in
+          their own glass surface. */}
+      <div className="hidden w-80 shrink-0 flex-col md:flex">
         {listPanel}
       </div>
 
-      {/* Desktop: right column — thread */}
-      <div className="hidden flex-1 flex-col overflow-hidden md:flex">
+      {/* Desktop: right column — thread (floating glass card) */}
+      <div className="hidden flex-1 flex-col overflow-hidden rounded-2xl glass md:flex">
         {threadPanel}
       </div>
 
-      {/* Mobile: full-width list */}
-      <div className="flex flex-1 flex-col overflow-hidden md:hidden">
+      {/* Mobile: full-width list — same floating-glass treatment as desktop. */}
+      <div className="flex flex-1 flex-col md:hidden">
         {listPanel}
       </div>
 
@@ -491,8 +513,9 @@ export const ChatPage = ({
         role="dialog"
         aria-label={selectedChatName}
         aria-hidden={!(isMobile && sheetOpen)}
+        aria-modal={isMobile && sheetOpen}
         className={[
-          'absolute inset-0 z-50 flex flex-col bg-black transition-transform duration-200 md:hidden',
+          'absolute inset-0 z-50 flex flex-col overflow-hidden rounded-2xl glass transition-transform duration-200 md:hidden',
           isMobile && sheetOpen
             ? 'translate-x-0'
             : 'pointer-events-none translate-x-full',

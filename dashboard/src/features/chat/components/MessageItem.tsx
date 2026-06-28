@@ -3,11 +3,17 @@
  *
  * Features:
  *   - Left-aligned (inbound) vs right-aligned (outbound/fromMe).
+ *   - Outbound bubbles use a soft primary tint (not a saturated fill) so long
+ *     threads stay legible.
+ *   - Consecutive messages from the same side are grouped: the first gets extra
+ *     top spacing, only the last gets the bubble "tail" corner.
  *   - `quotedMessage` → QuotedReply preview block above the body.
  *   - `hasMedia` → MediaPreview block.
- *   - `reactions` → small emoji badges attached below the bubble.
- *   - Hover actions: reply and react buttons (react opens EmojiPicker).
- *   - Timestamp shown small + muted at the bottom of the bubble.
+ *   - `reactions` → rounded chips tucked under the bubble's sender edge.
+ *   - Hover actions (desktop): reply + react buttons FLOAT beside the bubble so
+ *     they reserve no vertical space in the thread. Mobile uses a long-press
+ *     action sheet instead.
+ *   - Timestamp is inline at the bubble's bottom-right (WhatsApp-style).
  *
  * `onReply` and `onReact` are passed from MessageThread so the actions
  * propagate up through the component tree without direct API calls here.
@@ -16,6 +22,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ReplyIcon, SmilePlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { QuotedReply } from './QuotedReply';
 import { MediaPreview } from './MediaPreview';
@@ -41,6 +48,30 @@ interface MessageItemProps {
   chatId: string;
   onReply: (message: ChatMessage) => void;
   onReact: (messageId: string, emoji: string) => void;
+  /** Chat contact's display name — used to label quoted replies from them. */
+  contactName?: string;
+  /** Scrolls to + highlights the message with the given id (quote tap). */
+  onJumpToMessage?: (messageId: string) => void;
+  /** First message of a same-side run → extra top spacing. */
+  isFirstInGroup: boolean;
+  /** Last message of a same-side run → render the bubble tail corner. */
+  isLastInGroup: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Collapse the reaction list into unique emojis with a count. */
+function groupReactions(reactions: ChatMessage['reactions']) {
+  const map = new Map<string, { emoji: string; count: number; mine: boolean }>();
+  for (const r of reactions) {
+    const cur = map.get(r.emoji) ?? { emoji: r.emoji, count: 0, mine: false };
+    cur.count += 1;
+    cur.mine = cur.mine || r.fromMe;
+    map.set(r.emoji, cur);
+  }
+  return [...map.values()];
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +85,10 @@ export const MessageItem = ({
   chatId,
   onReply,
   onReact,
+  contactName,
+  onJumpToMessage,
+  isFirstInGroup,
+  isLastInGroup,
 }: MessageItemProps) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { fromMe, body, hasMedia, mediaMimetype, quotedMessage, reactions, timestamp, senderName } = message;
@@ -153,119 +188,137 @@ export const MessageItem = ({
 
   // Sticker-only messages render without a bubble (WhatsApp style).
   const isStickerOnly = hasMedia && isStickerMime(mediaMimetype) && !body && !quotedMessage;
+  const groupedReactions = groupReactions(reactions);
 
   return (
     <div
-      className={[
-        'group flex flex-col gap-0.5',
+      className={cn(
+        'group flex flex-col',
         fromMe ? 'items-end' : 'items-start',
-      ].join(' ')}
-    >
-      {/* Action buttons — desktop only (visible on hover). On mobile a
-          long-press opens the action sheet instead (see below). */}
-      <div
-        className={[
-          'hidden items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 md:flex',
-          fromMe ? 'flex-row-reverse' : 'flex-row',
-        ].join(' ')}
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => onReply(message)}
-          aria-label="Responder"
-          title="Responder"
-        >
-          <ReplyIcon className="size-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setShowEmojiPicker(true)}
-          aria-label="Reaccionar"
-          title="Reaccionar"
-        >
-          <SmilePlusIcon className="size-3.5" />
-        </Button>
-      </div>
-
-      {/* Bubble — width hugs content (max ~75% of the pane), WhatsApp-style.
-          Touch handlers drive the mobile long-press menu; select-none on mobile
-          stops the long-press from selecting text / showing the iOS callout. */}
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
-        onClickCapture={handleClickCapture}
-        onContextMenu={handleContextMenu}
-        className={[
-          'flex w-fit max-w-[75%] flex-col gap-1 rounded-lg text-sm leading-snug select-none [-webkit-touch-callout:none] md:select-text',
-          isStickerOnly
-            ? 'bg-transparent p-0'
-            : 'px-2.5 py-1.5 shadow-sm ' +
-              (fromMe
-                ? 'rounded-br-sm bg-primary text-primary-foreground'
-                : 'rounded-bl-sm bg-muted text-foreground'),
-        ].join(' ')}
-      >
-        {/* Sender name — only for incoming GROUP messages (WhatsApp-style). The
-            worker leaves senderName null for 1:1 chats and outbound messages.
-            A thin bottom rule separates the name from the message body. */}
-        {!fromMe && senderName && (
-          <p className="border-b border-primary/30 pb-1 text-xs font-semibold text-primary">
-            {senderName}
-          </p>
-        )}
-
-        {/* Quoted reply preview */}
-        {quotedMessage && (
-          <QuotedReply quoted={quotedMessage} />
-        )}
-
-        {/* Media */}
-        {hasMedia && (
-          <MediaPreview
-            scope={scope}
-            sessionId={sessionId}
-            chatId={chatId}
-            messageId={message.id}
-            mimetype={mediaMimetype}
-          />
-        )}
-
-        {/* Text body */}
-        {body && (
-          <p className="whitespace-pre-wrap break-words">{body}</p>
-        )}
-
-        {/* Timestamp — small, tight to the bubble bottom (WhatsApp-style). */}
-        <p
-          className={[
-            '-mt-0.5 self-end text-[10px] leading-none',
-            !isStickerOnly && fromMe ? 'text-primary-foreground/60' : 'text-muted-foreground',
-          ].join(' ')}
-        >
-          {formatMessageTime(timestamp)}
-        </p>
-      </div>
-
-      {/* Reactions row */}
-      {reactions.length > 0 && (
-        <div className="flex flex-wrap gap-0.5 px-1">
-          {reactions.map((r, idx) => (
-            <span
-              key={idx}
-              title={r.fromMe ? 'Tú reaccionaste' : 'Reacción recibida'}
-              className="cursor-default select-none text-base leading-none"
-            >
-              {r.emoji}
-            </span>
-          ))}
-        </div>
+        isFirstInGroup ? 'mt-2' : 'mt-0.5',
       )}
+    >
+      {/* Anchor sized to the bubble so the hover actions can float just outside
+          it without reserving any vertical space in the thread. */}
+      <div className="relative w-fit max-w-[75%]">
+        {/* Hover actions — desktop only. Float beside the bubble (opposite the
+            sender side) and fade in on hover; mobile uses the long-press sheet. */}
+        <div
+          className={cn(
+            'absolute top-1/2 z-10 hidden -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 md:flex',
+            fromMe ? 'right-full mr-1 flex-row-reverse' : 'left-full ml-1',
+          )}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onReply(message)}
+            aria-label="Responder"
+            title="Responder"
+          >
+            <ReplyIcon className="size-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setShowEmojiPicker(true)}
+            aria-label="Reaccionar"
+            title="Reaccionar"
+          >
+            <SmilePlusIcon className="size-3.5" />
+          </Button>
+        </div>
+
+        {/* Bubble. Touch handlers drive the mobile long-press menu; select-none
+            on mobile stops the long-press from selecting text / iOS callout. */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onClickCapture={handleClickCapture}
+          onContextMenu={handleContextMenu}
+          data-mid={message.id}
+          className={cn(
+            'flex w-fit max-w-full flex-col gap-1 text-sm leading-snug select-none [-webkit-touch-callout:none] md:select-text',
+            isStickerOnly
+              ? 'bg-transparent p-0'
+              : cn(
+                  'rounded-2xl px-2.5 py-1.5 shadow-sm',
+                  fromMe ? 'bg-primary/15 text-foreground' : 'bg-muted text-foreground',
+                  isLastInGroup && (fromMe ? 'rounded-br-sm' : 'rounded-bl-sm'),
+                ),
+          )}
+        >
+          {/* Sender name — only for incoming GROUP messages (WhatsApp-style). The
+              worker leaves senderName null for 1:1 chats and outbound messages. */}
+          {!fromMe && senderName && (
+            <p className="border-b border-primary/30 pb-1 text-xs font-semibold text-primary">
+              {senderName}
+            </p>
+          )}
+
+          {/* Quoted reply preview — tap to jump to the original message. */}
+          {quotedMessage && (
+            <QuotedReply
+              quoted={quotedMessage}
+              contactName={contactName}
+              onJump={
+                onJumpToMessage
+                  ? () => onJumpToMessage(quotedMessage.id)
+                  : undefined
+              }
+            />
+          )}
+
+          {/* Media */}
+          {hasMedia && (
+            <MediaPreview
+              scope={scope}
+              sessionId={sessionId}
+              chatId={chatId}
+              messageId={message.id}
+              mimetype={mediaMimetype}
+            />
+          )}
+
+          {/* Text body + inline timestamp. The time tucks to the bottom-right of
+              the last line; for long text it drops to its own right-aligned row. */}
+          <div className="flex flex-wrap items-end justify-end gap-x-2 gap-y-0.5">
+            {body && (
+              <p className="min-w-0 whitespace-pre-wrap break-words text-left">{body}</p>
+            )}
+            <span className="shrink-0 translate-y-px text-2xs leading-none text-muted-foreground">
+              {formatMessageTime(timestamp)}
+            </span>
+          </div>
+        </div>
+
+        {/* Reactions — rounded chips tucked under the bubble's sender edge. */}
+        {groupedReactions.length > 0 && (
+          <div
+            className={cn(
+              'relative z-10 -mt-1 flex flex-wrap gap-1',
+              fromMe ? 'justify-end pr-1' : 'justify-start pl-1',
+            )}
+          >
+            {groupedReactions.map((r) => (
+              <span
+                key={r.emoji}
+                title={r.mine ? 'Vos reaccionaste' : 'Reacción recibida'}
+                className="inline-flex select-none items-center gap-0.5 rounded-full bg-card px-1.5 py-0.5 leading-none shadow-sm ring-1 ring-border"
+              >
+                <span className="text-sm leading-none">{r.emoji}</span>
+                {r.count > 1 && (
+                  <span className="text-2xs text-muted-foreground">{r.count}</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Emoji picker */}
       {showEmojiPicker && (

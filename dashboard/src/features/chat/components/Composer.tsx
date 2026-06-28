@@ -40,6 +40,8 @@ interface ComposerProps {
   onTyping?: () => void;
   replyingTo?: ChatMessage | null;
   onCancelReply: () => void;
+  /** Chat contact's display name — used to label a quoted reply from them. */
+  contactName?: string;
   sending: boolean;
 }
 
@@ -67,6 +69,7 @@ export const Composer = ({
   onTyping,
   replyingTo,
   onCancelReply,
+  contactName,
   sending,
 }: ComposerProps) => {
   const [text, setText] = useState('');
@@ -147,7 +150,7 @@ export const Composer = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 border-t bg-black p-3">
+    <div className="flex flex-col gap-1.5 border-t p-2 md:gap-2 md:p-3">
       {/* Reply preview — hidden when an attachment is staged */}
       {effectiveReplyingTo && (
         <QuotedReply
@@ -156,6 +159,7 @@ export const Composer = ({
             previewText: effectiveReplyingTo.body || null,
             fromMe: effectiveReplyingTo.fromMe,
           }}
+          contactName={contactName}
           onCancel={onCancelReply}
         />
       )}
@@ -166,7 +170,7 @@ export const Composer = ({
       )}
 
       {/* Input row — buttons vertically centered with the input bar. */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 md:gap-2">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -181,31 +185,30 @@ export const Composer = ({
         <Button
           type="button"
           variant="ghost"
-          size="icon-sm"
+          size="icon-lg"
           onClick={() => fileInputRef.current?.click()}
           disabled={sending}
           aria-label="Adjuntar imagen"
           title="Adjuntar imagen"
           className="shrink-0"
         >
-          <PaperclipIcon className="size-4" />
+          <PaperclipIcon className="size-5" />
         </Button>
 
         {/* Text input with the emoji button inside the bar (left), WhatsApp
-            style. Grows up to ~5 lines, then scrolls inside. */}
+            style. Grows up to ~5 lines, then scrolls inside. The emoji control
+            is a bare, vertically-centered icon (no button box). */}
         <div className="relative flex-1">
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon-sm"
             onClick={() => setShowEmojiPicker(true)}
             disabled={sending}
             aria-label="Insertar emoji"
             title="Insertar emoji"
-            className="absolute bottom-1 left-1 z-10"
+            className="absolute left-2 top-1/2 z-10 -translate-y-1/2 p-1 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
           >
-            <SmileIcon className="size-4" />
-          </Button>
+            <SmileIcon className="size-5" />
+          </button>
           <Textarea
             ref={textareaRef}
             value={text}
@@ -217,21 +220,21 @@ export const Composer = ({
             placeholder={attachment ? 'Añadí un pie de foto (opcional)…' : 'Escribí un mensaje…'}
             disabled={sending}
             rows={1}
-            className="scrollbar-thin min-h-0 max-h-[7.5rem] w-full resize-none overflow-y-auto py-2 pl-10"
+            className="scrollbar-thin min-h-0 max-h-[7.5rem] w-full resize-none overflow-y-auto py-1.5 pl-9 md:py-2"
           />
         </div>
 
         {/* Send button */}
         <Button
           type="button"
-          size="icon-sm"
+          size="icon-lg"
           onClick={handleSend}
           disabled={!canSend}
           aria-label="Enviar"
           title="Enviar"
           className="shrink-0"
         >
-          <SendIcon className="size-4" />
+          <SendIcon className="size-5" />
         </Button>
       </div>
 

@@ -1,46 +1,98 @@
 /* dashboard/src/branding/tokens.css
  * Brand palette + branded background. Forks edit this file to recolor.
+ *
+ * "Lime Tech" — the OnlyLemon lime restored as the hero accent, paired with a
+ * teal companion. Base, neutrals, charts, gradients and glow are all tuned to a
+ * green-neutral dark so the lime reads clean and never clashes.
  */
 
 :root {
-  --radius: 0.75rem;
-  --background: #11150f;
+  --radius: 0.5rem;
+
+  /* Deep green-neutral base — warm-leaning dark so the lime never clashes. */
+  --background: #0e120b;
   --foreground: #e8f3d4;
-  --card: #1a2115;
+
+  /* Elevation 1 — cards / panels / tables. */
+  --card: #161b10;
   --card-foreground: #e8f3d4;
-  --popover: #1d2518;
+
+  /* Elevation 2 — popovers, dropdowns, menus. */
+  --popover: #1c2215;
   --popover-foreground: #e8f3d4;
+
+  /* Lime — the hero brand accent (dark text on top, lime is light). */
   --primary: #c7f246;
   --primary-foreground: #141b10;
-  --secondary: #293521;
+
+  /* Teal — the companion accent; pairs with lime as a lime→teal gradient. */
+  --accent-violet: #2dd4bf;
+  --accent-violet-foreground: #04120e;
+
+  /* Green-tinted neutral surfaces. */
+  --secondary: #222a18;
   --secondary-foreground: #d7e8b9;
-  --muted: #25301e;
+  --muted: #1b2113;
   --muted-foreground: #98ad7d;
-  --accent: #2e3d24;
+  --accent: #283017;
   --accent-foreground: #def0bf;
-  --destructive: #e17463;
+
+  /* Clean red — functional error colour. */
+  --destructive: #ec5a52;
   --destructive-foreground: #f8f8f8;
-  --border: rgb(233 247 194 / 0.14);
-  --input: rgb(233 247 194 / 0.2);
-  --ring: #b9de3f;
-  --sidebar: #161e12;
+
+  /* Lime-white hairlines — a subtle warm edge. */
+  --border: rgb(220 240 180 / 0.12);
+  --input: rgb(220 240 180 / 0.16);
+  --ring: #c7f246;
+
+  /* Sidebar — a touch deeper than the canvas. */
+  --sidebar: #0b0e08;
   --sidebar-foreground: #e8f3d4;
   --sidebar-primary: #c7f246;
-  --sidebar-primary-foreground: #13180f;
-  --sidebar-accent: #25301e;
-  --sidebar-accent-foreground: #ddefbf;
-  --sidebar-border: rgb(233 247 194 / 0.13);
-  --sidebar-ring: #b9de3f;
+  --sidebar-primary-foreground: #141b10;
+  --sidebar-accent: #1c2215;
+  --sidebar-accent-foreground: #def0bf;
+  --sidebar-border: rgb(220 240 180 / 0.1);
+  --sidebar-ring: #c7f246;
+
+  /* WhatsApp brand green — used for the chat inbox badge. */
+  --whatsapp: #25d366;
+
+  /* Semantic green — matches Tailwind emerald-500; used for success states. */
+  --success: #10b981;
+
+  /* Semantic red — matches Tailwind rose-500; used for negative/downward states. */
+  --negative: #f43f5e;
+
+  /* Semantic amber — matches Tailwind amber-600; used for warning states. */
+  --warning: #d97706;
+
+  /* Gold — "recharge"/returning-customer lead badge. Tuned bright (amber-400)
+     so it reads vividly as text on its own faint tint. */
+  --recharge: #fbbf24;
+
+  /* Scrim — modal/sheet backdrops and darkening veils. A theme-independent
+     dark base by default; forks may lighten or tint it. */
+  --overlay: #000000;
+
+  /* Chart grid — solid base for grid/tooltip colours; alpha applied at use-site. */
+  --chart-grid: #b4c3ff;
+
+  /* Data viz — lime-led and harmonised: lime, teal, cyan, amber, green. */
   --chart-1: #c7f246;
-  --chart-2: #9fc632;
-  --chart-3: #74981f;
-  --chart-4: #4c6715;
-  --chart-5: #dbef90;
+  --chart-2: #2dd4bf;
+  --chart-3: #22d3ee;
+  --chart-4: #eab308;
+  --chart-5: #84cc16;
 }
 
 body {
+  /* Green-neutral canvas with two ambient blooms — lime + teal — matching the
+     dual accent so the frosted glass has something to refract. Subtle, fixed. */
+  background-color: var(--background);
   background-image:
-    radial-gradient(circle at 8% 0%, rgb(199 242 70 / 0.24), transparent 30%),
-    radial-gradient(circle at 92% 4%, rgb(156 198 50 / 0.15), transparent 32%),
-    linear-gradient(160deg, #10140e 0%, #12180f 55%, #141b12 100%);
+    radial-gradient(40rem 32rem at 8% -8%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%),
+    radial-gradient(36rem 30rem at 96% 0%, color-mix(in oklab, var(--accent-violet) 12%, transparent), transparent 58%);
+  background-attachment: fixed;
 }

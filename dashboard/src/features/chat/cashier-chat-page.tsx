@@ -16,6 +16,7 @@
 import { Link } from 'react-router-dom';
 import { SmartphoneIcon } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/features/auth/auth-context';
 import { useMySessions } from '@/features/cashier/cashier-hooks';
@@ -35,12 +36,9 @@ const NoSessionsCta = () => (
         Conectá un WhatsApp para empezar a chatear con tus clientes.
       </p>
     </div>
-    <Link
-      to="/cashier"
-      className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    >
+    <Button render={<Link to="/cashier" />}>
       Ir a Sesión y WhatsApp
-    </Link>
+    </Button>
   </div>
 );
 

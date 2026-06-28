@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
-import { FilterIcon } from 'lucide-react';
+import { BanknoteIcon, CalendarIcon, FilterIcon, HashIcon, MegaphoneIcon, PhoneIcon, UsersIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AccentIconBadge, IconBadge } from '@/components/common/icon-badge';
+import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { TableRowsSkeleton } from '@/components/common/table-skeleton';
+import { MetricCard } from '@/components/common/metric-card';
+import { LoadingCard } from '@/components/common/loading-card';
 import { useAdminConversions, useAdminCashiers, useAdminConversionsTotals } from '@/features/admin/admin-hooks';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -12,7 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { MultiSelect } from '@/components/ui/multi-select';
 import {
@@ -108,54 +111,60 @@ export const AdminConversionsPage = () => {
         description="Historial global de conversiones con filtros por fecha, cajero, monto y mas."
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Conversiones del sistema</CardTitle>
-          <CardDescription>
-            Conversiones ordenadas por fecha, mas recientes primero.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setFiltersOpen((prev) => !prev)}
-              aria-expanded={filtersOpen}
-            >
-              <FilterIcon className="size-4" />
-              Filtros
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="ml-1">
-                  {activeFiltersCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
-          {/* Filter bar */}
-          {filtersOpen && (
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Fecha desde</FieldLabel>
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((prev) => !prev)}
+        >
+          <FilterIcon className="size-4 text-muted-foreground" />
+          <span>Filtros</span>
+          {activeFiltersCount > 0 && (
+            <AccentIconBadge size="xs">
+              {activeFiltersCount}
+            </AccentIconBadge>
+          )}
+        </Button>
+      </div>
+
+      {/* Filter bar */}
+      {filtersOpen && (
+        <div className="glass rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <CalendarIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Desde</span>
+              </div>
               <Input
                 type="date"
                 value={dateFrom}
                 onChange={handleFilterChange(setDateFrom)}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Fecha hasta</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <CalendarIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Hasta</span>
+              </div>
               <Input
                 type="date"
                 value={dateTo}
                 onChange={handleFilterChange(setDateTo)}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="admin-conversions-cashiers">
-                Cajero
-              </FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <UsersIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Cajero</span>
+              </div>
               <MultiSelect
                 id="admin-conversions-cashiers"
                 options={cashierOptions}
@@ -168,32 +177,52 @@ export const AdminConversionsPage = () => {
                 emptyText="Sin cajeros disponibles"
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Codigo</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <HashIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Código</span>
+              </div>
               <Input
                 value={code}
                 placeholder="Ej. ABC123"
                 onChange={handleFilterChange(setCode)}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Publicidad</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <MegaphoneIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Publicidad</span>
+              </div>
               <Input
                 value={adCode}
                 placeholder="Ej. utm_content"
                 onChange={handleFilterChange(setAdCode)}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Telefono</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <PhoneIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Teléfono</span>
+              </div>
               <Input
                 value={phone}
                 placeholder="Ej. 54911..."
                 onChange={handleFilterChange(setPhone)}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Monto minimo</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <BanknoteIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Monto mín.</span>
+              </div>
               <Input
                 type="number"
                 value={amountMin}
@@ -202,8 +231,13 @@ export const AdminConversionsPage = () => {
                 onChange={handleFilterChange(setAmountMin)}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <FieldLabel>Monto maximo</FieldLabel>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <BanknoteIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Monto máx.</span>
+              </div>
               <Input
                 type="number"
                 value={amountMax}
@@ -213,35 +247,48 @@ export const AdminConversionsPage = () => {
               />
             </div>
           </div>
-          )}
+        </div>
+      )}
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-1">
-                <CardDescription>Monto total</CardDescription>
-              </CardHeader>
-              <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : money.format(totals?.totalAmount ?? 0)}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-1">
-                <CardDescription>Cantidad</CardDescription>
-              </CardHeader>
-              <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : String(totals?.count ?? 0)}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-1">
-                <CardDescription>Monto promedio</CardDescription>
-              </CardHeader>
-              <CardContent className="text-2xl font-semibold">
-                {totalsLoading ? '…' : money.format(totals?.averageAmount ?? 0)}
-              </CardContent>
-            </Card>
-          </div>
+      <FilterChips
+        chips={[
+          ...(dateFrom ? [{ key: 'dateFrom', label: `Desde: ${dateFrom}`, onRemove: () => { setDateFrom(''); setPage(1); } }] : []),
+          ...(dateTo ? [{ key: 'dateTo', label: `Hasta: ${dateTo}`, onRemove: () => { setDateTo(''); setPage(1); } }] : []),
+          ...cashierIds.map((id) => {
+            const opt = cashierOptions.find((o) => o.value === id);
+            return { key: `cashier-${id}`, label: `Cajero: ${opt?.label ?? id}`, onRemove: () => { setCashierIds((prev) => prev.filter((x) => x !== id)); setPage(1); } };
+          }),
+          ...(code.trim() ? [{ key: 'code', label: `Código: ${code}`, onRemove: () => { setCode(''); setPage(1); } }] : []),
+          ...(adCode.trim() ? [{ key: 'adCode', label: `Publicidad: ${adCode}`, onRemove: () => { setAdCode(''); setPage(1); } }] : []),
+          ...(phone.trim() ? [{ key: 'phone', label: `Teléfono: ${phone}`, onRemove: () => { setPhone(''); setPage(1); } }] : []),
+          ...(amountMin !== '' ? [{ key: 'amountMin', label: `Mínimo: ${amountMin}`, onRemove: () => { setAmountMin(''); setPage(1); } }] : []),
+          ...(amountMax !== '' ? [{ key: 'amountMax', label: `Máximo: ${amountMax}`, onRemove: () => { setAmountMax(''); setPage(1); } }] : []),
+        ]}
+        onClearAll={() => { setDateFrom(''); setDateTo(''); setPhone(''); setCode(''); setAdCode(''); setCashierIds([]); setAmountMin(''); setAmountMax(''); setPage(1); }}
+      />
 
+      {/* Totals grid */}
+      <div className="grid gap-3 md:grid-cols-3">
+        {totalsLoading ? (
+          Array.from({ length: 3 }).map((_, index) => <LoadingCard key={index} />)
+        ) : (
+          <>
+            <MetricCard label="Monto total" value={money.format(totals?.totalAmount ?? 0)} />
+            <MetricCard label="Cantidad" value={String(totals?.count ?? 0)} />
+            <MetricCard label="Monto promedio" value={money.format(totals?.averageAmount ?? 0)} />
+          </>
+        )}
+      </div>
+
+      {/* Table card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Conversiones del sistema</CardTitle>
+          <CardDescription>
+            Conversiones ordenadas por fecha, mas recientes primero.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -255,9 +302,7 @@ export const AdminConversionsPage = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6}>Cargando conversiones...</TableCell>
-                </TableRow>
+                <TableRowsSkeleton rows={5} cols={6} />
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6}>
@@ -280,11 +325,13 @@ export const AdminConversionsPage = () => {
               )}
             </TableBody>
           </Table>
-          <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
+          <div className="mt-3">
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         </CardContent>
       </Card>
     </section>
