@@ -113,7 +113,7 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
                     type="button"
                     onClick={() => onSelect(c.id)}
                     className={cn(
-                      'group relative flex items-center gap-3 rounded-xl border border-border bg-card/40 p-3.5 text-left backdrop-blur-sm transition-all',
+                      'group relative flex items-center gap-3 rounded-xl glass-subtle p-3.5 text-left transition-all',
                       'hover:border-primary/40 hover:bg-primary/[0.07]',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       // Dim cashiers that are neither on shift nor connected.
@@ -126,7 +126,7 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
                         // Lemon status ring + glow when the cashier is on shift.
                         // On shift: a soft lemon glow halo — no hard ring.
                         onTurn &&
-                          'shadow-[0_0_12px_-1px_color-mix(in_oklab,var(--primary)_50%,transparent)]',
+                          'glow-md',
                       )}
                     >
                       {initials(c.name)}
@@ -139,7 +139,7 @@ export const CashierGrid = ({ cashiers, onSelect, isLoading }: CashierGridProps)
                             En turno
                           </StatusBadge>
                         )}
-                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-xs-plus font-medium text-muted-foreground">
                           <SmartphoneIcon className="size-3" />
                           {connected} conectado{connected === 1 ? '' : 's'}
                         </span>

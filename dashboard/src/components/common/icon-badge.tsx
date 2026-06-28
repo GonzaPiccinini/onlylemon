@@ -36,10 +36,10 @@ const accentIconBadgeVariants = cva(
   {
     variants: {
       size: {
-        xs: 'size-4 rounded-full text-[10px] font-bold',
-        sm: 'size-7 rounded-lg shadow-[0_0_10px_-2px_color-mix(in_oklab,var(--primary)_30%,transparent)]',
+        xs: 'size-4 rounded-full text-2xs font-bold',
+        sm: 'size-7 rounded-lg glow-sm',
         md: 'size-8 rounded-lg',
-        lg: 'size-9 rounded-xl shadow-[0_0_14px_-2px_color-mix(in_oklab,var(--primary)_35%,transparent)]',
+        lg: 'size-9 rounded-xl glow-sm',
       },
     },
     defaultVariants: {

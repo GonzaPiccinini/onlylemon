@@ -20,7 +20,7 @@ export const MetricCard = ({ label, value, hint, icon: Icon, trend, delta }: Met
   const hasTrend = trend !== undefined && delta !== undefined;
 
   return (
-    <Card className="glass relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_24px_-4px_color-mix(in_oklab,var(--primary)_20%,transparent)] animate-in fade-in duration-500">
+    <Card className="glass relative overflow-hidden transition-all duration-300 hover:glow-lg animate-in fade-in duration-500">
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardDescription>{label}</CardDescription>

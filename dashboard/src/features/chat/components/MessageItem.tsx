@@ -290,7 +290,7 @@ export const MessageItem = ({
             {body && (
               <p className="min-w-0 whitespace-pre-wrap break-words text-left">{body}</p>
             )}
-            <span className="shrink-0 translate-y-px text-[10px] leading-none text-muted-foreground">
+            <span className="shrink-0 translate-y-px text-2xs leading-none text-muted-foreground">
               {formatMessageTime(timestamp)}
             </span>
           </div>
@@ -312,7 +312,7 @@ export const MessageItem = ({
               >
                 <span className="text-sm leading-none">{r.emoji}</span>
                 {r.count > 1 && (
-                  <span className="text-[10px] text-muted-foreground">{r.count}</span>
+                  <span className="text-2xs text-muted-foreground">{r.count}</span>
                 )}
               </span>
             ))}

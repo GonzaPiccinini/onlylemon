@@ -35,7 +35,7 @@ export const PaginationControls = ({
         Anterior
       </Button>
 
-      <p className='accent-gradient rounded-full px-3 py-0.5 text-sm font-medium text-primary-foreground tabular-nums shadow-[0_0_10px_-2px_color-mix(in_oklab,var(--primary)_35%,transparent)]'>
+      <p className='accent-gradient rounded-full px-3 py-0.5 text-sm font-medium text-primary-foreground tabular-nums glow-sm'>
         {page} / {totalPages}
       </p>
 

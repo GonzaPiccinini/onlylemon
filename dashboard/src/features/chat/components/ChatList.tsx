@@ -126,7 +126,7 @@ export const ChatList = ({
                   <span
                     role="status"
                     aria-label="Mensaje sin leer"
-                    className="size-2.5 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_25%,transparent)]"
+                    className="size-2.5 rounded-full bg-primary glow-ring"
                   />
                 )}
               </div>

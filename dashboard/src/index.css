@@ -44,6 +44,8 @@
   --radius-xl: calc(var(--radius) + 4px);
   --font-heading: "Poppins", sans-serif;
   --font-sans: "Poppins", sans-serif;
+  --text-2xs: 0.625rem;     /* 10px */
+  --text-xs-plus: 0.6875rem; /* 11px */
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -136,6 +138,14 @@ body {
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
   }
+
+  /* Brand glow scale — soft primary halos for accents and hovers. */
+  .glow-sm { box-shadow: 0 0 10px -2px color-mix(in oklab, var(--primary) 32%, transparent); }
+  .glow-md { box-shadow: 0 0 12px -1px color-mix(in oklab, var(--primary) 50%, transparent); }
+  .glow-lg { box-shadow: 0 0 24px -4px color-mix(in oklab, var(--primary) 20%, transparent); }
+  /* Status-dot focus rings (solid offset ring, not a blur). */
+  .glow-ring { box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 25%, transparent); }
+  .glow-ring-violet { box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-violet) 25%, transparent); }
 
   /* Thin, modern scrollbar — slim track, rounded translucent thumb that
      darkens on hover. Used in scrollable chat panes. */

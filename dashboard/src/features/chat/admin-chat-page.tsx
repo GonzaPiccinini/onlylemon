@@ -106,7 +106,7 @@ export const AdminChatPage = () => {
     >
       <ArrowLeftIcon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span className="block text-xs-plus uppercase tracking-wide text-muted-foreground">
           Cajero
         </span>
         <span className="block truncate text-sm font-medium">{selectedCashierName}</span>

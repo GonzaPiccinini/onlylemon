@@ -66,7 +66,7 @@ const StatusDot = ({ status }: { status: string | null }) => {
       className={[
         'inline-block size-2.5 shrink-0 rounded-full',
         connected
-          ? 'bg-[var(--accent-violet)] shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent-violet)_25%,transparent)]'
+          ? 'bg-[var(--accent-violet)] glow-ring-violet'
           : 'bg-muted-foreground/40',
       ].join(' ')}
     />

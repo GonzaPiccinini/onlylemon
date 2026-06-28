@@ -85,8 +85,8 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
       className={cn(
         // A refined floating card per row: a calm frosted surface, soft
         // rounding, a whisper of top-edge light. No borders.
-        "bg-card/40 px-4 py-3.5 align-middle whitespace-nowrap backdrop-blur-sm",
-        "shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.05)]",
+        "glass-subtle px-4 py-3.5 align-middle whitespace-nowrap",
+        "shadow-[inset_0_1px_0_0_color-mix(in_oklab,var(--foreground)_5%,transparent)]",
         "first:rounded-l-xl last:rounded-r-xl",
         "[&:has([role=checkbox])]:pr-0",
         className

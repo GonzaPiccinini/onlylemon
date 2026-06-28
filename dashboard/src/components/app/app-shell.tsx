@@ -71,7 +71,7 @@ const navLinkClass = (isActive: boolean) =>
     "animate-in fade-in slide-in-from-left-2 [animation-fill-mode:both] [animation-duration:300ms]",
     "transition-all duration-200",
     isActive
-      ? "bg-primary/15 text-foreground shadow-[0_0_10px_-3px_color-mix(in_oklab,var(--primary)_30%,transparent)]"
+      ? "bg-primary/15 text-foreground glow-sm"
       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:translate-x-0.5",
   );
 
