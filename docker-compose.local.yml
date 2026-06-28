@@ -60,6 +60,9 @@ services:
       JWT_SECRET: dev-jwt-secret-change-me-please
       JWT_REFRESH_SECRET: dev-jwt-refresh-secret-change-me-please-now
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      # Cloudflare Turnstile. Defaults to the official "always passes" testing
+      # secret so local dev works without a real key; override via .env.
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-1x0000000000000000000000000000000AA}
       WAHA_BASE_URL: http://waha:3000
       WAHA_API_KEY: dev-waha-key
       WAHA_WEBHOOK_URL: http://gateway:3000/api/webhook
