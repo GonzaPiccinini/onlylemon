@@ -47,6 +47,13 @@ export type ChatMessageEvent = {
   sessionName: string;  // WAHA session name
   chatId: string;
   message: ChatMessage;
+  /**
+   * True when this inbound message's sender is ANOTHER connected line of the
+   * SAME cashier (operator messaged between two of their own numbers). The
+   * dashboard suppresses the self-notification + unread dot when set. Absent
+   * for normal external messages and for outbound (fromMe) messages.
+   */
+  internalEcho?: boolean;
 };
 
 export type ChatReactionEvent = {

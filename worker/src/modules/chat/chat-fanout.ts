@@ -52,6 +52,13 @@ export type ChatFanoutDeps = {
   publishChatMessage: (event: ChatMessageEvent) => void;
   publishChatReaction: (event: ChatReactionEvent) => void;
 
+  /**
+   * Returns true when the phone (digits-only) belongs to one of the cashier's
+   * own connected lines. Used to flag internal self-messages. Best-effort:
+   * if it throws, fan-out treats the message as NOT an internal echo.
+   */
+  isOwnLinePhoneForCashier: (cashierId: string, phoneDigits: string) => Promise<boolean>;
+
   logger: ChatFanoutLogger;
 };
 
@@ -109,6 +116,21 @@ export function createChatMessageFanout(
         return;
       }
 
+      // Detect internal echo: inbound message whose sender is another connected
+      // line of the same cashier. Best-effort — a failure must never block fan-out.
+      let internalEcho = false;
+      if (!payload.fromMe) {
+        try {
+          const counterpartyDigits = payload.chatId.split('@')[0].replace(/\D/g, '');
+          internalEcho = await deps.isOwnLinePhoneForCashier(
+            session.cashierId,
+            counterpartyDigits,
+          );
+        } catch {
+          internalEcho = false; // best-effort; never block fan-out on this check
+        }
+      }
+
       // Build the ChatMessage. Inbound messages have no reactions yet — emit [].
       // timestamp defaults to Date.now() when absent (see module JSDoc note).
       const message: ChatMessage = {
@@ -135,6 +157,7 @@ export function createChatMessageFanout(
         sessionName: session.sessionName,
         chatId: payload.chatId,
         message,
+        ...(internalEcho ? { internalEcho: true } : {}),
       };
 
       deps.publishChatMessage(event);
