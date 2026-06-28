@@ -362,7 +362,7 @@ const MaxSessionsEditor = ({ cashierId, maxSessions, currentCount }: MaxSessions
         </Button>
       </div>
       {newCapBelowCount && (
-        <p className='text-xs text-amber-600'>
+        <p className='text-xs text-warning'>
           Tenés {currentCount} sesion{currentCount !== 1 ? 'es' : ''} creada{currentCount !== 1 ? 's' : ''}
         </p>
       )}

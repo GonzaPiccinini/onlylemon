@@ -65,6 +65,9 @@
   /* Semantic red — matches Tailwind rose-500; used for negative/downward states. */
   --negative: #f43f5e;
 
+  /* Semantic amber — matches Tailwind amber-600; used for warning states. */
+  --warning: #d97706;
+
   /* Chart grid — solid base for grid/tooltip colours; alpha applied at use-site. */
   --chart-grid: #b4c3ff;
 

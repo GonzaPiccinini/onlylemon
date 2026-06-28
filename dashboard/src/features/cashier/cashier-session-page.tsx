@@ -632,7 +632,7 @@ export const CashierSessionPage = () => {
           <CardDescription>
             Control en tiempo real de tu sesion activa.{' '}
             {!anyWorking && (
-              <span className="text-amber-600">
+              <span className="text-warning">
                 Necesitas al menos 1 WhatsApp conectado para iniciar.
               </span>
             )}

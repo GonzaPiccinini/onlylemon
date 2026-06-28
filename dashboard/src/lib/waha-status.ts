@@ -61,3 +61,15 @@ export const wahaStatusIcon = (
       return CircleDashedIcon;
   }
 };
+
+/**
+ * Maps a WAHA session status to a Tailwind ring-class string for status ring avatars.
+ * Always returns `ring-2` plus the colour token class.
+ */
+export const wahaStatusRing = (status: string | undefined | null): string => {
+  if (status === 'WORKING') return 'ring-2 ring-success';
+  if (status === 'SCAN_QR_CODE' || status === 'STARTING') return 'ring-2 ring-primary';
+  if (status === 'FAILED') return 'ring-2 ring-destructive';
+  // STOPPED, UNLINKED, or unknown
+  return 'ring-2 ring-muted-foreground/40';
+};
