@@ -152,11 +152,11 @@ test('runSetup: returned token decodes to userId and role=SUPER_ADMIN', async ()
     assert.equal(decoded.userId, fakeUserId);
     assert.equal(decoded.role, 'SUPER_ADMIN');
 
-    // Verify hashPassword produces a non-empty hex string (not the raw password)
-    const hashed = hashPassword('password123');
+    // Verify hashPassword produces an Argon2id digest (not the raw password)
+    const hashed = await hashPassword('password123');
     assert.notEqual(hashed, 'password123');
     assert.equal(typeof hashed, 'string');
-    assert.equal(hashed.length, 64); // SHA-256 hex = 64 chars
+    assert.ok(hashed.startsWith('$argon2id$'), 'hashPassword must produce an Argon2id digest');
   });
 });
 

@@ -2,12 +2,14 @@ import jwt from 'jsonwebtoken';
 import type { StringValue } from 'ms';
 import { config, parseDurationToMs } from '../../config/env.js';
 import { prisma } from '../../persistence/prisma/client.js';
-import { hashPassword, isPasswordValid } from '../../utils/password.js';
+import { logger } from '../../lib/logger.js';
+import { hashPassword, verifyPassword } from '../../utils/password.js';
 import {
   countSuperAdmins,
   createSuperAdmin,
   findUserById,
   findUserByUsername,
+  updateUserPassword,
   SetupConflictError,
   createRefreshToken,
   deleteRefreshToken,
@@ -82,8 +84,21 @@ export const login = async (payload: LoginPayload): Promise<AuthSessionResponse 
     return null;
   }
 
-  if (!isPasswordValid(payload.password, user.password)) {
+  const { valid, needsRehash } = await verifyPassword(payload.password, user.password);
+  if (!valid) {
     return null;
+  }
+
+  // Transparently upgrade legacy (unsalted SHA-256) hashes to Argon2id on a
+  // successful login. A failed upgrade must never block a valid login.
+  if (needsRehash) {
+    try {
+      await updateUserPassword(user.id, await hashPassword(payload.password));
+    } catch (err) {
+      // Non-fatal: the credential stays valid under the legacy hash. Log so ops
+      // can detect a systematic upgrade failure (e.g. the DB being unavailable).
+      logger.warn({ event: 'password_rehash_failed', userId: user.id, err });
+    }
   }
 
   const publicUser = toPublicUser(user);
@@ -137,11 +152,15 @@ export const runSetup = async (input: SetupPayload): Promise<AuthSessionResponse
   const jti = globalThis.crypto.randomUUID();
   const expiresAt = new Date(Date.now() + config.JWT_REFRESH_EXPIRES_DAYS * 24 * 3_600_000);
 
+  // Hash outside the Serializable tx — Argon2id is intentionally slow and must
+  // not hold the transaction open.
+  const hashedPassword = await hashPassword(password);
+
   // Atomic block: SUPER_ADMIN + Admin row + RefreshToken row in ONE Serializable tx
   const { user, refreshTokenStr } = await prisma.$transaction(
     async (tx) => {
       const created = await createSuperAdmin(
-        { name, username, hashedPassword: hashPassword(password) },
+        { name, username, hashedPassword },
         tx,
       );
       const refreshTokenStrLocal = signRefreshToken({ userId: created.id, jti });

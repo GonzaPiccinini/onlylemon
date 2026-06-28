@@ -486,7 +486,7 @@ export const updateCashierAccountService = async (
 ) => {
   const updated = await updateCashierAccount(cashierId, {
     ...(input.username ? { username: input.username } : {}),
-    ...(input.password ? { password: hashPassword(input.password) } : {}),
+    ...(input.password ? { password: await hashPassword(input.password) } : {}),
   });
 
   return {
