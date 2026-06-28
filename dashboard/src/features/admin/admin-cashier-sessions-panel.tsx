@@ -449,7 +449,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
           if (!open) setConfirmDeleteId(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="bg-popover!">
           <DialogHeader>
             <DialogTitle>Eliminar sesión</DialogTitle>
             <DialogDescription>
