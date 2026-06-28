@@ -216,7 +216,7 @@ function SessionSelect({
           tabIndex={-1}
           onKeyDown={onListKeyDown}
           className={cn(
-            'absolute inset-x-0 top-full z-50 mt-1.5 origin-top max-h-28 overflow-y-auto scrollbar-thin rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10',
+            'absolute inset-x-0 top-full z-50 mt-1.5 origin-top max-h-28 overflow-y-auto scrollbar-thin rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10',
             'animate-in fade-in-0 zoom-in-95 duration-100',
           )}
         >

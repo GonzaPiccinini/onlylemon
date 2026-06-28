@@ -23,7 +23,7 @@ export const NotificationToggle = () => {
       <span
         title="Avisos activados"
         aria-label="Avisos activados"
-        className="grid size-7 shrink-0 place-items-center rounded-[min(var(--radius-md),12px)] text-primary/70"
+        className="grid size-7 shrink-0 place-items-center rounded-md text-primary/70"
       >
         <BellIcon className="size-4" />
       </span>
@@ -35,7 +35,7 @@ export const NotificationToggle = () => {
       <span
         title="Las notificaciones están bloqueadas. Habilitalas en la configuración del navegador para este sitio."
         aria-label="Avisos bloqueados"
-        className="grid size-7 shrink-0 place-items-center rounded-[min(var(--radius-md),12px)] text-muted-foreground/60"
+        className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground/60"
       >
         <BellOffIcon className="size-4" />
       </span>

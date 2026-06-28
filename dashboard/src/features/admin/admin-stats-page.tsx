@@ -128,7 +128,7 @@ export const AdminStatsPage = () => {
         onClearAll={() => { setDateRange(getDefaultDateRange()); setView('total'); setPage(1); }}
       />
 
-      <div className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+      <div className="glass rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vista</span>
         <ToggleGroup
           type="single"
