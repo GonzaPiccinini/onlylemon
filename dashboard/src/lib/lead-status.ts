@@ -26,7 +26,7 @@ export const leadStatusLabel = (status: LeadStatus): string =>
 export const leadDisplayStatusLabel = (status: LeadDisplayStatus): string =>
   displayStatusLabelMap[status] ?? status;
 
-type LeadBadgeVariant = 'info' | 'success' | 'neutral' | 'recharge';
+type LeadBadgeVariant = 'progress' | 'success' | 'neutral' | 'recharge';
 
 export const leadStatusBadge = (
   status: LeadDisplayStatus,
@@ -35,7 +35,7 @@ export const leadStatusBadge = (
     case 'CONVERTED':
       return { variant: 'success', icon: CheckCircle2Icon };
     case 'CONTACTED':
-      return { variant: 'info', icon: CircleDotIcon };
+      return { variant: 'progress', icon: CircleDotIcon };
     case 'RECARGA':
       return { variant: 'recharge', icon: RefreshCwIcon };
     case 'NOT_CONTACTED':

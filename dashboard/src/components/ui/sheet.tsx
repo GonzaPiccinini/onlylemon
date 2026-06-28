@@ -29,7 +29,7 @@ function SheetOverlay({
     <DialogPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/50 duration-200 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-[color-mix(in_oklab,var(--overlay)_50%,transparent)] duration-200 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -63,7 +63,7 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2 transition-colors duration-150 hover:bg-white/10 rounded-sm"
+                className="absolute top-2 right-2 transition-colors duration-150 hover:bg-[color-mix(in_oklab,var(--foreground)_10%,transparent)] rounded-sm"
                 size="icon-sm"
               />
             }

@@ -16,14 +16,14 @@ const badgeVariants = cva(
           "glass text-secondary-foreground transition-colors duration-200 hover:bg-secondary/60 [a]:hover:bg-secondary/50",
         destructive:
           "bg-destructive/15 text-destructive border-destructive/20 transition-colors duration-200 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/25",
-        info:
-          "border-cyan-500/30 bg-cyan-500/15 text-cyan-300 transition-colors duration-200 [a]:hover:bg-cyan-500/20",
+        progress:
+          "border-accent-violet/40 bg-accent-violet/22 text-accent-violet transition-colors duration-200 [a]:hover:bg-accent-violet/28",
         success:
-          "border-success/30 bg-success/15 text-success transition-colors duration-200 [a]:hover:bg-success/20",
+          "border-success/40 bg-success/22 text-success transition-colors duration-200 [a]:hover:bg-success/28",
         neutral:
-          "border-slate-500/30 bg-slate-500/15 text-slate-300 transition-colors duration-200 [a]:hover:bg-slate-500/20",
+          "border-secondary-foreground/25 bg-secondary-foreground/12 text-secondary-foreground transition-colors duration-200 [a]:hover:bg-secondary-foreground/18",
         recharge:
-          "border-amber-500/30 bg-amber-500/15 text-amber-300 transition-colors duration-200 [a]:hover:bg-amber-500/20",
+          "border-recharge/40 bg-recharge/22 text-recharge transition-colors duration-200 [a]:hover:bg-recharge/28",
         outline:
           "glass text-foreground transition-colors duration-200 hover:bg-muted/50 [a]:hover:bg-muted/50 [a]:hover:text-muted-foreground",
         ghost:

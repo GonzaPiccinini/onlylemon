@@ -73,7 +73,7 @@ export const QuotedReply = ({ quoted, contactName, onJump, onCancel }: QuotedRep
         type="button"
         onClick={onJump}
         title="Ir al mensaje original"
-        className="flex w-full items-stretch gap-2 overflow-hidden rounded-md bg-black/10 text-left transition-colors hover:bg-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="flex w-full items-stretch gap-2 overflow-hidden rounded-md bg-[color-mix(in_oklab,var(--overlay)_10%,transparent)] text-left transition-colors hover:bg-[color-mix(in_oklab,var(--overlay)_20%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         {bar}
         {content}
@@ -83,7 +83,7 @@ export const QuotedReply = ({ quoted, contactName, onJump, onCancel }: QuotedRep
 
   // Composer usage (or static) — plain block with an optional cancel button.
   return (
-    <div className="flex items-stretch gap-2 overflow-hidden rounded-md bg-black/10">
+    <div className="flex items-stretch gap-2 overflow-hidden rounded-md bg-[color-mix(in_oklab,var(--overlay)_10%,transparent)]">
       {bar}
       {content}
       {onCancel && (

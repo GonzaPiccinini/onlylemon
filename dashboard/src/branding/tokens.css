@@ -68,6 +68,14 @@
   /* Semantic amber — matches Tailwind amber-600; used for warning states. */
   --warning: #d97706;
 
+  /* Gold — "recharge"/returning-customer lead badge. Tuned bright (amber-400)
+     so it reads vividly as text on its own faint tint. */
+  --recharge: #fbbf24;
+
+  /* Scrim — modal/sheet backdrops and darkening veils. A theme-independent
+     dark base by default; forks may lighten or tint it. */
+  --overlay: #000000;
+
   /* Chart grid — solid base for grid/tooltip colours; alpha applied at use-site. */
   --chart-grid: #b4c3ff;
 
