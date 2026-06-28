@@ -467,7 +467,7 @@ async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
     { getSetting },
     { logger },
     { bullmqJobDurationSeconds, bullmqJobsTotal },
-    { getSessionBySessionName },
+    { getSessionBySessionName, isOwnLinePhoneForCashier },
     { publishChatMessage, publishChatReaction },
     { createChatMessageFanout, createChatReactionFanout },
   ] = await Promise.all([
@@ -498,6 +498,7 @@ async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
     getSessionBySessionName,
     publishChatMessage,
     publishChatReaction,
+    isOwnLinePhoneForCashier,
     logger: fanoutLogger,
   });
 
@@ -505,6 +506,7 @@ async function getRealProcessor(): Promise<(job: Job) => Promise<void>> {
     getSessionBySessionName,
     publishChatMessage,
     publishChatReaction,
+    isOwnLinePhoneForCashier,
     logger: fanoutLogger,
   });
 

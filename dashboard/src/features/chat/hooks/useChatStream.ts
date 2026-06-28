@@ -197,7 +197,9 @@ export const useChatStream = (
         // Unread indicator: flag the chat when an INCOMING message arrives for a
         // chat that is not the one currently open. The active chat is excluded
         // (the user is already looking at it) and own (fromMe) echoes never count.
-        if (chatId && !message.fromMe && chatId !== activeChatId) {
+        // internalEcho messages (operator self-messaging between own lines) are
+        // also suppressed — they are not genuine inbound customer messages.
+        if (chatId && !message.fromMe && chatId !== activeChatId && !payload.internalEcho) {
           setUnreadChatIds((prev) =>
             prev.has(chatId) ? prev : new Set(prev).add(chatId),
           );
@@ -231,7 +233,7 @@ export const useChatStream = (
           !document.hidden &&
           sessionId === activeSessionId &&
           chatId === activeChatId;
-        if (!message.fromMe && !viewingThisChat) {
+        if (!message.fromMe && !viewingThisChat && !payload.internalEcho) {
           const entry =
             findChatListEntry(queryClient, scope, sessionId, chatId) ?? {
               chatId,

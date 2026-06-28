@@ -83,6 +83,7 @@ function makeDeps(overrides: Partial<ChatFanoutDeps> = {}): ChatFanoutDeps {
     getSessionBySessionName: async (_sessionName: string) => session,
     publishChatMessage: (_event: ChatMessageEvent) => { /* noop */ },
     publishChatReaction: (_event: ChatReactionEvent) => { /* noop */ },
+    isOwnLinePhoneForCashier: async () => false,
     logger: makeLogger(),
     ...overrides,
   };
@@ -317,6 +318,128 @@ describe('createChatMessageFanout', () => {
       const qm = publishedEvents[0].message.quotedMessage;
       assert.ok(qm !== null);
       assert.equal(qm?.id, 'orig-msg-id');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CF.7–CF.10  internalEcho flag — inter-line self-message suppression
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('CF.7 — inbound from own line: isOwnLinePhoneForCashier=true → internalEcho:true in event', () => {
+    it('sets internalEcho:true and calls dep with (cashierId, phone digits)', async () => {
+      const publishedEvents: ChatMessageEvent[] = [];
+      const session = makeSession({ id: 'sess-own-1', cashierId: 'cashier-own-1', sessionName: 'sess-own' });
+
+      const ownLineCallArgs: [string, string][] = [];
+      const deps = makeDeps({
+        getSessionBySessionName: async () => session,
+        publishChatMessage: (event) => { publishedEvents.push(event); },
+        isOwnLinePhoneForCashier: async (cashierId: string, phoneDigits: string) => {
+          ownLineCallArgs.push([cashierId, phoneDigits]);
+          return true;
+        },
+      });
+
+      const fanout = createChatMessageFanout(deps);
+      await fanout({
+        sessionName: 'sess-own',
+        chatId: '5491112345678@c.us',
+        messageId: 'msg-own-1',
+        timestamp: 1716000000,
+        body: 'self-msg',
+        fromMe: false,
+        hasMedia: false,
+        mediaMimetype: null,
+        quotedMessage: null,
+      });
+
+      assert.equal(publishedEvents.length, 1);
+      assert.equal(publishedEvents[0].internalEcho, true, 'event.internalEcho must be true');
+      assert.equal(ownLineCallArgs.length, 1, 'isOwnLinePhoneForCashier must be called once');
+      assert.equal(ownLineCallArgs[0]![0], 'cashier-own-1', 'dep called with cashierId');
+      assert.equal(ownLineCallArgs[0]![1], '5491112345678', 'dep called with phone digits only (no @c.us)');
+    });
+  });
+
+  describe('CF.8 — inbound from external contact: isOwnLinePhoneForCashier=false → internalEcho absent/falsy', () => {
+    it('does not set internalEcho when dep returns false', async () => {
+      const publishedEvents: ChatMessageEvent[] = [];
+      const deps = makeDeps({
+        publishChatMessage: (event) => { publishedEvents.push(event); },
+        isOwnLinePhoneForCashier: async () => false,
+      });
+
+      const fanout = createChatMessageFanout(deps);
+      await fanout({
+        sessionName: 'my-session',
+        chatId: '5499999999999@c.us',
+        messageId: 'msg-ext-1',
+        timestamp: 1716000001,
+        body: 'external msg',
+        fromMe: false,
+        hasMedia: false,
+        mediaMimetype: null,
+        quotedMessage: null,
+      });
+
+      assert.equal(publishedEvents.length, 1);
+      assert.ok(!publishedEvents[0].internalEcho, 'internalEcho must be falsy for external messages');
+    });
+  });
+
+  describe('CF.9 — outbound message (fromMe:true): dep NOT called, internalEcho absent/falsy', () => {
+    it('skips the isOwnLinePhoneForCashier check entirely for outbound messages', async () => {
+      const publishedEvents: ChatMessageEvent[] = [];
+      let depCallCount = 0;
+      const deps = makeDeps({
+        publishChatMessage: (event) => { publishedEvents.push(event); },
+        isOwnLinePhoneForCashier: async () => { depCallCount++; return true; },
+      });
+
+      const fanout = createChatMessageFanout(deps);
+      await fanout({
+        sessionName: 'my-session',
+        chatId: '5491112345678@c.us',
+        messageId: 'msg-out-1',
+        timestamp: 1716000002,
+        body: 'outbound',
+        fromMe: true,
+        hasMedia: false,
+        mediaMimetype: null,
+        quotedMessage: null,
+      });
+
+      assert.equal(publishedEvents.length, 1);
+      assert.equal(depCallCount, 0, 'dep must NOT be called for outbound messages');
+      assert.ok(!publishedEvents[0].internalEcho, 'internalEcho must be falsy for outbound messages');
+    });
+  });
+
+  describe('CF.10 — dep throws: fan-out still publishes, internalEcho falsy', () => {
+    it('swallows dep error and publishes with internalEcho falsy', async () => {
+      const publishedEvents: ChatMessageEvent[] = [];
+      const deps = makeDeps({
+        publishChatMessage: (event) => { publishedEvents.push(event); },
+        isOwnLinePhoneForCashier: async () => { throw new Error('db error in own-line check'); },
+      });
+
+      const fanout = createChatMessageFanout(deps);
+      await assert.doesNotReject(async () =>
+        fanout({
+          sessionName: 'my-session',
+          chatId: '5491112345678@c.us',
+          messageId: 'msg-err-own',
+          timestamp: 1716000003,
+          body: 'error case',
+          fromMe: false,
+          hasMedia: false,
+          mediaMimetype: null,
+          quotedMessage: null,
+        })
+      );
+
+      assert.equal(publishedEvents.length, 1, 'fan-out must still publish when dep throws');
+      assert.ok(!publishedEvents[0].internalEcho, 'internalEcho must be falsy when dep throws');
     });
   });
 });

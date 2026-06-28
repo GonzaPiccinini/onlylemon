@@ -14,6 +14,27 @@ export const getSessionBySessionName = (sessionName: string) =>
   });
 
 /**
+ * Returns true when `phoneDigits` matches the whatsappPhoneNumber of ANY session
+ * owned by `cashierId` — i.e. the counterparty is one of the cashier's OWN
+ * connected lines. Compared digits-only so stored "+" prefixes / "@c.us"
+ * suffixes don't matter. Used to suppress self-notifications when an operator
+ * messages between two of their own connected numbers.
+ */
+export async function isOwnLinePhoneForCashier(
+  cashierId: string,
+  phoneDigits: string,
+): Promise<boolean> {
+  if (!phoneDigits) return false;
+  const rows = await prisma.whatsappSession.findMany({
+    where: { cashierId, whatsappPhoneNumber: { not: null } },
+    select: { whatsappPhoneNumber: true },
+  });
+  return rows.some(
+    (r) => (r.whatsappPhoneNumber ?? '').replace(/\D/g, '') === phoneDigits,
+  );
+}
+
+/**
  * C3 — getSessionsBoundToLanding
  * Returns all sessions bound to the landing (across any cashier).
  * Caller intersects with the live WAHA WORKING set.
