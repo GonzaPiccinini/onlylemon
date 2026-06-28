@@ -18,6 +18,13 @@ interface SessionLineCardProps {
   actions?: ReactNode;
   /** Rightmost trailing element — e.g. a ChevronRight icon. */
   trailing?: ReactNode;
+  /**
+   * Edit mode: hides the badge/actions/trailing and gives the title the full
+   * row width (no truncation, so an inline editor has room and its focus ring
+   * isn't clipped). Driven by parent state, not focus, so it survives an
+   * async save.
+   */
+  editing?: boolean;
   className?: string;
 }
 
@@ -39,28 +46,38 @@ const Inner = ({
   icon,
   actions,
   trailing,
+  editing,
 }: Omit<SessionLineCardProps, 'onClick' | 'className'>) => (
   <>
     <StatusRingAvatar status={status} icon={icon} size="md" className="shrink-0" />
 
     <div className="min-w-0 flex-1">
-      <div className="truncate text-sm font-medium leading-tight">{title}</div>
-      {subtitle != null ? (
+      {/* Title wrapper stays in a stable DOM position across edit toggles so the
+          InlineRename inside it keeps its state — only the truncate (which would
+          clip the editor's focus ring) is toggled off while editing. */}
+      <div className={cn('text-sm font-medium leading-tight', !editing && 'truncate')}>
+        {title}
+      </div>
+      {!editing && subtitle != null ? (
         <div className="mt-0.5 truncate text-xs text-muted-foreground">
           {subtitle}
         </div>
       ) : null}
     </div>
 
-    <SessionStatusBadge status={status} className="shrink-0" />
+    {!editing && (
+      <>
+        <SessionStatusBadge status={status} className="shrink-0" />
 
-    {actions != null ? (
-      <div className="flex shrink-0 items-center gap-1">{actions}</div>
-    ) : null}
+        {actions != null ? (
+          <div className="flex shrink-0 items-center gap-1">{actions}</div>
+        ) : null}
 
-    {trailing != null ? (
-      <div className="shrink-0 text-muted-foreground">{trailing}</div>
-    ) : null}
+        {trailing != null ? (
+          <div className="shrink-0 text-muted-foreground">{trailing}</div>
+        ) : null}
+      </>
+    )}
   </>
 );
 
@@ -77,6 +94,7 @@ export const SessionLineCard = ({
   onClick,
   actions,
   trailing,
+  editing,
   className,
 }: SessionLineCardProps) => {
   if (onClick) {
@@ -93,6 +111,7 @@ export const SessionLineCard = ({
           icon={icon}
           actions={actions}
           trailing={trailing}
+          editing={editing}
         />
       </button>
     );
@@ -107,6 +126,7 @@ export const SessionLineCard = ({
         icon={icon}
         actions={actions}
         trailing={trailing}
+        editing={editing}
       />
     </div>
   );

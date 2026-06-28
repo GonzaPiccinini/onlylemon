@@ -287,6 +287,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [qrSessionId, setQrSessionId] = useState<string | null>(null);
+  const [editingAliasId, setEditingAliasId] = useState<string | null>(null);
 
   // created-count vs cap — same comparison as the create-button guard
   const atCap = sessions.length >= cashier.maxSessions;
@@ -387,6 +388,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                 */}
                 <SessionLineCard
                   status={session.wahaStatus ?? 'STOPPED'}
+                  editing={editingAliasId === session.id}
                   title={
                     <InlineRename
                       value={session.alias}
@@ -396,6 +398,8 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                       }
                       isPending={setAlias.isPending}
                       ariaLabel={aliasName ? `Renombrar: ${aliasName}` : 'Asignar nombre a la sesión'}
+                      isEditing={editingAliasId === session.id}
+                      onEditingChange={(e) => setEditingAliasId(e ? session.id : null)}
                       className='w-full'
                     />
                   }

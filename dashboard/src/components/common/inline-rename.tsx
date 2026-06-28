@@ -16,6 +16,14 @@ interface InlineRenameProps {
   isPending?: boolean;
   /** Overrides the default aria-label on the trigger button. */
   ariaLabel?: string;
+  /**
+   * Controlled edit state. When provided, the parent owns open/close — so
+   * opening another row's editor closes this one (single source of truth).
+   * Omit for uncontrolled (internal-state) usage.
+   */
+  isEditing?: boolean;
+  /** Notifies the parent when edit mode opens/closes (for layout control). */
+  onEditingChange?: (editing: boolean) => void;
   className?: string;
 }
 
@@ -31,22 +39,31 @@ export const InlineRename = ({
   maxLength = 60,
   isPending = false,
   ariaLabel,
+  isEditing,
+  onEditingChange,
   className,
 }: InlineRenameProps) => {
-  const [editing, setEditing] = useState(false);
+  const [internalEditing, setInternalEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const isControlled = isEditing !== undefined;
+  const editing = isControlled ? isEditing : internalEditing;
 
   const handleOpen = () => {
     setDraft(value ?? '');
-    setEditing(true);
+    if (!isControlled) setInternalEditing(true);
+    onEditingChange?.(true);
   };
 
-  const handleCancel = () => setEditing(false);
+  const handleCancel = () => {
+    if (!isControlled) setInternalEditing(false);
+    onEditingChange?.(false);
+  };
 
   const handleSave = async () => {
     try {
       await onSave(draft.trim());
-      setEditing(false);
+      if (!isControlled) setInternalEditing(false);
+      onEditingChange?.(false);
     } catch {
       // Stay in edit mode on failure — parent can show error feedback.
     }
@@ -60,7 +77,7 @@ export const InlineRename = ({
           onChange={(e) => setDraft(e.target.value.slice(0, maxLength))}
           placeholder={placeholder}
           maxLength={maxLength}
-          className="h-7 min-w-0 text-xs"
+          className="min-w-0 flex-1"
           autoFocus
           disabled={isPending}
           onKeyDown={(e) => {
