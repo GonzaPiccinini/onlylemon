@@ -346,6 +346,7 @@ const MaxSessionsEditor = ({ cashierId, maxSessions, currentCount }: MaxSessions
           onClick={() => void handleSave()}
           disabled={updateMaxSessions.isPending}
           title='Guardar'
+          aria-label='Guardar'
         >
           <CheckIcon className='size-3.5' />
         </Button>
@@ -355,6 +356,7 @@ const MaxSessionsEditor = ({ cashierId, maxSessions, currentCount }: MaxSessions
           className='h-7 w-7 p-0'
           onClick={handleCancel}
           title='Cancelar'
+          aria-label='Cancelar'
         >
           <XIcon className='size-3.5' />
         </Button>
@@ -499,6 +501,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                         disabled
                         className='h-8 w-8 p-0'
                         title='Ya conectado'
+                        aria-label='Ya conectado'
                       >
                         <QrCodeIcon className='size-4' />
                       </Button>
@@ -509,6 +512,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                         className='h-8 w-8 p-0'
                         onClick={() => setQrSessionId(session.id)}
                         title='Generar QR'
+                        aria-label='Generar QR'
                       >
                         <QrCodeIcon className='size-4' />
                       </Button>
@@ -520,6 +524,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                       onClick={() => setConfirmDeleteId(session.id)}
                       disabled={deleteSession.isPending}
                       title='Eliminar sesion'
+                      aria-label='Eliminar sesion'
                     >
                       <Trash2Icon className='size-4' />
                     </Button>

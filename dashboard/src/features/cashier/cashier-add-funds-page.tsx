@@ -201,6 +201,7 @@ export const CashierAddFundsPage = () => {
                           size='sm'
                           onClick={handleClearLead}
                           className='h-6 w-6 p-0'
+                          aria-label='Limpiar lead seleccionado'
                         >
                           <XIcon className='h-4 w-4' />
                         </Button>
@@ -244,7 +245,7 @@ export const CashierAddFundsPage = () => {
                                     <button
                                       type='button'
                                       onClick={() => handleSelectLead(lead)}
-                                      className='flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors'
+                                      className='flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
                                     >
                                       <span className='font-medium'>
                                         {lead.code}

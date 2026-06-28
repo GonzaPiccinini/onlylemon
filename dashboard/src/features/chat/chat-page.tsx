@@ -513,6 +513,7 @@ export const ChatPage = ({
         role="dialog"
         aria-label={selectedChatName}
         aria-hidden={!(isMobile && sheetOpen)}
+        aria-modal={isMobile && sheetOpen}
         className={[
           'absolute inset-0 z-50 flex flex-col overflow-hidden rounded-2xl glass transition-transform duration-200 md:hidden',
           isMobile && sheetOpen
