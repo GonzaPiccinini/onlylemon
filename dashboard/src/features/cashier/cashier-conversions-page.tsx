@@ -240,11 +240,13 @@ export const CashierConversionsPage = () => {
               )}
             </TableBody>
           </Table>
-          <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
+          <div className="mt-3">
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         </CardContent>
       </Card>
     </section>

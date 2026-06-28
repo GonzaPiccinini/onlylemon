@@ -487,11 +487,13 @@ export const AdminLeadsPage = () => {
               )}
             </TableBody>
           </Table>
-          <PaginationControls
-            page={normalizedPage}
-            totalPages={totalPages}
-            onPageChange={(p) => setPage(p)}
-          />
+          <div className="mt-3">
+            <PaginationControls
+              page={normalizedPage}
+              totalPages={totalPages}
+              onPageChange={(p) => setPage(p)}
+            />
+          </div>
         </CardContent>
       </Card>
     </section>

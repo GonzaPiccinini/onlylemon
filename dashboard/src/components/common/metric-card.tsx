@@ -30,7 +30,7 @@ export const MetricCard = ({ label, value, hint, icon: Icon, trend, delta }: Met
             </AccentIconBadge>
           ) : null}
         </div>
-        <CardTitle className="font-heading text-xl tabular-nums whitespace-nowrap text-accent-gradient">
+        <CardTitle className="font-heading text-xl tabular-nums whitespace-nowrap truncate text-accent-gradient">
           {value}
         </CardTitle>
       </CardHeader>

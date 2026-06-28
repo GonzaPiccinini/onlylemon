@@ -206,7 +206,7 @@ export const CashierAddFundsPage = () => {
                         </Button>
                       </div>
                     ) : (
-                      <>
+                      <div className='relative'>
                         <div className='relative'>
                           <SearchIcon className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
                           <Input
@@ -219,7 +219,7 @@ export const CashierAddFundsPage = () => {
                         </div>
                         {/* Results panel */}
                         {debouncedQ.length > 0 && (
-                          <div className='mt-1 rounded-lg border bg-popover shadow-sm'>
+                          <div className='absolute inset-x-0 top-full z-20 mt-1 rounded-lg border bg-popover shadow-sm'>
                             {searching ? (
                               <ul className='divide-y'>
                                 {Array.from({ length: 3 }).map((_, i) => (
@@ -270,7 +270,7 @@ export const CashierAddFundsPage = () => {
                             )}
                           </div>
                         )}
-                      </>
+                      </div>
                     )}
                   </FieldContent>
                 </Field>

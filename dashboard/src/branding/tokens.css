@@ -56,6 +56,9 @@
   --sidebar-border: rgb(220 240 180 / 0.1);
   --sidebar-ring: #c7f246;
 
+  /* WhatsApp brand green — used for the chat inbox badge. */
+  --whatsapp: #25d366;
+
   /* Data viz — lime-led and harmonised: lime, teal, cyan, amber, green. */
   --chart-1: #c7f246;
   --chart-2: #2dd4bf;

@@ -497,7 +497,7 @@ export const AdminCashierSessionsPanel = ({ cashier }: Props) => {
                         variant='ghost'
                         size='sm'
                         disabled
-                        className='h-8 w-8 p-0 opacity-40'
+                        className='h-8 w-8 p-0'
                         title='Ya conectado'
                       >
                         <QrCodeIcon className='size-4' />

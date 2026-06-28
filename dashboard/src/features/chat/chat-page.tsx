@@ -459,7 +459,7 @@ export const ChatPage = ({
             contactName={contactName}
           />
         </div>
-        <div className="shrink-0 border-t">
+        <div className="shrink-0">
           <Composer
             onSendText={handleSendText}
             onSendPhoto={handleSendPhoto}
