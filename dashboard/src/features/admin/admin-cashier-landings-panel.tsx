@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { ChevronDownIcon, ChevronUpIcon, SmartphoneIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ import {
   useSessionLandings,
   useLandings,
 } from '@/features/admin/admin-hooks';
+import { adminService } from '@/api/admin.service';
 import type { Cashier, WhatsappSession } from '@/types/domain';
 
 // ---------------------------------------------------------------------------
@@ -52,10 +53,23 @@ export const AdminCashierLandingsPanel = ({ cashier }: AdminCashierLandingsPanel
   const workingCount = sessions.filter((s) => s.wahaStatus === 'WORKING').length;
   const totalCount = sessions.length;
 
-  const totalSelected = Array.from(selectedByCashier.values()).reduce(
-    (sum, set) => sum + set.size,
-    0,
-  );
+  // Eager-load every session's bound landings so the bindings counter is correct
+  // without having to expand each session first. These reuse the same query keys
+  // as useSessionLandings inside each expanded row, so react-query dedupes — no
+  // extra requests, just earlier ones.
+  const bindingQueries = useQueries({
+    queries: sessions.map((s) => ({
+      queryKey: adminKeys.sessionLandings(s.id),
+      queryFn: () => adminService.getSessionLandings(s.id),
+    })),
+  });
+
+  // Counter: use the user's edited selection for sessions they've already opened
+  // (tracked in selectedByCashier), otherwise the eagerly-fetched server count.
+  const totalSelected = sessions.reduce((sum, s, i) => {
+    const edited = selectedByCashier.get(s.id);
+    return sum + (edited ? edited.size : (bindingQueries[i]?.data?.length ?? 0));
+  }, 0);
 
   const toggleOpen = (sessionId: string) => {
     setOpenSet((prev) => {
@@ -189,7 +203,13 @@ export const AdminCashierLandingsPanel = ({ cashier }: AdminCashierLandingsPanel
           {sessions.map((session) => {
             const isOpen = openSet.has(session.id);
             const isWorking = session.wahaStatus === 'WORKING';
-            const title = session.whatsappPhoneNumber ?? 'Sin numero vinculado';
+            // alias › +phone › fallback (matches admin-cashier-sessions-panel
+            // and SessionPicker conventions).
+            const title = session.alias?.trim()
+              ? session.alias.trim()
+              : session.whatsappPhoneNumber
+                ? `+${session.whatsappPhoneNumber}`
+                : 'Sin número vinculado';
 
             return (
               <div key={session.id} className='rounded-lg border'>
