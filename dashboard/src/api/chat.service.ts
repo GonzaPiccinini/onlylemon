@@ -51,6 +51,17 @@ export type AdminScope = { kind: "admin"; cashierId: string };
 export type ChatScope = CashierScope | AdminScope;
 
 // ---------------------------------------------------------------------------
+// Media fetch sentinels
+// ---------------------------------------------------------------------------
+
+/**
+ * Distinct sentinel returned by `fetchMediaBlob` when the worker responds 410
+ * (VIEW_ONCE_UNAVAILABLE). Lets callers render the view-once placeholder
+ * instead of collapsing it into the generic "unavailable" (404 → null) state.
+ */
+export const MEDIA_VIEW_ONCE = "view-once" as const;
+
+// ---------------------------------------------------------------------------
 // URL helpers
 // ---------------------------------------------------------------------------
 
@@ -265,14 +276,17 @@ export const chatService = {
    *   unmounted to avoid memory leaks.
    *
    * Returns null if the worker returns 404 (media unavailable — e.g. deleted
-   * from WAHA/R2 storage).  All other errors are rethrown.
+   * from WAHA/R2 storage).  Returns the VIEW_ONCE sentinel if the worker
+   * returns 410 (view-once media blocked for privacy) so the caller can show
+   * the dedicated view-once placeholder instead of the generic one.  All other
+   * errors are rethrown.
    */
   async fetchMediaBlob(
     scope: ChatScope,
     sessionId: string,
     chatId: string,
     messageId: string,
-  ): Promise<Blob | null> {
+  ): Promise<Blob | null | typeof MEDIA_VIEW_ONCE> {
     try {
       const { data } = await http.get<Blob>(
         mediaUrl(scope, sessionId, chatId, messageId),
@@ -280,14 +294,18 @@ export const chatService = {
       );
       return data;
     } catch (error: unknown) {
-      // 404 = media unavailable — caller shows placeholder
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        (error as { response?: { status?: number } }).response?.status === 404
-      ) {
+      const status =
+        typeof error === "object" && error !== null && "response" in error
+          ? (error as { response?: { status?: number } }).response?.status
+          : undefined;
+      // 404 = media unavailable — caller shows the generic placeholder.
+      if (status === 404) {
         return null;
+      }
+      // 410 = view-once media blocked for privacy — caller shows the view-once
+      // placeholder (defense-in-depth; the message is normally gated upstream).
+      if (status === 410) {
+        return MEDIA_VIEW_ONCE;
       }
       throw error;
     }

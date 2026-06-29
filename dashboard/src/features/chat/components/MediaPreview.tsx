@@ -5,6 +5,9 @@
  *   - Image mimetypes: thumbnail; clickable to enlarge via a Dialog.
  *   - PDF mimetype: a tile with a file icon + "Abrir PDF" link.
  *   - Loading: Skeleton placeholder.
+ *   - View-once (410 / VIEW_ONCE_UNAVAILABLE): privacy placeholder. This is
+ *     defense-in-depth — view-once messages are normally gated upstream in
+ *     MessageItem so MediaPreview never mounts for them.
  *   - Null blob (404 / MEDIA_UNAVAILABLE): "media no disponible" placeholder.
  *   - isError (non-404 fetch failure): same "media no disponible" fallback.
  *
@@ -13,7 +16,7 @@
  */
 
 import { useState } from 'react';
-import { FileTextIcon, ImageOffIcon } from 'lucide-react';
+import { EyeOffIcon, FileTextIcon, ImageOffIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -61,6 +64,25 @@ const UnavailablePlaceholder = () => (
   </div>
 );
 
+/**
+ * View-once privacy placeholder — shown instead of media for "view once"
+ * (visualización única) messages. Does NOT fetch any bytes. Mirrors WhatsApp's
+ * wording.
+ *
+ * Accessibility: the visible text is read by screen readers in document order,
+ * so no extra ARIA role is used — a live-region role (e.g. status) would announce
+ * spuriously as bubbles mount while scrolling. The icon is decorative.
+ */
+export const ViewOncePlaceholder = () => (
+  <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/40 px-3 py-2">
+    <EyeOffIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    <div className="flex flex-col gap-0.5">
+      <p className="text-xs font-medium text-foreground">Mensaje de visualización única</p>
+      <p className="text-xs text-muted-foreground">Por privacidad, solo se puede abrir en el teléfono.</p>
+    </div>
+  </div>
+);
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -74,7 +96,7 @@ export const MediaPreview = ({
 }: MediaPreviewProps) => {
   const [enlargeOpen, setEnlargeOpen] = useState(false);
 
-  const { objectUrl, isLoading, isError } = useMediaBlob(
+  const { objectUrl, isLoading, isError, isViewOnce } = useMediaBlob(
     scope,
     sessionId,
     chatId,
@@ -84,6 +106,11 @@ export const MediaPreview = ({
 
   if (isLoading) {
     return <Skeleton className="h-32 w-40 rounded-lg" />;
+  }
+
+  // 410 → view-once privacy placeholder (defense-in-depth; normally gated upstream)
+  if (isViewOnce) {
+    return <ViewOncePlaceholder />;
   }
 
   // 404 or non-404 error → unified placeholder (do NOT show a broken image)

@@ -144,7 +144,55 @@ export type WahaMessageShape = {
   [key: string]: unknown;
 };
 
+// ── Errors ────────────────────────────────────────────────────────────────────
+
+/**
+ * Thrown by `getMediaBytes` when the requested message is a "view once"
+ * (visualización única) message. The caller must map this to HTTP 410 Gone —
+ * not 404 — so the client can distinguish "media purged" from "media blocked
+ * for privacy".
+ */
+export class ViewOnceMediaError extends Error {
+  constructor() {
+    super('View-once media cannot be served');
+    this.name = 'ViewOnceMediaError';
+  }
+}
+
 // ── Mapping helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Returns true when a WAHA message's raw `_data` carries a "view once" flag on
+ * its image, video, or audio sub-message.
+ *
+ * Reliable detection signal (WAHA GOWS): the protobuf boolean is preserved at
+ * `_data.Message.{imageMessage,videoMessage,audioMessage}.viewOnce`. Do NOT
+ * rely on `_data.IsViewOnce` / `IsViewOnceV2` — those are always false in the
+ * history path.
+ *
+ * Exported (and null-safe) so the realtime webhook path in the inbound
+ * processor can reuse the SAME detection logic on its raw `_data` payload
+ * instead of duplicating the literal field walk.
+ */
+export function hasViewOnceFlag(data: unknown): boolean {
+  const message = (data as {
+    Message?: {
+      imageMessage?: { viewOnce?: boolean };
+      videoMessage?: { viewOnce?: boolean };
+      audioMessage?: { viewOnce?: boolean };
+    };
+  } | null | undefined)?.Message;
+  return !!(
+    message?.imageMessage?.viewOnce ||
+    message?.videoMessage?.viewOnce ||
+    message?.audioMessage?.viewOnce
+  );
+}
+
+/** Returns true when the raw WAHA message is a "view once" image/video/audio. */
+function isViewOnceMessage(msg: WahaMessageShape): boolean {
+  return hasViewOnceFlag(msg._data);
+}
 
 function mapWahaReactions(raw: WahaMessageShape['reactions']): ChatReactionSummary[] {
   if (!raw || raw.length === 0) return [];
@@ -175,6 +223,7 @@ function mapWahaMessageToChatMessage(msg: WahaMessageShape): ChatMessage {
     body: msg.body ?? '',
     hasMedia: msg.hasMedia ?? false,
     mediaMimetype: msg.hasMedia && msg.media?.mimetype ? msg.media.mimetype : null,
+    isViewOnce: isViewOnceMessage(msg),
     reactions: mapWahaReactions(msg.reactions),
     quotedMessage: mapWahaReplyTo(msg.replyTo),
     senderName: extractGroupSenderName(msg),
@@ -326,6 +375,12 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
         direct = null; // transient WAHA failure — fall through to the scan
       }
       if (direct) {
+        // Privacy gate — view-once media must never be served, regardless of
+        // whether WAHA has a URL for it. Throw so the controller can return 410
+        // (distinguishable from 404 MEDIA_UNAVAILABLE).
+        if (isViewOnceMessage(direct)) {
+          throw new ViewOnceMediaError();
+        }
         const bytes = await downloadMessageMedia(direct, downloadMedia, logger);
         if (bytes) return bytes;
       }
@@ -355,6 +410,10 @@ export function createChatRepository(deps: ChatRepositoryDeps): ChatRepository {
           (m) => m.id === messageId || messageHash(m.id) === wantedHash,
         );
         if (match) {
+          // Privacy gate for the fallback scan path — same rule applies.
+          if (isViewOnceMessage(match)) {
+            throw new ViewOnceMediaError();
+          }
           // Found the target — return its media (or null if WAHA has purged it).
           // Either way this IS the message, so don't keep paging.
           return await downloadMessageMedia(match, downloadMedia, logger);

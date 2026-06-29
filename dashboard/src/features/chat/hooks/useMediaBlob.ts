@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { chatService, type ChatScope } from "@/api/chat.service";
+import { chatService, MEDIA_VIEW_ONCE, type ChatScope } from "@/api/chat.service";
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -25,10 +25,11 @@ import { chatService, type ChatScope } from "@/api/chat.service";
  * @param messageId   Message id whose media to fetch.
  * @param enabled     Set to false to skip fetching (e.g. when hasMedia=false).
  *
- * @returns `{ objectUrl, isLoading, isError }`.
+ * @returns `{ objectUrl, isLoading, isError, isViewOnce }`.
  *   - `objectUrl` is null until the fetch completes (or if the worker returns 404).
  *   - `isLoading` is true while the fetch is in-flight.
- *   - `isError` is true if the fetch failed with a non-404 error.
+ *   - `isError` is true if the fetch failed with a non-404/410 error.
+ *   - `isViewOnce` is true if the worker returned 410 (view-once media blocked).
  */
 export const useMediaBlob = (
   scope: ChatScope,
@@ -36,10 +37,11 @@ export const useMediaBlob = (
   chatId: string | null,
   messageId: string | null,
   enabled = true,
-): { objectUrl: string | null; isLoading: boolean; isError: boolean } => {
+): { objectUrl: string | null; isLoading: boolean; isError: boolean; isViewOnce: boolean } => {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [isViewOnce, setIsViewOnce] = useState(false);
 
   useEffect(() => {
     if (!enabled || !sessionId || !chatId || !messageId) {
@@ -51,13 +53,19 @@ export const useMediaBlob = (
 
     setIsLoading(true);
     setIsError(false);
+    setIsViewOnce(false);
     setObjectUrl(null);
 
     chatService
       .fetchMediaBlob(scope, sessionId, chatId, messageId)
       .then((blob) => {
         if (revoked) return;
-        if (blob) {
+        if (blob === MEDIA_VIEW_ONCE) {
+          // 410 — view-once media blocked for privacy; show the dedicated
+          // placeholder rather than the generic "unavailable" one.
+          setIsViewOnce(true);
+          setObjectUrl(null);
+        } else if (blob) {
           createdUrl = URL.createObjectURL(blob);
           setObjectUrl(createdUrl);
         } else {
@@ -82,5 +90,5 @@ export const useMediaBlob = (
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, sessionId, chatId, messageId, scope.kind, (scope as { cashierId?: string }).cashierId]);
 
-  return { objectUrl, isLoading, isError };
+  return { objectUrl, isLoading, isError, isViewOnce };
 };

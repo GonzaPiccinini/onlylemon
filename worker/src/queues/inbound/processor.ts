@@ -2,6 +2,7 @@ import { Job } from 'bullmq';
 import { z } from 'zod';
 import { SETTING_KEYS } from '../../modules/system-settings/keys.js';
 import { extractGroupSenderName } from '../../modules/chat/group-sender.js';
+import { hasViewOnceFlag } from '../../modules/chat/chat.repository.js';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -233,6 +234,7 @@ export type InboundProcessorDeps = {
     mediaMimetype?: string | null;
     quotedMessage?: { id: string; body?: string | null; fromMe?: boolean } | null;
     senderName?: string | null;
+    isViewOnce?: boolean;
   }) => Promise<void>;
   /**
    * Fan-out seam for chat UI — called for every message.reaction event.
@@ -405,6 +407,7 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
               hasMedia: data.payload.hasMedia ?? false,
               mediaMimetype: (data.payload.media as { mimetype?: string } | null | undefined)?.mimetype ?? null,
               senderName: extractGroupSenderName(data.payload as Record<string, unknown>),
+              isViewOnce: hasViewOnceFlag(data.payload._data),
             });
 
             const durationSeconds =
@@ -428,6 +431,7 @@ export function createInboundProcessor(deps: InboundProcessorDeps): (job: Job) =
           fromMe: data.payload.fromMe ?? false,
           hasMedia: data.payload.hasMedia ?? false,
           mediaMimetype: (data.payload.media as { mimetype?: string } | null | undefined)?.mimetype ?? null,
+          isViewOnce: hasViewOnceFlag(data.payload._data),
         });
       }
 

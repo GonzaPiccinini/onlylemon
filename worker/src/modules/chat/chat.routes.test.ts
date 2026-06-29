@@ -73,6 +73,7 @@ function makeChatMessage(): ChatMessage {
     body: 'Hello',
     hasMedia: false,
     mediaMimetype: null,
+    isViewOnce: false,
     reactions: [],
     quotedMessage: null,
     senderName: null,

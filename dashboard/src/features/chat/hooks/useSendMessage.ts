@@ -92,6 +92,7 @@ export const useSendMessage = (
         body: text,
         hasMedia: false,
         mediaMimetype: null,
+        isViewOnce: false,
         reactions: [],
         quotedMessage: null,
         senderName: null,

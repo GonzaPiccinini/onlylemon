@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { QuotedReply } from './QuotedReply';
-import { MediaPreview } from './MediaPreview';
+import { MediaPreview, ViewOncePlaceholder } from './MediaPreview';
 import { MessageActionsSheet } from './MessageActionsSheet';
 import { isStickerMime } from '../mime';
 import { EmojiPicker } from './EmojiPicker';
@@ -91,7 +91,7 @@ export const MessageItem = ({
   isLastInGroup,
 }: MessageItemProps) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const { fromMe, body, hasMedia, mediaMimetype, quotedMessage, reactions, timestamp, senderName } = message;
+  const { fromMe, body, hasMedia, mediaMimetype, isViewOnce, quotedMessage, reactions, timestamp, senderName } = message;
 
   const handleEmojiPick = (emoji: string) => {
     onReact(message.id, emoji);
@@ -273,15 +273,20 @@ export const MessageItem = ({
             />
           )}
 
-          {/* Media */}
+          {/* Media — view-once messages render a privacy placeholder; the media
+              blob hook is intentionally NOT called so no bytes are fetched. */}
           {hasMedia && (
-            <MediaPreview
-              scope={scope}
-              sessionId={sessionId}
-              chatId={chatId}
-              messageId={message.id}
-              mimetype={mediaMimetype}
-            />
+            isViewOnce ? (
+              <ViewOncePlaceholder />
+            ) : (
+              <MediaPreview
+                scope={scope}
+                sessionId={sessionId}
+                chatId={chatId}
+                messageId={message.id}
+                mimetype={mediaMimetype}
+              />
+            )
           )}
 
           {/* Text body + inline timestamp. The time tucks to the bottom-right of

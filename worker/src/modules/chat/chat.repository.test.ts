@@ -11,7 +11,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createChatRepository } from './chat.repository.js';
+import { createChatRepository, hasViewOnceFlag, ViewOnceMediaError } from './chat.repository.js';
 import type { ChatRepositoryDeps } from './chat.repository.js';
 
 // ── WAHA shape builders ────────────────────────────────────────────────────────
@@ -276,6 +276,107 @@ describe('chat.repository — getChatHistory', () => {
     const [msg] = await repo.getChatHistory('session', 'chat@c.us', { limit: 20 });
     assert.deepEqual(msg.reactions, []);
   });
+
+  // ── view-once detection ────────────────────────────────────────────────────
+
+  it('sets isViewOnce=true for a message with _data.Message.imageMessage.viewOnce=true', async () => {
+    const deps = makeDeps({
+      getChatMessages: async () => [
+        makeWahaMessage({
+          id: 'vo-img',
+          hasMedia: true,
+          media: { url: null, mimetype: 'image/jpeg' },
+          _data: { Message: { imageMessage: { viewOnce: true } } },
+        }),
+      ],
+    });
+
+    const repo = createChatRepository(deps);
+    const [msg] = await repo.getChatHistory('session', 'chat@c.us', { limit: 20 });
+    assert.equal(msg.isViewOnce, true);
+  });
+
+  it('sets isViewOnce=true for a message with _data.Message.videoMessage.viewOnce=true', async () => {
+    const deps = makeDeps({
+      getChatMessages: async () => [
+        makeWahaMessage({
+          id: 'vo-vid',
+          hasMedia: true,
+          media: { url: null, mimetype: 'video/mp4' },
+          _data: { Message: { videoMessage: { viewOnce: true } } },
+        }),
+      ],
+    });
+
+    const repo = createChatRepository(deps);
+    const [msg] = await repo.getChatHistory('session', 'chat@c.us', { limit: 20 });
+    assert.equal(msg.isViewOnce, true);
+  });
+
+  it('sets isViewOnce=true for a message with _data.Message.audioMessage.viewOnce=true', async () => {
+    const deps = makeDeps({
+      getChatMessages: async () => [
+        makeWahaMessage({
+          id: 'vo-aud',
+          hasMedia: true,
+          media: { url: null, mimetype: 'audio/ogg' },
+          _data: { Message: { audioMessage: { viewOnce: true } } },
+        }),
+      ],
+    });
+
+    const repo = createChatRepository(deps);
+    const [msg] = await repo.getChatHistory('session', 'chat@c.us', { limit: 20 });
+    assert.equal(msg.isViewOnce, true);
+  });
+
+  it('sets isViewOnce=false for a normal media message without the viewOnce flag', async () => {
+    const deps = makeDeps({
+      getChatMessages: async () => [
+        makeWahaMessage({
+          hasMedia: true,
+          media: { url: 'http://waha/api/s3/key', mimetype: 'image/jpeg' },
+          _data: { Message: { imageMessage: { viewOnce: false } } },
+        }),
+      ],
+    });
+
+    const repo = createChatRepository(deps);
+    const [msg] = await repo.getChatHistory('session', 'chat@c.us', { limit: 20 });
+    assert.equal(msg.isViewOnce, false);
+  });
+
+  it('sets isViewOnce=false when _data is absent', async () => {
+    const deps = makeDeps({
+      getChatMessages: async () => [makeWahaMessage()],
+    });
+
+    const repo = createChatRepository(deps);
+    const [msg] = await repo.getChatHistory('session', 'chat@c.us', { limit: 20 });
+    assert.equal(msg.isViewOnce, false);
+  });
+});
+
+// ── hasViewOnceFlag (shared helper — reused by the realtime webhook path) ──────
+
+describe('chat.repository — hasViewOnceFlag', () => {
+  it('is null-safe: returns false for undefined / null / non-object _data', () => {
+    assert.equal(hasViewOnceFlag(undefined), false);
+    assert.equal(hasViewOnceFlag(null), false);
+    assert.equal(hasViewOnceFlag('not-an-object'), false);
+    assert.equal(hasViewOnceFlag({}), false);
+    assert.equal(hasViewOnceFlag({ Message: {} }), false);
+  });
+
+  it('returns true for image / video / audio view-once sub-messages', () => {
+    assert.equal(hasViewOnceFlag({ Message: { imageMessage: { viewOnce: true } } }), true);
+    assert.equal(hasViewOnceFlag({ Message: { videoMessage: { viewOnce: true } } }), true);
+    assert.equal(hasViewOnceFlag({ Message: { audioMessage: { viewOnce: true } } }), true);
+  });
+
+  it('returns false when the viewOnce flag is explicitly false', () => {
+    assert.equal(hasViewOnceFlag({ Message: { imageMessage: { viewOnce: false } } }), false);
+  });
 });
 
 // ── getMediaBytes ─────────────────────────────────────────────────────────────
@@ -482,6 +583,70 @@ describe('chat.repository — getMediaBytes', () => {
     const repo = createChatRepository(deps);
     const result = await repo.getMediaBytes('session', 'chat@c.us', 'true_x@lid_NOTHERE');
     assert.equal(result, null);
+  });
+
+  // ── view-once privacy block ────────────────────────────────────────────────
+
+  it('throws ViewOnceMediaError (not null) for a view-once image resolved via getMessageById', async () => {
+    const deps = makeDeps({
+      getMessageById: async () =>
+        makeWahaMessage({
+          id: 'vo-img',
+          hasMedia: true,
+          media: { url: 'http://waha/api/s3/key', mimetype: 'image/jpeg' },
+          _data: { Message: { imageMessage: { viewOnce: true } } },
+        }),
+    });
+
+    const repo = createChatRepository(deps);
+    await assert.rejects(
+      () => repo.getMediaBytes('session', 'chat@c.us', 'vo-img'),
+      (err: unknown) => err instanceof ViewOnceMediaError,
+    );
+  });
+
+  it('throws ViewOnceMediaError for a view-once video found in the chat-history scan fallback', async () => {
+    const deps = makeDeps({
+      getMessageById: async () => null, // direct lookup misses — triggers fallback scan
+      getChatMessages: async () => [
+        makeWahaMessage({
+          id: 'vo-vid',
+          hasMedia: true,
+          media: { url: 'http://waha/api/s3/key', mimetype: 'video/mp4' },
+          _data: { Message: { videoMessage: { viewOnce: true } } },
+        }),
+      ],
+    });
+
+    const repo = createChatRepository(deps);
+    await assert.rejects(
+      () => repo.getMediaBytes('session', 'chat@c.us', 'vo-vid'),
+      (err: unknown) => err instanceof ViewOnceMediaError,
+    );
+  });
+
+  it('does NOT call downloadMedia for a view-once message (privacy: no bytes transferred)', async () => {
+    let downloadCalled = false;
+    const deps = makeDeps({
+      getMessageById: async () =>
+        makeWahaMessage({
+          id: 'vo-img',
+          hasMedia: true,
+          media: { url: 'http://waha/api/s3/key', mimetype: 'image/jpeg' },
+          _data: { Message: { imageMessage: { viewOnce: true } } },
+        }),
+      downloadMedia: async () => {
+        downloadCalled = true;
+        return { buffer: Buffer.alloc(0), mimetype: 'application/octet-stream' };
+      },
+    });
+
+    const repo = createChatRepository(deps);
+    await assert.rejects(
+      () => repo.getMediaBytes('session', 'chat@c.us', 'vo-img'),
+      (err: unknown) => err instanceof ViewOnceMediaError,
+    );
+    assert.equal(downloadCalled, false, 'downloadMedia must NOT be called for view-once messages');
   });
 
   it('pages the scan and stops at the first page containing the message (no full-window download)', async () => {
