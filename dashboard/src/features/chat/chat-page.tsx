@@ -431,6 +431,33 @@ export const ChatPage = ({
     </div>
   );
 
+  // Right-pane empty state when no chat is open. Three distinct situations,
+  // so the copy never contradicts the list on the left:
+  //   - no session selected      → "Elegí una sesión"
+  //   - session has zero chats    → "No hay chats todavía" (don't say "pick a
+  //     chat" when the list is empty — mirrors ChatList's own empty copy)
+  //   - session has chats, none picked → "Elegí un chat"
+  // The `!isLoading` guard keeps us on "Elegí un chat" during the first load
+  // (cache miss) so we never claim "no chats" before the query has settled.
+  const threadEmpty = !selectedSessionId
+    ? {
+        icon: SmartphoneIcon,
+        title: 'Elegí una sesión',
+        description: 'Seleccioná un número de WhatsApp para ver sus chats.',
+      }
+    : chats.length === 0 && !chatListQuery.isLoading
+      ? {
+          icon: MessagesSquareIcon,
+          title: 'No hay chats todavía',
+          description: 'Cuando llegue un mensaje a este número, vas a verlo acá.',
+        }
+      : {
+          icon: MessagesSquareIcon,
+          title: 'Elegí un chat',
+          description:
+            'Abrí una conversación de la izquierda para ver el historial y responder.',
+        };
+
   const threadPanel =
     selectedChatId && selectedSessionId ? (
       <div className="flex h-full flex-col overflow-hidden">
@@ -473,13 +500,9 @@ export const ChatPage = ({
       </div>
     ) : (
       <ChatEmptyState
-        icon={selectedSessionId ? MessagesSquareIcon : SmartphoneIcon}
-        title={selectedSessionId ? 'Elegí un chat' : 'Elegí una sesión'}
-        description={
-          selectedSessionId
-            ? 'Abrí una conversación de la izquierda para ver el historial y responder.'
-            : 'Seleccioná un número de WhatsApp para ver sus chats.'
-        }
+        icon={threadEmpty.icon}
+        title={threadEmpty.title}
+        description={threadEmpty.description}
       />
     );
 
