@@ -391,6 +391,7 @@ export const ModelName = {
   SessionActivity: 'SessionActivity',
   Lead: 'Lead',
   Conversion: 'Conversion',
+  MetaPixel: 'MetaPixel',
   Landing: 'Landing',
   LandingFallbackPhone: 'LandingFallbackPhone',
   WhatsappSession: 'WhatsappSession',
@@ -412,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "refreshToken" | "admin" | "cashier" | "sessionActivity" | "lead" | "conversion" | "landing" | "landingFallbackPhone" | "whatsappSession" | "whatsappSessionLanding" | "processedJob" | "systemSetting"
+    modelProps: "user" | "refreshToken" | "admin" | "cashier" | "sessionActivity" | "lead" | "conversion" | "metaPixel" | "landing" | "landingFallbackPhone" | "whatsappSession" | "whatsappSessionLanding" | "processedJob" | "systemSetting"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -931,6 +932,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ConversionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ConversionCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaPixel: {
+      payload: Prisma.$MetaPixelPayload<ExtArgs>
+      fields: Prisma.MetaPixelFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaPixelFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaPixelFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaPixelFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaPixelFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>
+        }
+        findMany: {
+          args: Prisma.MetaPixelFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>[]
+        }
+        create: {
+          args: Prisma.MetaPixelCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>
+        }
+        createMany: {
+          args: Prisma.MetaPixelCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaPixelCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaPixelDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>
+        }
+        update: {
+          args: Prisma.MetaPixelUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaPixelDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaPixelUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaPixelUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaPixelUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaPixelPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaPixelAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaPixel>
+        }
+        groupBy: {
+          args: Prisma.MetaPixelGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaPixelGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaPixelCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaPixelCountAggregateOutputType> | number
         }
       }
     }
@@ -1481,6 +1556,9 @@ export const LeadScalarFieldEnum = {
   fbc: 'fbc',
   fbp: 'fbp',
   metaPixelId: 'metaPixelId',
+  metaPixelRef: 'metaPixelRef',
+  eventSourceUrl: 'eventSourceUrl',
+  landingId: 'landingId',
   status: 'status',
   userAgent: 'userAgent',
   phone: 'phone',
@@ -1506,11 +1584,25 @@ export const ConversionScalarFieldEnum = {
 export type ConversionScalarFieldEnum = (typeof ConversionScalarFieldEnum)[keyof typeof ConversionScalarFieldEnum]
 
 
+export const MetaPixelScalarFieldEnum = {
+  id: 'id',
+  pixelId: 'pixelId',
+  accessToken: 'accessToken',
+  label: 'label',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaPixelScalarFieldEnum = (typeof MetaPixelScalarFieldEnum)[keyof typeof MetaPixelScalarFieldEnum]
+
+
 export const LandingScalarFieldEnum = {
   id: 'id',
   url: 'url',
   metaPixelId: 'metaPixelId',
   metaAccessToken: 'metaAccessToken',
+  metaPixelRef: 'metaPixelRef',
+  whatsappMessages: 'whatsappMessages',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1845,6 +1937,7 @@ export type GlobalOmitConfig = {
   sessionActivity?: Prisma.SessionActivityOmit
   lead?: Prisma.LeadOmit
   conversion?: Prisma.ConversionOmit
+  metaPixel?: Prisma.MetaPixelOmit
   landing?: Prisma.LandingOmit
   landingFallbackPhone?: Prisma.LandingFallbackPhoneOmit
   whatsappSession?: Prisma.WhatsappSessionOmit

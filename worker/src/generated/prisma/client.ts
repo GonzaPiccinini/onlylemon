@@ -77,6 +77,11 @@ export type Lead = Prisma.LeadModel
  */
 export type Conversion = Prisma.ConversionModel
 /**
+ * Model MetaPixel
+ * 
+ */
+export type MetaPixel = Prisma.MetaPixelModel
+/**
  * Model Landing
  * 
  */

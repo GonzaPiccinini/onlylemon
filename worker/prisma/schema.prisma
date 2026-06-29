@@ -69,24 +69,30 @@ model SessionActivity {
 }
 
 model Lead {
-  id          String       @id @default(uuid())
-  code        String       @unique
-  adCode      String?
-  fbc         String
-  fbp         String
-  metaPixelId String
-  status      LeadStatus   @default(NOT_CONTACTED)
-  userAgent   String
-  phone       String?
-  cashierId   String?
-  cashier     Cashier?     @relation(fields: [cashierId], references: [id])
-  contactedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updateAt    DateTime     @updatedAt
-  conversions Conversion[]
+  id             String       @id @default(uuid())
+  code           String       @unique
+  adCode         String?
+  fbc            String
+  fbp            String
+  metaPixelId    String                           // OLD scalar pixel number — dropped in Contract
+  metaPixelRef   String?                          // transitional FK → MetaPixel.id (nullable until tighten)
+  metaPixelRelation MetaPixel? @relation(fields: [metaPixelRef], references: [id])
+  eventSourceUrl String?                          // snapshot of Landing.url at create time
+  landingId      String?                          // routing key → Landing.id (nullable until tighten)
+  landing        Landing?     @relation(fields: [landingId], references: [id])
+  status         LeadStatus   @default(NOT_CONTACTED)
+  userAgent      String
+  phone          String?
+  cashierId      String?
+  cashier        Cashier?     @relation(fields: [cashierId], references: [id])
+  contactedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updateAt       DateTime     @updatedAt
+  conversions    Conversion[]
 
   @@index([phone])
   @@index([cashierId, status, contactedAt])
+  @@index([landingId])
 }
 
 model Conversion {
@@ -111,16 +117,31 @@ model Conversion {
   // exclusively in migration SQL — Prisma does not support partial unique constraints.
 }
 
+model MetaPixel {
+  id          String    @id @default(uuid())
+  pixelId     String    @unique          // Meta pixel NUMBER (e.g. "976916338006290")
+  accessToken String                     // server-side secret — never serialized to client
+  label       String?
+  landings    Landing[]
+  leads       Lead[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model Landing {
-  id              String                   @id @default(uuid())
-  url             String
-  metaPixelId     String                   @unique
-  metaAccessToken String
-  status          LandingStatus            @default(ACTIVE)
-  sessions        WhatsappSessionLanding[]
-  fallbackPhones  LandingFallbackPhone[]
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
+  id               String                   @id @default(uuid())
+  url              String
+  metaPixelId      String                   @unique   // OLD scalar pixel number — dropped in Contract
+  metaAccessToken  String                             // OLD scalar access token — dropped in Contract
+  metaPixelRef     String?                           // transitional FK → MetaPixel.id (nullable until tighten)
+  metaPixelRelation MetaPixel? @relation(fields: [metaPixelRef], references: [id])
+  whatsappMessages String[]                 @default([])
+  status           LandingStatus            @default(ACTIVE)
+  sessions         WhatsappSessionLanding[]
+  fallbackPhones   LandingFallbackPhone[]
+  leads            Lead[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 }
 
 model LandingFallbackPhone {
