@@ -78,6 +78,11 @@ export type MirrorChatMessagePayload = {
   quotedMessage?: { id: string; body?: string | null; fromMe?: boolean } | null;
   /** Group-chat sender display name (null for 1:1 / outbound). */
   senderName?: string | null;
+  /**
+   * True when the message is a "view once" (visualización única) image or
+   * video. Defaults to false when not provided by the upstream payload.
+   */
+  isViewOnce?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -149,6 +154,7 @@ export function createChatMessageFanout(
             }
           : null,
         senderName: payload.senderName ?? null,
+        isViewOnce: payload.isViewOnce ?? false,
       };
 
       const event: ChatMessageEvent = {

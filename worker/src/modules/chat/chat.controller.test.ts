@@ -43,6 +43,7 @@ import {
   ChatRateLimitError,
   ChatSessionNotFoundError,
 } from './chat.service.js';
+import { ViewOnceMediaError } from './chat.repository.js';
 import type { ChatService } from './chat.service.js';
 import type { ChatListEntry, ChatMessage } from './chat.types.js';
 
@@ -119,6 +120,7 @@ function makeChatMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
     body: 'Hello',
     hasMedia: false,
     mediaMimetype: null,
+    isViewOnce: false,
     reactions: [],
     quotedMessage: null,
     senderName: null,
@@ -797,6 +799,20 @@ describe('chat.controller — getMedia', () => {
 
     assert.equal(res.statusCode, 404);
     assert.deepEqual(res.body, { error: 'MEDIA_UNAVAILABLE' });
+  });
+
+  it('returns 410 with VIEW_ONCE_UNAVAILABLE when the repo throws ViewOnceMediaError', async () => {
+    const svc = makeMockService({
+      getMediaBytes: async () => { throw new ViewOnceMediaError(); },
+    });
+    const { getMedia } = createChatController(svc);
+
+    const req = makeReq();
+    const res = makeRes();
+    await getMedia(req, res as unknown as import('express').Response);
+
+    assert.equal(res.statusCode, 410);
+    assert.deepEqual(res.body, { error: 'VIEW_ONCE_UNAVAILABLE' });
   });
 
   it('returns 403 on ChatForbiddenError', async () => {

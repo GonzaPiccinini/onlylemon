@@ -11,6 +11,7 @@
  *     ChatForbiddenError       → 403
  *     ChatSessionNotFoundError → 404
  *     ChatRateLimitError       → 429
+ *     ViewOnceMediaError       → 410 { error: "VIEW_ONCE_UNAVAILABLE" }
  *     null from getMediaBytes  → 404 { error: "MEDIA_UNAVAILABLE" }
  *
  * Photo-send handler (sendPhoto) runs AFTER the uploadSingleFile middleware has
@@ -31,6 +32,7 @@ import {
   ChatRateLimitError,
   ChatSessionNotFoundError,
 } from './chat.service.js';
+import { ViewOnceMediaError } from './chat.repository.js';
 import { sniffImageMagicBytes } from './upload.middleware.js';
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
@@ -107,6 +109,12 @@ function mapServiceError(error: unknown, res: Response): boolean {
   }
   if (error instanceof ChatRateLimitError) {
     res.status(429).json({ error: 'Rate limit exceeded' });
+    return true;
+  }
+  if (error instanceof ViewOnceMediaError) {
+    // 410 Gone — the media exists but must not be served for privacy reasons.
+    // Distinguishable from 404 MEDIA_UNAVAILABLE (purged / not found).
+    res.status(410).json({ error: 'VIEW_ONCE_UNAVAILABLE' });
     return true;
   }
   return false;

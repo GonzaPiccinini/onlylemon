@@ -188,6 +188,42 @@ describe('createChatMessageFanout', () => {
       });
       assert.equal(publishedEvents[1].message.senderName, null);
     });
+
+    it('propagates isViewOnce=true through to the emitted message (and defaults to false)', async () => {
+      const publishedEvents: ChatMessageEvent[] = [];
+      const deps = makeDeps({
+        publishChatMessage: (event) => { publishedEvents.push(event); },
+      });
+      const fanout = createChatMessageFanout(deps);
+
+      await fanout({
+        sessionName: 'my-session',
+        chatId: 'chat-vo@c.us',
+        messageId: 'msg-vo-1',
+        timestamp: 1716300000,
+        body: '',
+        fromMe: false,
+        hasMedia: true,
+        mediaMimetype: 'image/jpeg',
+        quotedMessage: null,
+        isViewOnce: true,
+      });
+      assert.equal(publishedEvents[0].message.isViewOnce, true);
+
+      // Omitted isViewOnce → false (normal message).
+      await fanout({
+        sessionName: 'my-session',
+        chatId: 'chat-normal@c.us',
+        messageId: 'msg-normal-1',
+        timestamp: 1716300001,
+        body: 'hola',
+        fromMe: false,
+        hasMedia: false,
+        mediaMimetype: null,
+        quotedMessage: null,
+      });
+      assert.equal(publishedEvents[1].message.isViewOnce, false);
+    });
   });
 
   describe('CF.2 — session NOT found: logs warn, does NOT call publishChatMessage, does NOT throw', () => {

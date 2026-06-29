@@ -29,6 +29,12 @@ export type ChatMessage = {
   body: string;
   hasMedia: boolean;
   mediaMimetype: string | null;
+  /**
+   * True when the WhatsApp message is "view once" (visualización única).
+   * When true the dashboard must render a privacy placeholder and must NOT
+   * fetch media bytes from the worker.
+   */
+  isViewOnce: boolean;
   reactions: ChatReactionSummary[];
   quotedMessage: QuotedMessage | null;
   /**

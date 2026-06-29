@@ -19,6 +19,13 @@ export type ChatMessage = {
   body: string;
   hasMedia: boolean;
   mediaMimetype: string | null;
+  /**
+   * True when the WhatsApp message is "view once" (visualización única).
+   * Detected from `_data.Message.imageMessage.viewOnce` or
+   * `_data.Message.videoMessage.viewOnce` in the WAHA GOWS history payload.
+   * When true the dashboard must NOT fetch or display the media bytes.
+   */
+  isViewOnce: boolean;
   reactions: ChatReactionSummary[];
   quotedMessage: QuotedMessage | null;
   /**
