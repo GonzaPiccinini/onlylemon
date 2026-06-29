@@ -41,19 +41,25 @@ const AdminChatInner = ({ cashierId, cashierPicker }: AdminChatInnerProps) => {
 
   const { data: sessions = [], isLoading } = useCashierSessions(cashierId);
 
-  const workingSessions: SessionOption[] = sessions.map((s) => ({
-    id: s.id,
-    sessionName: s.sessionName,
-    whatsappPhoneNumber: s.whatsappPhoneNumber ?? null,
-    alias: s.alias ?? null,
-    wahaStatus: s.wahaStatus ?? null,
-  }));
+  // Show only WORKING (connected) sessions — mirrors cashier-chat-page. A
+  // session that exists but isn't connected (STARTING / SCAN_QR_CODE) must not
+  // reach ChatPage, or it would auto-select, load chats, and render the
+  // misleading "Elegí un chat" empty state for a session that has no chats.
+  const workingSessions: SessionOption[] = sessions
+    .filter((s) => s.wahaStatus === 'WORKING')
+    .map((s) => ({
+      id: s.id,
+      sessionName: s.sessionName,
+      whatsappPhoneNumber: s.whatsappPhoneNumber ?? null,
+      alias: s.alias ?? null,
+      wahaStatus: s.wahaStatus ?? null,
+    }));
 
   const noSessionsCta = isLoading ? (
     <Skeleton className="h-16 w-full rounded-lg" />
   ) : (
     <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-      Este cajero no tiene sesiones de WhatsApp.
+      Este cajero no tiene un WhatsApp conectado.
     </div>
   );
 
