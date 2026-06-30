@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { ApiError } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
 import { BrandLogo, BrandAuthBackground } from '@/branding';
 
@@ -50,8 +51,13 @@ export const LoginPage = () => {
       await login(values);
       navigate('/', { replace: true });
     } catch (error) {
+      // Map by status code to Spanish copy — the backend message ("Invalid
+      // credentials") is English and meant for logs, not the end user.
+      const statusCode = (error as ApiError)?.statusCode;
       setErrorMessage(
-        error instanceof Error ? error.message : 'No se pudo iniciar sesion',
+        statusCode === 401
+          ? 'Usuario o contraseña incorrectos'
+          : 'No se pudo iniciar sesion',
       );
     }
   };
