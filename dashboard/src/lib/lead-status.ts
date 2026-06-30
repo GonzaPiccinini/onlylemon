@@ -26,14 +26,14 @@ export const leadStatusLabel = (status: LeadStatus): string =>
 export const leadDisplayStatusLabel = (status: LeadDisplayStatus): string =>
   displayStatusLabelMap[status] ?? status;
 
-type LeadBadgeVariant = 'progress' | 'success' | 'neutral' | 'recharge';
+type LeadBadgeVariant = 'progress' | 'success' | 'neutral' | 'recharge' | 'converted';
 
 export const leadStatusBadge = (
   status: LeadDisplayStatus,
 ): { variant: LeadBadgeVariant; icon: LucideIcon; className?: string } => {
   switch (status) {
     case 'CONVERTED':
-      return { variant: 'success', icon: CheckCircle2Icon };
+      return { variant: 'converted', icon: CheckCircle2Icon };
     case 'CONTACTED':
       return { variant: 'progress', icon: CircleDotIcon };
     case 'RECARGA':

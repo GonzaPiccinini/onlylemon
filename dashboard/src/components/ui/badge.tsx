@@ -20,6 +20,8 @@ const badgeVariants = cva(
           "border-accent-violet/40 bg-accent-violet/22 text-accent-violet transition-colors duration-200 [a]:hover:bg-accent-violet/28",
         success:
           "border-success/40 bg-success/22 text-success transition-colors duration-200 [a]:hover:bg-success/28",
+        converted:
+          "border-primary/40 bg-primary/22 text-primary transition-colors duration-200 [a]:hover:bg-primary/28",
         neutral:
           "border-secondary-foreground/25 bg-secondary-foreground/12 text-secondary-foreground transition-colors duration-200 [a]:hover:bg-secondary-foreground/18",
         recharge:
