@@ -106,30 +106,54 @@ export const useCashierRuntimeStateStream = (
           linked: payload.wahaStatus === "WORKING",
         });
 
-        // Sync mySessions list directly from the SSE payload (no extra HTTP).
-        // Field mapping: status → wahaStatus, phone → whatsappPhoneNumber.
-        // MERGE by id against the cached entry: the runtime-state payload does
-        // NOT carry `alias` (nor createdAt/updatedAt), so rebuilding objects from
-        // scratch would clobber the alias on every SSE event — making it vanish
-        // until the next full refetch. Spread the previous entry first to keep
-        // those server-only fields intact.
-        queryClient.setQueryData<MyWhatsappSession[]>(
+        // The runtime-state payload carries volatile fields only — it has NO
+        // `alias` (nor createdAt/updatedAt). Only touch the sessions cache when
+        // an HTTP-loaded (alias-bearing) base already exists:
+        //   - no base yet            → do NOTHING; useMySessions fetches on
+        //                              mount and populates the alias. Authoring
+        //                              alias-less records here is exactly what
+        //                              poisoned the cache (and, under the global
+        //                              staleTime, kept it stuck on phone numbers
+        //                              until a manual reload).
+        //   - same session set       → PATCH volatile fields, preserving alias.
+        //   - session added/removed  → invalidate so the alias-bearing HTTP list
+        //                              resyncs instead of us fabricating records.
+        const cachedSessions = queryClient.getQueryData<MyWhatsappSession[]>(
           cashierKeys.mySessions,
-          (previousSessions) => {
-            const byId = new Map(
-              (previousSessions ?? []).map((session) => [session.id, session]),
-            );
-            return payload.sessions.map((s) => ({
-              ...byId.get(s.id),
-              id: s.id,
-              sessionName: s.sessionName,
-              whatsappPhoneNumber: s.phone,
-              wahaStatus: s.status,
-              refreshCount: s.refreshCount,
-              lastRefreshAt: s.lastRefreshAt,
-            }));
-          },
         );
+
+        if (cachedSessions !== undefined) {
+          const cachedIds = new Set(cachedSessions.map((s) => s.id));
+          const sameSessionSet =
+            cachedSessions.length === payload.sessions.length &&
+            payload.sessions.every((s) => cachedIds.has(s.id));
+
+          if (sameSessionSet) {
+            const patchById = new Map(payload.sessions.map((s) => [s.id, s]));
+            queryClient.setQueryData<MyWhatsappSession[]>(
+              cashierKeys.mySessions,
+              (previousSessions) => {
+                // Bail if the cache was evicted between the snapshot above and
+                // this updater — let the HTTP query repopulate.
+                if (!previousSessions) return previousSessions;
+                return previousSessions.map((session) => {
+                  const patch = patchById.get(session.id);
+                  if (!patch) return session;
+                  return {
+                    ...session,
+                    sessionName: patch.sessionName,
+                    whatsappPhoneNumber: patch.phone,
+                    wahaStatus: patch.status,
+                    refreshCount: patch.refreshCount,
+                    lastRefreshAt: patch.lastRefreshAt,
+                  };
+                });
+              },
+            );
+          } else {
+            void queryClient.invalidateQueries({ queryKey: cashierKeys.mySessions });
+          }
+        }
 
         // Detect changes that the runtime payload alone can't represent
         const sessionNameChanged = previous?.sessionName !== payload.sessionName;
