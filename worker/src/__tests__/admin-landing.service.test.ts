@@ -1,10 +1,10 @@
 /**
- * Task 3.5 — Admin Landing service tests (STRICT TDD — RED first)
+ * Task 3.5 / Phase 5 — Admin Landing service tests
  *
  * Tests:
  * - normalizeWhatsappMessages: trim + filter empty strings
  * - whatsappMessages validation (≤5, each ≤250 chars)
- * - updateLandingServiceImpl extended to accept metaPixelRef FK + whatsappMessages
+ * - updateLandingServiceImpl extended to accept metaPixelId FK (UUID) + whatsappMessages
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -108,9 +108,7 @@ test('validateWhatsappMessages: message of exactly 250 chars → accepted', asyn
 const makeLandingRow = (overrides: Record<string, unknown> = {}) => ({
   id: 'land-1',
   url: 'https://example.com',
-  metaPixelId: '976916338006290',
-  metaAccessToken: 'old-token',
-  metaPixelRef: null as string | null,
+  metaPixelId: 'mp-uuid-default' as string | null,
   whatsappMessages: [] as string[],
   status: 'ACTIVE' as const,
   createdAt: new Date('2026-01-01T00:00:00Z'),
@@ -118,14 +116,14 @@ const makeLandingRow = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-test('updateLandingServiceImpl: pixel assigned via metaPixelRef FK', async () => {
+test('updateLandingServiceImpl: pixel assigned via metaPixelId FK (UUID)', async () => {
   const { updateLandingServiceImpl } = await import('../modules/admin/admin.service.js');
 
   let capturedInput: Record<string, unknown> | undefined;
   const deps = {
     updateLanding: async (id: string, input: Record<string, unknown>) => {
       capturedInput = input;
-      return makeLandingRow({ metaPixelRef: input['metaPixelRef'] as string });
+      return makeLandingRow({ metaPixelId: input['metaPixelId'] as string });
     },
     replaceLandingFallbacks: async () => {},
   };
@@ -135,23 +133,23 @@ test('updateLandingServiceImpl: pixel assigned via metaPixelRef FK', async () =>
     'land-1',
     {
       url: 'https://example.com',
-      metaPixelRef: 'mp-uuid-123',
+      metaPixelId: 'mp-uuid-123',
     },
   );
 
-  assert.equal(capturedInput?.['metaPixelRef'], 'mp-uuid-123');
+  assert.equal(capturedInput?.['metaPixelId'], 'mp-uuid-123');
 });
 
 test('updateLandingServiceImpl: change pixel = reassign FK (P1 row untouched - no in-place edit)', async () => {
   const { updateLandingServiceImpl } = await import('../modules/admin/admin.service.js');
 
   let capturedLandingId: string | undefined;
-  let capturedMetaPixelRef: string | undefined;
+  let capturedMetaPixelId: string | undefined;
   const deps = {
     updateLanding: async (id: string, input: Record<string, unknown>) => {
       capturedLandingId = id;
-      capturedMetaPixelRef = input['metaPixelRef'] as string;
-      return makeLandingRow({ metaPixelRef: input['metaPixelRef'] as string });
+      capturedMetaPixelId = input['metaPixelId'] as string;
+      return makeLandingRow({ metaPixelId: input['metaPixelId'] as string });
     },
     replaceLandingFallbacks: async () => {},
   };
@@ -162,14 +160,14 @@ test('updateLandingServiceImpl: change pixel = reassign FK (P1 row untouched - n
     'land-1',
     {
       url: 'https://example.com',
-      metaPixelRef: 'mp-P2-uuid',
+      metaPixelId: 'mp-P2-uuid',
     },
   );
 
   // The landing was updated with the new FK — P1 row is NOT touched (we only update the landing)
   assert.equal(capturedLandingId, 'land-1');
-  assert.equal(capturedMetaPixelRef, 'mp-P2-uuid');
-  // No metaPixelRef for P1 passed anywhere (P1 row untouched is implicit: we never touch MetaPixel rows)
+  assert.equal(capturedMetaPixelId, 'mp-P2-uuid');
+  // No metaPixelId for P1 passed anywhere (P1 row untouched is implicit: we never touch MetaPixel rows)
 });
 
 // ---------------------------------------------------------------------------

@@ -73,32 +73,28 @@ const whatsappMessagesSchema = z
   });
 
 /**
- * Phase 4 — createLandingSchema uses MetaPixel FK selector.
- * `metaPixelRef` (FK → MetaPixel.id) replaces old scalar `metaPixelId` + `metaAccessToken`.
+ * Phase 5 (Contract) — createLandingSchema uses MetaPixel FK selector.
+ * `metaPixelId` (FK → MetaPixel.id) is the final column name after Contract migration.
  * `whatsappMessages` is optional (validated: trim, discard empty, max 5, max 250 chars each).
  * Declared AFTER whatsappMessagesSchema to avoid temporal dead zone errors.
  */
 export const createLandingSchema = z.object({
   url: z.string().trim().url(),
   /** FK → MetaPixel.id (UUID). Required for create. */
-  metaPixelRef: z.string().trim().min(1, 'metaPixelRef (MetaPixel FK) is required'),
+  metaPixelId: z.string().trim().min(1, 'metaPixelId (MetaPixel FK UUID) is required'),
   fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required'),
   whatsappMessages: whatsappMessagesSchema.optional(),
 });
 
 /**
- * Task 3.7 — updateLandingSchema extended with metaPixelRef FK and whatsappMessages.
- * Old scalar fields (metaPixelId number string + metaAccessToken) kept optional
- * for backward compatibility during the Expand phase.
+ * Phase 5 (Contract) — updateLandingSchema.
+ * Old scalar fields (metaPixelId pixel number + metaAccessToken) are gone.
+ * metaPixelId is now the FK UUID → MetaPixel.id.
  */
 export const updateLandingSchema = z.object({
   url: z.string().trim().url(),
-  /** Legacy scalar pixel number string (kept for backward compat during Expand phase) */
+  /** FK → MetaPixel.id (UUID). Optional for update (partial update). */
   metaPixelId: z.string().trim().min(1).optional(),
-  /** Legacy scalar access token (kept for backward compat during Expand phase) */
-  metaAccessToken: z.string().trim().min(1).optional(),
-  /** Phase 3+: FK → MetaPixel.id (UUID). Replaces the scalar fields above. */
-  metaPixelRef: z.string().trim().min(1).optional(),
   /** Per-landing WhatsApp messages (task 3.6). Validated: trim, discard empty, max 5, max 250 chars each. */
   whatsappMessages: whatsappMessagesSchema.optional(),
   fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required').optional(),

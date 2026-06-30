@@ -74,12 +74,11 @@ model Lead {
   adCode         String?
   fbc            String
   fbp            String
-  metaPixelId    String                           // OLD scalar pixel number — dropped in Contract
-  metaPixelRef   String?                          // transitional FK → MetaPixel.id (nullable until tighten)
-  metaPixelRelation MetaPixel? @relation(fields: [metaPixelRef], references: [id])
-  eventSourceUrl String?                          // snapshot of Landing.url at create time
-  landingId      String?                          // routing key → Landing.id (nullable until tighten)
-  landing        Landing?     @relation(fields: [landingId], references: [id])
+  metaPixelId    String                           // FK → MetaPixel.id (NOT NULL, snapshot at create time)
+  metaPixel      MetaPixel    @relation(fields: [metaPixelId], references: [id], onDelete: Restrict)
+  eventSourceUrl String                           // snapshot of Landing.url at create time
+  landingId      String                           // routing key → Landing.id
+  landing        Landing      @relation(fields: [landingId], references: [id], onDelete: Restrict)
   status         LeadStatus   @default(NOT_CONTACTED)
   userAgent      String
   phone          String?
@@ -131,10 +130,8 @@ model MetaPixel {
 model Landing {
   id               String                   @id @default(uuid())
   url              String
-  metaPixelId      String                   @unique   // OLD scalar pixel number — dropped in Contract
-  metaAccessToken  String                             // OLD scalar access token — dropped in Contract
-  metaPixelRef     String?                           // transitional FK → MetaPixel.id (nullable until tighten)
-  metaPixelRelation MetaPixel? @relation(fields: [metaPixelRef], references: [id])
+  metaPixelId      String                   // FK → MetaPixel.id (NOT NULL after Contract)
+  metaPixel        MetaPixel                @relation(fields: [metaPixelId], references: [id], onDelete: Restrict)
   whatsappMessages String[]                 @default([])
   status           LandingStatus            @default(ACTIVE)
   sessions         WhatsappSessionLanding[]

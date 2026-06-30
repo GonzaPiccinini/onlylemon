@@ -49,12 +49,10 @@ const PIXEL_P1 = {
 const LANDING_L1 = {
   id: 'landing-uuid-1',
   url: 'https://example.com/lp1',
-  metaPixelRef: PIXEL_P1.id,
+  metaPixelId: PIXEL_P1.id,
   status: 'ACTIVE' as 'ACTIVE' | 'DISABLED',
-  metaAccessToken: 'legacy-token',
-  metaPixelId: '976916338006290',
+  metaPixel: { id: PIXEL_P1.id, pixelId: PIXEL_P1.pixelId, label: null as string | null },
   whatsappMessages: [] as string[],
-  metaPixelRelation: { id: PIXEL_P1.id, pixelId: PIXEL_P1.pixelId, label: null as string | null },
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -73,7 +71,6 @@ type CreateLeadDependencies = {
     fbp: string;
     userAgent: string;
     landingId: string;
-    metaPixelRef: string;
     eventSourceUrl: string;
     metaPixelId: string;
     adCode?: string;
@@ -85,19 +82,17 @@ type CreateLeadDependencies = {
     fbp: string;
     userAgent: string;
     metaPixelId: string;
-    metaPixelRef: string | null;
-    metaPixelRelation: typeof PIXEL_P1 | null;
-    eventSourceUrl: string | null;
-    landingId: string | null;
+    metaPixel: typeof PIXEL_P1 | null;
+    eventSourceUrl: string;
+    landingId: string;
   }>;
   dispatchLeadCreatedEvent: (lead: {
     id: string;
     code: string;
     metaPixelId: string;
-    metaPixelRef: string | null;
-    metaPixelRelation: typeof PIXEL_P1 | null;
-    eventSourceUrl: string | null;
-    landingId: string | null;
+    metaPixel: typeof PIXEL_P1 | null;
+    eventSourceUrl: string;
+    landingId: string;
     fbc: string;
     fbp: string;
     userAgent: string;
@@ -114,9 +109,8 @@ function buildSaveLeadResult(code: string, pixel = PIXEL_P1, url = LANDING_L1.ur
     fbc: payload.fbc,
     fbp: payload.fbp,
     userAgent: payload.userAgent,
-    metaPixelId: pixel.pixelId,
-    metaPixelRef: pixel.id,
-    metaPixelRelation: pixel,
+    metaPixelId: pixel.id,
+    metaPixel: pixel,
     eventSourceUrl: url,
     landingId: payload.landingId,
   };
@@ -288,7 +282,7 @@ test('createLeadWithDependencies retries when unique collision happens on lead c
 // Phase 2 — Snapshot tests (Task 2.5)
 // ---------------------------------------------------------------------------
 
-test('2.5 snapshot: createLeadWithDependencies passes metaPixelRef + eventSourceUrl snapshot to saveLead', async () => {
+test('2.5 snapshot: createLeadWithDependencies passes metaPixelId + eventSourceUrl snapshot to saveLead', async () => {
   const { createLeadWithDependencies } = await import('./service.js');
 
   const capturedSaveLeadData: Record<string, unknown>[] = [];
@@ -303,20 +297,20 @@ test('2.5 snapshot: createLeadWithDependencies passes metaPixelRef + eventSource
 
   assert.equal(capturedSaveLeadData.length, 1, 'saveLead called once');
   const saved = capturedSaveLeadData[0]!;
-  assert.equal(saved['metaPixelRef'], PIXEL_P1.id, 'metaPixelRef = FK to MetaPixel.id');
+  assert.equal(saved['metaPixelId'], PIXEL_P1.id, 'metaPixelId = FK to MetaPixel.id');
   assert.equal(saved['eventSourceUrl'], LANDING_L1.url, 'eventSourceUrl = landing.url snapshot');
   assert.equal(saved['landingId'], payload.landingId, 'landingId persisted');
 });
 
-test('2.5 snapshot immunity: dispatchLeadCreatedEvent called with lead.metaPixelRelation (snapshot, not live landing)', async () => {
+test('2.5 snapshot immunity: dispatchLeadCreatedEvent called with lead.metaPixel (snapshot, not live landing)', async () => {
   const { createLeadWithDependencies } = await import('./service.js');
 
-  const dispatchedLeads: Array<{ metaPixelRelation: unknown; eventSourceUrl: unknown }> = [];
+  const dispatchedLeads: Array<{ metaPixel: unknown; eventSourceUrl: unknown }> = [];
 
   const deps = buildDependencies({
     dispatchLeadCreatedEvent: async (lead) => {
       dispatchedLeads.push({
-        metaPixelRelation: lead.metaPixelRelation,
+        metaPixel: lead.metaPixel,
         eventSourceUrl: lead.eventSourceUrl,
       });
     },
@@ -326,8 +320,8 @@ test('2.5 snapshot immunity: dispatchLeadCreatedEvent called with lead.metaPixel
 
   assert.equal(dispatchedLeads.length, 1, 'dispatch called once');
   const dispatched = dispatchedLeads[0]!;
-  // dispatch reads from lead.metaPixelRelation, NOT from live landing lookup
-  const relation = dispatched.metaPixelRelation as typeof PIXEL_P1;
+  // dispatch reads from lead.metaPixel, NOT from live landing lookup
+  const relation = dispatched.metaPixel as typeof PIXEL_P1;
   assert.equal(relation.pixelId, PIXEL_P1.pixelId, 'dispatch uses snapshotted pixelId');
   assert.equal(relation.accessToken, PIXEL_P1.accessToken, 'dispatch uses snapshotted accessToken');
   assert.equal(dispatched.eventSourceUrl, LANDING_L1.url, 'dispatch uses snapshotted url');
@@ -342,7 +336,7 @@ test('2.5 accessToken not in any lead DTO or HTTP response', async () => {
   assert.equal('code' in result, true);
   assert.equal('number' in result, true);
   assert.equal('accessToken' in result, false, 'accessToken must not be in HTTP response shape');
-  assert.equal('metaPixelRelation' in result, false, 'metaPixelRelation must not be in HTTP response');
+  assert.equal('metaPixel' in result, false, 'metaPixel must not be in HTTP response');
 });
 
 test('2.5 landing not found → LANDING_NOT_FOUND error', async () => {

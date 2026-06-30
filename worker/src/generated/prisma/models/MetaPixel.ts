@@ -250,8 +250,8 @@ export type MetaPixelCreateInput = {
   label?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  landings?: Prisma.LandingCreateNestedManyWithoutMetaPixelRelationInput
-  leads?: Prisma.LeadCreateNestedManyWithoutMetaPixelRelationInput
+  landings?: Prisma.LandingCreateNestedManyWithoutMetaPixelInput
+  leads?: Prisma.LeadCreateNestedManyWithoutMetaPixelInput
 }
 
 export type MetaPixelUncheckedCreateInput = {
@@ -261,8 +261,8 @@ export type MetaPixelUncheckedCreateInput = {
   label?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  landings?: Prisma.LandingUncheckedCreateNestedManyWithoutMetaPixelRelationInput
-  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutMetaPixelRelationInput
+  landings?: Prisma.LandingUncheckedCreateNestedManyWithoutMetaPixelInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutMetaPixelInput
 }
 
 export type MetaPixelUpdateInput = {
@@ -272,8 +272,8 @@ export type MetaPixelUpdateInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  landings?: Prisma.LandingUpdateManyWithoutMetaPixelRelationNestedInput
-  leads?: Prisma.LeadUpdateManyWithoutMetaPixelRelationNestedInput
+  landings?: Prisma.LandingUpdateManyWithoutMetaPixelNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutMetaPixelNestedInput
 }
 
 export type MetaPixelUncheckedUpdateInput = {
@@ -283,8 +283,8 @@ export type MetaPixelUncheckedUpdateInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  landings?: Prisma.LandingUncheckedUpdateManyWithoutMetaPixelRelationNestedInput
-  leads?: Prisma.LeadUncheckedUpdateManyWithoutMetaPixelRelationNestedInput
+  landings?: Prisma.LandingUncheckedUpdateManyWithoutMetaPixelNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutMetaPixelNestedInput
 }
 
 export type MetaPixelCreateManyInput = {
@@ -314,9 +314,9 @@ export type MetaPixelUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type MetaPixelNullableScalarRelationFilter = {
-  is?: Prisma.MetaPixelWhereInput | null
-  isNot?: Prisma.MetaPixelWhereInput | null
+export type MetaPixelScalarRelationFilter = {
+  is?: Prisma.MetaPixelWhereInput
+  isNot?: Prisma.MetaPixelWhereInput
 }
 
 export type MetaPixelCountOrderByAggregateInput = {
@@ -352,12 +352,10 @@ export type MetaPixelCreateNestedOneWithoutLeadsInput = {
   connect?: Prisma.MetaPixelWhereUniqueInput
 }
 
-export type MetaPixelUpdateOneWithoutLeadsNestedInput = {
+export type MetaPixelUpdateOneRequiredWithoutLeadsNestedInput = {
   create?: Prisma.XOR<Prisma.MetaPixelCreateWithoutLeadsInput, Prisma.MetaPixelUncheckedCreateWithoutLeadsInput>
   connectOrCreate?: Prisma.MetaPixelCreateOrConnectWithoutLeadsInput
   upsert?: Prisma.MetaPixelUpsertWithoutLeadsInput
-  disconnect?: Prisma.MetaPixelWhereInput | boolean
-  delete?: Prisma.MetaPixelWhereInput | boolean
   connect?: Prisma.MetaPixelWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.MetaPixelUpdateToOneWithWhereWithoutLeadsInput, Prisma.MetaPixelUpdateWithoutLeadsInput>, Prisma.MetaPixelUncheckedUpdateWithoutLeadsInput>
 }
@@ -368,12 +366,10 @@ export type MetaPixelCreateNestedOneWithoutLandingsInput = {
   connect?: Prisma.MetaPixelWhereUniqueInput
 }
 
-export type MetaPixelUpdateOneWithoutLandingsNestedInput = {
+export type MetaPixelUpdateOneRequiredWithoutLandingsNestedInput = {
   create?: Prisma.XOR<Prisma.MetaPixelCreateWithoutLandingsInput, Prisma.MetaPixelUncheckedCreateWithoutLandingsInput>
   connectOrCreate?: Prisma.MetaPixelCreateOrConnectWithoutLandingsInput
   upsert?: Prisma.MetaPixelUpsertWithoutLandingsInput
-  disconnect?: Prisma.MetaPixelWhereInput | boolean
-  delete?: Prisma.MetaPixelWhereInput | boolean
   connect?: Prisma.MetaPixelWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.MetaPixelUpdateToOneWithWhereWithoutLandingsInput, Prisma.MetaPixelUpdateWithoutLandingsInput>, Prisma.MetaPixelUncheckedUpdateWithoutLandingsInput>
 }
@@ -385,7 +381,7 @@ export type MetaPixelCreateWithoutLeadsInput = {
   label?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  landings?: Prisma.LandingCreateNestedManyWithoutMetaPixelRelationInput
+  landings?: Prisma.LandingCreateNestedManyWithoutMetaPixelInput
 }
 
 export type MetaPixelUncheckedCreateWithoutLeadsInput = {
@@ -395,7 +391,7 @@ export type MetaPixelUncheckedCreateWithoutLeadsInput = {
   label?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  landings?: Prisma.LandingUncheckedCreateNestedManyWithoutMetaPixelRelationInput
+  landings?: Prisma.LandingUncheckedCreateNestedManyWithoutMetaPixelInput
 }
 
 export type MetaPixelCreateOrConnectWithoutLeadsInput = {
@@ -421,7 +417,7 @@ export type MetaPixelUpdateWithoutLeadsInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  landings?: Prisma.LandingUpdateManyWithoutMetaPixelRelationNestedInput
+  landings?: Prisma.LandingUpdateManyWithoutMetaPixelNestedInput
 }
 
 export type MetaPixelUncheckedUpdateWithoutLeadsInput = {
@@ -431,7 +427,7 @@ export type MetaPixelUncheckedUpdateWithoutLeadsInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  landings?: Prisma.LandingUncheckedUpdateManyWithoutMetaPixelRelationNestedInput
+  landings?: Prisma.LandingUncheckedUpdateManyWithoutMetaPixelNestedInput
 }
 
 export type MetaPixelCreateWithoutLandingsInput = {
@@ -441,7 +437,7 @@ export type MetaPixelCreateWithoutLandingsInput = {
   label?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  leads?: Prisma.LeadCreateNestedManyWithoutMetaPixelRelationInput
+  leads?: Prisma.LeadCreateNestedManyWithoutMetaPixelInput
 }
 
 export type MetaPixelUncheckedCreateWithoutLandingsInput = {
@@ -451,7 +447,7 @@ export type MetaPixelUncheckedCreateWithoutLandingsInput = {
   label?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutMetaPixelRelationInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutMetaPixelInput
 }
 
 export type MetaPixelCreateOrConnectWithoutLandingsInput = {
@@ -477,7 +473,7 @@ export type MetaPixelUpdateWithoutLandingsInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  leads?: Prisma.LeadUpdateManyWithoutMetaPixelRelationNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutMetaPixelNestedInput
 }
 
 export type MetaPixelUncheckedUpdateWithoutLandingsInput = {
@@ -487,7 +483,7 @@ export type MetaPixelUncheckedUpdateWithoutLandingsInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  leads?: Prisma.LeadUncheckedUpdateManyWithoutMetaPixelRelationNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutMetaPixelNestedInput
 }
 
 

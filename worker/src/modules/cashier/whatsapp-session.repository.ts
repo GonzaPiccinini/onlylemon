@@ -38,6 +38,7 @@ export async function isOwnLinePhoneForCashier(
  * C3 — getSessionsBoundToLanding
  * Returns all sessions bound to the landing (across any cashier).
  * Caller intersects with the live WAHA WORKING set.
+ * Keyed by landingId (Landing.id UUID) after Contract migration.
  */
 export type BoundSessionCandidate = {
   sessionId: string;
@@ -46,11 +47,11 @@ export type BoundSessionCandidate = {
 };
 
 export async function getSessionsBoundToLanding(
-  metaPixelId: string,
+  landingId: string,
 ): Promise<BoundSessionCandidate[] | null> {
   const landing = await prisma.landing.findFirst({
     where: {
-      metaPixelId,
+      id: landingId,
       status: 'ACTIVE',
     },
     select: {

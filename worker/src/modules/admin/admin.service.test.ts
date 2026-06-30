@@ -1492,20 +1492,19 @@ test('B5.2: createLandingServiceImpl rejects empty fallbackPhones array', async 
   const mod = await import('./admin.service.js') as Record<string, unknown>;
   const createLandingImpl = mod.createLandingServiceImpl as (
     deps: {
-      createLandingWithFallbacks: (landing: { url: string; metaPixelId: string; metaAccessToken: string }, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<unknown>;
+      createLandingWithFallbacks: (landing: { url: string; metaPixelId: string }, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<unknown>;
     },
-    input: { url: string; metaPixelId: string; metaAccessToken: string; fallbackPhones: { phone: string; label?: string; order?: number }[] },
+    input: { url: string; metaPixelId: string; fallbackPhones: { phone: string; label?: string; order?: number }[] },
   ) => Promise<unknown>;
 
   const mockRepo = {
-    createLandingWithFallbacks: async () => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
+    createLandingWithFallbacks: async () => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
   };
 
   await assert.rejects(
     () => createLandingImpl(mockRepo, {
       url: 'http://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token',
       fallbackPhones: [],
     }),
     (err: unknown) => (err as Error).name === 'MissingFallbacksError',
@@ -1516,9 +1515,9 @@ test('B5.2: createLandingServiceImpl calls createLandingWithFallbacks with valid
   const mod = await import('./admin.service.js') as Record<string, unknown>;
   const createLandingImpl = mod.createLandingServiceImpl as (
     deps: {
-      createLandingWithFallbacks: (landing: { url: string; metaPixelId: string; metaAccessToken: string }, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<{ id: string; url: string; metaPixelId: string; metaAccessToken: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
+      createLandingWithFallbacks: (landing: { url: string; metaPixelId: string }, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<{ id: string; url: string; metaPixelId: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
     },
-    input: { url: string; metaPixelId: string; metaAccessToken: string; fallbackPhones: { phone: string; label?: string; order?: number }[] },
+    input: { url: string; metaPixelId: string; fallbackPhones: { phone: string; label?: string; order?: number }[] },
   ) => Promise<unknown>;
 
   let capturedLanding: unknown = null;
@@ -1527,14 +1526,13 @@ test('B5.2: createLandingServiceImpl calls createLandingWithFallbacks with valid
     createLandingWithFallbacks: async (landing: unknown, fallbacks: unknown) => {
       capturedLanding = landing;
       capturedFallbacks = fallbacks;
-      return { id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() };
+      return { id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() };
     },
   };
 
   await createLandingImpl(mockRepo, {
     url: 'http://example.com',
     metaPixelId: 'px-1',
-    metaAccessToken: 'token',
     fallbackPhones: [{ phone: '+5491155667788', label: 'Main' }],
   });
 
@@ -1546,15 +1544,15 @@ test('B5.2: updateLandingServiceImpl rejects empty fallbackPhones array when pro
   const mod = await import('./admin.service.js') as Record<string, unknown>;
   const updateLandingImpl = mod.updateLandingServiceImpl as (
     deps: {
-      updateLanding: (id: string, input: { url: string; metaPixelId: string; metaAccessToken?: string }) => Promise<{ id: string; url: string; metaPixelId: string; metaAccessToken: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
+      updateLanding: (id: string, input: { url: string; metaPixelId?: string }) => Promise<{ id: string; url: string; metaPixelId: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
       replaceLandingFallbacks: (landingId: string, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<void>;
     },
     landingId: string,
-    input: { url: string; metaPixelId: string; metaAccessToken?: string; fallbackPhones?: { phone: string; label?: string; order?: number }[] },
+    input: { url: string; metaPixelId?: string; fallbackPhones?: { phone: string; label?: string; order?: number }[] },
   ) => Promise<unknown>;
 
   const mockRepo = {
-    updateLanding: async (_id: string, _input: unknown) => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
+    updateLanding: async (_id: string, _input: unknown) => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
     replaceLandingFallbacks: async () => {},
   };
 
@@ -1572,16 +1570,16 @@ test('B5.2: updateLandingServiceImpl skips replaceLandingFallbacks when fallback
   const mod = await import('./admin.service.js') as Record<string, unknown>;
   const updateLandingImpl = mod.updateLandingServiceImpl as (
     deps: {
-      updateLanding: (id: string, input: { url: string; metaPixelId: string; metaAccessToken?: string }) => Promise<{ id: string; url: string; metaPixelId: string; metaAccessToken: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
+      updateLanding: (id: string, input: { url: string; metaPixelId?: string }) => Promise<{ id: string; url: string; metaPixelId: string; status: 'ACTIVE' | 'DISABLED'; createdAt: Date; updatedAt: Date }>;
       replaceLandingFallbacks: (landingId: string, fallbacks: { phone: string; label?: string; order?: number }[]) => Promise<void>;
     },
     landingId: string,
-    input: { url: string; metaPixelId: string; metaAccessToken?: string; fallbackPhones?: { phone: string; label?: string; order?: number }[] },
+    input: { url: string; metaPixelId?: string; fallbackPhones?: { phone: string; label?: string; order?: number }[] },
   ) => Promise<unknown>;
 
   let replaceCalled = false;
   const mockRepo = {
-    updateLanding: async (_id: string, _input: unknown) => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', metaAccessToken: 'token', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
+    updateLanding: async (_id: string, _input: unknown) => ({ id: 'landing-1', url: 'http://example.com', metaPixelId: 'px-1', status: 'ACTIVE' as const, createdAt: new Date(), updatedAt: new Date() }),
     replaceLandingFallbacks: async () => { replaceCalled = true; },
   };
 

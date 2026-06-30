@@ -33,7 +33,9 @@ const makeContactedLead = (overrides: Record<string, unknown> = {}) => ({
   phone: '5491111111111',
   status: 'CONTACTED' as const,
   cashierId: 'cashier-1',
-  metaPixelId: 'pixel-1',
+  metaPixelId: 'mp-uuid-1',
+  metaPixel: { pixelId: 'pixel-1', accessToken: 'token-1' },
+  eventSourceUrl: 'https://example.com',
   fbc: 'fbc-1',
   fbp: 'fbp-1',
   userAgent: 'Mozilla',
@@ -67,8 +69,6 @@ test('createConversionService: CONTACTED lead → inserts Conversion, flips stat
   const landingMock = {
     id: 'landing-1',
     url: 'https://example.com',
-    metaPixelId: 'pixel-1',
-    metaAccessToken: 'token-1',
   };
 
   const conversionResultMock = {

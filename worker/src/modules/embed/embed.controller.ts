@@ -32,14 +32,14 @@ export function createEmbedController(deps: EmbedControllerDeps) {
     }
 
     // Landing must have a pixel configured — no pixel means embed is not ready
-    if (!config.metaPixelRelation) {
+    if (!config.metaPixel) {
       res.status(404).send();
       return;
     }
 
     const embedConfig = {
       landingId: config.id,
-      pixelId: config.metaPixelRelation.pixelId,
+      pixelId: config.metaPixel.pixelId,
       messages: config.whatsappMessages,
     };
 

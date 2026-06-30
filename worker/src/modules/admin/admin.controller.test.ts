@@ -512,7 +512,6 @@ test('createLandingHandler (extended): empty fallbackPhones array → 400', asyn
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       fallbackPhones: [],
     },
   });
@@ -530,7 +529,6 @@ test('createLandingHandler (extended): fallbackPhones with invalid E.164 → 400
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       fallbackPhones: [{ phone: 'not-e164' }],
     },
   });
@@ -548,7 +546,6 @@ test('createLandingHandler (extended): missing fallbackPhones field → 400', as
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       // no fallbackPhones
     },
   });
@@ -567,7 +564,6 @@ test('updateLandingHandler (extended): empty fallbackPhones array → 400', asyn
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       fallbackPhones: [],
     },
   });

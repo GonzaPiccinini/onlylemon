@@ -72,6 +72,8 @@ import type { WahaMessage } from '../../integrations/waha/client.js';
 const SEED = {
   userId: 'aaaa0001-0000-0000-0000-000000000001',
   cashierId: 'bbbb0001-0000-0000-0000-000000000001',
+  metaPixelId: 'dddd0001-0000-0000-0000-000000000001',
+  landingId: 'eeee0001-0000-0000-0000-000000000001',
   leadId: 'cccc0001-0000-0000-0000-000000000001',
   sessionName: 'test-session-1',
   phone: '5491112345678',
@@ -118,7 +120,25 @@ describe('integration: processor end-to-end (auto-conversion happy path)', { tim
       },
     });
 
-    // 5. Seed: WhatsappSession linking cashier → sessionName
+    // 5a. Seed: MetaPixel (required by Landing FK after Contract migration)
+    await prisma.metaPixel.create({
+      data: {
+        id: SEED.metaPixelId,
+        pixelId: 'pixel-int-1',
+        accessToken: 'token-int-1',
+      },
+    });
+
+    // 5b. Seed: Landing (required by Lead FK after Contract migration)
+    await prisma.landing.create({
+      data: {
+        id: SEED.landingId,
+        url: 'https://example.com/int-test',
+        metaPixelId: SEED.metaPixelId,
+      },
+    });
+
+    // 5c. Seed: WhatsappSession linking cashier → sessionName
     await prisma.whatsappSession.create({
       data: {
         cashierId: SEED.cashierId,
@@ -133,7 +153,9 @@ describe('integration: processor end-to-end (auto-conversion happy path)', { tim
         code: 'INT-TEST-01',
         fbc: 'fbc_int',
         fbp: 'fbp_int',
-        metaPixelId: 'pixel-int-1',
+        metaPixelId: SEED.metaPixelId,
+        landingId: SEED.landingId,
+        eventSourceUrl: 'https://example.com/int-test',
         status: 'CONTACTED',
         userAgent: 'test-ua',
         phone: `+${SEED.phone}`,

@@ -1,23 +1,10 @@
 /**
- * Migration + backfill integration test for pixel-normalization-rekey (Change A, Phase 1 — Expand).
+ * Migration + backfill + contract integration test for pixel-normalization-rekey.
  *
- * TDD phase: RED first (migration file absent → applySingleMigration throws),
- * GREEN after tasks 1.2 (migration SQL) + 1.3 (backfill script) are implemented.
- *
- * Test plan:
- * 1. Spin up a Postgres 16 testcontainer.
- * 2. Apply all existing migrations EXCEPT the new expand one.
- * 3. Seed landings and leads in the OLD schema (before new columns exist).
- * 4. Apply the new expand migration (additive: MetaPixel table + nullable FK columns).
- * 5. Run the backfill (runBackfillSQL helper — same SQL as the production script).
- * 6. Assert:
- *    a. Schema: MetaPixel table exists with expected columns; Landing/Lead have new nullable cols.
- *    b. MetaPixel rows deduplicated: 1 row per distinct (pixelId, accessToken) pair.
- *    c. Landing.metaPixelRef populated for all landings.
- *    d. Lead.metaPixelRef + landingId + eventSourceUrl populated for ALL leads
- *       including in-flight NOT_CONTACTED.
- *    e. Idempotent re-run: MetaPixel count unchanged, FK values unchanged.
- * 7. Run backfill a second time to verify idempotency.
+ * Two describe blocks:
+ *   1. Expand phase (Phase 1): additive migration + backfill assertions.
+ *   2. Contract phase (Phase 5): after expand+backfill, applies contract migration and
+ *      validates the tightened schema (dropped legacy cols, NOT NULL FKs, RESTRICT).
  */
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -478,6 +465,230 @@ describe(
       assert.ok(
         (res.rowCount ?? 0) > 0,
         "Expand migration must be recorded in _prisma_migrations"
+      );
+    });
+  }
+);
+
+// ── Contract phase suite ──────────────────────────────────────────────────────
+
+const CONTRACT_MIGRATION_DIR = "20260630120001_pixel_normalization_contract";
+
+describe(
+  "migration: pixel-normalization-rekey contract (Phase 5)",
+  { timeout: 240_000 },
+  () => {
+    let ctx: TestcontainerContext;
+    let client: Client;
+
+    before(async () => {
+      ctx = await startPostgresContainer();
+
+      // Apply all migrations up to (but NOT including) the expand one
+      await applyMigrations(ctx.databaseUrl, NEW_MIGRATION_DIR);
+
+      client = new Client({ connectionString: ctx.databaseUrl });
+      await client.connect();
+
+      // ── Seed a cashier ─────────────────────────────────────────────────────
+      await client.query(
+        `INSERT INTO "User" (id, name, username, password, role, "createdAt", "updatedAt")
+         VALUES ($1, 'Contract Cashier', 'cashier_ct', 'hashed', 'CASHIER', now(), now())`,
+        [SEED.cashier.userId]
+      );
+      await client.query(
+        `INSERT INTO "Cashier" (id, "userId", status, "createdAt", "updatedAt")
+         VALUES ($1, $2, 'ACTIVE', now(), now())`,
+        [SEED.cashier.id, SEED.cashier.userId]
+      );
+
+      // ── Seed 2 landings in OLD schema ──────────────────────────────────────
+      await client.query(
+        `INSERT INTO "Landing" (id, url, "metaPixelId", "metaAccessToken", status, "createdAt", "updatedAt")
+         VALUES
+           ($1, $2, $3, $4, 'ACTIVE', now(), now()),
+           ($5, $6, $7, $8, 'ACTIVE', now(), now())`,
+        [
+          SEED.landing.l1, PIXELS.l1.url, PIXELS.l1.pixelId, PIXELS.l1.accessToken,
+          SEED.landing.l2, PIXELS.l2.url, PIXELS.l2.pixelId, PIXELS.l2.accessToken,
+        ]
+      );
+
+      // ── Seed 3 leads in OLD schema ─────────────────────────────────────────
+      await client.query(
+        `INSERT INTO "Lead" (id, code, fbc, fbp, "metaPixelId", status, "userAgent", "createdAt", "updateAt")
+         VALUES
+           ($1, 'CT-NC-001', 'fbc-ct1', 'fbp-ct1', $2, 'NOT_CONTACTED', 'UA/1.0', now(), now()),
+           ($3, 'CT-NC-002', 'fbc-ct2', 'fbp-ct2', $4, 'NOT_CONTACTED', 'UA/1.0', now(), now()),
+           ($5, 'CT-CO-001', 'fbc-ct3', 'fbp-ct3', $6, 'CONTACTED',     'UA/1.0', now(), now())`,
+        [
+          SEED.lead.notContacted1, PIXELS.l1.pixelId,
+          SEED.lead.notContacted2, PIXELS.l2.pixelId,
+          SEED.lead.contacted1, PIXELS.l1.pixelId,
+        ]
+      );
+      await client.query(
+        `UPDATE "Lead" SET "cashierId" = $1, "contactedAt" = now(), phone = '+5491100000001'
+         WHERE id = $2`,
+        [SEED.cashier.id, SEED.lead.contacted1]
+      );
+
+      // ── Apply expand migration ──────────────────────────────────────────────
+      await applySingleMigration(ctx.databaseUrl, NEW_MIGRATION_DIR);
+
+      // ── Run backfill ────────────────────────────────────────────────────────
+      await runBackfillSQL(client);
+
+      // ── Apply contract migration ────────────────────────────────────────────
+      await applySingleMigration(ctx.databaseUrl, CONTRACT_MIGRATION_DIR);
+    });
+
+    after(async () => {
+      await client.end();
+      await ctx.stop();
+    });
+
+    // ── (a) Old scalar columns no longer exist ────────────────────────────────
+
+    it("(a) Landing.metaAccessToken column does not exist after contract", async () => {
+      const res = await client.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_name = 'Landing' AND column_name = 'metaAccessToken'`
+      );
+      assert.equal(res.rowCount, 0, "Landing.metaAccessToken must be dropped by Contract");
+    });
+
+    it("(a) Lead no longer has a nullable old scalar metaPixelId — column is NOT NULL FK after rename", async () => {
+      // After contract: Lead.metaPixelId exists and is NOT NULL (it's the renamed FK UUID)
+      const res = await client.query(
+        `SELECT column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_name = 'Lead' AND column_name = 'metaPixelId'`
+      );
+      assert.equal(res.rowCount, 1, "Lead.metaPixelId must exist (renamed FK)");
+      assert.equal(res.rows[0].is_nullable, "NO", "Lead.metaPixelId must be NOT NULL after Contract");
+    });
+
+    it("(a) Landing.metaPixelId is NOT NULL after contract (renamed from metaPixelRef)", async () => {
+      const res = await client.query(
+        `SELECT column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_name = 'Landing' AND column_name = 'metaPixelId'`
+      );
+      assert.equal(res.rowCount, 1, "Landing.metaPixelId must exist");
+      assert.equal(res.rows[0].is_nullable, "NO", "Landing.metaPixelId must be NOT NULL after Contract");
+    });
+
+    it("(a) Lead.landingId is NOT NULL after contract", async () => {
+      const res = await client.query(
+        `SELECT column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_name = 'Lead' AND column_name = 'landingId'`
+      );
+      assert.equal(res.rowCount, 1, "Lead.landingId must exist");
+      assert.equal(res.rows[0].is_nullable, "NO", "Lead.landingId must be NOT NULL after Contract");
+    });
+
+    it("(a) Lead.eventSourceUrl is NOT NULL after contract", async () => {
+      const res = await client.query(
+        `SELECT column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_name = 'Lead' AND column_name = 'eventSourceUrl'`
+      );
+      assert.equal(res.rowCount, 1, "Lead.eventSourceUrl must exist");
+      assert.equal(res.rows[0].is_nullable, "NO", "Lead.eventSourceUrl must be NOT NULL after Contract");
+    });
+
+    // ── (b) Backfill data intact after contract ───────────────────────────────
+
+    it("(b) MetaPixel rows still correct after contract (2 rows)", async () => {
+      const res = await client.query(
+        `SELECT count(*)::int AS cnt FROM "MetaPixel"`
+      );
+      assert.equal(res.rows[0].cnt, 2, "MetaPixel count must remain 2 after Contract");
+    });
+
+    it("(b) Landing L1 metaPixelId (FK) points to correct MetaPixel (pixel-aaa)", async () => {
+      const res = await client.query(
+        `SELECT l."metaPixelId", mp."pixelId"
+         FROM "Landing" l
+         JOIN "MetaPixel" mp ON mp.id = l."metaPixelId"
+         WHERE l.id = $1`,
+        [SEED.landing.l1]
+      );
+      assert.equal(res.rowCount, 1, "L1 must have a valid metaPixelId FK");
+      assert.equal(res.rows[0].pixelId, PIXELS.l1.pixelId, "L1 FK must resolve to pixel-aaa");
+    });
+
+    it("(b) Landing L2 metaPixelId (FK) points to correct MetaPixel (pixel-bbb)", async () => {
+      const res = await client.query(
+        `SELECT l."metaPixelId", mp."pixelId"
+         FROM "Landing" l
+         JOIN "MetaPixel" mp ON mp.id = l."metaPixelId"
+         WHERE l.id = $1`,
+        [SEED.landing.l2]
+      );
+      assert.equal(res.rowCount, 1, "L2 must have a valid metaPixelId FK");
+      assert.equal(res.rows[0].pixelId, PIXELS.l2.pixelId, "L2 FK must resolve to pixel-bbb");
+    });
+
+    it("(b) All leads have metaPixelId NOT NULL and pointing to MetaPixel", async () => {
+      const res = await client.query(
+        `SELECT count(*)::int AS cnt
+         FROM "Lead" ld
+         JOIN "MetaPixel" mp ON mp.id = ld."metaPixelId"`
+      );
+      assert.equal(res.rows[0].cnt, 3, "All 3 leads must have valid metaPixelId FK");
+    });
+
+    it("(b) All leads have landingId and eventSourceUrl NOT NULL with correct values", async () => {
+      const nullRes = await client.query(
+        `SELECT count(*)::int AS cnt FROM "Lead" WHERE "landingId" IS NULL OR "eventSourceUrl" IS NULL`
+      );
+      assert.equal(nullRes.rows[0].cnt, 0, "No lead should have NULL landingId or eventSourceUrl");
+
+      const lead1 = await client.query(
+        `SELECT "landingId", "eventSourceUrl" FROM "Lead" WHERE id = $1`,
+        [SEED.lead.notContacted1]
+      );
+      assert.equal(lead1.rows[0].landingId, SEED.landing.l1);
+      assert.equal(lead1.rows[0].eventSourceUrl, PIXELS.l1.url);
+    });
+
+    // ── (c) FK RESTRICT: cannot delete a MetaPixel that has references ────────
+
+    it("(c) deleting a MetaPixel with referenced Landing → FK violation (RESTRICT)", async () => {
+      // Get the MetaPixel id for pixel-aaa
+      const mpRes = await client.query(
+        `SELECT id FROM "MetaPixel" WHERE "pixelId" = $1`,
+        [PIXELS.l1.pixelId]
+      );
+      const mpId = mpRes.rows[0].id;
+
+      // Attempt to delete the MetaPixel — should fail due to RESTRICT on Landing.metaPixelId
+      await assert.rejects(
+        async () => {
+          await client.query(`DELETE FROM "MetaPixel" WHERE id = $1`, [mpId]);
+        },
+        (err: unknown) => {
+          const pgErr = err as { code?: string };
+          assert.equal(pgErr.code, '23503', "Expected FK violation code 23503 (RESTRICT)");
+          return true;
+        },
+        "DELETE of referenced MetaPixel must throw FK violation"
+      );
+    });
+
+    // ── (d) Contract migration is recorded in _prisma_migrations ─────────────
+
+    it("(d) contract migration is recorded in _prisma_migrations", async () => {
+      const res = await client.query(
+        `SELECT migration_name FROM "_prisma_migrations" WHERE migration_name = $1`,
+        [CONTRACT_MIGRATION_DIR]
+      );
+      assert.ok(
+        (res.rowCount ?? 0) > 0,
+        "Contract migration must be recorded in _prisma_migrations"
       );
     });
   }

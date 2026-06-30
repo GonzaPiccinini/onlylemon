@@ -93,14 +93,14 @@ const ACTIVE_LANDING = {
   id: VALID_LANDING_ID,
   status: 'ACTIVE' as const,
   whatsappMessages: ['Hola, quiero info'],
-  metaPixelRelation: { pixelId: '976916338006290' },
+  metaPixel: { pixelId: '976916338006290' },
 };
 
 const DISABLED_LANDING = {
   id: VALID_LANDING_ID,
   status: 'DISABLED' as const,
   whatsappMessages: ['Hola'],
-  metaPixelRelation: { pixelId: '111111111111111' },
+  metaPixel: { pixelId: '111111111111111' },
 };
 
 // ---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ test('ETag differs when pixelId changes', async () => {
     getConfig: async (_id) => {
       callCount++;
       if (callCount === 1) return ACTIVE_LANDING;
-      return { ...ACTIVE_LANDING, metaPixelRelation: { pixelId: '999999999999999' } };
+      return { ...ACTIVE_LANDING, metaPixel: { pixelId: '999999999999999' } };
     },
   });
 
@@ -291,16 +291,16 @@ test('invalid landingId format → 404', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// 2.5 — Landing with no metaPixelRelation → 404
+// 2.5 — Landing with no metaPixel → 404
 // ---------------------------------------------------------------------------
 
-test('ACTIVE landing with null metaPixelRelation → 404 (pixel not configured)', async () => {
+test('ACTIVE landing with null metaPixel → 404 (pixel not configured)', async () => {
   const { createEmbedController } = await import('./embed.controller.js');
 
   const controller = createEmbedController({
     getConfig: async (_id) => ({
       ...ACTIVE_LANDING,
-      metaPixelRelation: null,
+      metaPixel: null,
     }),
   });
 

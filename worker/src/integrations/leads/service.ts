@@ -131,15 +131,14 @@ function getUniqueConstraintKind(error: unknown): UniqueConstraintKind {
 }
 
 /**
- * Shape returned by saveLead (Phase 2): includes the MetaPixel snapshot
- * (metaPixelRelation) so both CAPI events read the same pixel/token/url.
+ * Shape returned by saveLead (Phase 5 Contract): includes the MetaPixel snapshot
+ * (metaPixel relation) so both CAPI events read the same pixel/token/url.
  */
 type LeadForCreateFlow = {
   id: string;
   code: string;
-  metaPixelId: string;          // OLD scalar — returned by Prisma (still NOT NULL)
-  metaPixelRef: string | null;  // transitional FK → MetaPixel.id
-  metaPixelRelation: {
+  metaPixelId: string;     // FK → MetaPixel.id
+  metaPixel: {
     id: string;
     pixelId: string;
     accessToken: string;
@@ -147,8 +146,8 @@ type LeadForCreateFlow = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
-  eventSourceUrl: string | null;  // snapshot of Landing.url
-  landingId: string | null;
+  eventSourceUrl: string;  // snapshot of Landing.url
+  landingId: string;
   fbc: string;
   fbp: string;
   userAgent: string;
@@ -161,9 +160,8 @@ type LeadToCreate = {
   fbp: string;
   userAgent: string;
   landingId: string;
-  metaPixelRef: string;
+  metaPixelId: string;     // FK → MetaPixel.id (snapshot at create time)
   eventSourceUrl: string;
-  metaPixelId: string;  // OLD scalar still NOT NULL — written from landing.metaPixelRelation.pixelId
 };
 
 /**
@@ -175,8 +173,8 @@ type LandingForCreate = {
   id: string;
   url: string;
   status: string;
-  metaPixelRef: string | null;
-  metaPixelRelation: { id: string; pixelId: string; label: string | null } | null;
+  metaPixelId: string;
+  metaPixel: { id: string; pixelId: string; label: string | null } | null;
 } | null;
 
 export type CreateLeadDependencies = {
@@ -191,6 +189,8 @@ export type CreateLeadDependencies = {
   getNow: () => Date;
   onCodeCollision: () => void;
 };
+
+
 
 
 function extractLeadCode(body: string): string | null {
@@ -388,16 +388,16 @@ async function selectCashierNumberForLanding(
 }
 
 /**
- * Phase 2 — dispatch Lead CAPI event from the lead's snapshot.
- * Reads pixel + token from `lead.metaPixelRelation` and url from `lead.eventSourceUrl`.
+ * Dispatch Lead CAPI event from the lead's snapshot.
+ * Reads pixel + token from `lead.metaPixel` (FK relation) and url from `lead.eventSourceUrl`.
  * Never resolves live from the landing — immune to later pixel/url reassignments.
  */
 async function dispatchLeadCreatedEvent(lead: LeadForCreateFlow): Promise<void> {
-  if (!lead.metaPixelRelation || !lead.eventSourceUrl) {
+  if (!lead.metaPixel) {
     logger.error({
       event: 'meta_snapshot_missing',
       leadId: lead.id,
-      hasRelation: Boolean(lead.metaPixelRelation),
+      hasRelation: false,
       hasUrl: Boolean(lead.eventSourceUrl),
     });
     return;
@@ -409,8 +409,8 @@ async function dispatchLeadCreatedEvent(lead: LeadForCreateFlow): Promise<void> 
     fbc: lead.fbc,
     fbp: lead.fbp,
     userAgent: lead.userAgent,
-    metaPixelId: lead.metaPixelRelation.pixelId,
-    metaAccessToken: lead.metaPixelRelation.accessToken,
+    metaPixelId: lead.metaPixel.pixelId,
+    metaAccessToken: lead.metaPixel.accessToken,
     eventSourceUrl: lead.eventSourceUrl,
   });
 
@@ -424,28 +424,27 @@ async function dispatchLeadCreatedEvent(lead: LeadForCreateFlow): Promise<void> 
 }
 
 /**
- * Phase 2 — dispatch Contact CAPI event from the lead's snapshot.
- * Same source of truth as Lead event: metaPixelRelation + eventSourceUrl.
+ * Dispatch Contact CAPI event from the lead's snapshot.
+ * Same source of truth as Lead event: metaPixel relation + eventSourceUrl.
  */
 async function dispatchLeadContactedEvent(lead: {
   id: string;
   code: string;
-  metaPixelId: string;           // OLD scalar, still present in Lead row
-  metaPixelRelation: {
+  metaPixel: {
     pixelId: string;
     accessToken: string;
   } | null;
-  eventSourceUrl: string | null;
+  eventSourceUrl: string;
   fbc: string;
   fbp: string;
   userAgent: string;
   phone: string;
 }): Promise<void> {
-  if (!lead.metaPixelRelation || !lead.eventSourceUrl) {
+  if (!lead.metaPixel) {
     logger.error({
       event: 'meta_snapshot_missing',
       leadId: lead.id,
-      hasRelation: Boolean(lead.metaPixelRelation),
+      hasRelation: false,
       hasUrl: Boolean(lead.eventSourceUrl),
     });
     return;
@@ -458,8 +457,8 @@ async function dispatchLeadContactedEvent(lead: {
     fbc: lead.fbc,
     fbp: lead.fbp,
     userAgent: lead.userAgent,
-    metaPixelId: lead.metaPixelRelation.pixelId,
-    metaAccessToken: lead.metaPixelRelation.accessToken,
+    metaPixelId: lead.metaPixel.pixelId,
+    metaAccessToken: lead.metaPixel.accessToken,
     eventSourceUrl: lead.eventSourceUrl,
   });
 
@@ -475,8 +474,8 @@ async function dispatchLeadContactedEvent(lead: {
 const defaultCreateLeadDependencies: CreateLeadDependencies = {
   selectCashierNumberForLanding,
   // Cast: Prisma fluent client is structurally compatible with LandingForCreate
-  // (it extends the plain data type), but TS cannot infer that automatically.
-  getLandingById: getLandingById as (id: string) => Promise<LandingForCreate>,
+  // (metaPixel relation included via include: { metaPixel: ... } in the repo).
+  getLandingById: getLandingById as unknown as (id: string) => Promise<LandingForCreate>,
   getLeadByFbc,
   saveLead,
   dispatchLeadCreatedEvent,
@@ -531,11 +530,10 @@ export async function createLeadWithDependencies(
   }
 
   // Build snapshot data from the landing resolved above.
-  // metaPixelRef is the FK → MetaPixel.id (UUID snapshot).
-  // metaPixelId (old scalar) is the pixel NUMBER — still NOT NULL in schema during Expand.
-  const metaPixelRef = landing.metaPixelRef ?? '';
+  // metaPixelId is the FK → MetaPixel.id (UUID snapshot).
+  // eventSourceUrl is the Landing.url at create time.
+  const metaPixelId = landing.metaPixelId;
   const eventSourceUrl = landing.url;
-  const oldScalarPixelId = landing.metaPixelRelation?.pixelId ?? '';
 
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
     const code = dependencies.generateCode();
@@ -548,9 +546,8 @@ export async function createLeadWithDependencies(
         landingId: payload.landingId,
         adCode: payload.adCode,
         code,
-        metaPixelRef,
+        metaPixelId,
         eventSourceUrl,
-        metaPixelId: oldScalarPixelId,  // OLD scalar — still NOT NULL during Expand
       });
 
       void dependencies.dispatchLeadCreatedEvent(lead).catch((err) => {
@@ -597,7 +594,7 @@ export async function mapLeadCodeToPhone(
     return /CODIGO\s*:/i.test(body) ? 'INVALID_CODE' : 'NO_CODE';
   }
 
-  // Phase 2: getLeadByCode now includes metaPixelRelation for snapshot-based dispatch
+  // getLeadByCode includes metaPixel relation for snapshot-based dispatch
   const lead = await getLeadByCode(code);
   if (!lead) return 'NOT_FOUND';
 
@@ -633,12 +630,11 @@ export async function mapLeadCodeToPhone(
       return 'ALREADY_USED';
     }
 
-    // Phase 2 — dispatch Contact from lead snapshot (metaPixelRelation + eventSourceUrl)
+    // Dispatch Contact from lead snapshot (metaPixel relation + eventSourceUrl)
     void dispatchLeadContactedEvent({
       id: lead.id,
       code: lead.code,
-      metaPixelId: lead.metaPixelId,
-      metaPixelRelation: lead.metaPixelRelation,
+      metaPixel: lead.metaPixel,
       eventSourceUrl: lead.eventSourceUrl,
       fbc: lead.fbc,
       fbp: lead.fbp,

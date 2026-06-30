@@ -46,12 +46,10 @@ const MOCK_PIXEL = {
 const MOCK_LANDING = {
   id: 'landing-uuid-http-1',
   url: 'https://example.com/lp1',
-  metaPixelRef: MOCK_PIXEL.id,
+  metaPixelId: MOCK_PIXEL.id,
   status: 'ACTIVE' as 'ACTIVE' | 'DISABLED',
-  metaAccessToken: 'legacy-token',
-  metaPixelId: MOCK_PIXEL.pixelId,
   whatsappMessages: [] as string[],
-  metaPixelRelation: { id: MOCK_PIXEL.id, pixelId: MOCK_PIXEL.pixelId, label: null as string | null },
+  metaPixel: { id: MOCK_PIXEL.id, pixelId: MOCK_PIXEL.pixelId, label: null as string | null },
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -86,17 +84,16 @@ async function buildIntegrationDeps(
     getLeadByFbc: async () => null,
     saveLead: async ({ code }: {
       code: string; fbc: string; fbp: string; userAgent: string;
-      landingId: string; metaPixelRef: string; eventSourceUrl: string;
-      metaPixelId: string; adCode?: string;
+      landingId: string; metaPixelId: string; eventSourceUrl: string;
+      adCode?: string;
     }) => ({
       id: 'lead-b9',
       code,
       fbc: BASE_PAYLOAD.fbc,
       fbp: BASE_PAYLOAD.fbp,
       userAgent: BASE_PAYLOAD.userAgent,
-      metaPixelId: MOCK_PIXEL.pixelId,
-      metaPixelRef: MOCK_PIXEL.id,
-      metaPixelRelation: MOCK_PIXEL,
+      metaPixelId: MOCK_PIXEL.id,
+      metaPixel: MOCK_PIXEL,
       eventSourceUrl: MOCK_LANDING.url,
       landingId: BASE_PAYLOAD.landingId,
     }),

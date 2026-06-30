@@ -1,10 +1,5 @@
-import { randomUUID as cryptoRandomUUID } from 'node:crypto';
 import { prisma } from '../../persistence/prisma/client.js';
 import { Prisma } from '../../generated/prisma/client.js';
-
-// Expose crypto.randomUUID under a named alias so the global `crypto` object
-// doesn't need to be called directly (avoids subtle ESM/CJS differences).
-const randomUUID = cryptoRandomUUID;
 
 export const listCashiers = () =>
   prisma.cashier.findMany({
@@ -310,7 +305,7 @@ export const listLandings = () =>
       createdAt: 'desc',
     },
     include: {
-      metaPixelRelation: {
+      metaPixel: {
         select: {
           id: true,
           pixelId: true,
@@ -330,22 +325,11 @@ export const listActiveLandingUrls = () =>
     },
   });
 
-export const createLanding = (input: {
-  url: string;
-  metaPixelId: string;
-  metaAccessToken: string;
-}) =>
-  prisma.landing.create({
-    data: input,
-  });
-
 export const updateLanding = (
   landingId: string,
   input: {
     url: string;
-    metaPixelId?: string;
-    metaAccessToken?: string;
-    metaPixelRef?: string | null;
+    metaPixelId?: string | null;
     whatsappMessages?: string[];
   },
 ) =>
@@ -354,28 +338,19 @@ export const updateLanding = (
     data: {
       url: input.url,
       ...(input.metaPixelId !== undefined ? { metaPixelId: input.metaPixelId } : {}),
-      ...(input.metaAccessToken ? { metaAccessToken: input.metaAccessToken } : {}),
-      ...(input.metaPixelRef !== undefined ? { metaPixelRef: input.metaPixelRef } : {}),
       ...(input.whatsappMessages !== undefined ? { whatsappMessages: input.whatsappMessages } : {}),
-    },
-  });
-
-export const getLandingByMetaPixelId = (metaPixelId: string) =>
-  prisma.landing.findUnique({
-    where: {
-      metaPixelId,
     },
   });
 
 /**
  * 3.7 — getLandingById
- * Includes nested metaPixelRelation (id, pixelId, label) for the pixel selector dropdown.
+ * Includes nested metaPixel (id, pixelId, label) for the pixel selector dropdown.
  */
 export const getLandingById = (landingId: string) =>
   prisma.landing.findUnique({
     where: { id: landingId },
     include: {
-      metaPixelRelation: {
+      metaPixel: {
         select: {
           id: true,
           pixelId: true,
@@ -1032,38 +1007,26 @@ export const deleteMetaPixel = async (id: string): Promise<void> => {
 };
 
 export const countMetaPixelLeads = (metaPixelId: string): Promise<number> =>
-  prisma.lead.count({ where: { metaPixelRef: metaPixelId } });
+  prisma.lead.count({ where: { metaPixelId } });
 
 export const countMetaPixelLandings = (metaPixelId: string): Promise<number> =>
-  prisma.landing.count({ where: { metaPixelRef: metaPixelId } });
+  prisma.landing.count({ where: { metaPixelId } });
 
 /**
- * Phase 4 — createLandingWithFallbacks uses MetaPixel FK selector.
- * Looks up the MetaPixel internally (accessToken never exposed) to populate the
- * legacy NOT-NULL columns during the Expand phase. A UUID placeholder is used for
- * the old @unique `metaPixelId` scalar so multiple landings can share one MetaPixel.
- * Both legacy columns are dropped in the Contract migration (Phase 5).
+ * Phase 5 (Contract) — createLandingWithFallbacks uses MetaPixel FK only.
+ * The old scalar legacy columns (metaPixelId string + metaAccessToken) have been
+ * dropped in the Contract migration. metaPixelId is now the FK UUID → MetaPixel.id.
+ * No internal token lookup needed — the token lives on MetaPixel, never returned here.
  */
 export const createLandingWithFallbacks = async (
-  landing: { url: string; metaPixelRef: string; whatsappMessages?: string[] },
+  landing: { url: string; metaPixelId: string; whatsappMessages?: string[] },
   fallbacks: { phone: string; label?: string; order?: number }[],
 ) =>
   prisma.$transaction(async (tx) => {
-    // Internal lookup — accessToken is NEVER returned to the client.
-    const pixel = await tx.metaPixel.findUniqueOrThrow({
-      where: { id: landing.metaPixelRef },
-      select: { accessToken: true },
-    });
-
     const created = await tx.landing.create({
       data: {
         url: landing.url,
-        // Legacy columns (NOT NULL + @unique) — dropped at Contract.
-        // UUID ensures uniqueness when multiple landings share one MetaPixel.
-        metaPixelId: `__mp__${randomUUID()}`,
-        metaAccessToken: pixel.accessToken,
-        // New FK + optional messages
-        metaPixelRef: landing.metaPixelRef,
+        metaPixelId: landing.metaPixelId,
         whatsappMessages: landing.whatsappMessages ?? [],
       },
     });

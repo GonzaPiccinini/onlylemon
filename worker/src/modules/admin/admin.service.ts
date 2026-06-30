@@ -7,7 +7,6 @@ import { emitCashierRuntimeStateChanged } from '../cashier/runtime-events.js';
 import {
   createAdmin,
   createCashier,
-  createLanding,
   createLandingFallbackPhone,
   createLandingWithFallbacks,
   countMetaPixelLandings,
@@ -85,21 +84,17 @@ const maskToken = (token: string): string => {
 };
 
 /**
- * Phase 4 — toLandingDto:
- * - `metaPixelId` now carries the FK UUID (Landing.metaPixelRef), not the old pixel number.
+ * Phase 5 (Contract) — toLandingDto:
+ * - `metaPixelId` is the FK UUID (Landing.metaPixelId → MetaPixel.id).
  * - `metaPixel` is the nested MetaPixel relation (id, pixelId, label) — null if not loaded.
  * - `whatsappMessages` is the per-landing message list.
- * - Old `metaAccessTokenMasked` is removed (token lives on MetaPixel, never exposed).
- * - `metaPixelRelation` and `whatsappMessages` are optional in the input type so callers
- *   that don't include the relation (e.g. setLandingStatus) still compile.
+ * - Old scalar `metaPixelId` (pixel number) and `metaAccessToken` columns are gone.
  */
 const toLandingDto = (landing: {
   id: string;
   url: string;
   metaPixelId: string;
-  metaAccessToken: string;
-  metaPixelRef?: string | null;
-  metaPixelRelation?: { id: string; pixelId: string; label: string | null } | null;
+  metaPixel?: { id: string; pixelId: string; label: string | null } | null;
   whatsappMessages?: string[];
   status: 'ACTIVE' | 'DISABLED';
   createdAt: Date;
@@ -107,8 +102,8 @@ const toLandingDto = (landing: {
 }) => ({
   id: landing.id,
   url: landing.url,
-  metaPixelId: landing.metaPixelRef ?? null,
-  metaPixel: landing.metaPixelRelation ?? null,
+  metaPixelId: landing.metaPixelId,
+  metaPixel: landing.metaPixel ?? null,
   whatsappMessages: landing.whatsappMessages ?? [],
   status: landing.status,
   createdAt: landing.createdAt,
@@ -1290,15 +1285,13 @@ export const deleteLandingFallbackPhoneService = async (id: string): Promise<voi
 export const createLandingServiceImpl = async (
   deps: {
     createLandingWithFallbacks: (
-      landing: { url: string; metaPixelRef: string; whatsappMessages?: string[] },
+      landing: { url: string; metaPixelId: string; whatsappMessages?: string[] },
       fallbacks: { phone: string; label?: string; order?: number }[],
     ) => Promise<{
       id: string;
       url: string;
       metaPixelId: string;
-      metaAccessToken: string;
-      metaPixelRef?: string | null;
-      metaPixelRelation?: { id: string; pixelId: string; label: string | null } | null;
+      metaPixel?: { id: string; pixelId: string; label: string | null } | null;
       whatsappMessages?: string[];
       status: 'ACTIVE' | 'DISABLED';
       createdAt: Date;
@@ -1307,7 +1300,7 @@ export const createLandingServiceImpl = async (
   },
   input: {
     url: string;
-    metaPixelRef: string;
+    metaPixelId: string;
     whatsappMessages?: string[];
     fallbackPhones: { phone: string; label?: string; order?: number }[];
   },
@@ -1319,7 +1312,7 @@ export const createLandingServiceImpl = async (
     validatePhone(fp.phone);
   }
   const landing = await deps.createLandingWithFallbacks(
-    { url: input.url, metaPixelRef: input.metaPixelRef, whatsappMessages: input.whatsappMessages },
+    { url: input.url, metaPixelId: input.metaPixelId, whatsappMessages: input.whatsappMessages },
     input.fallbackPhones,
   );
   return toLandingDto(landing);
@@ -1327,7 +1320,7 @@ export const createLandingServiceImpl = async (
 
 export const createLandingServiceWithFallbacks = async (input: {
   url: string;
-  metaPixelRef: string;
+  metaPixelId: string;
   whatsappMessages?: string[];
   fallbackPhones: { phone: string; label?: string; order?: number }[];
 }) => createLandingServiceImpl({ createLandingWithFallbacks }, input);
@@ -1339,16 +1332,14 @@ export const updateLandingServiceImpl = async (
       id: string,
       input: {
         url: string;
-        metaPixelId?: string;
-        metaAccessToken?: string;
-        metaPixelRef?: string | null;
+        metaPixelId?: string | null;
         whatsappMessages?: string[];
       },
     ) => Promise<{
       id: string;
       url: string;
       metaPixelId: string;
-      metaAccessToken: string;
+      metaPixel?: { id: string; pixelId: string; label: string | null } | null;
       status: 'ACTIVE' | 'DISABLED';
       createdAt: Date;
       updatedAt: Date;
@@ -1361,10 +1352,8 @@ export const updateLandingServiceImpl = async (
   landingId: string,
   input: {
     url: string;
-    metaPixelId?: string;
-    metaAccessToken?: string;
-    /** New FK → MetaPixel.id (Phase 3+). Replaces scalar metaPixelId+metaAccessToken fields. */
-    metaPixelRef?: string | null;
+    /** FK → MetaPixel.id (UUID). Replaces old scalar fields. */
+    metaPixelId?: string | null;
     /** Per-landing WhatsApp messages (task 3.6). Each trimmed, empty discarded, max 5, each ≤250 chars. */
     whatsappMessages?: string[];
     fallbackPhones?: { phone: string; label?: string; order?: number }[];
@@ -1389,8 +1378,6 @@ export const updateLandingServiceImpl = async (
   const landing = await deps.updateLanding(landingId, {
     url: input.url,
     ...(input.metaPixelId !== undefined ? { metaPixelId: input.metaPixelId } : {}),
-    ...(input.metaAccessToken !== undefined ? { metaAccessToken: input.metaAccessToken } : {}),
-    ...(input.metaPixelRef !== undefined ? { metaPixelRef: input.metaPixelRef } : {}),
     ...(normalizedMessages !== undefined ? { whatsappMessages: normalizedMessages } : {}),
   });
   if (input.fallbackPhones !== undefined) {
@@ -1403,9 +1390,7 @@ export const updateLandingServiceWithFallbacks = async (
   landingId: string,
   input: {
     url: string;
-    metaPixelId?: string;
-    metaAccessToken?: string;
-    metaPixelRef?: string | null;
+    metaPixelId?: string | null;
     whatsappMessages?: string[];
     fallbackPhones?: { phone: string; label?: string; order?: number }[];
   },

@@ -18,10 +18,9 @@ type CreateLeadData = {
   fbc: string;
   fbp: string;
   userAgent: string;
-  metaPixelId: string;     // OLD scalar pixel number — still NOT NULL during Expand phase
-  metaPixelRef: string;    // transitional FK → MetaPixel.id (snapshot at create time)
+  metaPixelId: string;     // FK → MetaPixel.id (NOT NULL, snapshot at create time)
   eventSourceUrl: string;  // snapshot of Landing.url at create time
-  landingId: string;       // routing key — NOT NULL after tighten
+  landingId: string;       // routing key → Landing.id
 };
 
 type UpdateLeadData = {
@@ -35,7 +34,7 @@ export async function saveLead(data: CreateLeadData) {
   return prisma.lead.create({
     data,
     include: {
-      metaPixelRelation: true, // include full MetaPixel row (with accessToken) for CAPI dispatch
+      metaPixel: true, // include full MetaPixel row (with accessToken) for CAPI dispatch
     },
   });
 }
@@ -228,7 +227,7 @@ export async function getLeadByCode(code: string) {
   return prisma.lead.findUnique({
     where: { code },
     include: {
-      metaPixelRelation: true, // include full MetaPixel row (with accessToken) for CAPI dispatch
+      metaPixel: true, // include full MetaPixel row (with accessToken) for CAPI dispatch
     },
   });
 }

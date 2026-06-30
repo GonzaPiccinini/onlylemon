@@ -78,6 +78,14 @@ export const findLeadByIdForCashier = (leadId: string, cashierId: string) =>
       id: leadId,
       cashierId,
     },
+    include: {
+      metaPixel: {
+        select: {
+          pixelId: true,
+          accessToken: true,
+        },
+      },
+    },
   });
 
 

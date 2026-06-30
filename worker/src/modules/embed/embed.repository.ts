@@ -10,7 +10,7 @@ export const EMBED_SELECT = {
   id: true,
   status: true,
   whatsappMessages: true,
-  metaPixelRelation: {
+  metaPixel: {
     select: {
       pixelId: true,
     },
@@ -21,7 +21,7 @@ export type EmbedLandingRow = {
   id: string;
   status: 'ACTIVE' | 'DISABLED';
   whatsappMessages: string[];
-  metaPixelRelation: { pixelId: string } | null;
+  metaPixel: { pixelId: string } | null;
 };
 
 /**
@@ -44,6 +44,6 @@ export const getEmbedConfigByLandingId = async (
     id: result.id,
     status: result.status as 'ACTIVE' | 'DISABLED',
     whatsappMessages: result.whatsappMessages,
-    metaPixelRelation: result.metaPixelRelation ?? null,
+    metaPixel: result.metaPixel ?? null,
   };
 };
