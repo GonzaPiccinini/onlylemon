@@ -416,11 +416,36 @@ export const buildListLeadsQuery = (filters: {
   phone?: string;
   page?: number;
   pageSize?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
 }) => {
   const page = filters.page ?? undefined;
   const pageSize = filters.pageSize ?? undefined;
   const skip = page !== undefined && pageSize !== undefined ? (page - 1) * pageSize : undefined;
   const take = pageSize;
+
+  // Date-range filter targets lastStatusChangeAt = max(createdAt, contactedAt,
+  // lastConversionAt) — the same value shown in the "Última actualización"
+  // column. Since it is computed (not a stored column), express it as a compound
+  // AND so the filter matches what the user sees:
+  //   upper bound (< dateTo):  every component is < dateTo
+  //   lower bound (>= dateFrom): at least one component is >= dateFrom
+  // dateTo arrives already shifted +1 day by the controller (exclusive bound).
+  const dateAnd: Prisma.LeadWhereInput[] = [];
+  if (filters.dateTo) {
+    dateAnd.push({ createdAt: { lt: filters.dateTo } });
+    dateAnd.push({ OR: [{ contactedAt: null }, { contactedAt: { lt: filters.dateTo } }] });
+    dateAnd.push({ conversions: { none: { createdAt: { gte: filters.dateTo } } } });
+  }
+  if (filters.dateFrom) {
+    dateAnd.push({
+      OR: [
+        { createdAt: { gte: filters.dateFrom } },
+        { contactedAt: { gte: filters.dateFrom } },
+        { conversions: { some: { createdAt: { gte: filters.dateFrom } } } },
+      ],
+    });
+  }
 
   return {
     where: {
@@ -444,6 +469,7 @@ export const buildListLeadsQuery = (filters: {
           }
         : {}),
       ...(filters.phone ? { phone: { contains: filters.phone } } : {}),
+      ...(dateAnd.length ? { AND: dateAnd } : {}),
     },
     include: {
       cashier: {
@@ -477,6 +503,8 @@ type ListLeadsAdminFilters = {
   adCode?: string;
   code?: string;
   phone?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
   conversionCount?: { kind: 'gte' | 'lte'; value: number };
 };
 

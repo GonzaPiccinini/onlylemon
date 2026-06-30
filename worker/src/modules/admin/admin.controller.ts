@@ -207,7 +207,14 @@ export const listLeadsHandler = async (req: Request, res: Response) => {
     });
   }
 
-  const data = await listLeadsService(parsed.data);
+  const { dateFrom, dateTo, ...rest } = parsed.data;
+  const data = await listLeadsService({
+    ...rest,
+    // Mirror the history endpoint convention: dateFrom is the start of the local day (03:00 UTC),
+    // dateTo is shifted +1 day so the half-open interval [gte, lt) includes the full selected day.
+    dateFrom: dateFrom ? new Date(`${dateFrom}T03:00:00.000Z`) : undefined,
+    dateTo: dateTo ? new Date(`${addOneDayIsoDate(dateTo)}T03:00:00.000Z`) : undefined,
+  });
   return res.status(200).json(data);
 };
 

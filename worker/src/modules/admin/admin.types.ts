@@ -80,6 +80,16 @@ export const updateAdminAccountSchema = z
 
 export type UpdateAdminAccountInput = z.infer<typeof updateAdminAccountSchema>;
 
+const isValidCalendarDate = (s: string): boolean => {
+  const d = new Date(`${s}T03:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return false;
+  // Re-format as YYYY-MM-DD and compare: catches rolled-over dates like '2026-02-30'
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}` === s;
+};
+
 export const dateRangeSchema = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -97,7 +107,22 @@ export const leadsFilterSchema = z.object({
   phone: z.string().trim().min(1).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
-});
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isValidCalendarDate, { message: 'Invalid date' })
+    .optional(),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isValidCalendarDate, { message: 'Invalid date' })
+    .optional(),
+}).refine(
+  // Reject an inverted range (Desde after Hasta). YYYY-MM-DD sorts chronologically
+  // as strings, so a lexicographic comparison is correct here.
+  (data) => !data.dateFrom || !data.dateTo || data.dateFrom <= data.dateTo,
+  { message: 'dateFrom must be on or before dateTo', path: ['dateFrom'] },
+);
 
 export type DateRangeQuery = z.infer<typeof dateRangeSchema>;
 export type LeadsFilterQuery = z.infer<typeof leadsFilterSchema>;
@@ -122,16 +147,6 @@ export const conversionsFilterSchema = z.object({
 });
 
 export type ConversionsFilterQuery = z.infer<typeof conversionsFilterSchema>;
-
-const isValidCalendarDate = (s: string): boolean => {
-  const d = new Date(`${s}T03:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) return false;
-  // Re-format as YYYY-MM-DD and compare: catches rolled-over dates like '2026-02-30'
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}` === s;
-};
 
 export const leadHistoryQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

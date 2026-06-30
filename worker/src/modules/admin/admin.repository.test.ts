@@ -564,3 +564,61 @@ test('resolveConversionCountLeadIds returns a thenable resolving to string[] (st
     // DB unavailable in this context — structural thenable check above already passed.
   }
 });
+
+// ---------------------------------------------------------------------------
+// leads-date-range — buildListLeadsQuery date-range filter on lastStatusChangeAt
+// lastStatusChangeAt = max(createdAt, contactedAt, lastConversionAt) — the same
+// value shown in the "Última actualización" column. Expressed as a compound AND
+// so the filter matches what the user sees.
+// ---------------------------------------------------------------------------
+
+test('buildListLeadsQuery: dateFrom only → AND lower-bound OR over createdAt/contactedAt/conversions', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const from = new Date('2026-01-01T03:00:00.000Z');
+  const q = buildListLeadsQuery({ dateFrom: from });
+  assert.deepEqual((q.where as Record<string, unknown>).AND, [
+    {
+      OR: [
+        { createdAt: { gte: from } },
+        { contactedAt: { gte: from } },
+        { conversions: { some: { createdAt: { gte: from } } } },
+      ],
+    },
+  ]);
+});
+
+test('buildListLeadsQuery: dateTo only → AND upper-bound over createdAt/contactedAt/conversions', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const to = new Date('2026-01-08T03:00:00.000Z');
+  const q = buildListLeadsQuery({ dateTo: to });
+  assert.deepEqual((q.where as Record<string, unknown>).AND, [
+    { createdAt: { lt: to } },
+    { OR: [{ contactedAt: null }, { contactedAt: { lt: to } }] },
+    { conversions: { none: { createdAt: { gte: to } } } },
+  ]);
+});
+
+test('buildListLeadsQuery: dateFrom + dateTo → AND combines upper and lower bounds', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const from = new Date('2026-01-01T03:00:00.000Z');
+  const to = new Date('2026-01-08T03:00:00.000Z');
+  const q = buildListLeadsQuery({ dateFrom: from, dateTo: to });
+  assert.deepEqual((q.where as Record<string, unknown>).AND, [
+    { createdAt: { lt: to } },
+    { OR: [{ contactedAt: null }, { contactedAt: { lt: to } }] },
+    { conversions: { none: { createdAt: { gte: to } } } },
+    {
+      OR: [
+        { createdAt: { gte: from } },
+        { contactedAt: { gte: from } },
+        { conversions: { some: { createdAt: { gte: from } } } },
+      ],
+    },
+  ]);
+});
+
+test('buildListLeadsQuery: no dates → no AND key in where', async () => {
+  const { buildListLeadsQuery } = await import('./admin.repository.js');
+  const q = buildListLeadsQuery({});
+  assert.equal((q.where as Record<string, unknown>).AND, undefined);
+});
