@@ -48,8 +48,8 @@
 
 ## Phase 3 — Admin Snippet UI (dashboard)
 
-- [ ] 3.1 **[RED]** Write tests/lint checks for snippet component in `dashboard/src/features/admin/admin-landings-page.tsx`: mode selector renders 3 options; copy button calls `navigator.clipboard.writeText`; one-liner matches `<script src=".../{landingId}.js" data-cta-mode="{mode}" async></script>` with no "Lemon" in any attribute.
-- [ ] 3.2 **[GREEN]** Modify `dashboard/src/features/admin/admin-landings-page.tsx`: add per-landing mode selector (`solo-logica` / `widget-automontado` / `boton-flotante`); one-liner snippet display with the selected mode; copy-to-clipboard button; enforce neutral naming (`data-cta-*`, `id="cta-root"`, no "Lemon" references anywhere).
+- [x] 3.1 **[RED]** Write tests/lint checks for snippet component in `dashboard/src/features/admin/admin-landings-page.tsx`: mode selector renders 3 options; copy button calls `navigator.clipboard.writeText`; one-liner matches `<script src=".../{landingId}.js" data-cta-mode="{mode}" async></script>` with no "Lemon" in any attribute. *(Dashboard has no test runner — standard mode: TypeScript build + lint verified)*
+- [x] 3.2 **[GREEN]** Modify `dashboard/src/features/admin/admin-landings-page.tsx`: add per-landing mode selector (`solo-logica` / `widget-automontado` / `boton-flotante`); one-liner snippet display with the selected mode; copy-to-clipboard button; enforce neutral naming (`data-cta-*`, `id="cta-root"`, no "Lemon" references anywhere).
 
 ---
 

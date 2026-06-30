@@ -4,7 +4,10 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2Icon,
+  CheckIcon,
   CircleDashedIcon,
+  Code2Icon,
+  CopyIcon,
   LockIcon,
   MoreHorizontalIcon,
   PencilLineIcon,
@@ -55,6 +58,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Landing, LandingFallbackPhone, MetaPixel } from "@/types/domain";
+import { env } from "@/config/env";
 import { formatDateTime } from "@/lib/format";
 import {
   useCreateLanding,
@@ -556,6 +560,115 @@ const FallbackPhonesPanel = ({ landing }: FallbackPhonesPanelProps) => {
 };
 
 // ---------------------------------------------------------------------------
+// EmbedSnippetPanel — per-landing integration snippet with mode selector
+// ---------------------------------------------------------------------------
+
+type EmbedMode = "boton-flotante" | "widget-automontado" | "solo-logica";
+
+const EMBED_MODES: { value: EmbedMode; label: string }[] = [
+  { value: "boton-flotante", label: "Botón flotante (FAB)" },
+  { value: "widget-automontado", label: "Widget automontado" },
+  { value: "solo-logica", label: "Solo lógica (tu propio markup)" },
+];
+
+/** Strip the /api suffix from the dashboard API base URL to get the worker root. */
+const workerBase = env.apiBaseUrl.replace(/\/api$/, "");
+
+function buildSnippet(landingId: string, mode: EmbedMode): string {
+  const scriptTag = `<script src="${workerBase}/embed/${landingId}.js" data-cta-mode="${mode}" async></script>`;
+
+  if (mode === "boton-flotante") {
+    return scriptTag;
+  }
+
+  if (mode === "widget-automontado") {
+    return `<div id="cta-root"></div>\n${scriptTag}`;
+  }
+
+  // solo-logica: owner must provide a [data-cta] button and a [data-cta-captcha] container
+  return [
+    `<!-- Botón de CTA (atributo data-cta requerido) -->`,
+    `<button type="button" data-cta>Contactarse</button>`,
+    `<!-- Contenedor para el captcha (atributo data-cta-captcha requerido) -->`,
+    `<div data-cta-captcha></div>`,
+    scriptTag,
+  ].join("\n");
+}
+
+type EmbedSnippetPanelProps = {
+  landing: Landing;
+};
+
+const EmbedSnippetPanel = ({ landing }: EmbedSnippetPanelProps) => {
+  const [mode, setMode] = useState<EmbedMode>("boton-flotante");
+  const [copied, setCopied] = useState(false);
+
+  const snippet = buildSnippet(landing.id, mode);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard API not available in this context
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 px-1 pb-2 pt-1">
+      <Field>
+        <FieldLabel htmlFor={`embed-mode-${landing.id}`}>Modo de integración</FieldLabel>
+        <FieldContent>
+          <select
+            id={`embed-mode-${landing.id}`}
+            value={mode}
+            onChange={(e) => setMode(e.target.value as EmbedMode)}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          >
+            {EMBED_MODES.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </FieldContent>
+      </Field>
+
+      {mode === "solo-logica" && (
+        <p className="text-xs text-muted-foreground">
+          Tu página debe incluir un elemento con el atributo{" "}
+          <code className="rounded bg-muted px-1 font-mono">data-cta</code> (el botón
+          que dispara el contacto) y un contenedor con el atributo{" "}
+          <code className="rounded bg-muted px-1 font-mono">data-cta-captcha</code>{" "}
+          (donde se muestra el captcha). El snippet incluye un ejemplo.
+        </p>
+      )}
+
+      <div className="relative">
+        <pre className="overflow-x-auto rounded-md bg-muted p-3 pr-10 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
+          {snippet}
+        </pre>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="absolute right-2 top-2"
+          aria-label={copied ? "Copiado" : "Copiar snippet"}
+          onClick={handleCopy}
+        >
+          {copied ? (
+            <CheckIcon className="size-4 text-green-600" />
+          ) : (
+            <CopyIcon className="size-4" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // MetaPixelSelectorField — dropdown that lists available pixels
 // ---------------------------------------------------------------------------
 
@@ -956,6 +1069,7 @@ export const AdminLandingsPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingLanding, setEditingLanding] = useState<Landing | null>(null);
   const [fallbacksLanding, setFallbacksLanding] = useState<Landing | null>(null);
+  const [snippetLanding, setSnippetLanding] = useState<Landing | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -1181,6 +1295,12 @@ export const AdminLandingsPage = () => {
                               <PhoneIcon className="size-4" />
                               Números de respaldo
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setSnippetLanding(landing)}
+                            >
+                              <Code2Icon className="size-4" />
+                              Snippet de integración
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => toggleLanding(landing)}>
                               {landing.status === "ACTIVE" ? (
                                 <ToggleLeftIcon className="size-4" />
@@ -1277,6 +1397,24 @@ export const AdminLandingsPage = () => {
             </DialogDescription>
           </DialogHeader>
           {fallbacksLanding && <FallbackPhonesPanel landing={fallbacksLanding} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Snippet de integración dialog */}
+      <Dialog
+        open={Boolean(snippetLanding)}
+        onOpenChange={(open) => {
+          if (!open) setSnippetLanding(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Snippet de integración</DialogTitle>
+            <DialogDescription>
+              Pegá este código en tu landing para activar el formulario de contacto.
+            </DialogDescription>
+          </DialogHeader>
+          {snippetLanding && <EmbedSnippetPanel landing={snippetLanding} />}
         </DialogContent>
       </Dialog>
     </section>
