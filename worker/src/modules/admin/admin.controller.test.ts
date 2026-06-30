@@ -24,6 +24,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER =
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
@@ -511,7 +512,6 @@ test('createLandingHandler (extended): empty fallbackPhones array → 400', asyn
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       fallbackPhones: [],
     },
   });
@@ -529,7 +529,6 @@ test('createLandingHandler (extended): fallbackPhones with invalid E.164 → 400
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       fallbackPhones: [{ phone: 'not-e164' }],
     },
   });
@@ -547,7 +546,6 @@ test('createLandingHandler (extended): missing fallbackPhones field → 400', as
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       // no fallbackPhones
     },
   });
@@ -566,7 +564,6 @@ test('updateLandingHandler (extended): empty fallbackPhones array → 400', asyn
     body: {
       url: 'https://example.com',
       metaPixelId: 'px-1',
-      metaAccessToken: 'token-1',
       fallbackPhones: [],
     },
   });

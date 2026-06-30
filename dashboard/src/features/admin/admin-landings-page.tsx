@@ -4,11 +4,16 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2Icon,
+  CheckIcon,
   CircleDashedIcon,
+  Code2Icon,
+  CopyIcon,
+  LockIcon,
   MoreHorizontalIcon,
   PencilLineIcon,
   PhoneIcon,
   PlusIcon,
+  RadioIcon,
   Trash2Icon,
   ToggleLeftIcon,
   ToggleRightIcon,
@@ -52,7 +57,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Landing, LandingFallbackPhone } from "@/types/domain";
+import type { Landing, LandingFallbackPhone, MetaPixel } from "@/types/domain";
+import { env } from "@/config/env";
 import { formatDateTime } from "@/lib/format";
 import {
   useCreateLanding,
@@ -63,14 +69,28 @@ import {
   useSetLandingStatus,
   useUpdateLanding,
   useUpdateLandingFallbackPhone,
+  useMetaPixels,
+  useCreateMetaPixel,
+  useUpdateMetaPixel,
+  useDeleteMetaPixel,
 } from "@/features/admin/admin-hooks";
 import { PaginationControls } from "@/components/common/pagination-controls";
 
 // ---------------------------------------------------------------------------
-// Zod schemas — B8.5
+// Helpers
 // ---------------------------------------------------------------------------
 
+const MAX_MESSAGES = 5;
+const MAX_MSG_LEN = 250;
+
 const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
+
+const pixelLabel = (p: Pick<MetaPixel, "pixelId" | "label">) =>
+  p.label ? `${p.label} (${p.pixelId})` : p.pixelId;
+
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
 
 const fallbackPhoneSchema = z.object({
   phone: z
@@ -80,10 +100,18 @@ const fallbackPhoneSchema = z.object({
   order: z.number().int().nonnegative().optional(),
 });
 
+const whatsappMessageItemSchema = z
+  .string()
+  .max(MAX_MSG_LEN, `Máximo ${MAX_MSG_LEN} caracteres`);
+
+const whatsappMessagesSchema = z
+  .array(whatsappMessageItemSchema)
+  .max(MAX_MESSAGES, `Máximo ${MAX_MESSAGES} mensajes`);
+
 const createSchema = z.object({
   url: z.string().url("URL invalida"),
-  metaPixelId: z.string().min(1, "Meta Pixel ID obligatorio"),
-  metaAccessToken: z.string().min(1, "Meta Access Token obligatorio"),
+  metaPixelRef: z.string().min(1, "Seleccioná un pixel"),
+  whatsappMessages: whatsappMessagesSchema.optional(),
   fallbackPhones: z
     .array(fallbackPhoneSchema)
     .min(1, "Agregá al menos un teléfono de respaldo"),
@@ -91,17 +119,122 @@ const createSchema = z.object({
 
 const updateSchema = z.object({
   url: z.string().url("URL invalida"),
-  metaPixelId: z.string().min(1, "Meta Pixel ID obligatorio"),
-  metaAccessToken: z.string().optional(),
+  metaPixelRef: z.string().min(1, "Seleccioná un pixel"),
+  whatsappMessages: whatsappMessagesSchema,
+});
+
+const createPixelSchema = z.object({
+  pixelId: z.string().min(1, "Pixel ID obligatorio"),
+  accessToken: z.string().min(1, "Access Token obligatorio"),
+  label: z.string().optional(),
+});
+
+const updatePixelSchema = z.object({
+  pixelId: z.string().optional(),
+  accessToken: z.string().optional(),
+  label: z.string().optional(),
 });
 
 type CreateValues = z.infer<typeof createSchema>;
 type UpdateValues = z.infer<typeof updateSchema>;
-
-const shortMaskedToken = (masked: string): string => `••••${masked.slice(-4)}`;
+type CreatePixelValues = z.infer<typeof createPixelSchema>;
+type UpdatePixelValues = z.infer<typeof updatePixelSchema>;
 
 // ---------------------------------------------------------------------------
-// FallbackPhoneSection — shared sub-form for create/edit dialogs (B8.6)
+// WhatsappMessagesEditor — reusable list editor with client-side validation
+// ---------------------------------------------------------------------------
+
+type WhatsappMessagesEditorProps = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: ReturnType<typeof useForm<any>>;
+  fieldArrayName: string;
+};
+
+const WhatsappMessagesEditor = ({ form, fieldArrayName }: WhatsappMessagesEditorProps) => {
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: fieldArrayName,
+  });
+
+  const errors = form.formState.errors[fieldArrayName] as
+    | Array<{ message?: string } | undefined>
+    | { message?: string }
+    | undefined;
+
+  const rootError =
+    errors && !Array.isArray(errors) && "message" in errors
+      ? (errors as { message?: string }).message
+      : undefined;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">Mensajes de WhatsApp</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={fields.length >= MAX_MESSAGES}
+          onClick={() => append("")}
+        >
+          <PlusIcon data-icon="inline-start" />
+          Agregar
+        </Button>
+      </div>
+
+      {rootError && (
+        <p role="alert" className="text-sm text-destructive">{rootError}</p>
+      )}
+
+      {fields.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Sin mensajes configurados. Máximo {MAX_MESSAGES}.
+        </p>
+      )}
+
+      {fields.map((field, index) => {
+        const rowError = Array.isArray(errors) ? errors[index]?.message : undefined;
+        const val: string = form.watch(`${fieldArrayName}.${index}`) ?? "";
+        return (
+          <div key={field.id} className="flex items-start gap-2">
+            <div className="flex flex-1 flex-col gap-1">
+              <Field data-invalid={Boolean(rowError)}>
+                <FieldContent>
+                  <Input
+                    placeholder="Mensaje de bienvenida…"
+                    aria-label={`Mensaje ${index + 1}`}
+                    aria-invalid={Boolean(rowError)}
+                    {...form.register(`${fieldArrayName}.${index}`)}
+                  />
+                  <span className="text-right text-xs text-muted-foreground">
+                    {val.length}/{MAX_MSG_LEN}
+                  </span>
+                  {rowError && <FieldError errors={[{ message: rowError }]} />}
+                </FieldContent>
+              </Field>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Eliminar mensaje ${index + 1}`}
+              onClick={() => remove(index)}
+            >
+              <Trash2Icon className="size-4 text-destructive" />
+            </Button>
+          </div>
+        );
+      })}
+
+      <p className="text-xs text-muted-foreground">
+        Cada mensaje se recorta y los vacíos se descartan al guardar. Máx {MAX_MSG_LEN} caracteres c/u.
+      </p>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// FallbackPhoneSection — shared sub-form for create/edit dialogs
 // ---------------------------------------------------------------------------
 
 type FallbackPhoneSectionProps = {
@@ -200,7 +333,7 @@ const FallbackPhoneSection = ({ form, fieldArrayName }: FallbackPhoneSectionProp
 };
 
 // ---------------------------------------------------------------------------
-// FallbackPhonesPanel — per-row expandable panel (B8.7)
+// FallbackPhonesPanel — per-row expandable panel
 // ---------------------------------------------------------------------------
 
 type FallbackPhonesPanelProps = {
@@ -299,7 +432,6 @@ const FallbackPhonesPanel = ({ landing }: FallbackPhonesPanelProps) => {
 
   return (
     <div className="flex flex-col gap-3 px-4 pb-4 pt-2">
-      {/* List of existing fallback phones */}
       {phones.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No hay teléfonos de respaldo registrados.
@@ -376,7 +508,6 @@ const FallbackPhonesPanel = ({ landing }: FallbackPhonesPanelProps) => {
                 </div>
               )}
 
-              {/* Delete-last error inline — REQ-4 */}
               {deleteErrors[phone.id] && (
                 <p role="alert" className="text-xs text-destructive">
                   {deleteErrors[phone.id]}
@@ -387,7 +518,6 @@ const FallbackPhonesPanel = ({ landing }: FallbackPhonesPanelProps) => {
         </div>
       )}
 
-      {/* Add new fallback phone inline form */}
       <div className="flex flex-col gap-1 border-t pt-3">
         <p className="text-xs font-medium text-muted-foreground">Agregar respaldo</p>
         <div className="flex items-start gap-2">
@@ -430,11 +560,508 @@ const FallbackPhonesPanel = ({ landing }: FallbackPhonesPanelProps) => {
 };
 
 // ---------------------------------------------------------------------------
+// EmbedSnippetPanel — per-landing integration snippet with mode selector
+// ---------------------------------------------------------------------------
+
+type EmbedMode = "boton-flotante" | "widget-automontado" | "solo-logica";
+
+const EMBED_MODES: { value: EmbedMode; label: string }[] = [
+  { value: "boton-flotante", label: "Botón flotante (FAB)" },
+  { value: "widget-automontado", label: "Widget automontado" },
+  { value: "solo-logica", label: "Solo lógica (tu propio markup)" },
+];
+
+/** Strip the /api suffix from the dashboard API base URL to get the worker root. */
+const workerBase = env.apiBaseUrl.replace(/\/api$/, "");
+
+function buildSnippet(landingId: string, mode: EmbedMode): string {
+  const scriptTag = `<script src="${workerBase}/embed/${landingId}.js" data-cta-mode="${mode}" async></script>`;
+
+  if (mode === "boton-flotante") {
+    return scriptTag;
+  }
+
+  if (mode === "widget-automontado") {
+    return `<div id="cta-root"></div>\n${scriptTag}`;
+  }
+
+  // solo-logica: owner must provide a [data-cta] button and a [data-cta-captcha] container
+  return [
+    `<!-- Botón de CTA (atributo data-cta requerido) -->`,
+    `<button type="button" data-cta>Contactarse</button>`,
+    `<!-- Contenedor para el captcha (atributo data-cta-captcha requerido) -->`,
+    `<div data-cta-captcha></div>`,
+    scriptTag,
+  ].join("\n");
+}
+
+type EmbedSnippetPanelProps = {
+  landing: Landing;
+};
+
+const EmbedSnippetPanel = ({ landing }: EmbedSnippetPanelProps) => {
+  const [mode, setMode] = useState<EmbedMode>("boton-flotante");
+  const [copied, setCopied] = useState(false);
+
+  const snippet = buildSnippet(landing.id, mode);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard API not available in this context
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 px-1 pb-2 pt-1">
+      <Field>
+        <FieldLabel htmlFor={`embed-mode-${landing.id}`}>Modo de integración</FieldLabel>
+        <FieldContent>
+          <select
+            id={`embed-mode-${landing.id}`}
+            value={mode}
+            onChange={(e) => setMode(e.target.value as EmbedMode)}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          >
+            {EMBED_MODES.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </FieldContent>
+      </Field>
+
+      {mode === "solo-logica" && (
+        <p className="text-xs text-muted-foreground">
+          Tu página debe incluir un elemento con el atributo{" "}
+          <code className="rounded bg-muted px-1 font-mono">data-cta</code> (el botón
+          que dispara el contacto) y un contenedor con el atributo{" "}
+          <code className="rounded bg-muted px-1 font-mono">data-cta-captcha</code>{" "}
+          (donde se muestra el captcha). El snippet incluye un ejemplo.
+        </p>
+      )}
+
+      <div className="relative">
+        <pre className="overflow-x-auto rounded-md bg-muted p-3 pr-10 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
+          {snippet}
+        </pre>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="absolute right-2 top-2"
+          aria-label={copied ? "Copiado" : "Copiar snippet"}
+          onClick={handleCopy}
+        >
+          {copied ? (
+            <CheckIcon className="size-4 text-green-600" />
+          ) : (
+            <CopyIcon className="size-4" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// MetaPixelSelectorField — dropdown that lists available pixels
+// ---------------------------------------------------------------------------
+
+type MetaPixelSelectorFieldProps = {
+  value: string;
+  onChange: (id: string) => void;
+  pixels: MetaPixel[];
+  error?: string;
+  id?: string;
+};
+
+const MetaPixelSelectorField = ({
+  value,
+  onChange,
+  pixels,
+  error,
+  id,
+}: MetaPixelSelectorFieldProps) => (
+  <Field data-invalid={Boolean(error)}>
+    <FieldLabel htmlFor={id}>Pixel de seguimiento</FieldLabel>
+    <FieldContent>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={Boolean(error)}
+        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+      >
+        <option value="">— Seleccioná un pixel —</option>
+        {pixels.map((p) => (
+          <option key={p.id} value={p.id}>
+            {pixelLabel(p)}
+          </option>
+        ))}
+      </select>
+      {error && <FieldError errors={[{ message: error }]} />}
+    </FieldContent>
+  </Field>
+);
+
+// ---------------------------------------------------------------------------
+// MetaPixelManagementDialog — full CRUD with reference guards
+// ---------------------------------------------------------------------------
+
+const MetaPixelManagementDialog = () => {
+  const { data: pixels = [], isLoading } = useMetaPixels();
+  const createPixel = useCreateMetaPixel();
+  const updatePixel = useUpdateMetaPixel();
+  const deletePixel = useDeleteMetaPixel();
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingPixel, setEditingPixel] = useState<MetaPixel | null>(null);
+  const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>({});
+
+  const createForm = useForm<CreatePixelValues>({
+    resolver: zodResolver(createPixelSchema),
+    defaultValues: { pixelId: "", accessToken: "", label: "" },
+  });
+
+  const updateForm = useForm<UpdatePixelValues>({
+    resolver: zodResolver(updatePixelSchema),
+    defaultValues: { pixelId: "", accessToken: "", label: "" },
+  });
+
+  const onCreatePixel = async (values: CreatePixelValues) => {
+    try {
+      await createPixel.mutateAsync({
+        pixelId: values.pixelId,
+        accessToken: values.accessToken,
+        label: values.label || undefined,
+      });
+      toast.success("Pixel creado");
+      createForm.reset();
+      setCreateOpen(false);
+    } catch {
+      toast.error("No se pudo crear el pixel");
+    }
+  };
+
+  const openEditPixel = (p: MetaPixel) => {
+    setEditingPixel(p);
+    updateForm.reset({ pixelId: p.pixelId, accessToken: "", label: p.label ?? "" });
+  };
+
+  const onUpdatePixel = async (values: UpdatePixelValues) => {
+    if (!editingPixel) return;
+
+    const payload: { pixelId?: string; accessToken?: string; label?: string | null } = {};
+    if (values.pixelId && values.pixelId !== editingPixel.pixelId) {
+      payload.pixelId = values.pixelId;
+    }
+    if (values.accessToken) payload.accessToken = values.accessToken;
+    if (values.label !== undefined) payload.label = values.label || null;
+
+    if (Object.keys(payload).length === 0) {
+      setEditingPixel(null);
+      return;
+    }
+
+    try {
+      await updatePixel.mutateAsync({ id: editingPixel.id, input: payload });
+      toast.success("Pixel actualizado");
+      setEditingPixel(null);
+    } catch (err) {
+      const e = err as { response?: { data?: { error?: string; message?: string } } };
+      if (e.response?.data?.error === "PIXEL_ID_FROZEN") {
+        toast.error("El Pixel ID no puede editarse porque hay leads asociados.");
+      } else {
+        toast.error("No se pudo actualizar el pixel");
+      }
+    }
+  };
+
+  const handleDeletePixel = async (p: MetaPixel) => {
+    setDeleteErrors((prev) => ({ ...prev, [p.id]: "" }));
+    try {
+      await deletePixel.mutateAsync(p.id);
+      toast.success("Pixel eliminado");
+    } catch (err) {
+      const e = err as {
+        response?: {
+          data?: {
+            error?: string;
+            message?: string;
+            references?: { leads: number; landings: number };
+          };
+        };
+      };
+      if (e.response?.data?.error === "PIXEL_REFERENCED") {
+        const refs = e.response.data.references;
+        const msg = refs
+          ? `No se puede eliminar: ${refs.landings} landing(s) y ${refs.leads} lead(s) lo referencian.`
+          : "No se puede eliminar: el pixel tiene referencias activas.";
+        setDeleteErrors((prev) => ({ ...prev, [p.id]: msg }));
+      } else {
+        toast.error("No se pudo eliminar el pixel");
+      }
+    }
+  };
+
+  const pixelHasLeads = (p: MetaPixel) => p.leadCount > 0;
+
+  return (
+    <Dialog>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <RadioIcon data-icon="inline-start" className="size-4" />
+        Gestionar pixels
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Pixels de seguimiento</DialogTitle>
+          <DialogDescription>
+            Creá, editá o eliminá pixels. El Pixel ID queda congelado cuando hay leads asociados.
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : pixels.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay pixels registrados.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {pixels.map((p) => (
+              <div key={p.id} className="flex flex-col gap-1 rounded-md border p-3">
+                {editingPixel?.id === p.id ? (
+                  <form
+                    onSubmit={updateForm.handleSubmit(onUpdatePixel)}
+                    className="flex flex-col gap-2"
+                  >
+                    <FieldGroup>
+                      <Field
+                        data-invalid={Boolean(updateForm.formState.errors.pixelId)}
+                      >
+                        <FieldLabel htmlFor={`edit-pixel-id-${p.id}`}>
+                          Pixel ID
+                          {pixelHasLeads(p) && (
+                            <span
+                              title="Congelado: hay leads asociados"
+                              className="ml-1 inline-flex items-center gap-1 text-xs text-amber-600"
+                            >
+                              <LockIcon className="size-3" /> Congelado
+                            </span>
+                          )}
+                        </FieldLabel>
+                        <FieldContent>
+                          <Input
+                            id={`edit-pixel-id-${p.id}`}
+                            disabled={pixelHasLeads(p)}
+                            aria-invalid={Boolean(updateForm.formState.errors.pixelId)}
+                            {...updateForm.register("pixelId")}
+                          />
+                          {pixelHasLeads(p) && (
+                            <FieldDescription>
+                              Hay {p.leadCount} lead(s) asociados. El Pixel ID no puede modificarse
+                              para preservar la atribución histórica. Podés rotar el Access Token o
+                              editar la etiqueta.
+                            </FieldDescription>
+                          )}
+                          <FieldError errors={[updateForm.formState.errors.pixelId]} />
+                        </FieldContent>
+                      </Field>
+
+                      <Field>
+                        <FieldLabel htmlFor={`edit-access-token-${p.id}`}>
+                          Nuevo Access Token
+                        </FieldLabel>
+                        <FieldContent>
+                          <Input
+                            id={`edit-access-token-${p.id}`}
+                            type="password"
+                            placeholder="Dejá vacío para no cambiar"
+                            {...updateForm.register("accessToken")}
+                          />
+                          <FieldDescription>
+                            Siempre editable. Dejalo vacío para mantener el token actual.
+                          </FieldDescription>
+                        </FieldContent>
+                      </Field>
+
+                      <Field>
+                        <FieldLabel htmlFor={`edit-label-${p.id}`}>Etiqueta</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            id={`edit-label-${p.id}`}
+                            placeholder="Nombre descriptivo (opcional)"
+                            {...updateForm.register("label")}
+                          />
+                        </FieldContent>
+                      </Field>
+                    </FieldGroup>
+
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm" disabled={updatePixel.isPending}>
+                        {updatePixel.isPending ? "Guardando..." : "Guardar"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingPixel(null)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-sm font-medium">{p.pixelId}</span>
+                        {p.label && (
+                          <span className="text-xs text-muted-foreground">· {p.label}</span>
+                        )}
+                        {pixelHasLeads(p) && (
+                          <span
+                            title="Pixel ID congelado: tiene leads asociados"
+                            className="inline-flex items-center gap-0.5 rounded-sm bg-amber-100 px-1 py-0.5 text-xs text-amber-700 dark:bg-amber-900 dark:text-amber-200"
+                          >
+                            <LockIcon className="size-3" />
+                            {p.leadCount} lead(s)
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {p.landingCount} landing(s)
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Editar pixel"
+                        onClick={() => openEditPixel(p)}
+                      >
+                        <PencilLineIcon className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Eliminar pixel"
+                        onClick={() => handleDeletePixel(p)}
+                        disabled={deletePixel.isPending}
+                      >
+                        <Trash2Icon className="size-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {deleteErrors[p.id] && (
+                  <p role="alert" className="text-xs text-destructive">
+                    {deleteErrors[p.id]}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Create pixel inline form */}
+        {createOpen ? (
+          <form
+            onSubmit={createForm.handleSubmit(onCreatePixel)}
+            className="flex flex-col gap-3 border-t pt-3"
+          >
+            <p className="text-sm font-medium">Nuevo pixel</p>
+            <FieldGroup>
+              <Field data-invalid={Boolean(createForm.formState.errors.pixelId)}>
+                <FieldLabel htmlFor="new-pixel-id">Pixel ID</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="new-pixel-id"
+                    placeholder="ej. 976916338006290"
+                    aria-invalid={Boolean(createForm.formState.errors.pixelId)}
+                    {...createForm.register("pixelId")}
+                  />
+                  <FieldError errors={[createForm.formState.errors.pixelId]} />
+                </FieldContent>
+              </Field>
+
+              <Field data-invalid={Boolean(createForm.formState.errors.accessToken)}>
+                <FieldLabel htmlFor="new-access-token">Access Token</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="new-access-token"
+                    type="password"
+                    aria-invalid={Boolean(createForm.formState.errors.accessToken)}
+                    {...createForm.register("accessToken")}
+                  />
+                  <FieldError errors={[createForm.formState.errors.accessToken]} />
+                </FieldContent>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="new-pixel-label">Etiqueta (opcional)</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="new-pixel-label"
+                    placeholder="Nombre descriptivo"
+                    {...createForm.register("label")}
+                  />
+                </FieldContent>
+              </Field>
+            </FieldGroup>
+
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" disabled={createPixel.isPending}>
+                {createPixel.isPending ? "Guardando..." : "Crear pixel"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCreateOpen(false);
+                  createForm.reset();
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="border-t pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setCreateOpen(true)}
+            >
+              <PlusIcon data-icon="inline-start" />
+              Crear pixel nuevo
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Main page component
 // ---------------------------------------------------------------------------
 
 export const AdminLandingsPage = () => {
   const { data: landings = [], isLoading } = useLandings();
+  const { data: pixels = [] } = useMetaPixels();
   const createLanding = useCreateLanding();
   const updateLanding = useUpdateLanding();
   const setLandingStatus = useSetLandingStatus();
@@ -442,6 +1069,7 @@ export const AdminLandingsPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingLanding, setEditingLanding] = useState<Landing | null>(null);
   const [fallbacksLanding, setFallbacksLanding] = useState<Landing | null>(null);
+  const [snippetLanding, setSnippetLanding] = useState<Landing | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -449,8 +1077,8 @@ export const AdminLandingsPage = () => {
     resolver: zodResolver(createSchema),
     defaultValues: {
       url: "",
-      metaPixelId: "",
-      metaAccessToken: "",
+      metaPixelRef: "",
+      whatsappMessages: [],
       fallbackPhones: [],
     },
   });
@@ -459,8 +1087,8 @@ export const AdminLandingsPage = () => {
     resolver: zodResolver(updateSchema),
     defaultValues: {
       url: "",
-      metaPixelId: "",
-      metaAccessToken: "",
+      metaPixelRef: "",
+      whatsappMessages: [],
     },
   });
 
@@ -468,8 +1096,8 @@ export const AdminLandingsPage = () => {
     try {
       await createLanding.mutateAsync({
         url: values.url,
-        metaPixelId: values.metaPixelId,
-        metaAccessToken: values.metaAccessToken,
+        metaPixelRef: values.metaPixelRef,
+        whatsappMessages: values.whatsappMessages ?? [],
         fallbackPhones: values.fallbackPhones,
       });
       toast.success("Landing creada");
@@ -481,20 +1109,16 @@ export const AdminLandingsPage = () => {
   };
 
   const onUpdate = async (values: UpdateValues) => {
-    if (!editingLanding) {
-      return;
-    }
-
-    const payload = {
-      url: values.url,
-      metaPixelId: values.metaPixelId,
-      ...(values.metaAccessToken ? { metaAccessToken: values.metaAccessToken } : {}),
-    };
+    if (!editingLanding) return;
 
     try {
       await updateLanding.mutateAsync({
         landingId: editingLanding.id,
-        input: payload,
+        input: {
+          url: values.url,
+          metaPixelRef: values.metaPixelRef,
+          whatsappMessages: values.whatsappMessages,
+        },
       });
       toast.success("Landing actualizada");
       setEditingLanding(null);
@@ -510,9 +1134,7 @@ export const AdminLandingsPage = () => {
         enabled: landing.status !== "ACTIVE",
       });
       toast.success(
-        landing.status === "ACTIVE"
-          ? "Landing deshabilitada"
-          : "Landing habilitada",
+        landing.status === "ACTIVE" ? "Landing deshabilitada" : "Landing habilitada",
       );
     } catch {
       toast.error("No se pudo actualizar el estado");
@@ -523,8 +1145,8 @@ export const AdminLandingsPage = () => {
     setEditingLanding(landing);
     updateForm.reset({
       url: landing.url,
-      metaPixelId: landing.metaPixelId,
-      metaAccessToken: "",
+      metaPixelRef: landing.metaPixelId ?? "",
+      whatsappMessages: landing.whatsappMessages ?? [],
     });
   };
 
@@ -539,120 +1161,109 @@ export const AdminLandingsPage = () => {
         title="Gestion de landings"
         description="Crea, edita y habilita/deshabilita landings disponibles para asignacion."
         actions={
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger render={<Button />}>
-              <PlusIcon data-icon="inline-start" />
-              Nueva landing
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Crear landing</DialogTitle>
-                <DialogDescription>
-                  Define URL, Pixel ID, Access Token y al menos un teléfono de respaldo.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={createForm.handleSubmit(onCreate)} className="flex flex-col gap-4">
-                <FieldGroup>
-                  <Field data-invalid={Boolean(createForm.formState.errors.url)}>
-                    <FieldLabel htmlFor="create-landing-url">URL</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="create-landing-url"
-                        aria-invalid={Boolean(createForm.formState.errors.url)}
-                        {...createForm.register("url")}
-                      />
-                      <FieldError errors={[createForm.formState.errors.url]} />
-                    </FieldContent>
-                  </Field>
+          <div className="flex gap-2">
+            <MetaPixelManagementDialog />
 
-                  <Field data-invalid={Boolean(createForm.formState.errors.metaPixelId)}>
-                    <FieldLabel htmlFor="create-landing-pixel">Meta Pixel ID</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="create-landing-pixel"
-                        aria-invalid={Boolean(createForm.formState.errors.metaPixelId)}
-                        {...createForm.register("metaPixelId")}
-                      />
-                      <FieldError errors={[createForm.formState.errors.metaPixelId]} />
-                    </FieldContent>
-                  </Field>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger render={<Button />}>
+                <PlusIcon data-icon="inline-start" />
+                Nueva landing
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Crear landing</DialogTitle>
+                  <DialogDescription>
+                    Define URL, pixel de seguimiento, mensajes y al menos un teléfono de respaldo.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={createForm.handleSubmit(onCreate)} className="flex flex-col gap-4">
+                  <FieldGroup>
+                    <Field data-invalid={Boolean(createForm.formState.errors.url)}>
+                      <FieldLabel htmlFor="create-landing-url">URL</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          id="create-landing-url"
+                          aria-invalid={Boolean(createForm.formState.errors.url)}
+                          {...createForm.register("url")}
+                        />
+                        <FieldError errors={[createForm.formState.errors.url]} />
+                      </FieldContent>
+                    </Field>
 
-                  <Field data-invalid={Boolean(createForm.formState.errors.metaAccessToken)}>
-                    <FieldLabel htmlFor="create-landing-token">Meta Access Token</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="create-landing-token"
-                        type="password"
-                        aria-invalid={Boolean(createForm.formState.errors.metaAccessToken)}
-                        {...createForm.register("metaAccessToken")}
-                      />
-                      <FieldError errors={[createForm.formState.errors.metaAccessToken]} />
-                    </FieldContent>
-                  </Field>
-                </FieldGroup>
+                    <MetaPixelSelectorField
+                      id="create-landing-pixel"
+                      value={createForm.watch("metaPixelRef")}
+                      onChange={(id) => createForm.setValue("metaPixelRef", id, { shouldValidate: true })}
+                      pixels={pixels}
+                      error={createForm.formState.errors.metaPixelRef?.message}
+                    />
+                  </FieldGroup>
 
-                {/* B8.6 — Fallback phones section */}
-                <div className="rounded-lg border p-3">
-                  <FallbackPhoneSection form={createForm} fieldArrayName="fallbackPhones" />
-                </div>
+                  {/* WhatsApp messages editor */}
+                  <div className="rounded-lg border p-3">
+                    <WhatsappMessagesEditor form={createForm} fieldArrayName="whatsappMessages" />
+                  </div>
 
-                <DialogFooter>
-                  <Button
-                    type="submit"
-                    disabled={
-                      createLanding.isPending ||
-                      createForm.watch("fallbackPhones").length === 0
-                    }
-                  >
-                    {createLanding.isPending ? "Guardando..." : "Guardar landing"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  {/* Fallback phones section */}
+                  <div className="rounded-lg border p-3">
+                    <FallbackPhoneSection form={createForm} fieldArrayName="fallbackPhones" />
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      type="submit"
+                      disabled={
+                        createLanding.isPending ||
+                        createForm.watch("fallbackPhones").length === 0
+                      }
+                    >
+                      {createLanding.isPending ? "Guardando..." : "Guardar landing"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
 
       <Card>
         <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>URL</TableHead>
-              <TableHead>Meta Pixel ID</TableHead>
-              <TableHead>Meta Access Token</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Actualizada</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRowsSkeleton rows={5} cols={6} />
-            ) : landings.length === 0 ? (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6}>No hay landings registradas.</TableCell>
+                <TableHead>URL</TableHead>
+                <TableHead>Pixel</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Actualizada</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
-            ) : (
-              paginatedLandings.map((landing) => (
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRowsSkeleton rows={5} cols={5} />
+              ) : landings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5}>No hay landings registradas.</TableCell>
+                </TableRow>
+              ) : (
+                paginatedLandings.map((landing) => (
                   <TableRow key={landing.id}>
                     <TableCell>{landing.url}</TableCell>
-                    <TableCell>{landing.metaPixelId}</TableCell>
                     <TableCell>
-                      <span
-                        className="font-mono text-xs"
-                        title={landing.metaAccessTokenMasked}
-                      >
-                        {shortMaskedToken(landing.metaAccessTokenMasked)}
-                      </span>
+                      {landing.metaPixel ? (
+                        <span className="font-mono text-sm">
+                          {pixelLabel(landing.metaPixel)}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Sin pixel</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <StatusBadge
                         variant={landing.status === "ACTIVE" ? "default" : "outline"}
                         icon={
-                          landing.status === "ACTIVE"
-                            ? CheckCircle2Icon
-                            : CircleDashedIcon
+                          landing.status === "ACTIVE" ? CheckCircle2Icon : CircleDashedIcon
                         }
                       >
                         {landing.status === "ACTIVE" ? "Activa" : "Deshabilitada"}
@@ -674,9 +1285,7 @@ export const AdminLandingsPage = () => {
                             <MoreHorizontalIcon className="size-4" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                            <DropdownMenuItem
-                              onClick={() => openEditDialog(landing)}
-                            >
+                            <DropdownMenuItem onClick={() => openEditDialog(landing)}>
                               <PencilLineIcon className="size-4" />
                               Editar
                             </DropdownMenuItem>
@@ -687,8 +1296,12 @@ export const AdminLandingsPage = () => {
                               Números de respaldo
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => toggleLanding(landing)}
+                              onClick={() => setSnippetLanding(landing)}
                             >
+                              <Code2Icon className="size-4" />
+                              Snippet de integración
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleLanding(landing)}>
                               {landing.status === "ACTIVE" ? (
                                 <ToggleLeftIcon className="size-4" />
                               ) : (
@@ -701,17 +1314,17 @@ export const AdminLandingsPage = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        <div className="mt-3">
-          <PaginationControls
-            page={normalizedPage}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
-        </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <div className="mt-3">
+            <PaginationControls
+              page={normalizedPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -719,17 +1332,15 @@ export const AdminLandingsPage = () => {
       <Dialog
         open={Boolean(editingLanding)}
         onOpenChange={(open) => {
-          if (!open) {
-            setEditingLanding(null);
-          }
+          if (!open) setEditingLanding(null);
         }}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar landing</DialogTitle>
             <DialogDescription>
-              Editá URL, Pixel ID o token. Los teléfonos de respaldo se gestionan desde la
-              acción "Números de respaldo".
+              Editá URL, pixel de seguimiento o mensajes. Los teléfonos de respaldo se gestionan
+              desde la acción "Números de respaldo".
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={updateForm.handleSubmit(onUpdate)} className="flex flex-col gap-4">
@@ -746,40 +1357,24 @@ export const AdminLandingsPage = () => {
                 </FieldContent>
               </Field>
 
-              <Field data-invalid={Boolean(updateForm.formState.errors.metaPixelId)}>
-                <FieldLabel htmlFor="edit-landing-pixel">Meta Pixel ID</FieldLabel>
-                <FieldContent>
-                  <Input
-                    id="edit-landing-pixel"
-                    aria-invalid={Boolean(updateForm.formState.errors.metaPixelId)}
-                    {...updateForm.register("metaPixelId")}
-                  />
-                  <FieldError errors={[updateForm.formState.errors.metaPixelId]} />
-                </FieldContent>
-              </Field>
-
-              <Field data-invalid={Boolean(updateForm.formState.errors.metaAccessToken)}>
-                <FieldLabel htmlFor="edit-landing-token">Nuevo Meta Access Token</FieldLabel>
-                <FieldContent>
-                  <Input
-                    id="edit-landing-token"
-                    type="password"
-                    aria-invalid={Boolean(updateForm.formState.errors.metaAccessToken)}
-                    {...updateForm.register("metaAccessToken")}
-                  />
-                  <FieldDescription>
-                    Opcional. Solo completalo si queres reemplazar el token actual.
-                  </FieldDescription>
-                  <FieldError errors={[updateForm.formState.errors.metaAccessToken]} />
-                </FieldContent>
-              </Field>
+              <MetaPixelSelectorField
+                id="edit-landing-pixel"
+                value={updateForm.watch("metaPixelRef")}
+                onChange={(id) =>
+                  updateForm.setValue("metaPixelRef", id, { shouldValidate: true })
+                }
+                pixels={pixels}
+                error={updateForm.formState.errors.metaPixelRef?.message}
+              />
             </FieldGroup>
 
+            {/* WhatsApp messages editor */}
+            <div className="rounded-lg border p-3">
+              <WhatsappMessagesEditor form={updateForm} fieldArrayName="whatsappMessages" />
+            </div>
+
             <DialogFooter>
-              <Button
-                type="submit"
-                disabled={updateLanding.isPending}
-              >
+              <Button type="submit" disabled={updateLanding.isPending}>
                 {updateLanding.isPending ? "Guardando..." : "Actualizar"}
               </Button>
             </DialogFooter>
@@ -791,9 +1386,7 @@ export const AdminLandingsPage = () => {
       <Dialog
         open={Boolean(fallbacksLanding)}
         onOpenChange={(open) => {
-          if (!open) {
-            setFallbacksLanding(null);
-          }
+          if (!open) setFallbacksLanding(null);
         }}
       >
         <DialogContent>
@@ -807,6 +1400,23 @@ export const AdminLandingsPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Snippet de integración dialog */}
+      <Dialog
+        open={Boolean(snippetLanding)}
+        onOpenChange={(open) => {
+          if (!open) setSnippetLanding(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Snippet de integración</DialogTitle>
+            <DialogDescription>
+              Pegá este código en tu landing para activar el formulario de contacto.
+            </DialogDescription>
+          </DialogHeader>
+          {snippetLanding && <EmbedSnippetPanel landing={snippetLanding} />}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

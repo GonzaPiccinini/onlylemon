@@ -31,6 +31,8 @@ export type LeadMinAggregateOutputType = {
   fbc: string | null
   fbp: string | null
   metaPixelId: string | null
+  eventSourceUrl: string | null
+  landingId: string | null
   status: $Enums.LeadStatus | null
   userAgent: string | null
   phone: string | null
@@ -47,6 +49,8 @@ export type LeadMaxAggregateOutputType = {
   fbc: string | null
   fbp: string | null
   metaPixelId: string | null
+  eventSourceUrl: string | null
+  landingId: string | null
   status: $Enums.LeadStatus | null
   userAgent: string | null
   phone: string | null
@@ -63,6 +67,8 @@ export type LeadCountAggregateOutputType = {
   fbc: number
   fbp: number
   metaPixelId: number
+  eventSourceUrl: number
+  landingId: number
   status: number
   userAgent: number
   phone: number
@@ -81,6 +87,8 @@ export type LeadMinAggregateInputType = {
   fbc?: true
   fbp?: true
   metaPixelId?: true
+  eventSourceUrl?: true
+  landingId?: true
   status?: true
   userAgent?: true
   phone?: true
@@ -97,6 +105,8 @@ export type LeadMaxAggregateInputType = {
   fbc?: true
   fbp?: true
   metaPixelId?: true
+  eventSourceUrl?: true
+  landingId?: true
   status?: true
   userAgent?: true
   phone?: true
@@ -113,6 +123,8 @@ export type LeadCountAggregateInputType = {
   fbc?: true
   fbp?: true
   metaPixelId?: true
+  eventSourceUrl?: true
+  landingId?: true
   status?: true
   userAgent?: true
   phone?: true
@@ -202,6 +214,8 @@ export type LeadGroupByOutputType = {
   fbc: string
   fbp: string
   metaPixelId: string
+  eventSourceUrl: string
+  landingId: string
   status: $Enums.LeadStatus
   userAgent: string
   phone: string | null
@@ -239,6 +253,8 @@ export type LeadWhereInput = {
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
+  eventSourceUrl?: Prisma.StringFilter<"Lead"> | string
+  landingId?: Prisma.StringFilter<"Lead"> | string
   status?: Prisma.EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringFilter<"Lead"> | string
   phone?: Prisma.StringNullableFilter<"Lead"> | string | null
@@ -246,6 +262,8 @@ export type LeadWhereInput = {
   contactedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updateAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
+  metaPixel?: Prisma.XOR<Prisma.MetaPixelScalarRelationFilter, Prisma.MetaPixelWhereInput>
+  landing?: Prisma.XOR<Prisma.LandingScalarRelationFilter, Prisma.LandingWhereInput>
   cashier?: Prisma.XOR<Prisma.CashierNullableScalarRelationFilter, Prisma.CashierWhereInput> | null
   conversions?: Prisma.ConversionListRelationFilter
 }
@@ -257,6 +275,8 @@ export type LeadOrderByWithRelationInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
+  eventSourceUrl?: Prisma.SortOrder
+  landingId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -264,6 +284,8 @@ export type LeadOrderByWithRelationInput = {
   contactedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updateAt?: Prisma.SortOrder
+  metaPixel?: Prisma.MetaPixelOrderByWithRelationInput
+  landing?: Prisma.LandingOrderByWithRelationInput
   cashier?: Prisma.CashierOrderByWithRelationInput
   conversions?: Prisma.ConversionOrderByRelationAggregateInput
 }
@@ -278,6 +300,8 @@ export type LeadWhereUniqueInput = Prisma.AtLeast<{
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
+  eventSourceUrl?: Prisma.StringFilter<"Lead"> | string
+  landingId?: Prisma.StringFilter<"Lead"> | string
   status?: Prisma.EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringFilter<"Lead"> | string
   phone?: Prisma.StringNullableFilter<"Lead"> | string | null
@@ -285,6 +309,8 @@ export type LeadWhereUniqueInput = Prisma.AtLeast<{
   contactedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updateAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
+  metaPixel?: Prisma.XOR<Prisma.MetaPixelScalarRelationFilter, Prisma.MetaPixelWhereInput>
+  landing?: Prisma.XOR<Prisma.LandingScalarRelationFilter, Prisma.LandingWhereInput>
   cashier?: Prisma.XOR<Prisma.CashierNullableScalarRelationFilter, Prisma.CashierWhereInput> | null
   conversions?: Prisma.ConversionListRelationFilter
 }, "id" | "code">
@@ -296,6 +322,8 @@ export type LeadOrderByWithAggregationInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
+  eventSourceUrl?: Prisma.SortOrder
+  landingId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -318,6 +346,8 @@ export type LeadScalarWhereWithAggregatesInput = {
   fbc?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   fbp?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   metaPixelId?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  eventSourceUrl?: Prisma.StringWithAggregatesFilter<"Lead"> | string
+  landingId?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   status?: Prisma.EnumLeadStatusWithAggregatesFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringWithAggregatesFilter<"Lead"> | string
   phone?: Prisma.StringNullableWithAggregatesFilter<"Lead"> | string | null
@@ -333,13 +363,15 @@ export type LeadCreateInput = {
   adCode?: string | null
   fbc: string
   fbp: string
-  metaPixelId: string
+  eventSourceUrl: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
   contactedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLeadsInput
+  landing: Prisma.LandingCreateNestedOneWithoutLeadsInput
   cashier?: Prisma.CashierCreateNestedOneWithoutLeadsInput
   conversions?: Prisma.ConversionCreateNestedManyWithoutLeadInput
 }
@@ -351,6 +383,8 @@ export type LeadUncheckedCreateInput = {
   fbc: string
   fbp: string
   metaPixelId: string
+  eventSourceUrl: string
+  landingId: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
@@ -367,13 +401,15 @@ export type LeadUpdateInput = {
   adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLeadsNestedInput
+  landing?: Prisma.LandingUpdateOneRequiredWithoutLeadsNestedInput
   cashier?: Prisma.CashierUpdateOneWithoutLeadsNestedInput
   conversions?: Prisma.ConversionUpdateManyWithoutLeadNestedInput
 }
@@ -385,6 +421,8 @@ export type LeadUncheckedUpdateInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  landingId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -402,6 +440,8 @@ export type LeadCreateManyInput = {
   fbc: string
   fbp: string
   metaPixelId: string
+  eventSourceUrl: string
+  landingId: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
@@ -417,7 +457,7 @@ export type LeadUpdateManyMutationInput = {
   adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -433,6 +473,8 @@ export type LeadUncheckedUpdateManyInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  landingId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -459,6 +501,8 @@ export type LeadCountOrderByAggregateInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
+  eventSourceUrl?: Prisma.SortOrder
+  landingId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrder
@@ -475,6 +519,8 @@ export type LeadMaxOrderByAggregateInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
+  eventSourceUrl?: Prisma.SortOrder
+  landingId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrder
@@ -491,6 +537,8 @@ export type LeadMinOrderByAggregateInput = {
   fbc?: Prisma.SortOrder
   fbp?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
+  eventSourceUrl?: Prisma.SortOrder
+  landingId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userAgent?: Prisma.SortOrder
   phone?: Prisma.SortOrder
@@ -569,19 +617,105 @@ export type LeadUpdateOneRequiredWithoutConversionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.LeadUpdateToOneWithWhereWithoutConversionsInput, Prisma.LeadUpdateWithoutConversionsInput>, Prisma.LeadUncheckedUpdateWithoutConversionsInput>
 }
 
+export type LeadCreateNestedManyWithoutMetaPixelInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutMetaPixelInput, Prisma.LeadUncheckedCreateWithoutMetaPixelInput> | Prisma.LeadCreateWithoutMetaPixelInput[] | Prisma.LeadUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutMetaPixelInput | Prisma.LeadCreateOrConnectWithoutMetaPixelInput[]
+  createMany?: Prisma.LeadCreateManyMetaPixelInputEnvelope
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+}
+
+export type LeadUncheckedCreateNestedManyWithoutMetaPixelInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutMetaPixelInput, Prisma.LeadUncheckedCreateWithoutMetaPixelInput> | Prisma.LeadCreateWithoutMetaPixelInput[] | Prisma.LeadUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutMetaPixelInput | Prisma.LeadCreateOrConnectWithoutMetaPixelInput[]
+  createMany?: Prisma.LeadCreateManyMetaPixelInputEnvelope
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+}
+
+export type LeadUpdateManyWithoutMetaPixelNestedInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutMetaPixelInput, Prisma.LeadUncheckedCreateWithoutMetaPixelInput> | Prisma.LeadCreateWithoutMetaPixelInput[] | Prisma.LeadUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutMetaPixelInput | Prisma.LeadCreateOrConnectWithoutMetaPixelInput[]
+  upsert?: Prisma.LeadUpsertWithWhereUniqueWithoutMetaPixelInput | Prisma.LeadUpsertWithWhereUniqueWithoutMetaPixelInput[]
+  createMany?: Prisma.LeadCreateManyMetaPixelInputEnvelope
+  set?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  disconnect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  delete?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  update?: Prisma.LeadUpdateWithWhereUniqueWithoutMetaPixelInput | Prisma.LeadUpdateWithWhereUniqueWithoutMetaPixelInput[]
+  updateMany?: Prisma.LeadUpdateManyWithWhereWithoutMetaPixelInput | Prisma.LeadUpdateManyWithWhereWithoutMetaPixelInput[]
+  deleteMany?: Prisma.LeadScalarWhereInput | Prisma.LeadScalarWhereInput[]
+}
+
+export type LeadUncheckedUpdateManyWithoutMetaPixelNestedInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutMetaPixelInput, Prisma.LeadUncheckedCreateWithoutMetaPixelInput> | Prisma.LeadCreateWithoutMetaPixelInput[] | Prisma.LeadUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutMetaPixelInput | Prisma.LeadCreateOrConnectWithoutMetaPixelInput[]
+  upsert?: Prisma.LeadUpsertWithWhereUniqueWithoutMetaPixelInput | Prisma.LeadUpsertWithWhereUniqueWithoutMetaPixelInput[]
+  createMany?: Prisma.LeadCreateManyMetaPixelInputEnvelope
+  set?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  disconnect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  delete?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  update?: Prisma.LeadUpdateWithWhereUniqueWithoutMetaPixelInput | Prisma.LeadUpdateWithWhereUniqueWithoutMetaPixelInput[]
+  updateMany?: Prisma.LeadUpdateManyWithWhereWithoutMetaPixelInput | Prisma.LeadUpdateManyWithWhereWithoutMetaPixelInput[]
+  deleteMany?: Prisma.LeadScalarWhereInput | Prisma.LeadScalarWhereInput[]
+}
+
+export type LeadCreateNestedManyWithoutLandingInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutLandingInput, Prisma.LeadUncheckedCreateWithoutLandingInput> | Prisma.LeadCreateWithoutLandingInput[] | Prisma.LeadUncheckedCreateWithoutLandingInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutLandingInput | Prisma.LeadCreateOrConnectWithoutLandingInput[]
+  createMany?: Prisma.LeadCreateManyLandingInputEnvelope
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+}
+
+export type LeadUncheckedCreateNestedManyWithoutLandingInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutLandingInput, Prisma.LeadUncheckedCreateWithoutLandingInput> | Prisma.LeadCreateWithoutLandingInput[] | Prisma.LeadUncheckedCreateWithoutLandingInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutLandingInput | Prisma.LeadCreateOrConnectWithoutLandingInput[]
+  createMany?: Prisma.LeadCreateManyLandingInputEnvelope
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+}
+
+export type LeadUpdateManyWithoutLandingNestedInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutLandingInput, Prisma.LeadUncheckedCreateWithoutLandingInput> | Prisma.LeadCreateWithoutLandingInput[] | Prisma.LeadUncheckedCreateWithoutLandingInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutLandingInput | Prisma.LeadCreateOrConnectWithoutLandingInput[]
+  upsert?: Prisma.LeadUpsertWithWhereUniqueWithoutLandingInput | Prisma.LeadUpsertWithWhereUniqueWithoutLandingInput[]
+  createMany?: Prisma.LeadCreateManyLandingInputEnvelope
+  set?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  disconnect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  delete?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  update?: Prisma.LeadUpdateWithWhereUniqueWithoutLandingInput | Prisma.LeadUpdateWithWhereUniqueWithoutLandingInput[]
+  updateMany?: Prisma.LeadUpdateManyWithWhereWithoutLandingInput | Prisma.LeadUpdateManyWithWhereWithoutLandingInput[]
+  deleteMany?: Prisma.LeadScalarWhereInput | Prisma.LeadScalarWhereInput[]
+}
+
+export type LeadUncheckedUpdateManyWithoutLandingNestedInput = {
+  create?: Prisma.XOR<Prisma.LeadCreateWithoutLandingInput, Prisma.LeadUncheckedCreateWithoutLandingInput> | Prisma.LeadCreateWithoutLandingInput[] | Prisma.LeadUncheckedCreateWithoutLandingInput[]
+  connectOrCreate?: Prisma.LeadCreateOrConnectWithoutLandingInput | Prisma.LeadCreateOrConnectWithoutLandingInput[]
+  upsert?: Prisma.LeadUpsertWithWhereUniqueWithoutLandingInput | Prisma.LeadUpsertWithWhereUniqueWithoutLandingInput[]
+  createMany?: Prisma.LeadCreateManyLandingInputEnvelope
+  set?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  disconnect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  delete?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  connect?: Prisma.LeadWhereUniqueInput | Prisma.LeadWhereUniqueInput[]
+  update?: Prisma.LeadUpdateWithWhereUniqueWithoutLandingInput | Prisma.LeadUpdateWithWhereUniqueWithoutLandingInput[]
+  updateMany?: Prisma.LeadUpdateManyWithWhereWithoutLandingInput | Prisma.LeadUpdateManyWithWhereWithoutLandingInput[]
+  deleteMany?: Prisma.LeadScalarWhereInput | Prisma.LeadScalarWhereInput[]
+}
+
 export type LeadCreateWithoutCashierInput = {
   id?: string
   code: string
   adCode?: string | null
   fbc: string
   fbp: string
-  metaPixelId: string
+  eventSourceUrl: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
   contactedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLeadsInput
+  landing: Prisma.LandingCreateNestedOneWithoutLeadsInput
   conversions?: Prisma.ConversionCreateNestedManyWithoutLeadInput
 }
 
@@ -592,6 +726,8 @@ export type LeadUncheckedCreateWithoutCashierInput = {
   fbc: string
   fbp: string
   metaPixelId: string
+  eventSourceUrl: string
+  landingId: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
@@ -637,6 +773,8 @@ export type LeadScalarWhereInput = {
   fbc?: Prisma.StringFilter<"Lead"> | string
   fbp?: Prisma.StringFilter<"Lead"> | string
   metaPixelId?: Prisma.StringFilter<"Lead"> | string
+  eventSourceUrl?: Prisma.StringFilter<"Lead"> | string
+  landingId?: Prisma.StringFilter<"Lead"> | string
   status?: Prisma.EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
   userAgent?: Prisma.StringFilter<"Lead"> | string
   phone?: Prisma.StringNullableFilter<"Lead"> | string | null
@@ -652,13 +790,15 @@ export type LeadCreateWithoutConversionsInput = {
   adCode?: string | null
   fbc: string
   fbp: string
-  metaPixelId: string
+  eventSourceUrl: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
   contactedAt?: Date | string | null
   createdAt?: Date | string
   updateAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLeadsInput
+  landing: Prisma.LandingCreateNestedOneWithoutLeadsInput
   cashier?: Prisma.CashierCreateNestedOneWithoutLeadsInput
 }
 
@@ -669,6 +809,8 @@ export type LeadUncheckedCreateWithoutConversionsInput = {
   fbc: string
   fbp: string
   metaPixelId: string
+  eventSourceUrl: string
+  landingId: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
@@ -700,13 +842,15 @@ export type LeadUpdateWithoutConversionsInput = {
   adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLeadsNestedInput
+  landing?: Prisma.LandingUpdateOneRequiredWithoutLeadsNestedInput
   cashier?: Prisma.CashierUpdateOneWithoutLeadsNestedInput
 }
 
@@ -717,6 +861,8 @@ export type LeadUncheckedUpdateWithoutConversionsInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  landingId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -726,6 +872,130 @@ export type LeadUncheckedUpdateWithoutConversionsInput = {
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type LeadCreateWithoutMetaPixelInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  eventSourceUrl: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+  landing: Prisma.LandingCreateNestedOneWithoutLeadsInput
+  cashier?: Prisma.CashierCreateNestedOneWithoutLeadsInput
+  conversions?: Prisma.ConversionCreateNestedManyWithoutLeadInput
+}
+
+export type LeadUncheckedCreateWithoutMetaPixelInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  eventSourceUrl: string
+  landingId: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  cashierId?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+  conversions?: Prisma.ConversionUncheckedCreateNestedManyWithoutLeadInput
+}
+
+export type LeadCreateOrConnectWithoutMetaPixelInput = {
+  where: Prisma.LeadWhereUniqueInput
+  create: Prisma.XOR<Prisma.LeadCreateWithoutMetaPixelInput, Prisma.LeadUncheckedCreateWithoutMetaPixelInput>
+}
+
+export type LeadCreateManyMetaPixelInputEnvelope = {
+  data: Prisma.LeadCreateManyMetaPixelInput | Prisma.LeadCreateManyMetaPixelInput[]
+  skipDuplicates?: boolean
+}
+
+export type LeadUpsertWithWhereUniqueWithoutMetaPixelInput = {
+  where: Prisma.LeadWhereUniqueInput
+  update: Prisma.XOR<Prisma.LeadUpdateWithoutMetaPixelInput, Prisma.LeadUncheckedUpdateWithoutMetaPixelInput>
+  create: Prisma.XOR<Prisma.LeadCreateWithoutMetaPixelInput, Prisma.LeadUncheckedCreateWithoutMetaPixelInput>
+}
+
+export type LeadUpdateWithWhereUniqueWithoutMetaPixelInput = {
+  where: Prisma.LeadWhereUniqueInput
+  data: Prisma.XOR<Prisma.LeadUpdateWithoutMetaPixelInput, Prisma.LeadUncheckedUpdateWithoutMetaPixelInput>
+}
+
+export type LeadUpdateManyWithWhereWithoutMetaPixelInput = {
+  where: Prisma.LeadScalarWhereInput
+  data: Prisma.XOR<Prisma.LeadUpdateManyMutationInput, Prisma.LeadUncheckedUpdateManyWithoutMetaPixelInput>
+}
+
+export type LeadCreateWithoutLandingInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  eventSourceUrl: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLeadsInput
+  cashier?: Prisma.CashierCreateNestedOneWithoutLeadsInput
+  conversions?: Prisma.ConversionCreateNestedManyWithoutLeadInput
+}
+
+export type LeadUncheckedCreateWithoutLandingInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  metaPixelId: string
+  eventSourceUrl: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  cashierId?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+  conversions?: Prisma.ConversionUncheckedCreateNestedManyWithoutLeadInput
+}
+
+export type LeadCreateOrConnectWithoutLandingInput = {
+  where: Prisma.LeadWhereUniqueInput
+  create: Prisma.XOR<Prisma.LeadCreateWithoutLandingInput, Prisma.LeadUncheckedCreateWithoutLandingInput>
+}
+
+export type LeadCreateManyLandingInputEnvelope = {
+  data: Prisma.LeadCreateManyLandingInput | Prisma.LeadCreateManyLandingInput[]
+  skipDuplicates?: boolean
+}
+
+export type LeadUpsertWithWhereUniqueWithoutLandingInput = {
+  where: Prisma.LeadWhereUniqueInput
+  update: Prisma.XOR<Prisma.LeadUpdateWithoutLandingInput, Prisma.LeadUncheckedUpdateWithoutLandingInput>
+  create: Prisma.XOR<Prisma.LeadCreateWithoutLandingInput, Prisma.LeadUncheckedCreateWithoutLandingInput>
+}
+
+export type LeadUpdateWithWhereUniqueWithoutLandingInput = {
+  where: Prisma.LeadWhereUniqueInput
+  data: Prisma.XOR<Prisma.LeadUpdateWithoutLandingInput, Prisma.LeadUncheckedUpdateWithoutLandingInput>
+}
+
+export type LeadUpdateManyWithWhereWithoutLandingInput = {
+  where: Prisma.LeadScalarWhereInput
+  data: Prisma.XOR<Prisma.LeadUpdateManyMutationInput, Prisma.LeadUncheckedUpdateManyWithoutLandingInput>
+}
+
 export type LeadCreateManyCashierInput = {
   id?: string
   code: string
@@ -733,6 +1003,8 @@ export type LeadCreateManyCashierInput = {
   fbc: string
   fbp: string
   metaPixelId: string
+  eventSourceUrl: string
+  landingId: string
   status?: $Enums.LeadStatus
   userAgent: string
   phone?: string | null
@@ -747,13 +1019,15 @@ export type LeadUpdateWithoutCashierInput = {
   adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLeadsNestedInput
+  landing?: Prisma.LandingUpdateOneRequiredWithoutLeadsNestedInput
   conversions?: Prisma.ConversionUpdateManyWithoutLeadNestedInput
 }
 
@@ -764,6 +1038,8 @@ export type LeadUncheckedUpdateWithoutCashierInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  landingId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -780,9 +1056,151 @@ export type LeadUncheckedUpdateManyWithoutCashierInput = {
   fbc?: Prisma.StringFieldUpdateOperationsInput | string
   fbp?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  landingId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
   userAgent?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type LeadCreateManyMetaPixelInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  eventSourceUrl: string
+  landingId: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  cashierId?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+}
+
+export type LeadUpdateWithoutMetaPixelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  landing?: Prisma.LandingUpdateOneRequiredWithoutLeadsNestedInput
+  cashier?: Prisma.CashierUpdateOneWithoutLeadsNestedInput
+  conversions?: Prisma.ConversionUpdateManyWithoutLeadNestedInput
+}
+
+export type LeadUncheckedUpdateWithoutMetaPixelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  landingId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  conversions?: Prisma.ConversionUncheckedUpdateManyWithoutLeadNestedInput
+}
+
+export type LeadUncheckedUpdateManyWithoutMetaPixelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  landingId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type LeadCreateManyLandingInput = {
+  id?: string
+  code: string
+  adCode?: string | null
+  fbc: string
+  fbp: string
+  metaPixelId: string
+  eventSourceUrl: string
+  status?: $Enums.LeadStatus
+  userAgent: string
+  phone?: string | null
+  cashierId?: string | null
+  contactedAt?: Date | string | null
+  createdAt?: Date | string
+  updateAt?: Date | string
+}
+
+export type LeadUpdateWithoutLandingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLeadsNestedInput
+  cashier?: Prisma.CashierUpdateOneWithoutLeadsNestedInput
+  conversions?: Prisma.ConversionUpdateManyWithoutLeadNestedInput
+}
+
+export type LeadUncheckedUpdateWithoutLandingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  conversions?: Prisma.ConversionUncheckedUpdateManyWithoutLeadNestedInput
+}
+
+export type LeadUncheckedUpdateManyWithoutLandingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  adCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fbc?: Prisma.StringFieldUpdateOperationsInput | string
+  fbp?: Prisma.StringFieldUpdateOperationsInput | string
+  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  eventSourceUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+  userAgent?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -826,6 +1244,8 @@ export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
+  eventSourceUrl?: boolean
+  landingId?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
@@ -833,6 +1253,8 @@ export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   contactedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+  landing?: boolean | Prisma.LandingDefaultArgs<ExtArgs>
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
   conversions?: boolean | Prisma.Lead$conversionsArgs<ExtArgs>
   _count?: boolean | Prisma.LeadCountOutputTypeDefaultArgs<ExtArgs>
@@ -845,6 +1267,8 @@ export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
+  eventSourceUrl?: boolean
+  landingId?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
@@ -852,6 +1276,8 @@ export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   contactedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+  landing?: boolean | Prisma.LandingDefaultArgs<ExtArgs>
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
 }, ExtArgs["result"]["lead"]>
 
@@ -862,6 +1288,8 @@ export type LeadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
+  eventSourceUrl?: boolean
+  landingId?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
@@ -869,6 +1297,8 @@ export type LeadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   contactedAt?: boolean
   createdAt?: boolean
   updateAt?: boolean
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+  landing?: boolean | Prisma.LandingDefaultArgs<ExtArgs>
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
 }, ExtArgs["result"]["lead"]>
 
@@ -879,6 +1309,8 @@ export type LeadSelectScalar = {
   fbc?: boolean
   fbp?: boolean
   metaPixelId?: boolean
+  eventSourceUrl?: boolean
+  landingId?: boolean
   status?: boolean
   userAgent?: boolean
   phone?: boolean
@@ -888,22 +1320,30 @@ export type LeadSelectScalar = {
   updateAt?: boolean
 }
 
-export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "adCode" | "fbc" | "fbp" | "metaPixelId" | "status" | "userAgent" | "phone" | "cashierId" | "contactedAt" | "createdAt" | "updateAt", ExtArgs["result"]["lead"]>
+export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "adCode" | "fbc" | "fbp" | "metaPixelId" | "eventSourceUrl" | "landingId" | "status" | "userAgent" | "phone" | "cashierId" | "contactedAt" | "createdAt" | "updateAt", ExtArgs["result"]["lead"]>
 export type LeadInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+  landing?: boolean | Prisma.LandingDefaultArgs<ExtArgs>
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
   conversions?: boolean | Prisma.Lead$conversionsArgs<ExtArgs>
   _count?: boolean | Prisma.LeadCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type LeadIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+  landing?: boolean | Prisma.LandingDefaultArgs<ExtArgs>
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
 }
 export type LeadIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+  landing?: boolean | Prisma.LandingDefaultArgs<ExtArgs>
   cashier?: boolean | Prisma.Lead$cashierArgs<ExtArgs>
 }
 
 export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Lead"
   objects: {
+    metaPixel: Prisma.$MetaPixelPayload<ExtArgs>
+    landing: Prisma.$LandingPayload<ExtArgs>
     cashier: Prisma.$CashierPayload<ExtArgs> | null
     conversions: Prisma.$ConversionPayload<ExtArgs>[]
   }
@@ -914,6 +1354,8 @@ export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     fbc: string
     fbp: string
     metaPixelId: string
+    eventSourceUrl: string
+    landingId: string
     status: $Enums.LeadStatus
     userAgent: string
     phone: string | null
@@ -1315,6 +1757,8 @@ readonly fields: LeadFieldRefs;
  */
 export interface Prisma__LeadClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  metaPixel<T extends Prisma.MetaPixelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MetaPixelDefaultArgs<ExtArgs>>): Prisma.Prisma__MetaPixelClient<runtime.Types.Result.GetResult<Prisma.$MetaPixelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  landing<T extends Prisma.LandingDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LandingDefaultArgs<ExtArgs>>): Prisma.Prisma__LandingClient<runtime.Types.Result.GetResult<Prisma.$LandingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   cashier<T extends Prisma.Lead$cashierArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$cashierArgs<ExtArgs>>): Prisma.Prisma__CashierClient<runtime.Types.Result.GetResult<Prisma.$CashierPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   conversions<T extends Prisma.Lead$conversionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$conversionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConversionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1352,6 +1796,8 @@ export interface LeadFieldRefs {
   readonly fbc: Prisma.FieldRef<"Lead", 'String'>
   readonly fbp: Prisma.FieldRef<"Lead", 'String'>
   readonly metaPixelId: Prisma.FieldRef<"Lead", 'String'>
+  readonly eventSourceUrl: Prisma.FieldRef<"Lead", 'String'>
+  readonly landingId: Prisma.FieldRef<"Lead", 'String'>
   readonly status: Prisma.FieldRef<"Lead", 'LeadStatus'>
   readonly userAgent: Prisma.FieldRef<"Lead", 'String'>
   readonly phone: Prisma.FieldRef<"Lead", 'String'>

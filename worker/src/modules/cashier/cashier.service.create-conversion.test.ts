@@ -11,7 +11,7 @@
  *
  * These tests use the dependency-injection factory pattern (createConversionServiceFactory)
  * which accepts injectable dependencies for Prisma tx, findLeadByIdForCashier,
- * getLandingByMetaPixelId, and sendMetaConversion.
+ * and sendMetaConversion.
  */
 
 import { test } from 'node:test';
@@ -35,6 +35,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER =
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
@@ -49,7 +50,9 @@ const makeContactedLead = (overrides: Record<string, unknown> = {}) => ({
   phone: '5491111111111',
   status: 'CONTACTED' as const,
   cashierId: 'cashier-1',
-  metaPixelId: 'pixel-1',
+  metaPixelId: 'mp-uuid-1',
+  metaPixel: { pixelId: 'pixel-1', accessToken: 'token-1' } as { pixelId: string; accessToken: string } | null,
+  eventSourceUrl: 'https://example.com',
   fbc: 'fbc-1',
   fbp: 'fbp-1',
   userAgent: 'Mozilla',
@@ -68,13 +71,6 @@ const makeConversion = (overrides: Record<string, unknown> = {}) => ({
   sourceMessageId: null,
   createdAt: new Date(),
   ...overrides,
-});
-
-const makeLanding = () => ({
-  id: 'landing-1',
-  url: 'https://example.com',
-  metaPixelId: 'pixel-1',
-  metaAccessToken: 'token-1',
 });
 
 const happyConversionResult = {
@@ -117,7 +113,6 @@ type Deps = {
     cashierId: string;
   }) => Promise<ReturnType<typeof makeConversion>>;
   updateLeadInTx: (leadId: string) => Promise<void>;
-  getLanding: (metaPixelId: string) => Promise<ReturnType<typeof makeLanding> | null>;
   sendMeta: (params: unknown) => Promise<typeof happyConversionResult>;
   runTransaction: <T>(fn: () => Promise<T>) => Promise<T>;
 };
@@ -171,19 +166,18 @@ const createConversionServiceWithDeps = async (
     throw err;
   }
 
-  // Meta CAPI dispatch (after commit)
-  const landing = await deps.getLanding(lead.metaPixelId);
-  if (landing) {
+  // Meta CAPI dispatch (after commit) — pixel data comes from lead.metaPixel (snapshotted at lead creation)
+  if (lead.metaPixel) {
     await deps.sendMeta({
       phone: lead.phone,
       value: amount,
       fbc: lead.fbc,
       fbp: lead.fbp,
       userAgent: lead.userAgent,
-      metaPixelId: lead.metaPixelId,
-      metaAccessToken: landing.metaAccessToken,
+      metaPixelId: lead.metaPixel.pixelId,
+      metaAccessToken: lead.metaPixel.accessToken,
       eventId: conversion!.id,
-      eventSourceUrl: landing.url,
+      eventSourceUrl: lead.eventSourceUrl,
       leadCode: lead.code,
     });
   }
@@ -209,7 +203,6 @@ const makeDeps = (overrides: Partial<Deps> = {}): Deps => {
     findLead: async () => makeContactedLead(),
     createConversionInTx: async () => defaultConversion,
     updateLeadInTx: async () => undefined,
-    getLanding: async () => makeLanding(),
     sendMeta: async () => happyConversionResult,
     runTransaction: async (fn) => fn(),
     ...overrides,

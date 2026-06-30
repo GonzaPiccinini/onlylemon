@@ -2,8 +2,8 @@
  * Unit tests for leadsRepository.ts — Batch 3 additions.
  *
  * TDD: RED first. These tests cover:
- *   - getAllLinkedCashierCandidatesByMetaPixelId (Level 2 query — no activity filter)
- *   - getLandingFallbackPhonesByMetaPixelId (Level 3 query)
+ *   - getAllLinkedCashierCandidatesByLandingId (Level 2 query — no activity filter)
+ *   - getLandingFallbackPhonesByLandingId (Level 3 query)
  *
  * Since these functions call prisma directly, we test them structurally:
  * - function is exported with correct signature
@@ -33,23 +33,24 @@ process.env.WAHA_WEBHOOK_TOKEN_VALUE =
   process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET =
   process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
 
 // ---------------------------------------------------------------------------
-// B3.1 — getAllLinkedCashierCandidatesByMetaPixelId: structural / export tests
+// B3.1 — getAllLinkedCashierCandidatesByLandingId: structural / export tests
 // ---------------------------------------------------------------------------
 
-test('getAllLinkedCashierCandidatesByMetaPixelId is exported from leadsRepository', async () => {
+test('getAllLinkedCashierCandidatesByLandingId is exported from leadsRepository', async () => {
   const mod = await import('./leadsRepository.js');
-  assert.equal(typeof mod.getAllLinkedCashierCandidatesByMetaPixelId, 'function');
+  assert.equal(typeof mod.getAllLinkedCashierCandidatesByLandingId, 'function');
 });
 
-test('getAllLinkedCashierCandidatesByMetaPixelId accepts a single string argument', async () => {
+test('getAllLinkedCashierCandidatesByLandingId accepts a single string argument', async () => {
   const mod = await import('./leadsRepository.js');
-  assert.equal(mod.getAllLinkedCashierCandidatesByMetaPixelId.length, 1);
+  assert.equal(mod.getAllLinkedCashierCandidatesByLandingId.length, 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -70,30 +71,30 @@ test('LandingCashierWaCandidate type: returned objects have cashierId, sessionNa
 });
 
 // ---------------------------------------------------------------------------
-// B3.1 — getAllLinkedCashierCandidatesByMetaPixelId: return-null contract
+// B3.1 — getAllLinkedCashierCandidatesByLandingId: return-null contract
 //   Returns null when landing is not found. Verified structurally — the function
 //   delegates to prisma.landing.findFirst, and when no row is found it returns null.
 // ---------------------------------------------------------------------------
 
-test('getAllLinkedCashierCandidatesByMetaPixelId: null contract documented (landing not found → null)', () => {
+test('getAllLinkedCashierCandidatesByLandingId: null contract documented (landing not found → null)', () => {
   // The design contract: if the landing is not found (or not ACTIVE), return null.
-  // This mirrors getActiveLandingCashierCandidatesByMetaPixelId (lines 32–97).
+  // This mirrors getActiveLandingCashierCandidatesByLandingId (lines 32–97).
   // Full coverage requires a live DB; unit-level we assert the contract is written into spec.
   assert.ok(true, 'null-on-not-found is the documented contract for this function');
 });
 
 // ---------------------------------------------------------------------------
-// B3.1 — getLandingFallbackPhonesByMetaPixelId: structural / export tests
+// B3.1 — getLandingFallbackPhonesByLandingId: structural / export tests
 // ---------------------------------------------------------------------------
 
-test('getLandingFallbackPhonesByMetaPixelId is exported from leadsRepository', async () => {
+test('getLandingFallbackPhonesByLandingId is exported from leadsRepository', async () => {
   const mod = await import('./leadsRepository.js');
-  assert.equal(typeof mod.getLandingFallbackPhonesByMetaPixelId, 'function');
+  assert.equal(typeof mod.getLandingFallbackPhonesByLandingId, 'function');
 });
 
-test('getLandingFallbackPhonesByMetaPixelId accepts a single string argument', async () => {
+test('getLandingFallbackPhonesByLandingId accepts a single string argument', async () => {
   const mod = await import('./leadsRepository.js');
-  assert.equal(mod.getLandingFallbackPhonesByMetaPixelId.length, 1);
+  assert.equal(mod.getLandingFallbackPhonesByLandingId.length, 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -108,24 +109,24 @@ test('LandingFallbackPhoneRow type: exported and has id and phone fields', async
 });
 
 // ---------------------------------------------------------------------------
-// B3.1 — getLandingFallbackPhonesByMetaPixelId: null contract (landing not found)
+// B3.1 — getLandingFallbackPhonesByLandingId: null contract (landing not found)
 // ---------------------------------------------------------------------------
 
-test('getLandingFallbackPhonesByMetaPixelId: null contract documented (landing not found → null)', () => {
+test('getLandingFallbackPhonesByLandingId: null contract documented (landing not found → null)', () => {
   // Design contract: returns null when no ACTIVE landing matches metaPixelId.
   // Returns [] when landing found but no fallback rows exist (invariant violation signal).
   // Verified by Batch 9 integration tests; unit-level contract documented here.
-  assert.ok(true, 'null-on-not-found is the documented contract for getLandingFallbackPhonesByMetaPixelId');
+  assert.ok(true, 'null-on-not-found is the documented contract for getLandingFallbackPhonesByLandingId');
 });
 
 // ---------------------------------------------------------------------------
-// B3.1 — difference from getActiveLandingCashierCandidatesByMetaPixelId
+// B3.1 — difference from getActiveLandingCashierCandidatesByLandingId
 //   getAllLinked* does NOT filter by activity (no endedAt IS NULL constraint).
 //   This is the key structural difference: Level 2 includes cashiers not on shift.
 // ---------------------------------------------------------------------------
 
-test('getAllLinkedCashierCandidatesByMetaPixelId: contract does NOT require open SessionActivity (no endedAt filter)', () => {
-  // The sole semantic difference vs getActiveLandingCashierCandidatesByMetaPixelId:
+test('getAllLinkedCashierCandidatesByLandingId: contract does NOT require open SessionActivity (no endedAt filter)', () => {
+  // The sole semantic difference vs getActiveLandingCashierCandidatesByLandingId:
   // the activity.some({ endedAt: null }) filter is absent.
   // Cashiers with Cashier.status === 'ACTIVE' and sessionName !== null qualify
   // regardless of shift status.
@@ -148,10 +149,10 @@ test('LandingCashierWaCandidate: whatsappPhoneNumber is nullable (string | null)
 });
 
 // ---------------------------------------------------------------------------
-// B3.1 — Return shape for getLandingFallbackPhonesByMetaPixelId: array of rows
+// B3.1 — Return shape for getLandingFallbackPhonesByLandingId: array of rows
 // ---------------------------------------------------------------------------
 
-test('getLandingFallbackPhonesByMetaPixelId: when landing found with rows, returns array with id+phone', () => {
+test('getLandingFallbackPhonesByLandingId: when landing found with rows, returns array with id+phone', () => {
   // Structural contract assertion — shape of a valid non-empty result.
   const fakeRows: Array<{ id: string; phone: string }> = [
     { id: 'fp-1', phone: '+5491111111111' },
@@ -166,10 +167,10 @@ test('getLandingFallbackPhonesByMetaPixelId: when landing found with rows, retur
 });
 
 // ---------------------------------------------------------------------------
-// B3.1 — getAllLinkedCashierCandidatesByMetaPixelId: empty array when no eligible cashiers
+// B3.1 — getAllLinkedCashierCandidatesByLandingId: empty array when no eligible cashiers
 // ---------------------------------------------------------------------------
 
-test('getAllLinkedCashierCandidatesByMetaPixelId: returns empty array when landing exists but no eligible cashiers', () => {
+test('getAllLinkedCashierCandidatesByLandingId: returns empty array when landing exists but no eligible cashiers', () => {
   // When a landing is found but no cashier matches (ACTIVE + sessionName not null),
   // the function returns [] (empty array), not null.
   // null is reserved for "landing not found / not ACTIVE".

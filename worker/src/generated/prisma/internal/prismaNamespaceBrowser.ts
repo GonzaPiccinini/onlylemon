@@ -58,6 +58,7 @@ export const ModelName = {
   SessionActivity: 'SessionActivity',
   Lead: 'Lead',
   Conversion: 'Conversion',
+  MetaPixel: 'MetaPixel',
   Landing: 'Landing',
   LandingFallbackPhone: 'LandingFallbackPhone',
   WhatsappSession: 'WhatsappSession',
@@ -146,6 +147,8 @@ export const LeadScalarFieldEnum = {
   fbc: 'fbc',
   fbp: 'fbp',
   metaPixelId: 'metaPixelId',
+  eventSourceUrl: 'eventSourceUrl',
+  landingId: 'landingId',
   status: 'status',
   userAgent: 'userAgent',
   phone: 'phone',
@@ -171,11 +174,23 @@ export const ConversionScalarFieldEnum = {
 export type ConversionScalarFieldEnum = (typeof ConversionScalarFieldEnum)[keyof typeof ConversionScalarFieldEnum]
 
 
+export const MetaPixelScalarFieldEnum = {
+  id: 'id',
+  pixelId: 'pixelId',
+  accessToken: 'accessToken',
+  label: 'label',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaPixelScalarFieldEnum = (typeof MetaPixelScalarFieldEnum)[keyof typeof MetaPixelScalarFieldEnum]
+
+
 export const LandingScalarFieldEnum = {
   id: 'id',
   url: 'url',
   metaPixelId: 'metaPixelId',
-  metaAccessToken: 'metaAccessToken',
+  whatsappMessages: 'whatsappMessages',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

@@ -304,6 +304,15 @@ export const listLandings = () =>
     orderBy: {
       createdAt: 'desc',
     },
+    include: {
+      metaPixel: {
+        select: {
+          id: true,
+          pixelId: true,
+          label: true,
+        },
+      },
+    },
   });
 
 export const listActiveLandingUrls = () =>
@@ -316,36 +325,38 @@ export const listActiveLandingUrls = () =>
     },
   });
 
-export const createLanding = (input: {
-  url: string;
-  metaPixelId: string;
-  metaAccessToken: string;
-}) =>
-  prisma.landing.create({
-    data: input,
-  });
-
 export const updateLanding = (
   landingId: string,
   input: {
     url: string;
-    metaPixelId: string;
-    metaAccessToken?: string;
+    metaPixelId?: string;
+    whatsappMessages?: string[];
   },
 ) =>
   prisma.landing.update({
     where: { id: landingId },
     data: {
       url: input.url,
-      metaPixelId: input.metaPixelId,
-      ...(input.metaAccessToken ? { metaAccessToken: input.metaAccessToken } : {}),
+      ...(input.metaPixelId !== undefined ? { metaPixelId: input.metaPixelId } : {}),
+      ...(input.whatsappMessages !== undefined ? { whatsappMessages: input.whatsappMessages } : {}),
     },
   });
 
-export const getLandingByMetaPixelId = (metaPixelId: string) =>
+/**
+ * 3.7 — getLandingById
+ * Includes nested metaPixel (id, pixelId, label) for the pixel selector dropdown.
+ */
+export const getLandingById = (landingId: string) =>
   prisma.landing.findUnique({
-    where: {
-      metaPixelId,
+    where: { id: landingId },
+    include: {
+      metaPixel: {
+        select: {
+          id: true,
+          pixelId: true,
+          label: true,
+        },
+      },
     },
   });
 
@@ -942,8 +953,101 @@ export const deleteLandingFallbackPhoneIfNotLast = async (
   );
 };
 
+// ---------------------------------------------------------------------------
+// 3.2 — MetaPixel CRUD repository helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * MetaPixel select without accessToken (client-safe DTO shape).
+ * accessToken MUST NEVER be returned in API responses.
+ */
+const metaPixelPublicSelect = {
+  id: true,
+  pixelId: true,
+  label: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+export type MetaPixelPublicDto = {
+  id: string;
+  pixelId: string;
+  label: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export const createMetaPixel = (input: {
+  pixelId: string;
+  accessToken: string;
+  label?: string;
+}): Promise<MetaPixelPublicDto> =>
+  prisma.metaPixel.create({
+    data: {
+      pixelId: input.pixelId,
+      accessToken: input.accessToken,
+      label: input.label ?? null,
+    },
+    select: metaPixelPublicSelect,
+  });
+
+export type MetaPixelWithCountsDto = MetaPixelPublicDto & { leadCount: number; landingCount: number };
+
+export const listMetaPixels = async (): Promise<MetaPixelWithCountsDto[]> => {
+  const rows = await prisma.metaPixel.findMany({
+    select: {
+      ...metaPixelPublicSelect,
+      _count: {
+        select: { leads: true, landings: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  return rows.map(({ _count, ...rest }) => ({
+    ...rest,
+    leadCount: _count.leads,
+    landingCount: _count.landings,
+  }));
+};
+
+export const getMetaPixelById = (id: string): Promise<MetaPixelPublicDto | null> =>
+  prisma.metaPixel.findUnique({
+    where: { id },
+    select: metaPixelPublicSelect,
+  });
+
+export const updateMetaPixel = (
+  id: string,
+  input: { pixelId?: string; accessToken?: string; label?: string | null },
+): Promise<MetaPixelPublicDto | null> =>
+  prisma.metaPixel.update({
+    where: { id },
+    data: {
+      ...(input.pixelId !== undefined ? { pixelId: input.pixelId } : {}),
+      ...(input.accessToken !== undefined ? { accessToken: input.accessToken } : {}),
+      ...(input.label !== undefined ? { label: input.label } : {}),
+    },
+    select: metaPixelPublicSelect,
+  });
+
+export const deleteMetaPixel = async (id: string): Promise<void> => {
+  await prisma.metaPixel.delete({ where: { id } });
+};
+
+export const countMetaPixelLeads = (metaPixelId: string): Promise<number> =>
+  prisma.lead.count({ where: { metaPixelId } });
+
+export const countMetaPixelLandings = (metaPixelId: string): Promise<number> =>
+  prisma.landing.count({ where: { metaPixelId } });
+
+/**
+ * Phase 5 (Contract) — createLandingWithFallbacks uses MetaPixel FK only.
+ * The old scalar legacy columns (metaPixelId string + metaAccessToken) have been
+ * dropped in the Contract migration. metaPixelId is now the FK UUID → MetaPixel.id.
+ * No internal token lookup needed — the token lives on MetaPixel, never returned here.
+ */
 export const createLandingWithFallbacks = async (
-  landing: { url: string; metaPixelId: string; metaAccessToken: string },
+  landing: { url: string; metaPixelId: string; whatsappMessages?: string[] },
   fallbacks: { phone: string; label?: string; order?: number }[],
 ) =>
   prisma.$transaction(async (tx) => {
@@ -951,7 +1055,7 @@ export const createLandingWithFallbacks = async (
       data: {
         url: landing.url,
         metaPixelId: landing.metaPixelId,
-        metaAccessToken: landing.metaAccessToken,
+        whatsappMessages: landing.whatsappMessages ?? [],
       },
     });
 

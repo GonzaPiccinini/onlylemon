@@ -5,6 +5,7 @@ import type {
   CreateCashierInput,
   CreateLandingFallbackPhoneInput,
   CreateLandingInput,
+  CreateMetaPixelInput,
   DateRangeFilters,
   LeadsFilters,
   ReplaceSessionLandingsInput,
@@ -13,12 +14,14 @@ import type {
   UpdateCashierMaxSessionsInput,
   UpdateLandingFallbackPhoneInput,
   UpdateLandingInput,
+  UpdateMetaPixelInput,
 } from "@/types/domain";
 
 type ConversionsTotalsFilters = Omit<ConversionsFilters, "page" | "pageSize">;
 
 export const adminKeys = {
   autoConversionTrigger: ["admin", "auto-conversion-trigger"] as const,
+  metaPixels: ["admin", "meta-pixels"] as const,
   cashiers: ["admin", "cashiers"] as const,
   cashierSessions: (cashierId: string) => ["admin", "cashiers", cashierId, "sessions"] as const,
   sessionLandings: (sessionId: string) => ["admin", "sessions", sessionId, "landings"] as const,
@@ -386,6 +389,50 @@ export const useAutoConversionMinAmount = () => useSetting('auto_conversion_min_
 export const useUpdateAutoConversionMinAmount = () => useUpdateSetting('auto_conversion_min_amount');
 export const useAutoConversionMaxAmount = () => useSetting('auto_conversion_max_amount');
 export const useUpdateAutoConversionMaxAmount = () => useUpdateSetting('auto_conversion_max_amount');
+
+// ---------------------------------------------------------------------------
+// MetaPixel CRUD hooks (Phase 4)
+// ---------------------------------------------------------------------------
+
+export const useMetaPixels = () =>
+  useQuery({
+    queryKey: adminKeys.metaPixels,
+    queryFn: adminService.listMetaPixels,
+  });
+
+export const useCreateMetaPixel = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateMetaPixelInput) => adminService.createMetaPixel(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.metaPixels });
+    },
+  });
+};
+
+export const useUpdateMetaPixel = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateMetaPixelInput }) =>
+      adminService.updateMetaPixel(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.metaPixels });
+      // Invalidate landings too — landing.metaPixel may have changed
+      await queryClient.invalidateQueries({ queryKey: adminKeys.landings });
+    },
+  });
+};
+
+export const useDeleteMetaPixel = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminService.deleteMetaPixel(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.metaPixels });
+      await queryClient.invalidateQueries({ queryKey: adminKeys.landings });
+    },
+  });
+};
 
 // ---------------------------------------------------------------------------
 // Platform currency + high-value thresholds

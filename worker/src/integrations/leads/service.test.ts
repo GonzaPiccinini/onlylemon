@@ -17,15 +17,17 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER = process.env.WAHA_WEBHOOK_TOKEN_HEADER ??
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
 
+// Phase 2: payload uses landingId (replaces metaPixelId as routing key)
 const payload = {
   fbc: 'fb.1.1234',
   fbp: 'fb.1.9876',
   userAgent: 'Mozilla/5.0',
-  metaPixelId: 'pixel-1',
+  landingId: 'landing-uuid-1',
 };
 
 const payloadWithAdCode = {
@@ -33,24 +35,43 @@ const payloadWithAdCode = {
   adCode: 'ad-123',
 };
 
+// Minimal MetaPixel row shape for snapshot tests
+const PIXEL_P1 = {
+  id: 'meta-pixel-uuid-1',
+  pixelId: '976916338006290',
+  accessToken: 'P1-access-token-secret',
+  label: null as string | null,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+
+// Minimal Landing shape with pixel relation
+const LANDING_L1 = {
+  id: 'landing-uuid-1',
+  url: 'https://example.com/lp1',
+  metaPixelId: PIXEL_P1.id,
+  status: 'ACTIVE' as 'ACTIVE' | 'DISABLED',
+  metaPixel: { id: PIXEL_P1.id, pixelId: PIXEL_P1.pixelId, label: null as string | null },
+  whatsappMessages: [] as string[],
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+
 type CreateLeadDependencies = {
   selectCashierNumberForLanding: (
-    metaPixelId: string,
+    landingId: string,
   ) => Promise<
-    | {
-        ok: true;
-        number: string;
-      }
-    | {
-        ok: false;
-        reason: 'LANDING_NOT_FOUND' | 'FALLBACK_INVARIANT_VIOLATION';
-      }
+    | { ok: true; number: string }
+    | { ok: false; reason: 'LANDING_NOT_FOUND' | 'FALLBACK_INVARIANT_VIOLATION' }
   >;
+  getLandingById: (landingId: string) => Promise<typeof LANDING_L1 | null>;
   getLeadByFbc: (fbc: string) => Promise<{ id: string } | null>;
   saveLead: (data: {
     fbc: string;
     fbp: string;
     userAgent: string;
+    landingId: string;
+    eventSourceUrl: string;
     metaPixelId: string;
     adCode?: string;
     code: string;
@@ -61,11 +82,17 @@ type CreateLeadDependencies = {
     fbp: string;
     userAgent: string;
     metaPixelId: string;
+    metaPixel: typeof PIXEL_P1 | null;
+    eventSourceUrl: string;
+    landingId: string;
   }>;
   dispatchLeadCreatedEvent: (lead: {
     id: string;
     code: string;
     metaPixelId: string;
+    metaPixel: typeof PIXEL_P1 | null;
+    eventSourceUrl: string;
+    landingId: string;
     fbc: string;
     fbp: string;
     userAgent: string;
@@ -75,6 +102,20 @@ type CreateLeadDependencies = {
   onCodeCollision: () => void;
 };
 
+function buildSaveLeadResult(code: string, pixel = PIXEL_P1, url = LANDING_L1.url) {
+  return {
+    id: 'lead-1',
+    code,
+    fbc: payload.fbc,
+    fbp: payload.fbp,
+    userAgent: payload.userAgent,
+    metaPixelId: pixel.id,
+    metaPixel: pixel,
+    eventSourceUrl: url,
+    landingId: payload.landingId,
+  };
+}
+
 function buildDependencies(
   overrides: Partial<CreateLeadDependencies> = {},
 ): CreateLeadDependencies {
@@ -83,15 +124,9 @@ function buildDependencies(
       ok: true,
       number: '5491111111111',
     }),
+    getLandingById: async () => LANDING_L1,
     getLeadByFbc: async () => null,
-    saveLead: async ({ code }) => ({
-      id: 'lead-1',
-      code,
-      fbc: payload.fbc,
-      fbp: payload.fbp,
-      userAgent: payload.userAgent,
-      metaPixelId: payload.metaPixelId,
-    }),
+    saveLead: async ({ code }) => buildSaveLeadResult(code),
     dispatchLeadCreatedEvent: async () => {},
     generateCode: () => 'ABCD1234',
     getNow: () => new Date('2026-04-20T00:00:00.000Z'),
@@ -123,24 +158,18 @@ function buildWorkingSessions(
 
 // ---------------------------------------------------------------------------
 // B10.4 — `number` non-empty on HTTP 200 across all 3 levels (REQ-MOD-2)
-// Cross-ref B9.1/B9.2/B9.3:
-//   - B9.1 (L1): asserts number === '5491111111111' (non-empty; WAHA format without +)
-//   - B9.2 (L2): asserts number.length > 0 (non-empty; WAHA format without +)
-//   - B9.3 (L3): asserts /^\+[1-9]\d{1,14}$/ (stored E.164 with +)
-// Note: L1 and L2 return WAHA session phone numbers (no + prefix); L3 returns stored E.164.
-// REQ-MOD-2 is satisfied for non-emptiness; E.164 regex only applies to L3 (stored format).
-// Below we add explicit non-empty assertions at the selectCashierNumberForLandingWithDependencies level.
+// Re-keyed: dependency keys now use ByLandingId
 // ---------------------------------------------------------------------------
 
 test('B10.4: L1 hit result number is non-empty string', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       { cashierId: 'cashier-1', sessionName: 'session-1', activeSince: new Date('2026-04-22T08:00:00.000Z') },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () => buildWorkingSessions({ name: 'session-1', number: '5491111111111' }),
     getContactedLeadCountByCashierForLanding: async () => new Map([['cashier-1', 0]]),
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
@@ -154,12 +183,12 @@ test('B10.4: L1 hit result number is non-empty string', async () => {
 test('B10.4: L2 hit result number is non-empty string', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
-      { cashierId: 'cashier-2', sessionName: 'session-2', whatsappPhoneNumber: null },
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [
+      { cashierId: 'cashier-2', sessionName: 'session-2' },
     ],
-    getLandingFallbackPhonesByMetaPixelId: async () => [{ id: 'f1', phone: '+5490000000001' }],
+    getLandingFallbackPhonesByLandingId: async () => [{ id: 'f1', phone: '+5490000000001' }],
     getSessions: async () => buildWorkingSessions({ name: 'session-2', number: '5492222222222' }),
     getContactedLeadCountByCashierForLanding: async () => new Map(),
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
@@ -173,10 +202,10 @@ test('B10.4: L2 hit result number is non-empty string', async () => {
 test('B10.4: L3 hit result number is non-empty E.164 string', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [{ id: 'f1', phone: '+5491123456789' }],
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [{ id: 'f1', phone: '+5491123456789' }],
     getSessions: async () => [],
     getContactedLeadCountByCashierForLanding: async () => new Map(),
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
@@ -233,15 +262,7 @@ test('createLeadWithDependencies retries when unique collision happens on lead c
           meta: { target: ['code'] },
         });
       }
-
-      return {
-        id: 'lead-created',
-        code,
-        fbc: payload.fbc,
-        fbp: payload.fbp,
-        userAgent: payload.userAgent,
-        metaPixelId: payload.metaPixelId,
-      };
+      return buildSaveLeadResult(code);
     },
     onCodeCollision: () => {
       collisions += 1;
@@ -257,16 +278,197 @@ test('createLeadWithDependencies retries when unique collision happens on lead c
   assert.equal(collisions, 1);
 });
 
-// B4.1 — regression anchor inversion: when L1+L2 yield nothing and L3 has ≥1 fallback,
-// selectCashierNumberForLandingWithDependencies returns that fallback's phone (non-empty E.164).
-// Previously this asserted number: ''. Now asserts non-empty E.164 from L3.
+// ---------------------------------------------------------------------------
+// Phase 2 — Snapshot tests (Task 2.5)
+// ---------------------------------------------------------------------------
+
+test('2.5 snapshot: createLeadWithDependencies passes metaPixelId + eventSourceUrl snapshot to saveLead', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  const capturedSaveLeadData: Record<string, unknown>[] = [];
+  const deps = buildDependencies({
+    saveLead: async (data) => {
+      capturedSaveLeadData.push(data as unknown as Record<string, unknown>);
+      return buildSaveLeadResult(data.code);
+    },
+  });
+
+  await createLeadWithDependencies(payload, deps);
+
+  assert.equal(capturedSaveLeadData.length, 1, 'saveLead called once');
+  const saved = capturedSaveLeadData[0]!;
+  assert.equal(saved['metaPixelId'], PIXEL_P1.id, 'metaPixelId = FK to MetaPixel.id');
+  assert.equal(saved['eventSourceUrl'], LANDING_L1.url, 'eventSourceUrl = landing.url snapshot');
+  assert.equal(saved['landingId'], payload.landingId, 'landingId persisted');
+});
+
+test('2.5 snapshot immunity: dispatchLeadCreatedEvent called with lead.metaPixel (snapshot, not live landing)', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  const dispatchedLeads: Array<{ metaPixel: unknown; eventSourceUrl: unknown }> = [];
+
+  const deps = buildDependencies({
+    dispatchLeadCreatedEvent: async (lead) => {
+      dispatchedLeads.push({
+        metaPixel: lead.metaPixel,
+        eventSourceUrl: lead.eventSourceUrl,
+      });
+    },
+  });
+
+  await createLeadWithDependencies(payload, deps);
+
+  assert.equal(dispatchedLeads.length, 1, 'dispatch called once');
+  const dispatched = dispatchedLeads[0]!;
+  // dispatch reads from lead.metaPixel, NOT from live landing lookup
+  const relation = dispatched.metaPixel as typeof PIXEL_P1;
+  assert.equal(relation.pixelId, PIXEL_P1.pixelId, 'dispatch uses snapshotted pixelId');
+  assert.equal(relation.accessToken, PIXEL_P1.accessToken, 'dispatch uses snapshotted accessToken');
+  assert.equal(dispatched.eventSourceUrl, LANDING_L1.url, 'dispatch uses snapshotted url');
+});
+
+test('2.6 Contact snapshot immunity: dispatchLeadContactedEvent fires with the lead snapshot pixel + url, never the re-pointed live landing', async () => {
+  const { mapLeadCodeToPhoneWithDependencies } = await import('./service.js');
+
+  // URL captured on the lead at create time (when the landing pointed at P1).
+  const URL_U1 = 'https://example.com/lp1-at-create-time';
+
+  // A DIFFERENT pixel the landing was later re-pointed to. It must NEVER appear
+  // in the Contact dispatch — the matcher reads only the lead snapshot, and the
+  // landing is not consulted at all on the contact path.
+  const PIXEL_P2 = {
+    pixelId: '111111111111111',
+    accessToken: 'P2-access-token-secret',
+  };
+
+  // getLeadByCode returns the frozen snapshot (P1 + U1), as persisted at create.
+  const leadSnapshot = {
+    id: 'lead-contact-1',
+    code: 'CONTACT1',
+    status: 'NOT_CONTACTED',
+    contactedAt: null as Date | null,
+    metaPixel: { pixelId: PIXEL_P1.pixelId, accessToken: PIXEL_P1.accessToken },
+    eventSourceUrl: URL_U1,
+    fbc: 'fb.1.contact',
+    fbp: 'fb.1.contactfbp',
+    userAgent: 'Mozilla/5.0 contact',
+  };
+
+  const dispatched: Array<{
+    metaPixel: { pixelId: string; accessToken: string } | null;
+    eventSourceUrl: string;
+  }> = [];
+
+  const result = await mapLeadCodeToPhoneWithDependencies(
+    'session-1',
+    'lid@c.us',
+    'CODIGO: CONTACT1',
+    {
+      getLeadByCode: async () => leadSnapshot,
+      getSessionBySessionName: async () => ({ cashier: { id: 'cashier-1' } }),
+      getNumberByLid: async () => ({ pn: '5491234567890@c.us' }),
+      markLeadAsContacted: async () => 1,
+      dispatchLeadContactedEvent: async (lead) => {
+        dispatched.push({
+          metaPixel: lead.metaPixel,
+          eventSourceUrl: lead.eventSourceUrl,
+        });
+      },
+      getNow: () => new Date('2026-05-10T15:00:00.000Z'),
+    },
+  );
+
+  assert.equal(result, 'MATCHED');
+
+  // The Contact dispatch is fire-and-forget (void). The injected handler captures
+  // synchronously on invocation; drain the microtask queue defensively.
+  await Promise.resolve();
+
+  assert.equal(dispatched.length, 1, 'Contact event dispatched exactly once');
+  const ev = dispatched[0]!;
+
+  // dispatchLeadContactedEvent maps these snapshot fields 1:1 into the CAPI call:
+  //   metaPixel.pixelId    -> metaPixelId
+  //   metaPixel.accessToken -> metaAccessToken
+  //   eventSourceUrl        -> eventSourceUrl
+  assert.equal(
+    ev.metaPixel?.pixelId,
+    PIXEL_P1.pixelId,
+    'Contact CAPI uses snapshot pixelId (P1), not the re-pointed landing pixel (P2)',
+  );
+  assert.equal(
+    ev.metaPixel?.accessToken,
+    PIXEL_P1.accessToken,
+    'Contact CAPI uses snapshot accessToken (P1)',
+  );
+  assert.equal(
+    ev.eventSourceUrl,
+    URL_U1,
+    'Contact CAPI uses snapshot eventSourceUrl (U1), not the live landing url',
+  );
+
+  // Explicit immunity guarantee: P2 must be nowhere in the dispatched event.
+  assert.notEqual(ev.metaPixel?.pixelId, PIXEL_P2.pixelId);
+  assert.notEqual(ev.metaPixel?.accessToken, PIXEL_P2.accessToken);
+});
+
+test('2.5 accessToken not in any lead DTO or HTTP response', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  const result = await createLeadWithDependencies(payload, buildDependencies());
+
+  // The HTTP response only returns code + number (no token leakage)
+  assert.equal('code' in result, true);
+  assert.equal('number' in result, true);
+  assert.equal('accessToken' in result, false, 'accessToken must not be in HTTP response shape');
+  assert.equal('metaPixel' in result, false, 'metaPixel must not be in HTTP response');
+});
+
+test('2.5 landing not found → LANDING_NOT_FOUND error', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  const deps = buildDependencies({
+    getLandingById: async () => null,
+  });
+
+  await assert.rejects(
+    () => createLeadWithDependencies(payload, deps),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.equal((error as Error).message, 'LANDING_NOT_FOUND');
+      return true;
+    },
+  );
+});
+
+test('2.5 landing DISABLED → LANDING_DISABLED error', async () => {
+  const { createLeadWithDependencies } = await import('./service.js');
+
+  const deps = buildDependencies({
+    getLandingById: async () => ({ ...LANDING_L1, status: 'DISABLED' as const }),
+  });
+
+  await assert.rejects(
+    () => createLeadWithDependencies(payload, deps),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.equal((error as Error).message, 'LANDING_DISABLED');
+      return true;
+    },
+  );
+});
+
+// ---------------------------------------------------------------------------
+// selectCashierNumberForLandingWithDependencies tests — re-keyed to landingId
+// ---------------------------------------------------------------------------
+
 test('selectCashierNumberForLandingWithDependencies returns L3 fallback phone when L1 and L2 yield no WAHA-WORKING candidates', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [
       { id: 'f1', phone: '+5491123456789' },
     ],
     getSessions: async () => [],
@@ -279,22 +481,20 @@ test('selectCashierNumberForLandingWithDependencies returns L3 fallback phone wh
   assert.match(result.ok ? result.number : '', /^\+[1-9]\d{1,14}$/);
 });
 
-// B4.2 — L2 selection: L1 has candidates but none WAHA-WORKING; L2 has one WAHA-WORKING candidate.
 test('selectCashierNumberForLandingWithDependencies selects L2 cashier when L1 has no WAHA-WORKING candidates but L2 does', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       { cashierId: 'cashier-1', sessionName: 'session-1', activeSince: new Date('2026-04-22T08:00:00.000Z') },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
-      { cashierId: 'cashier-2', sessionName: 'session-2', whatsappPhoneNumber: null },
+    getAllLinkedCashierCandidatesByLandingId: async () => [
+      { cashierId: 'cashier-2', sessionName: 'session-2' },
     ],
-    getLandingFallbackPhonesByMetaPixelId: async () => [
+    getLandingFallbackPhonesByLandingId: async () => [
       { id: 'f1', phone: '+5499999999999' },
     ],
     getSessions: async () =>
-      // session-1 is NOT working; session-2 IS working
       buildWorkingSessions({ name: 'session-2', number: '5492222222222' }),
     getContactedLeadCountByCashierForLanding: async () => new Map(),
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
@@ -304,39 +504,35 @@ test('selectCashierNumberForLandingWithDependencies selects L2 cashier when L1 h
   assert.deepEqual(result, { ok: true, number: '5492222222222' });
 });
 
-// B4.3 — L2→L3 fallthrough: L2 candidates exist but none are WAHA-WORKING → falls to L3.
 test('selectCashierNumberForLandingWithDependencies falls through to L3 when L2 candidates exist but none are WAHA-WORKING', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
-      { cashierId: 'cashier-2', sessionName: 'session-2', whatsappPhoneNumber: null },
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [
+      { cashierId: 'cashier-2', sessionName: 'session-2' },
     ],
-    getLandingFallbackPhonesByMetaPixelId: async () => [
+    getLandingFallbackPhonesByLandingId: async () => [
       { id: 'f1', phone: '+5491111111111' },
       { id: 'f2', phone: '+5492222222222' },
       { id: 'f3', phone: '+5493333333333' },
     ],
-    // session-2 is NOT in working sessions
     getSessions: async () => [],
     getContactedLeadCountByCashierForLanding: async () => new Map(),
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
-    // getRandom = 0.4 → Math.floor(0.4 * 3) = 1 → index 1 → second phone
     getRandom: () => 0.4,
   });
 
   assert.deepEqual(result, { ok: true, number: '+5492222222222' });
 });
 
-// B4.4 — L3 invariant violation: L1+L2 empty, L3 returns [] → FALLBACK_INVARIANT_VIOLATION.
 test('selectCashierNumberForLandingWithDependencies returns FALLBACK_INVARIANT_VIOLATION when L3 returns empty array', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () => [],
     getContactedLeadCountByCashierForLanding: async () => new Map(),
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
@@ -346,16 +542,15 @@ test('selectCashierNumberForLandingWithDependencies returns FALLBACK_INVARIANT_V
   assert.deepEqual(result, { ok: false, reason: 'FALLBACK_INVARIANT_VIOLATION' });
 });
 
-// B4.5 — WAHA call reuse: getSessions called exactly once across L1→L2→L3 traversal.
 test('selectCashierNumberForLandingWithDependencies calls getSessions exactly once across L1→L2→L3 chain', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
   let getSessionsCallCount = 0;
 
-  await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [
+  await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [
       { id: 'f1', phone: '+5491123456789' },
     ],
     getSessions: async () => {
@@ -370,7 +565,6 @@ test('selectCashierNumberForLandingWithDependencies calls getSessions exactly on
   assert.equal(getSessionsCallCount, 1);
 });
 
-// B4.6 — LANDING_NOT_FOUND short-circuit: L1 returns null → no further queries, no getSessions call.
 test('selectCashierNumberForLandingWithDependencies short-circuits with LANDING_NOT_FOUND when L1 returns null, without calling getSessions', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
@@ -378,10 +572,10 @@ test('selectCashierNumberForLandingWithDependencies short-circuits with LANDING_
   let getAllLinkedCalled = false;
   let getFallbacksCalled = false;
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-unknown', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => null,
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => { getAllLinkedCalled = true; return []; },
-    getLandingFallbackPhonesByMetaPixelId: async () => { getFallbacksCalled = true; return []; },
+  const result = await selectCashierNumberForLandingWithDependencies('landing-unknown', {
+    getActiveLandingCashierCandidatesByLandingId: async () => null,
+    getAllLinkedCashierCandidatesByLandingId: async () => { getAllLinkedCalled = true; return []; },
+    getLandingFallbackPhonesByLandingId: async () => { getFallbacksCalled = true; return []; },
     getSessions: async () => { getSessionsCalled = true; return []; },
     getContactedLeadCountByCashierForLanding: async () => new Map(),
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
@@ -427,14 +621,7 @@ test('createLeadWithDependencies persists adCode when provided', async () => {
   const deps = buildDependencies({
     saveLead: async ({ code, adCode }) => {
       receivedAdCode = adCode;
-      return {
-        id: 'lead-adcode',
-        code,
-        fbc: payload.fbc,
-        fbp: payload.fbp,
-        userAgent: payload.userAgent,
-        metaPixelId: payload.metaPixelId,
-      };
+      return buildSaveLeadResult(code);
     },
   });
 
@@ -456,8 +643,8 @@ test('selectCashierNumberForLandingWithDependencies queries only the current Arg
   let receivedUntil: Date | null = null;
   let receivedCashierIds: string[] = [];
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       {
         cashierId: 'cashier-1',
         sessionName: 'session-1',
@@ -469,14 +656,14 @@ test('selectCashierNumberForLandingWithDependencies queries only the current Arg
         activeSince: new Date('2026-04-22T12:00:00.000Z'),
       },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
         { name: 'session-2', number: '5492222222222' },
       ),
-    getContactedLeadCountByCashierForLanding: async (_metaPixelId, cashierIds, since, until) => {
+    getContactedLeadCountByCashierForLanding: async (_landingId, cashierIds, since, until) => {
       receivedCashierIds = cashierIds;
       receivedSince = since;
       receivedUntil = until;
@@ -510,8 +697,8 @@ test('selectCashierNumberForLandingWithDependencies excludes disconnected cashie
 
   let receivedCashierIds: string[] = [];
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       {
         cashierId: 'cashier-1',
         sessionName: 'session-1',
@@ -523,11 +710,11 @@ test('selectCashierNumberForLandingWithDependencies excludes disconnected cashie
         activeSince: new Date('2026-04-22T12:00:00.000Z'),
       },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () =>
       buildWorkingSessions({ name: 'session-2', number: '5492222222222' }),
-    getContactedLeadCountByCashierForLanding: async (_metaPixelId, cashierIds) => {
+    getContactedLeadCountByCashierForLanding: async (_landingId, cashierIds) => {
       receivedCashierIds = cashierIds;
       return new Map([['cashier-2', 0]]);
     },
@@ -547,8 +734,8 @@ test('selectCashierNumberForLandingWithDependencies prioritizes the highest fair
     './service.js'
   );
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       {
         cashierId: 'cashier-1',
         sessionName: 'session-1',
@@ -560,8 +747,8 @@ test('selectCashierNumberForLandingWithDependencies prioritizes the highest fair
         activeSince: new Date('2026-04-22T11:30:00.000Z'),
       },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -587,8 +774,8 @@ test('selectCashierNumberForLandingWithDependencies does not over-prioritize lat
     './service.js'
   );
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       {
         cashierId: 'cashier-1',
         sessionName: 'session-1',
@@ -600,8 +787,8 @@ test('selectCashierNumberForLandingWithDependencies does not over-prioritize lat
         activeSince: new Date('2026-04-22T11:30:00.000Z'),
       },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -627,8 +814,8 @@ test('selectCashierNumberForLandingWithDependencies distributes by active-time p
     './service.js'
   );
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       {
         cashierId: 'cashier-1',
         sessionName: 'session-1',
@@ -645,8 +832,8 @@ test('selectCashierNumberForLandingWithDependencies distributes by active-time p
         activeSince: new Date('2026-04-22T14:00:00.000Z'),
       },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -675,7 +862,7 @@ test('selectCashierNumberForLandingWithDependencies randomizes selection among t
   );
 
   const baseDependencies = {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       {
         cashierId: 'cashier-1',
         sessionName: 'session-1',
@@ -687,8 +874,8 @@ test('selectCashierNumberForLandingWithDependencies randomizes selection among t
         activeSince: new Date('2026-04-22T12:00:00.000Z'),
       },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -702,11 +889,11 @@ test('selectCashierNumberForLandingWithDependencies randomizes selection among t
     getNow: () => new Date('2026-04-22T15:00:00.000Z'),
   };
 
-  const first = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+  const first = await selectCashierNumberForLandingWithDependencies('landing-1', {
     ...baseDependencies,
     getRandom: () => 0,
   });
-  const second = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+  const second = await selectCashierNumberForLandingWithDependencies('landing-1', {
     ...baseDependencies,
     getRandom: () => 0.99,
   });
@@ -726,8 +913,8 @@ test('selectCashierNumberForLandingWithDependencies clamps activity started befo
     './service.js'
   );
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       {
         cashierId: 'cashier-1',
         sessionName: 'session-1',
@@ -739,8 +926,8 @@ test('selectCashierNumberForLandingWithDependencies clamps activity started befo
         activeSince: new Date('2026-04-22T04:00:00.000Z'),
       },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () =>
       buildWorkingSessions(
         { name: 'session-1', number: '5491111111111' },
@@ -762,9 +949,7 @@ test('selectCashierNumberForLandingWithDependencies clamps activity started befo
 });
 
 // ---------------------------------------------------------------------------
-// Blocked-pixel leads: ad-blockers prevent the Meta pixel from creating the
-// _fbp/_fbc cookies, so the landing sends null. The lead must still be created
-// (contact must succeed); attribution degrades gracefully via CAPI.
+// CreateLeadPayloadSchema tests — Phase 2: landingId (replaces metaPixelId)
 // ---------------------------------------------------------------------------
 
 test('CreateLeadPayloadSchema accepts null fbc/fbp and normalizes them to empty string', async () => {
@@ -774,7 +959,7 @@ test('CreateLeadPayloadSchema accepts null fbc/fbp and normalizes them to empty 
     fbc: null,
     fbp: null,
     userAgent: 'Mozilla/5.0',
-    metaPixelId: 'pixel-1',
+    landingId: 'landing-uuid-1',
   });
 
   assert.equal(parsed.success, true);
@@ -787,12 +972,38 @@ test('CreateLeadPayloadSchema accepts missing fbc/fbp', async () => {
 
   const parsed = CreateLeadPayloadSchema.safeParse({
     userAgent: 'Mozilla/5.0',
-    metaPixelId: 'pixel-1',
+    landingId: 'landing-uuid-1',
   });
 
   assert.equal(parsed.success, true);
   assert.equal(parsed.success && parsed.data.fbc, '');
   assert.equal(parsed.success && parsed.data.fbp, '');
+});
+
+test('CreateLeadPayloadSchema rejects missing landingId', async () => {
+  const { CreateLeadPayloadSchema } = await import('./service.js');
+
+  const parsed = CreateLeadPayloadSchema.safeParse({
+    fbc: 'fb.1.1234',
+    fbp: 'fb.1.9876',
+    userAgent: 'Mozilla/5.0',
+    // landingId absent
+  });
+
+  assert.equal(parsed.success, false);
+});
+
+test('CreateLeadPayloadSchema rejects empty landingId', async () => {
+  const { CreateLeadPayloadSchema } = await import('./service.js');
+
+  const parsed = CreateLeadPayloadSchema.safeParse({
+    fbc: 'fb.1.1234',
+    fbp: 'fb.1.9876',
+    userAgent: 'Mozilla/5.0',
+    landingId: '   ', // whitespace-only
+  });
+
+  assert.equal(parsed.success, false);
 });
 
 test('createLeadWithDependencies skips fbc dedup and creates the lead when fbc is empty', async () => {
@@ -807,7 +1018,7 @@ test('createLeadWithDependencies skips fbc dedup and creates the lead when fbc i
   });
 
   const result = await createLeadWithDependencies(
-    { fbc: '', fbp: '', userAgent: 'Mozilla/5.0', metaPixelId: 'pixel-1' },
+    { fbc: '', fbp: '', userAgent: 'Mozilla/5.0', landingId: 'landing-uuid-1' },
     deps,
   );
 

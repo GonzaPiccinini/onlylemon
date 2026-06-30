@@ -29,6 +29,7 @@ try {
   await client.connect();
 
   const queryFn = async () => {
+    // After Contract migration, metaPixelId is the FK UUID → MetaPixel.id.
     const result = await client.query<{
       id: string;
       metaPixelId: string;

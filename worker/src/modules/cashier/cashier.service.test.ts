@@ -18,6 +18,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER =
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
@@ -32,7 +33,9 @@ const makeContactedLead = (overrides: Record<string, unknown> = {}) => ({
   phone: '5491111111111',
   status: 'CONTACTED' as const,
   cashierId: 'cashier-1',
-  metaPixelId: 'pixel-1',
+  metaPixelId: 'mp-uuid-1',
+  metaPixel: { pixelId: 'pixel-1', accessToken: 'token-1' },
+  eventSourceUrl: 'https://example.com',
   fbc: 'fbc-1',
   fbp: 'fbp-1',
   userAgent: 'Mozilla',
@@ -66,8 +69,6 @@ test('createConversionService: CONTACTED lead → inserts Conversion, flips stat
   const landingMock = {
     id: 'landing-1',
     url: 'https://example.com',
-    metaPixelId: 'pixel-1',
-    metaAccessToken: 'token-1',
   };
 
   const conversionResultMock = {

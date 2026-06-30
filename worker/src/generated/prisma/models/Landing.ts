@@ -28,7 +28,6 @@ export type LandingMinAggregateOutputType = {
   id: string | null
   url: string | null
   metaPixelId: string | null
-  metaAccessToken: string | null
   status: $Enums.LandingStatus | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -38,7 +37,6 @@ export type LandingMaxAggregateOutputType = {
   id: string | null
   url: string | null
   metaPixelId: string | null
-  metaAccessToken: string | null
   status: $Enums.LandingStatus | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -48,7 +46,7 @@ export type LandingCountAggregateOutputType = {
   id: number
   url: number
   metaPixelId: number
-  metaAccessToken: number
+  whatsappMessages: number
   status: number
   createdAt: number
   updatedAt: number
@@ -60,7 +58,6 @@ export type LandingMinAggregateInputType = {
   id?: true
   url?: true
   metaPixelId?: true
-  metaAccessToken?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -70,7 +67,6 @@ export type LandingMaxAggregateInputType = {
   id?: true
   url?: true
   metaPixelId?: true
-  metaAccessToken?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -80,7 +76,7 @@ export type LandingCountAggregateInputType = {
   id?: true
   url?: true
   metaPixelId?: true
-  metaAccessToken?: true
+  whatsappMessages?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -163,7 +159,7 @@ export type LandingGroupByOutputType = {
   id: string
   url: string
   metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages: string[]
   status: $Enums.LandingStatus
   createdAt: Date
   updatedAt: Date
@@ -194,46 +190,52 @@ export type LandingWhereInput = {
   id?: Prisma.StringFilter<"Landing"> | string
   url?: Prisma.StringFilter<"Landing"> | string
   metaPixelId?: Prisma.StringFilter<"Landing"> | string
-  metaAccessToken?: Prisma.StringFilter<"Landing"> | string
+  whatsappMessages?: Prisma.StringNullableListFilter<"Landing">
   status?: Prisma.EnumLandingStatusFilter<"Landing"> | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
+  metaPixel?: Prisma.XOR<Prisma.MetaPixelScalarRelationFilter, Prisma.MetaPixelWhereInput>
   sessions?: Prisma.WhatsappSessionLandingListRelationFilter
   fallbackPhones?: Prisma.LandingFallbackPhoneListRelationFilter
+  leads?: Prisma.LeadListRelationFilter
 }
 
 export type LandingOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   url?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  metaAccessToken?: Prisma.SortOrder
+  whatsappMessages?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  metaPixel?: Prisma.MetaPixelOrderByWithRelationInput
   sessions?: Prisma.WhatsappSessionLandingOrderByRelationAggregateInput
   fallbackPhones?: Prisma.LandingFallbackPhoneOrderByRelationAggregateInput
+  leads?: Prisma.LeadOrderByRelationAggregateInput
 }
 
 export type LandingWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  metaPixelId?: string
   AND?: Prisma.LandingWhereInput | Prisma.LandingWhereInput[]
   OR?: Prisma.LandingWhereInput[]
   NOT?: Prisma.LandingWhereInput | Prisma.LandingWhereInput[]
   url?: Prisma.StringFilter<"Landing"> | string
-  metaAccessToken?: Prisma.StringFilter<"Landing"> | string
+  metaPixelId?: Prisma.StringFilter<"Landing"> | string
+  whatsappMessages?: Prisma.StringNullableListFilter<"Landing">
   status?: Prisma.EnumLandingStatusFilter<"Landing"> | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
+  metaPixel?: Prisma.XOR<Prisma.MetaPixelScalarRelationFilter, Prisma.MetaPixelWhereInput>
   sessions?: Prisma.WhatsappSessionLandingListRelationFilter
   fallbackPhones?: Prisma.LandingFallbackPhoneListRelationFilter
-}, "id" | "metaPixelId">
+  leads?: Prisma.LeadListRelationFilter
+}, "id">
 
 export type LandingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   url?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  metaAccessToken?: Prisma.SortOrder
+  whatsappMessages?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -249,7 +251,7 @@ export type LandingScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Landing"> | string
   url?: Prisma.StringWithAggregatesFilter<"Landing"> | string
   metaPixelId?: Prisma.StringWithAggregatesFilter<"Landing"> | string
-  metaAccessToken?: Prisma.StringWithAggregatesFilter<"Landing"> | string
+  whatsappMessages?: Prisma.StringNullableListFilter<"Landing">
   status?: Prisma.EnumLandingStatusWithAggregatesFilter<"Landing"> | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Landing"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Landing"> | Date | string
@@ -258,56 +260,60 @@ export type LandingScalarWhereWithAggregatesInput = {
 export type LandingCreateInput = {
   id?: string
   url: string
-  metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLandingsInput
   sessions?: Prisma.WhatsappSessionLandingCreateNestedManyWithoutLandingInput
   fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUncheckedCreateInput = {
   id?: string
   url: string
   metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.WhatsappSessionLandingUncheckedCreateNestedManyWithoutLandingInput
   fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLandingsNestedInput
   sessions?: Prisma.WhatsappSessionLandingUpdateManyWithoutLandingNestedInput
   fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.WhatsappSessionLandingUncheckedUpdateManyWithoutLandingNestedInput
   fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingCreateManyInput = {
   id?: string
   url: string
   metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -316,8 +322,7 @@ export type LandingCreateManyInput = {
 export type LandingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -327,17 +332,40 @@ export type LandingUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type LandingScalarRelationFilter = {
+  is?: Prisma.LandingWhereInput
+  isNot?: Prisma.LandingWhereInput
+}
+
+export type LandingListRelationFilter = {
+  every?: Prisma.LandingWhereInput
+  some?: Prisma.LandingWhereInput
+  none?: Prisma.LandingWhereInput
+}
+
+export type LandingOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
+}
+
+export type StringNullableListFilter<$PrismaModel = never> = {
+  equals?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  has?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
+  hasEvery?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
+  hasSome?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
+  isEmpty?: boolean
 }
 
 export type LandingCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   url?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  metaAccessToken?: Prisma.SortOrder
+  whatsappMessages?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -347,7 +375,6 @@ export type LandingMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   url?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  metaAccessToken?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -357,15 +384,74 @@ export type LandingMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   url?: Prisma.SortOrder
   metaPixelId?: Prisma.SortOrder
-  metaAccessToken?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
-export type LandingScalarRelationFilter = {
-  is?: Prisma.LandingWhereInput
-  isNot?: Prisma.LandingWhereInput
+export type LandingCreateNestedOneWithoutLeadsInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutLeadsInput, Prisma.LandingUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutLeadsInput
+  connect?: Prisma.LandingWhereUniqueInput
+}
+
+export type LandingUpdateOneRequiredWithoutLeadsNestedInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutLeadsInput, Prisma.LandingUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutLeadsInput
+  upsert?: Prisma.LandingUpsertWithoutLeadsInput
+  connect?: Prisma.LandingWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LandingUpdateToOneWithWhereWithoutLeadsInput, Prisma.LandingUpdateWithoutLeadsInput>, Prisma.LandingUncheckedUpdateWithoutLeadsInput>
+}
+
+export type LandingCreateNestedManyWithoutMetaPixelInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutMetaPixelInput, Prisma.LandingUncheckedCreateWithoutMetaPixelInput> | Prisma.LandingCreateWithoutMetaPixelInput[] | Prisma.LandingUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutMetaPixelInput | Prisma.LandingCreateOrConnectWithoutMetaPixelInput[]
+  createMany?: Prisma.LandingCreateManyMetaPixelInputEnvelope
+  connect?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+}
+
+export type LandingUncheckedCreateNestedManyWithoutMetaPixelInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutMetaPixelInput, Prisma.LandingUncheckedCreateWithoutMetaPixelInput> | Prisma.LandingCreateWithoutMetaPixelInput[] | Prisma.LandingUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutMetaPixelInput | Prisma.LandingCreateOrConnectWithoutMetaPixelInput[]
+  createMany?: Prisma.LandingCreateManyMetaPixelInputEnvelope
+  connect?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+}
+
+export type LandingUpdateManyWithoutMetaPixelNestedInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutMetaPixelInput, Prisma.LandingUncheckedCreateWithoutMetaPixelInput> | Prisma.LandingCreateWithoutMetaPixelInput[] | Prisma.LandingUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutMetaPixelInput | Prisma.LandingCreateOrConnectWithoutMetaPixelInput[]
+  upsert?: Prisma.LandingUpsertWithWhereUniqueWithoutMetaPixelInput | Prisma.LandingUpsertWithWhereUniqueWithoutMetaPixelInput[]
+  createMany?: Prisma.LandingCreateManyMetaPixelInputEnvelope
+  set?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  disconnect?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  delete?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  connect?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  update?: Prisma.LandingUpdateWithWhereUniqueWithoutMetaPixelInput | Prisma.LandingUpdateWithWhereUniqueWithoutMetaPixelInput[]
+  updateMany?: Prisma.LandingUpdateManyWithWhereWithoutMetaPixelInput | Prisma.LandingUpdateManyWithWhereWithoutMetaPixelInput[]
+  deleteMany?: Prisma.LandingScalarWhereInput | Prisma.LandingScalarWhereInput[]
+}
+
+export type LandingUncheckedUpdateManyWithoutMetaPixelNestedInput = {
+  create?: Prisma.XOR<Prisma.LandingCreateWithoutMetaPixelInput, Prisma.LandingUncheckedCreateWithoutMetaPixelInput> | Prisma.LandingCreateWithoutMetaPixelInput[] | Prisma.LandingUncheckedCreateWithoutMetaPixelInput[]
+  connectOrCreate?: Prisma.LandingCreateOrConnectWithoutMetaPixelInput | Prisma.LandingCreateOrConnectWithoutMetaPixelInput[]
+  upsert?: Prisma.LandingUpsertWithWhereUniqueWithoutMetaPixelInput | Prisma.LandingUpsertWithWhereUniqueWithoutMetaPixelInput[]
+  createMany?: Prisma.LandingCreateManyMetaPixelInputEnvelope
+  set?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  disconnect?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  delete?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  connect?: Prisma.LandingWhereUniqueInput | Prisma.LandingWhereUniqueInput[]
+  update?: Prisma.LandingUpdateWithWhereUniqueWithoutMetaPixelInput | Prisma.LandingUpdateWithWhereUniqueWithoutMetaPixelInput[]
+  updateMany?: Prisma.LandingUpdateManyWithWhereWithoutMetaPixelInput | Prisma.LandingUpdateManyWithWhereWithoutMetaPixelInput[]
+  deleteMany?: Prisma.LandingScalarWhereInput | Prisma.LandingScalarWhereInput[]
+}
+
+export type LandingCreatewhatsappMessagesInput = {
+  set: string[]
+}
+
+export type LandingUpdatewhatsappMessagesInput = {
+  set?: string[]
+  push?: string | string[]
 }
 
 export type EnumLandingStatusFieldUpdateOperationsInput = {
@@ -400,26 +486,155 @@ export type LandingUpdateOneRequiredWithoutSessionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.LandingUpdateToOneWithWhereWithoutSessionsInput, Prisma.LandingUpdateWithoutSessionsInput>, Prisma.LandingUncheckedUpdateWithoutSessionsInput>
 }
 
-export type LandingCreateWithoutFallbackPhonesInput = {
+export type LandingCreateWithoutLeadsInput = {
+  id?: string
+  url: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
+  status?: $Enums.LandingStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLandingsInput
+  sessions?: Prisma.WhatsappSessionLandingCreateNestedManyWithoutLandingInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
+}
+
+export type LandingUncheckedCreateWithoutLeadsInput = {
   id?: string
   url: string
   metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
+  status?: $Enums.LandingStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.WhatsappSessionLandingUncheckedCreateNestedManyWithoutLandingInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
+}
+
+export type LandingCreateOrConnectWithoutLeadsInput = {
+  where: Prisma.LandingWhereUniqueInput
+  create: Prisma.XOR<Prisma.LandingCreateWithoutLeadsInput, Prisma.LandingUncheckedCreateWithoutLeadsInput>
+}
+
+export type LandingUpsertWithoutLeadsInput = {
+  update: Prisma.XOR<Prisma.LandingUpdateWithoutLeadsInput, Prisma.LandingUncheckedUpdateWithoutLeadsInput>
+  create: Prisma.XOR<Prisma.LandingCreateWithoutLeadsInput, Prisma.LandingUncheckedCreateWithoutLeadsInput>
+  where?: Prisma.LandingWhereInput
+}
+
+export type LandingUpdateToOneWithWhereWithoutLeadsInput = {
+  where?: Prisma.LandingWhereInput
+  data: Prisma.XOR<Prisma.LandingUpdateWithoutLeadsInput, Prisma.LandingUncheckedUpdateWithoutLeadsInput>
+}
+
+export type LandingUpdateWithoutLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
+  status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLandingsNestedInput
+  sessions?: Prisma.WhatsappSessionLandingUpdateManyWithoutLandingNestedInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
+}
+
+export type LandingUncheckedUpdateWithoutLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
+  status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.WhatsappSessionLandingUncheckedUpdateManyWithoutLandingNestedInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedUpdateManyWithoutLandingNestedInput
+}
+
+export type LandingCreateWithoutMetaPixelInput = {
+  id?: string
+  url: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.WhatsappSessionLandingCreateNestedManyWithoutLandingInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadCreateNestedManyWithoutLandingInput
+}
+
+export type LandingUncheckedCreateWithoutMetaPixelInput = {
+  id?: string
+  url: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
+  status?: $Enums.LandingStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.WhatsappSessionLandingUncheckedCreateNestedManyWithoutLandingInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutLandingInput
+}
+
+export type LandingCreateOrConnectWithoutMetaPixelInput = {
+  where: Prisma.LandingWhereUniqueInput
+  create: Prisma.XOR<Prisma.LandingCreateWithoutMetaPixelInput, Prisma.LandingUncheckedCreateWithoutMetaPixelInput>
+}
+
+export type LandingCreateManyMetaPixelInputEnvelope = {
+  data: Prisma.LandingCreateManyMetaPixelInput | Prisma.LandingCreateManyMetaPixelInput[]
+  skipDuplicates?: boolean
+}
+
+export type LandingUpsertWithWhereUniqueWithoutMetaPixelInput = {
+  where: Prisma.LandingWhereUniqueInput
+  update: Prisma.XOR<Prisma.LandingUpdateWithoutMetaPixelInput, Prisma.LandingUncheckedUpdateWithoutMetaPixelInput>
+  create: Prisma.XOR<Prisma.LandingCreateWithoutMetaPixelInput, Prisma.LandingUncheckedCreateWithoutMetaPixelInput>
+}
+
+export type LandingUpdateWithWhereUniqueWithoutMetaPixelInput = {
+  where: Prisma.LandingWhereUniqueInput
+  data: Prisma.XOR<Prisma.LandingUpdateWithoutMetaPixelInput, Prisma.LandingUncheckedUpdateWithoutMetaPixelInput>
+}
+
+export type LandingUpdateManyWithWhereWithoutMetaPixelInput = {
+  where: Prisma.LandingScalarWhereInput
+  data: Prisma.XOR<Prisma.LandingUpdateManyMutationInput, Prisma.LandingUncheckedUpdateManyWithoutMetaPixelInput>
+}
+
+export type LandingScalarWhereInput = {
+  AND?: Prisma.LandingScalarWhereInput | Prisma.LandingScalarWhereInput[]
+  OR?: Prisma.LandingScalarWhereInput[]
+  NOT?: Prisma.LandingScalarWhereInput | Prisma.LandingScalarWhereInput[]
+  id?: Prisma.StringFilter<"Landing"> | string
+  url?: Prisma.StringFilter<"Landing"> | string
+  metaPixelId?: Prisma.StringFilter<"Landing"> | string
+  whatsappMessages?: Prisma.StringNullableListFilter<"Landing">
+  status?: Prisma.EnumLandingStatusFilter<"Landing"> | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Landing"> | Date | string
+}
+
+export type LandingCreateWithoutFallbackPhonesInput = {
+  id?: string
+  url: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
+  status?: $Enums.LandingStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLandingsInput
+  sessions?: Prisma.WhatsappSessionLandingCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUncheckedCreateWithoutFallbackPhonesInput = {
   id?: string
   url: string
   metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.WhatsappSessionLandingUncheckedCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutLandingInput
 }
 
 export type LandingCreateOrConnectWithoutFallbackPhonesInput = {
@@ -441,45 +656,49 @@ export type LandingUpdateToOneWithWhereWithoutFallbackPhonesInput = {
 export type LandingUpdateWithoutFallbackPhonesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLandingsNestedInput
   sessions?: Prisma.WhatsappSessionLandingUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingUncheckedUpdateWithoutFallbackPhonesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.WhatsappSessionLandingUncheckedUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingCreateWithoutSessionsInput = {
   id?: string
   url: string
-  metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  metaPixel: Prisma.MetaPixelCreateNestedOneWithoutLandingsInput
   fallbackPhones?: Prisma.LandingFallbackPhoneCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadCreateNestedManyWithoutLandingInput
 }
 
 export type LandingUncheckedCreateWithoutSessionsInput = {
   id?: string
   url: string
   metaPixelId: string
-  metaAccessToken: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
   status?: $Enums.LandingStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedCreateNestedManyWithoutLandingInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutLandingInput
 }
 
 export type LandingCreateOrConnectWithoutSessionsInput = {
@@ -501,23 +720,67 @@ export type LandingUpdateToOneWithWhereWithoutSessionsInput = {
 export type LandingUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
-  metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metaPixel?: Prisma.MetaPixelUpdateOneRequiredWithoutLandingsNestedInput
   fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutLandingNestedInput
 }
 
 export type LandingUncheckedUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   metaPixelId?: Prisma.StringFieldUpdateOperationsInput | string
-  metaAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
   status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutLandingNestedInput
+}
+
+export type LandingCreateManyMetaPixelInput = {
+  id?: string
+  url: string
+  whatsappMessages?: Prisma.LandingCreatewhatsappMessagesInput | string[]
+  status?: $Enums.LandingStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type LandingUpdateWithoutMetaPixelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
+  status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.WhatsappSessionLandingUpdateManyWithoutLandingNestedInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutLandingNestedInput
+}
+
+export type LandingUncheckedUpdateWithoutMetaPixelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
+  status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.WhatsappSessionLandingUncheckedUpdateManyWithoutLandingNestedInput
+  fallbackPhones?: Prisma.LandingFallbackPhoneUncheckedUpdateManyWithoutLandingNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutLandingNestedInput
+}
+
+export type LandingUncheckedUpdateManyWithoutMetaPixelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappMessages?: Prisma.LandingUpdatewhatsappMessagesInput | string[]
+  status?: Prisma.EnumLandingStatusFieldUpdateOperationsInput | $Enums.LandingStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -528,11 +791,13 @@ export type LandingUncheckedUpdateWithoutSessionsInput = {
 export type LandingCountOutputType = {
   sessions: number
   fallbackPhones: number
+  leads: number
 }
 
 export type LandingCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | LandingCountOutputTypeCountSessionsArgs
   fallbackPhones?: boolean | LandingCountOutputTypeCountFallbackPhonesArgs
+  leads?: boolean | LandingCountOutputTypeCountLeadsArgs
 }
 
 /**
@@ -559,17 +824,26 @@ export type LandingCountOutputTypeCountFallbackPhonesArgs<ExtArgs extends runtim
   where?: Prisma.LandingFallbackPhoneWhereInput
 }
 
+/**
+ * LandingCountOutputType without action
+ */
+export type LandingCountOutputTypeCountLeadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LeadWhereInput
+}
+
 
 export type LandingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   url?: boolean
   metaPixelId?: boolean
-  metaAccessToken?: boolean
+  whatsappMessages?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
   sessions?: boolean | Prisma.Landing$sessionsArgs<ExtArgs>
   fallbackPhones?: boolean | Prisma.Landing$fallbackPhonesArgs<ExtArgs>
+  leads?: boolean | Prisma.Landing$leadsArgs<ExtArgs>
   _count?: boolean | Prisma.LandingCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["landing"]>
 
@@ -577,52 +851,62 @@ export type LandingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   url?: boolean
   metaPixelId?: boolean
-  metaAccessToken?: boolean
+  whatsappMessages?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["landing"]>
 
 export type LandingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   url?: boolean
   metaPixelId?: boolean
-  metaAccessToken?: boolean
+  whatsappMessages?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["landing"]>
 
 export type LandingSelectScalar = {
   id?: boolean
   url?: boolean
   metaPixelId?: boolean
-  metaAccessToken?: boolean
+  whatsappMessages?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type LandingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "url" | "metaPixelId" | "metaAccessToken" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["landing"]>
+export type LandingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "url" | "metaPixelId" | "whatsappMessages" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["landing"]>
 export type LandingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
   sessions?: boolean | Prisma.Landing$sessionsArgs<ExtArgs>
   fallbackPhones?: boolean | Prisma.Landing$fallbackPhonesArgs<ExtArgs>
+  leads?: boolean | Prisma.Landing$leadsArgs<ExtArgs>
   _count?: boolean | Prisma.LandingCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type LandingIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type LandingIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type LandingIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+}
+export type LandingIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  metaPixel?: boolean | Prisma.MetaPixelDefaultArgs<ExtArgs>
+}
 
 export type $LandingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Landing"
   objects: {
+    metaPixel: Prisma.$MetaPixelPayload<ExtArgs>
     sessions: Prisma.$WhatsappSessionLandingPayload<ExtArgs>[]
     fallbackPhones: Prisma.$LandingFallbackPhonePayload<ExtArgs>[]
+    leads: Prisma.$LeadPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     url: string
     metaPixelId: string
-    metaAccessToken: string
+    whatsappMessages: string[]
     status: $Enums.LandingStatus
     createdAt: Date
     updatedAt: Date
@@ -1020,8 +1304,10 @@ readonly fields: LandingFieldRefs;
  */
 export interface Prisma__LandingClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  metaPixel<T extends Prisma.MetaPixelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MetaPixelDefaultArgs<ExtArgs>>): Prisma.Prisma__MetaPixelClient<runtime.Types.Result.GetResult<Prisma.$MetaPixelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   sessions<T extends Prisma.Landing$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsappSessionLandingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   fallbackPhones<T extends Prisma.Landing$fallbackPhonesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$fallbackPhonesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LandingFallbackPhonePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  leads<T extends Prisma.Landing$leadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Landing$leadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1054,7 +1340,7 @@ export interface LandingFieldRefs {
   readonly id: Prisma.FieldRef<"Landing", 'String'>
   readonly url: Prisma.FieldRef<"Landing", 'String'>
   readonly metaPixelId: Prisma.FieldRef<"Landing", 'String'>
-  readonly metaAccessToken: Prisma.FieldRef<"Landing", 'String'>
+  readonly whatsappMessages: Prisma.FieldRef<"Landing", 'String[]'>
   readonly status: Prisma.FieldRef<"Landing", 'LandingStatus'>
   readonly createdAt: Prisma.FieldRef<"Landing", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Landing", 'DateTime'>
@@ -1312,6 +1598,10 @@ export type LandingCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    */
   data: Prisma.LandingCreateManyInput | Prisma.LandingCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LandingIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1382,6 +1672,10 @@ export type LandingUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * Limit how many Landings to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LandingIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1496,6 +1790,30 @@ export type Landing$fallbackPhonesArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.LandingFallbackPhoneScalarFieldEnum | Prisma.LandingFallbackPhoneScalarFieldEnum[]
+}
+
+/**
+ * Landing.leads
+ */
+export type Landing$leadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Lead
+   */
+  select?: Prisma.LeadSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Lead
+   */
+  omit?: Prisma.LeadOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LeadInclude<ExtArgs> | null
+  where?: Prisma.LeadWhereInput
+  orderBy?: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[]
+  cursor?: Prisma.LeadWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LeadScalarFieldEnum | Prisma.LeadScalarFieldEnum[]
 }
 
 /**

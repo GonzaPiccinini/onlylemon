@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import type { Request, Response } from 'express';
 import type { SessionsList } from '../waha/client.js';
 
 process.env.PORT = process.env.PORT ?? '3002';
@@ -17,6 +18,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER = process.env.WAHA_WEBHOOK_TOKEN_HEADER ??
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
@@ -25,11 +27,32 @@ process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
 // Shared test helpers
 // ---------------------------------------------------------------------------
 
+// Phase 2: landingId replaces metaPixelId in the public contract
 const BASE_PAYLOAD = {
   fbc: 'fb.1.1234',
   fbp: 'fb.1.9876',
   userAgent: 'Mozilla/5.0',
-  metaPixelId: 'pixel-http-1',
+  landingId: 'landing-uuid-http-1',
+};
+
+const MOCK_PIXEL = {
+  id: 'meta-pixel-uuid-1',
+  pixelId: '976916338006290',
+  accessToken: 'mock-access-token',
+  label: null as string | null,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+
+const MOCK_LANDING = {
+  id: 'landing-uuid-http-1',
+  url: 'https://example.com/lp1',
+  metaPixelId: MOCK_PIXEL.id,
+  status: 'ACTIVE' as 'ACTIVE' | 'DISABLED',
+  whatsappMessages: [] as string[],
+  metaPixel: { id: MOCK_PIXEL.id, pixelId: MOCK_PIXEL.pixelId, label: null as string | null },
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
 };
 
 function buildWorkingSession(name: string, number: string): SessionsList[number] {
@@ -43,24 +66,37 @@ function buildWorkingSession(name: string, number: string): SessionsList[number]
 }
 
 /**
- * Builds a minimal CreateLeadDependencies object for use with
- * createLeadWithDependencies. The `selectCashierNumberForLanding` function is
- * built from a full `selectCashierNumberForLandingWithDependencies` call with
- * the provided selectDeps, so the full L1→L2→L3 chain executes.
+ * Builds a minimal CreateLeadDependencies object for integration tests.
+ * Phase 2: includes `getLandingById` dep; saveLead returns snapshot fields.
  */
 async function buildIntegrationDeps(
-  selectCashierNumberForLanding: (metaPixelId: string) => Promise<{ ok: true; number: string } | { ok: false; reason: 'LANDING_NOT_FOUND' | 'FALLBACK_INVARIANT_VIOLATION' }>,
+  selectCashierNumberForLanding: (landingId: string) => Promise<
+    | { ok: true; number: string }
+    | { ok: false; reason: 'LANDING_NOT_FOUND' | 'FALLBACK_INVARIANT_VIOLATION' }
+  >,
+  landingOverride?: typeof MOCK_LANDING | null,
 ) {
   return {
     selectCashierNumberForLanding,
+    getLandingById: async (_id: string) =>
+      landingOverride !== undefined
+        ? landingOverride
+        : MOCK_LANDING,
     getLeadByFbc: async () => null,
-    saveLead: async ({ code }: { code: string; fbc: string; fbp: string; userAgent: string; metaPixelId: string; adCode?: string }) => ({
+    saveLead: async ({ code }: {
+      code: string; fbc: string; fbp: string; userAgent: string;
+      landingId: string; metaPixelId: string; eventSourceUrl: string;
+      adCode?: string;
+    }) => ({
       id: 'lead-b9',
       code,
       fbc: BASE_PAYLOAD.fbc,
       fbp: BASE_PAYLOAD.fbp,
       userAgent: BASE_PAYLOAD.userAgent,
-      metaPixelId: BASE_PAYLOAD.metaPixelId,
+      metaPixelId: MOCK_PIXEL.id,
+      metaPixel: MOCK_PIXEL,
+      eventSourceUrl: MOCK_LANDING.url,
+      landingId: BASE_PAYLOAD.landingId,
     }),
     dispatchLeadCreatedEvent: async () => {},
     generateCode: () => 'B9CODE01',
@@ -73,30 +109,25 @@ async function buildIntegrationDeps(
 // B9.1 — L1 hit: cashier on shift + WAHA WORKING → response uses cashier phone
 // ---------------------------------------------------------------------------
 
-// B9.1 (test) — L1 hit: cashier on shift + WAHA WORKING → POST /api/leads returns cashier phone
-// REQ-1, REQ-2
 test('POST /api/leads round-trip: L1 hit — on-shift cashier WAHA-WORKING → returns cashier phone and calls getSessions once', async () => {
   const { createLeadWithDependencies, selectCashierNumberForLandingWithDependencies } =
     await import('./service.js');
 
   let getSessionsCallCount = 0;
 
-  const selectCashierNumberForLanding = (metaPixelId: string) =>
-    selectCashierNumberForLandingWithDependencies(metaPixelId, {
-      // L1: cashier-1 is on-shift
-      getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const selectCashierNumberForLanding = (landingId: string) =>
+    selectCashierNumberForLandingWithDependencies(landingId, {
+      getActiveLandingCashierCandidatesByLandingId: async () => [
         {
           cashierId: 'cashier-1',
           sessionName: 'session-1',
           activeSince: new Date('2026-05-10T12:00:00.000Z'),
         },
       ],
-      // L2: would also have cashier-1 (not reached)
-      getAllLinkedCashierCandidatesByMetaPixelId: async () => [
-        { cashierId: 'cashier-1', sessionName: 'session-1', whatsappPhoneNumber: null },
+      getAllLinkedCashierCandidatesByLandingId: async () => [
+        { cashierId: 'cashier-1', sessionName: 'session-1' },
       ],
-      // L3: not reached
-      getLandingFallbackPhonesByMetaPixelId: async () => [
+      getLandingFallbackPhonesByLandingId: async () => [
         { id: 'f1', phone: '+5490000000001' },
       ],
       getSessions: async () => {
@@ -112,11 +143,8 @@ test('POST /api/leads round-trip: L1 hit — on-shift cashier WAHA-WORKING → r
   const deps = await buildIntegrationDeps(selectCashierNumberForLanding);
   const result = await createLeadWithDependencies(BASE_PAYLOAD, deps);
 
-  // Response: HTTP 200-level fields
   assert.equal(result.code, 'B9CODE01');
-  // number comes from the WAHA session number for cashier-1 (L1 deficit algo selects it)
   assert.equal(result.number, '5491111111111');
-  // getSessions called exactly once (REQ-2)
   assert.equal(getSessionsCallCount, 1, 'getSessions must be called exactly once');
 });
 
@@ -124,29 +152,23 @@ test('POST /api/leads round-trip: L1 hit — on-shift cashier WAHA-WORKING → r
 // B9.2 — L2 hit: no cashier on shift, cashier WAHA-WORKING → returns cashier phone
 // ---------------------------------------------------------------------------
 
-// B9.2 (test) — L2 hit: no active SessionActivity but ≥1 ACTIVE cashier WAHA-WORKING
-// REQ-1, REQ-2
 test('POST /api/leads round-trip: L2 hit — no on-shift cashier, but ACTIVE cashier WAHA-WORKING → returns that cashier phone and calls getSessions once', async () => {
   const { createLeadWithDependencies, selectCashierNumberForLandingWithDependencies } =
     await import('./service.js');
 
   let getSessionsCallCount = 0;
 
-  const selectCashierNumberForLanding = (metaPixelId: string) =>
-    selectCashierNumberForLandingWithDependencies(metaPixelId, {
-      // L1: no on-shift cashiers
-      getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-      // L2: cashier-2 is ACTIVE + sessionName present
-      getAllLinkedCashierCandidatesByMetaPixelId: async () => [
-        { cashierId: 'cashier-2', sessionName: 'session-2', whatsappPhoneNumber: null },
+  const selectCashierNumberForLanding = (landingId: string) =>
+    selectCashierNumberForLandingWithDependencies(landingId, {
+      getActiveLandingCashierCandidatesByLandingId: async () => [],
+      getAllLinkedCashierCandidatesByLandingId: async () => [
+        { cashierId: 'cashier-2', sessionName: 'session-2' },
       ],
-      // L3: not reached
-      getLandingFallbackPhonesByMetaPixelId: async () => [
+      getLandingFallbackPhonesByLandingId: async () => [
         { id: 'f1', phone: '+5490000000001' },
       ],
       getSessions: async () => {
         getSessionsCallCount += 1;
-        // session-2 is WORKING
         return [buildWorkingSession('session-2', '5492222222222')];
       },
       getContactedLeadCountByCashierForLanding: async () => new Map(),
@@ -158,11 +180,8 @@ test('POST /api/leads round-trip: L2 hit — no on-shift cashier, but ACTIVE cas
   const result = await createLeadWithDependencies(BASE_PAYLOAD, deps);
 
   assert.equal(result.code, 'B9CODE01');
-  // number comes from WAHA session for cashier-2 (L2 uniform-random pick)
   assert.equal(result.number, '5492222222222');
-  // getSessions called exactly once (REQ-2)
   assert.equal(getSessionsCallCount, 1, 'getSessions must be called exactly once');
-  // Confirm it is non-empty and E.164-like (WAHA phone without +, but non-empty)
   assert.ok(result.number.length > 0, 'number must be non-empty');
 });
 
@@ -170,8 +189,6 @@ test('POST /api/leads round-trip: L2 hit — no on-shift cashier, but ACTIVE cas
 // B9.3 — L3 hit: all cashiers offline → fallback phone from DB
 // ---------------------------------------------------------------------------
 
-// B9.3 (test) — L3 hit: L1 and L2 yield nothing; ≥1 LandingFallbackPhone configured
-// REQ-1
 test('POST /api/leads round-trip: L3 hit — all cashiers offline, fallback phones configured → returns E.164 fallback phone', async () => {
   const { createLeadWithDependencies, selectCashierNumberForLandingWithDependencies } =
     await import('./service.js');
@@ -182,21 +199,16 @@ test('POST /api/leads round-trip: L3 hit — all cashiers offline, fallback phon
     { id: 'f3', phone: '+5493333333333' },
   ];
 
-  const selectCashierNumberForLanding = (metaPixelId: string) =>
-    selectCashierNumberForLandingWithDependencies(metaPixelId, {
-      // L1: no on-shift cashiers
-      getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-      // L2: cashier exists but session is NOT WORKING → filtered out
-      getAllLinkedCashierCandidatesByMetaPixelId: async () => [
-        { cashierId: 'cashier-3', sessionName: 'session-3', whatsappPhoneNumber: null },
+  const selectCashierNumberForLanding = (landingId: string) =>
+    selectCashierNumberForLandingWithDependencies(landingId, {
+      getActiveLandingCashierCandidatesByLandingId: async () => [],
+      getAllLinkedCashierCandidatesByLandingId: async () => [
+        { cashierId: 'cashier-3', sessionName: 'session-3' },
       ],
-      // L3: 3 fallback phones
-      getLandingFallbackPhonesByMetaPixelId: async () => fallbackPhones,
-      // WAHA returns no WORKING sessions → L1 and L2 both come up empty
+      getLandingFallbackPhonesByLandingId: async () => fallbackPhones,
       getSessions: async () => [],
       getContactedLeadCountByCashierForLanding: async () => new Map(),
       getNow: () => new Date('2026-05-10T15:00:00.000Z'),
-      // getRandom = 0 → picks index 0 → first fallback phone
       getRandom: () => 0,
     });
 
@@ -204,13 +216,11 @@ test('POST /api/leads round-trip: L3 hit — all cashiers offline, fallback phon
   const result = await createLeadWithDependencies(BASE_PAYLOAD, deps);
 
   assert.equal(result.code, 'B9CODE01');
-  // number must be one of the configured fallback phones
   const fallbackPhoneValues = fallbackPhones.map((f) => f.phone);
   assert.ok(
     fallbackPhoneValues.includes(result.number),
     `number "${result.number}" should be one of ${fallbackPhoneValues.join(', ')}`,
   );
-  // number must match E.164 format
   assert.match(result.number, /^\+[1-9]\d{1,14}$/, 'number must be E.164');
 });
 
@@ -218,8 +228,6 @@ test('POST /api/leads round-trip: L3 hit — all cashiers offline, fallback phon
 // B9.4 — Invariant violation: 0 fallbacks + all offline → HTTP 500
 // ---------------------------------------------------------------------------
 
-// B9.4 (test) — no shift, no WAHA-WORKING cashiers, 0 fallback phones → FallbackInvariantViolationError → HTTP 500
-// REQ-1
 test('POST /api/leads round-trip: invariant violation — 0 fallbacks + all offline → FallbackInvariantViolationError thrown; resolveCreateLeadHttpError maps to HTTP 500 with FALLBACK_INVARIANT_VIOLATION', async () => {
   const {
     createLeadWithDependencies,
@@ -228,14 +236,11 @@ test('POST /api/leads round-trip: invariant violation — 0 fallbacks + all offl
   } = await import('./service.js');
   const { resolveCreateLeadHttpError } = await import('./http.js');
 
-  const selectCashierNumberForLanding = (metaPixelId: string) =>
-    selectCashierNumberForLandingWithDependencies(metaPixelId, {
-      // L1: no on-shift cashiers
-      getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-      // L2: no cashiers at all
-      getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-      // L3: 0 fallback phones → invariant violation
-      getLandingFallbackPhonesByMetaPixelId: async () => [],
+  const selectCashierNumberForLanding = (landingId: string) =>
+    selectCashierNumberForLandingWithDependencies(landingId, {
+      getActiveLandingCashierCandidatesByLandingId: async () => [],
+      getAllLinkedCashierCandidatesByLandingId: async () => [],
+      getLandingFallbackPhonesByLandingId: async () => [],
       getSessions: async () => [],
       getContactedLeadCountByCashierForLanding: async () => new Map(),
       getNow: () => new Date('2026-05-10T15:00:00.000Z'),
@@ -244,7 +249,6 @@ test('POST /api/leads round-trip: invariant violation — 0 fallbacks + all offl
 
   const deps = await buildIntegrationDeps(selectCashierNumberForLanding);
 
-  // The service must throw FallbackInvariantViolationError
   let thrownError: unknown;
   await assert.rejects(
     () => createLeadWithDependencies(BASE_PAYLOAD, deps),
@@ -256,11 +260,36 @@ test('POST /api/leads round-trip: invariant violation — 0 fallbacks + all offl
     },
   );
 
-  // resolveCreateLeadHttpError must map it to HTTP 500
   const httpError = resolveCreateLeadHttpError(thrownError);
   assert.ok(httpError !== null, 'resolveCreateLeadHttpError must return a non-null response');
   assert.equal(httpError!.status, 500);
   assert.deepEqual(httpError!.body, { error: 'FALLBACK_INVARIANT_VIOLATION' });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 2 — HTTP contract for landing errors
+// ---------------------------------------------------------------------------
+
+test('resolveCreateLeadHttpError maps LANDING_NOT_FOUND to HTTP 404 with "Landing not found"', async () => {
+  const { resolveCreateLeadHttpError } = await import('./http.js');
+
+  const result = resolveCreateLeadHttpError(new Error('LANDING_NOT_FOUND'));
+
+  assert.deepEqual(result, {
+    status: 404,
+    body: { message: 'Landing not found' },
+  });
+});
+
+test('resolveCreateLeadHttpError maps LANDING_DISABLED to HTTP 404 with "Landing not found or disabled"', async () => {
+  const { resolveCreateLeadHttpError } = await import('./http.js');
+
+  const result = resolveCreateLeadHttpError(new Error('LANDING_DISABLED'));
+
+  assert.deepEqual(result, {
+    status: 404,
+    body: { message: 'Landing not found or disabled' },
+  });
 });
 
 test('resolveCreateLeadHttpError maps duplicate fbc errors to 409', async () => {
@@ -277,6 +306,10 @@ test('resolveCreateLeadHttpError maps duplicate fbc errors to 409', async () => 
   });
 });
 
+// ---------------------------------------------------------------------------
+// extractAdCodeFromQueryParam
+// ---------------------------------------------------------------------------
+
 test('extractAdCodeFromQueryParam resolves utm_content values safely', async () => {
   const { extractAdCodeFromQueryParam } = await import('./http.js');
 
@@ -287,4 +320,94 @@ test('extractAdCodeFromQueryParam resolves utm_content values safely', async () 
   );
   assert.equal(extractAdCodeFromQueryParam(undefined), undefined);
   assert.equal(extractAdCodeFromQueryParam('   '), undefined);
+});
+
+// ---------------------------------------------------------------------------
+// Change B — Altcha captcha gate on POST /api/leads (HTTP contract)
+// ---------------------------------------------------------------------------
+
+type MockResponse = {
+  statusCode: number;
+  jsonBody: unknown;
+  status(code: number): MockResponse;
+  json(payload: unknown): MockResponse;
+};
+
+function createMockResponse(): MockResponse {
+  const res: MockResponse = {
+    statusCode: 0,
+    jsonBody: undefined,
+    status(code) {
+      res.statusCode = code;
+      return res;
+    },
+    json(payload) {
+      res.jsonBody = payload;
+      return res;
+    },
+  };
+  return res;
+}
+
+function createMockRequest(
+  body: Record<string, unknown>,
+  query: Record<string, unknown> = {},
+): Request {
+  return { body, query, ip: '127.0.0.1' } as unknown as Request;
+}
+
+test('POST /api/leads — missing altcha field → 400 "Captcha token required"', async () => {
+  const { leadsPost } = await import('./http.js');
+
+  const res = createMockResponse();
+  // BASE_PAYLOAD intentionally has no `altcha` field.
+  await leadsPost(createMockRequest({ ...BASE_PAYLOAD }), res as unknown as Response);
+
+  assert.equal(res.statusCode, 400);
+  assert.deepEqual(res.jsonBody, { message: 'Captcha token required' });
+});
+
+test('POST /api/leads — invalid/expired/replayed captcha (verifyCaptcha false) → 403 "Captcha verification failed"', async () => {
+  const { leadsPost } = await import('./http.js');
+
+  const res = createMockResponse();
+  // A malformed Altcha payload: the real verifyCaptcha rejects it at the HMAC
+  // step (verifySolution throws → caught → false) WITHOUT touching Redis, so
+  // this exercises the real 403 gate against production code.
+  await leadsPost(
+    createMockRequest({ ...BASE_PAYLOAD, altcha: 'not-a-valid-altcha-token' }),
+    res as unknown as Response,
+  );
+
+  assert.equal(res.statusCode, 403);
+  assert.deepEqual(res.jsonBody, { message: 'Captcha verification failed' });
+});
+
+test('POST /api/leads — valid captcha + valid body → 201 with { code, number }', async () => {
+  const { leadsPostWithDependencies } = await import('./http.js');
+
+  let verifyCaptchaCalls = 0;
+  let createLeadCalls = 0;
+
+  const res = createMockResponse();
+  await leadsPostWithDependencies(
+    createMockRequest({ ...BASE_PAYLOAD, altcha: 'solved-altcha-payload' }),
+    res as unknown as Response,
+    {
+      // Injected so the test never solves a real proof-of-work nor hits the DB.
+      verifyCaptcha: async () => {
+        verifyCaptchaCalls += 1;
+        return true;
+      },
+      createLead: async () => {
+        createLeadCalls += 1;
+        return { code: 'TEST0001', number: '5491234567890' };
+      },
+    },
+  );
+
+  assert.equal(verifyCaptchaCalls, 1, 'captcha verified once');
+  assert.equal(createLeadCalls, 1, 'createLead invoked once after captcha passes');
+  assert.equal(res.statusCode, 201);
+  assert.deepEqual(res.jsonBody, { code: 'TEST0001', number: '5491234567890' });
 });

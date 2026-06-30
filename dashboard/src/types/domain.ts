@@ -21,11 +21,29 @@ export type LandingStatus = "ACTIVE" | "DISABLED";
 export type LeadStatus = "NOT_CONTACTED" | "CONTACTED" | "CONVERTED";
 export type LeadFilterStatus = LeadStatus | "RECARGA";
 
+/**
+ * MetaPixel — public DTO (no accessToken).
+ * `leadCount` and `landingCount` are included in list responses so the UI can
+ * pre-disable the pixelId field when leads are pinned to a row.
+ */
+export interface MetaPixel {
+  id: string;
+  pixelId: string;
+  label?: string | null;
+  leadCount: number;
+  landingCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Landing {
   id: string;
   url: string;
-  metaPixelId: string;
-  metaAccessTokenMasked: string;
+  /** FK to MetaPixel.id (UUID). Null for landings not yet migrated (Expand phase). */
+  metaPixelId: string | null;
+  /** Nested MetaPixel relation (id, pixelId, label). Null when relation not loaded or not set. */
+  metaPixel: Pick<MetaPixel, "id" | "pixelId" | "label"> | null;
+  whatsappMessages: string[];
   status: LandingStatus;
   createdAt: string;
   updatedAt: string;
@@ -332,16 +350,30 @@ export interface UpdateLandingFallbackPhoneInput {
 
 export interface CreateLandingInput {
   url: string;
-  metaPixelId: string;
-  metaAccessToken: string;
+  /** FK → MetaPixel.id (UUID). Replaces old scalar metaPixelId + metaAccessToken. */
+  metaPixelRef: string;
+  whatsappMessages?: string[];
   fallbackPhones: { phone: string; label?: string; order?: number }[];
 }
 
 export interface UpdateLandingInput {
   url: string;
-  metaPixelId: string;
-  metaAccessToken?: string;
+  /** FK → MetaPixel.id (UUID). Optional on update; omit to leave unchanged. */
+  metaPixelRef?: string;
+  whatsappMessages?: string[];
   fallbackPhones?: { phone: string; label?: string; order?: number }[];
+}
+
+export interface CreateMetaPixelInput {
+  pixelId: string;
+  accessToken: string;
+  label?: string;
+}
+
+export interface UpdateMetaPixelInput {
+  pixelId?: string;
+  accessToken?: string;
+  label?: string | null;
 }
 
 export interface ConvertLeadInput {

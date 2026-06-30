@@ -12,6 +12,7 @@ import type {
   CreateAdminInput,
   CreateLandingFallbackPhoneInput,
   CreateLandingInput,
+  CreateMetaPixelInput,
   CreateCashierInput,
   DateRangeFilters,
   Landing,
@@ -19,6 +20,7 @@ import type {
   Lead,
   LeadHistoryPage,
   LeadsFilters,
+  MetaPixel,
   PaginatedResult,
   ReplaceSessionLandingsInput,
   StatsSummary,
@@ -27,6 +29,7 @@ import type {
   UpdateCashierMaxSessionsInput,
   UpdateLandingFallbackPhoneInput,
   UpdateLandingInput,
+  UpdateMetaPixelInput,
   UpdateCashierInput,
   CurrencyOption,
   WhatsappLinkArtifacts,
@@ -325,5 +328,28 @@ export const adminService = {
 
   async updateAutoConversionTrigger(input: { value: string }): Promise<{ value: string }> {
     return adminService.updateSetting('auto_conversion_trigger_phrase', input.value);
+  },
+
+  // ---------------------------------------------------------------------------
+  // MetaPixel CRUD (Phase 4 — token never in input/response types)
+  // ---------------------------------------------------------------------------
+
+  async listMetaPixels(): Promise<MetaPixel[]> {
+    const { data } = await http.get<MetaPixel[]>(endpoints.admin.metaPixels);
+    return data;
+  },
+
+  async createMetaPixel(input: CreateMetaPixelInput): Promise<MetaPixel> {
+    const { data } = await http.post<MetaPixel>(endpoints.admin.metaPixels, input);
+    return data;
+  },
+
+  async updateMetaPixel(id: string, input: UpdateMetaPixelInput): Promise<MetaPixel> {
+    const { data } = await http.put<MetaPixel>(endpoints.admin.metaPixelById(id), input);
+    return data;
+  },
+
+  async deleteMetaPixel(id: string): Promise<void> {
+    await http.delete(endpoints.admin.metaPixelById(id));
   },
 };

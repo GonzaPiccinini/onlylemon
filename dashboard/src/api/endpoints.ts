@@ -44,6 +44,8 @@ export const endpoints = {
     autoConversionTriggerPhrase: "/admin/settings/auto-conversion-trigger-phrase",
     currencyOptions: "/admin/settings/currency-options",
     settingByKey: (key: string) => `/admin/settings/${key}`,
+    metaPixels: "/admin/meta-pixels",
+    metaPixelById: (id: string) => `/admin/meta-pixels/${id}`,
   },
   chat: {
     // Cashier-scoped endpoints

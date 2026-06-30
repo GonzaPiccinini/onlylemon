@@ -18,6 +18,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER =
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
@@ -413,8 +414,9 @@ test('createLandingWithFallbacks: arity is 2 (landing, fallbacks)', async () => 
 
 test('createLandingWithFallbacks: returns a thenable (structural)', async () => {
   const { createLandingWithFallbacks } = await import('./admin.repository.js');
+  // Phase 5: signature now uses metaPixelId (FK UUID) instead of metaPixelRef.
   const result = createLandingWithFallbacks(
-    { url: 'https://example.com', metaPixelId: 'px1', metaAccessToken: 'tok1' },
+    { url: 'https://example.com', metaPixelId: 'mp-uuid-123' },
     [{ phone: '+5491123456789' }],
   );
   assert.equal(typeof (result as Promise<unknown>).then, 'function');

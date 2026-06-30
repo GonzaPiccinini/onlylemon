@@ -8,7 +8,7 @@ import {
 } from './service.js';
 import { logger } from '../../lib/logger.js';
 import { leadsCreatedTotal, leadsMatchedTotal } from '../../lib/metrics.js';
-import { verifyTurnstileToken } from '../turnstile.js';
+import { verifyCaptcha } from '../altcha.js';
 
 type HttpErrorResponse = {
   status: number;
@@ -62,6 +62,15 @@ export function resolveCreateLeadHttpError(
     return {
       status: 404,
       body: {
+        message: 'Landing not found',
+      },
+    };
+  }
+
+  if (error.message === 'LANDING_DISABLED') {
+    return {
+      status: 404,
+      body: {
         message: 'Landing not found or disabled',
       },
     };
@@ -70,17 +79,42 @@ export function resolveCreateLeadHttpError(
   return null;
 }
 
-export async function leadsPost(req: Request, res: Response) {
-  const turnstileToken = req.body?.turnstileToken;
-  if (typeof turnstileToken !== 'string' || turnstileToken.trim().length === 0) {
+/**
+ * Injectable dependencies for the `POST /api/leads` handler.
+ *
+ * The real handler talks to two external systems — the Altcha verifier
+ * (HMAC + Redis replay store) and `createLead` (DB + Meta CAPI). Both are
+ * captured here so tests can exercise the captcha gate and the 201 success
+ * path without solving a real proof-of-work or hitting Postgres. Mirrors the
+ * `*WithDependencies` convention already used across the leads service.
+ */
+export interface LeadsPostDependencies {
+  verifyCaptcha: typeof verifyCaptcha;
+  createLead: typeof createLead;
+}
+
+const defaultLeadsPostDependencies: LeadsPostDependencies = {
+  verifyCaptcha,
+  createLead,
+};
+
+export async function leadsPostWithDependencies(
+  req: Request,
+  res: Response,
+  deps: LeadsPostDependencies = defaultLeadsPostDependencies,
+) {
+  // Change B: Altcha proof-of-work captcha (replaces Turnstile)
+  const altcha = req.body?.altcha;
+  if (typeof altcha !== 'string' || altcha.trim().length === 0) {
     return res.status(400).json({ message: 'Captcha token required' });
   }
 
-  const captchaValid = await verifyTurnstileToken(turnstileToken, req.ip);
+  const captchaValid = await deps.verifyCaptcha(altcha, req.ip);
   if (!captchaValid) {
     return res.status(403).json({ message: 'Captcha verification failed' });
   }
 
+  // Change A Phase 2: parse landingId from body (metaPixelId removed from contract)
   const adCode = extractAdCodeFromQueryParam(req.query.utm_content);
   const parseResult = CreateLeadPayloadSchema.safeParse({
     ...req.body,
@@ -94,11 +128,11 @@ export async function leadsPost(req: Request, res: Response) {
   }
 
   try {
-    const lead = await createLead(parseResult.data);
+    const lead = await deps.createLead(parseResult.data);
 
-    leadsCreatedTotal.labels(parseResult.data.metaPixelId).inc();
+    leadsCreatedTotal.labels(parseResult.data.landingId).inc();
     logger.info(
-      { event: 'lead_created', metaPixelId: parseResult.data.metaPixelId },
+      { event: 'lead_created', landingId: parseResult.data.landingId },
     );
 
     return res.status(201).json({
@@ -116,6 +150,10 @@ export async function leadsPost(req: Request, res: Response) {
       message: 'Internal server error',
     });
   }
+}
+
+export async function leadsPost(req: Request, res: Response) {
+  return leadsPostWithDependencies(req, res, defaultLeadsPostDependencies);
 }
 
 export async function mapLeadsToPhone(

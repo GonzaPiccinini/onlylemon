@@ -2,7 +2,6 @@ import { LeadStatus } from '../../generated/prisma/client.js';
 import { prisma } from '../../persistence/prisma/client.js';
 import { sendMetaConversion } from '../../integrations/leads/conversion.js';
 import { loadConversionConfig } from '../system-settings/conversion-config.js';
-import { getLandingByMetaPixelId } from '../admin/admin.repository.js';
 import {
   createSessionIfNotExists,
   deleteSession,
@@ -588,24 +587,23 @@ export const createConversionService = async (
     throw err;
   }
 
-  leadsConvertedTotal.labels(lead.metaPixelId).inc();
-  leadConversionAmountArs.labels(lead.metaPixelId).observe(amount);
+  // Use the MetaPixel snapshot stored on the lead (pixelId = pixel NUMBER for CAPI label)
+  const pixelLabel = lead.metaPixel?.pixelId ?? lead.metaPixelId;
+  leadsConvertedTotal.labels(pixelLabel).inc();
+  leadConversionAmountArs.labels(pixelLabel).observe(amount);
   logger.info({
     event: 'lead_converted',
     leadId: lead.id,
     cashierId,
-    metaPixelId: lead.metaPixelId,
+    metaPixelId: pixelLabel,
     amount,
     source,
   });
 
-  const landing = await getLandingByMetaPixelId(lead.metaPixelId);
-
-  if (!landing) {
+  if (!lead.metaPixel) {
     logger.error({
-      event: 'meta_landing_not_found',
+      event: 'meta_pixel_snapshot_missing',
       leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
     });
 
     return {
@@ -628,10 +626,10 @@ export const createConversionService = async (
       fbc: lead.fbc,
       fbp: lead.fbp,
       userAgent: lead.userAgent,
-      metaPixelId: lead.metaPixelId,
-      metaAccessToken: landing.metaAccessToken,
+      metaPixelId: lead.metaPixel.pixelId,
+      metaAccessToken: lead.metaPixel.accessToken,
       eventId: conversion.id,
-      eventSourceUrl: landing.url,
+      eventSourceUrl: lead.eventSourceUrl,
       leadCode: lead.code,
     },
     conversionConfig,
@@ -641,7 +639,7 @@ export const createConversionService = async (
     logger.error({
       event: 'meta_conversion_failed',
       leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
+      metaPixelId: pixelLabel,
       eventName: 'Purchase',
     });
   }
@@ -650,7 +648,7 @@ export const createConversionService = async (
     logger.error({
       event: 'meta_conversion_failed',
       leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
+      metaPixelId: pixelLabel,
       eventName: 'HighValueCustomer',
     });
   }
@@ -660,7 +658,7 @@ export const createConversionService = async (
       logger.error({
         event: 'meta_conversion_failed',
         leadId: lead.id,
-        metaPixelId: lead.metaPixelId,
+        metaPixelId: pixelLabel,
         eventName: tier.eventName,
       });
     }

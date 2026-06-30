@@ -13,6 +13,8 @@ import { createChatRouter } from '../modules/chat/chat.routes.js';
 import { requireAuth, requireRole } from '../modules/security/auth.middleware.js';
 import { createDefaultChatService } from '../modules/chat/chat.service.js';
 import { publicSettingsRouter } from '../modules/system-settings/public-routes.js';
+import { captchaRouter } from '../modules/captcha/captcha.routes.js';
+import { embedRouter } from '../modules/embed/embed.routes.js';
 import { isCorsOriginAllowed } from '../modules/security/cors-origins.service.js';
 import { requestLoggingMiddleware } from '../middlewares/request-logging.middleware.js';
 import { errorMiddleware } from '../middlewares/error.middleware.js';
@@ -85,6 +87,13 @@ app.use('/api', (req, res, next) => {
     .then((chatRouter) => chatRouter(req, res, next))
     .catch(next);
 });
+
+// ── Public routes (before CORS-gated routes) ──────────────────────────────────
+// Altcha challenge endpoint — no CORS gating, public GET
+app.use('/altcha', captchaRouter);
+
+// Embed bundle endpoint — no CORS gating, public GET (classic script tag resource)
+app.use('/embed', embedRouter);
 
 // ── Other routers ─────────────────────────────────────────────────────────────
 app.post('/api/leads', leadsPost);

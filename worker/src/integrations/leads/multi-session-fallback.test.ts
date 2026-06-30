@@ -21,6 +21,7 @@ process.env.WAHA_WEBHOOK_TOKEN_HEADER = process.env.WAHA_WEBHOOK_TOKEN_HEADER ??
 process.env.WAHA_WEBHOOK_TOKEN_VALUE = process.env.WAHA_WEBHOOK_TOKEN_VALUE ?? 'token';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? '1234567890123456';
 process.env.TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY ?? 'turnstile-secret';
+process.env.ALTCHA_HMAC_SECRET = process.env.ALTCHA_HMAC_SECRET ?? 'test-altcha-hmac-secret-32-bytes!';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? '12345678901234567890123456789012';
 process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? '*';
 process.env.META_API_VERSION = process.env.META_API_VERSION ?? 'v21.0';
@@ -44,12 +45,12 @@ function buildWorkingSessions(
 test('D1a: L1 single cashier single WORKING session → returns that session number', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       { cashierId: 'c1', sessionId: 's1', sessionName: 'session-a', activeSince: new Date('2026-05-01T08:00:00Z') },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [{ id: 'f1', phone: '+54911000000' }],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [{ id: 'f1', phone: '+54911000000' }],
     getSessions: async () => buildWorkingSessions({ name: 'session-a', number: '54911111111' }),
     getContactedLeadCountByCashierForLanding: async () => new Map([['c1', 0]]),
     getNow: () => new Date('2026-05-01T15:00:00Z'),
@@ -78,10 +79,10 @@ test('D1b: L1 single cashier two WORKING sessions → both reachable via getRand
   );
 
   // getRandom = 0 → picks first session
-  const r1 = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => candidates,
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+  const r1 = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => candidates,
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () => waha,
     getContactedLeadCountByCashierForLanding: async () => new Map([['c1', 0]]),
     getNow: () => new Date('2026-05-01T15:00:00Z'),
@@ -89,10 +90,10 @@ test('D1b: L1 single cashier two WORKING sessions → both reachable via getRand
   });
 
   // getRandom = 0.99 → picks last session
-  const r2 = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => candidates,
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+  const r2 = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => candidates,
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () => waha,
     getContactedLeadCountByCashierForLanding: async () => new Map([['c1', 0]]),
     getNow: () => new Date('2026-05-01T15:00:00Z'),
@@ -115,14 +116,14 @@ test('D1c: L1 multi-cashier deficit — underfed cashier wins, then random sessi
   // cashier-1: started at 08:00, handled 8 leads → overloaded
   // cashier-2: started at 11:30, handled 0 leads → underloaded (deficit winner)
   // cashier-2 has two sessions; getRandom=0 picks first
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       { cashierId: 'c1', sessionId: 's1', sessionName: 'session-a', activeSince: new Date('2026-05-01T08:00:00Z') },
       { cashierId: 'c2', sessionId: 's2', sessionName: 'session-b', activeSince: new Date('2026-05-01T11:30:00Z') },
       { cashierId: 'c2', sessionId: 's3', sessionName: 'session-c', activeSince: new Date('2026-05-01T11:30:00Z') },
     ],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () => buildWorkingSessions(
       { name: 'session-a', number: '54911111111' },
       { name: 'session-b', number: '54922222222' },
@@ -153,16 +154,16 @@ test('D1c: L1 multi-cashier deficit — underfed cashier wins, then random sessi
 test('D1d: L1 cashier En turno but all sessions non-WORKING → falls to L2', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
+  const result = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
     // cashier-1 is En turno but session-a is NOT working
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [
+    getActiveLandingCashierCandidatesByLandingId: async () => [
       { cashierId: 'c1', sessionId: 's1', sessionName: 'session-a', activeSince: new Date('2026-05-01T08:00:00Z') },
     ],
     // L2 has cashier-2 with working session-b
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
+    getAllLinkedCashierCandidatesByLandingId: async () => [
       { cashierId: 'c2', sessionId: 's2', sessionName: 'session-b' },
     ],
-    getLandingFallbackPhonesByMetaPixelId: async () => [{ id: 'f1', phone: '+54900000000' }],
+    getLandingFallbackPhonesByLandingId: async () => [{ id: 'f1', phone: '+54900000000' }],
     // Only session-b is WORKING
     getSessions: async () => buildWorkingSessions({ name: 'session-b', number: '54922222222' }),
     getContactedLeadCountByCashierForLanding: async () => new Map(),
@@ -181,12 +182,12 @@ test('D1d: L1 cashier En turno but all sessions non-WORKING → falls to L2', as
 test('D2a: L2 single WORKING session → returned', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [
       { cashierId: 'c1', sessionId: 's1', sessionName: 'session-a' },
     ],
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () => buildWorkingSessions({ name: 'session-a', number: '54911111111' }),
     getContactedLeadCountByCashierForLanding: async () => new Map(),
     getNow: () => new Date('2026-05-01T15:00:00Z'),
@@ -217,17 +218,17 @@ test('D2b: L2 multiple WORKING sessions → both reachable via getRandom', async
   );
 
   const deps = (getRandom: () => number) => ({
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [] as Array<{ cashierId: string; sessionName: string; activeSince: Date | null }>,
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => l2Candidates,
-    getLandingFallbackPhonesByMetaPixelId: async () => [],
+    getActiveLandingCashierCandidatesByLandingId: async () => [] as Array<{ cashierId: string; sessionName: string; activeSince: Date | null }>,
+    getAllLinkedCashierCandidatesByLandingId: async () => l2Candidates,
+    getLandingFallbackPhonesByLandingId: async () => [],
     getSessions: async () => waha,
     getContactedLeadCountByCashierForLanding: async () => new Map<string, number>(),
     getNow: () => new Date('2026-05-01T15:00:00Z'),
     getRandom,
   });
 
-  const r0 = await selectCashierNumberForLandingWithDependencies('pixel-1', deps(() => 0));
-  const r99 = await selectCashierNumberForLandingWithDependencies('pixel-1', deps(() => 0.99));
+  const r0 = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', deps(() => 0));
+  const r99 = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', deps(() => 0.99));
 
   assert.ok(r0.ok && r99.ok);
   // Different getRandom values should produce different selections
@@ -242,12 +243,12 @@ test('D2b: L2 multiple WORKING sessions → both reachable via getRandom', async
 test('D2c: L2 all sessions offline → falls through to L3', async () => {
   const { selectCashierNumberForLandingWithDependencies } = await import('./service.js');
 
-  const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-    getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-    getAllLinkedCashierCandidatesByMetaPixelId: async () => [
+  const result = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
+    getActiveLandingCashierCandidatesByLandingId: async () => [],
+    getAllLinkedCashierCandidatesByLandingId: async () => [
       { cashierId: 'c1', sessionId: 's1', sessionName: 'session-a' },
     ],
-    getLandingFallbackPhonesByMetaPixelId: async () => [{ id: 'f1', phone: '+54900000001' }],
+    getLandingFallbackPhonesByLandingId: async () => [{ id: 'f1', phone: '+54900000001' }],
     // session-a is NOT working
     getSessions: async () => [],
     getContactedLeadCountByCashierForLanding: async () => new Map(),
@@ -272,10 +273,10 @@ test('D3: L3 regression — landing with fallback phones always resolves when L1
   ];
 
   for (const getRandom of [() => 0, () => 0.5, () => 0.99]) {
-    const result = await selectCashierNumberForLandingWithDependencies('pixel-1', {
-      getActiveLandingCashierCandidatesByMetaPixelId: async () => [],
-      getAllLinkedCashierCandidatesByMetaPixelId: async () => [],
-      getLandingFallbackPhonesByMetaPixelId: async () => fallbackPhones,
+    const result = await selectCashierNumberForLandingWithDependencies('landing-uuid-1', {
+      getActiveLandingCashierCandidatesByLandingId: async () => [],
+      getAllLinkedCashierCandidatesByLandingId: async () => [],
+      getLandingFallbackPhonesByLandingId: async () => fallbackPhones,
       getSessions: async () => [],
       getContactedLeadCountByCashierForLanding: async () => new Map(),
       getNow: () => new Date('2026-05-01T15:00:00Z'),
