@@ -42,13 +42,13 @@
 
 ## Phase 3: Admin — Backend
 
-- [ ] 3.1 `[T]` Write `worker/src/__tests__/admin-meta-pixel.service.test.ts`: create persists + token masked on list/get; duplicate `pixelId` → unique violation; `pixelId` edit blocked when leads exist; `pixelId` edit allowed when only landings reference row; `accessToken`/`label` editable regardless of references; delete blocked by landing ref + by lead ref; delete succeeds when unreferenced
-- [ ] 3.2 Add MetaPixel CRUD to `worker/src/modules/admin/admin.repository.ts`: `createMetaPixel`, `listMetaPixels`, `getMetaPixelById`, `updateMetaPixel`, `deleteMetaPixel`; DTO output omits `accessToken`
-- [ ] 3.3 Add guard logic to MetaPixel service in `worker/src/modules/admin/admin.service.ts`: check lead reference count before allowing `pixelId` edit (blocked if ≥1 lead); catch Prisma `P2003`/`P2014` Restrict errors on delete → return friendly 409 with reference context
-- [ ] 3.4 Add MetaPixel routes + Zod schemas + controller in `worker/src/modules/admin/` (POST/GET/PUT/DELETE `/admin/meta-pixels/:id?`)
-- [ ] 3.5 `[T]` Write `worker/src/__tests__/admin-landing.service.test.ts`: pixel assigned via FK; 6 non-empty messages → 400; message >250 chars → 400; empty strings discarded before count; 4 non-empty + 3 empty → accepted; messages trimmed; change pixel = reassign FK (P1 row untouched)
-- [ ] 3.6 Add `whatsappMessages` validation to landing PUT Zod schema: `z.string().trim()` each item; filter out empty strings; `max(5)` on resulting array; each item `max(250)` chars; return 400 on violation
-- [ ] 3.7 Add landing pixel selector: extend landing PUT to accept `metaPixelId` (FK); extend `getLandingById` in `admin.repository.ts` to include nested `metaPixel` (id, pixelId, label) for the selector dropdown
+- [x] 3.1 `[T]` Write `worker/src/__tests__/admin-meta-pixel.service.test.ts`: create persists + token masked on list/get; duplicate `pixelId` → unique violation; `pixelId` edit blocked when leads exist; `pixelId` edit allowed when only landings reference row; `accessToken`/`label` editable regardless of references; delete blocked by landing ref + by lead ref; delete succeeds when unreferenced
+- [x] 3.2 Add MetaPixel CRUD to `worker/src/modules/admin/admin.repository.ts`: `createMetaPixel`, `listMetaPixels`, `getMetaPixelById`, `updateMetaPixel`, `deleteMetaPixel`; DTO output omits `accessToken`
+- [x] 3.3 Add guard logic to MetaPixel service in `worker/src/modules/admin/admin.service.ts`: check lead reference count before allowing `pixelId` edit (blocked if ≥1 lead); catch Prisma `P2003`/`P2014` Restrict errors on delete → return friendly 409 with reference context
+- [x] 3.4 Add MetaPixel routes + Zod schemas + controller in `worker/src/modules/admin/` (POST/GET/PUT/DELETE `/admin/meta-pixels/:id?`)
+- [x] 3.5 `[T]` Write `worker/src/__tests__/admin-landing.service.test.ts`: pixel assigned via FK; 6 non-empty messages → 400; message >250 chars → 400; empty strings discarded before count; 4 non-empty + 3 empty → accepted; messages trimmed; change pixel = reassign FK (P1 row untouched)
+- [x] 3.6 Add `whatsappMessages` validation to landing PUT Zod schema: `z.string().trim()` each item; filter out empty strings; `max(5)` on resulting array; each item `max(250)` chars; return 400 on violation
+- [x] 3.7 Add landing pixel selector: extend landing PUT to accept `metaPixelId` (FK); extend `getLandingById` in `admin.repository.ts` to include nested `metaPixel` (id, pixelId, label) for the selector dropdown
 
 ---
 

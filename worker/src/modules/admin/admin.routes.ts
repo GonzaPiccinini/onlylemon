@@ -6,8 +6,10 @@ import {
   createCashierSessionHandler,
   createLandingHandler,
   createLandingFallbackPhoneHandler,
+  createMetaPixelHandler,
   deleteCashierSessionHandler,
   deleteLandingFallbackPhoneHandler,
+  deleteMetaPixelHandler,
   disableCashierHandler,
   enableCashierHandler,
   disableLandingHandler,
@@ -17,6 +19,7 @@ import {
   getAdminConversionsTotalsHandler,
   getLandingSessionsHandler,
   getLeadHistoryHandler,
+  getMetaPixelHandler,
   getSessionLandingsHandler,
   listAdminConversionsHandler,
   listAdminsHandler,
@@ -25,6 +28,7 @@ import {
   listLandingFallbackPhonesHandler,
   listLandingsHandler,
   listLeadsHandler,
+  listMetaPixelsHandler,
   replaceSessionLandingsHandler,
   setAdminStatusHandler,
   startWhatsappLinkForSessionAdminHandler,
@@ -35,6 +39,7 @@ import {
   updateCashierMaxSessionsHandler,
   updateLandingHandler,
   updateLandingFallbackPhoneHandler,
+  updateMetaPixelHandler,
 } from './admin.controller.js';
 import { requireAuth, requireRole } from '../security/auth.middleware.js';
 import { systemSettingsRouter } from '../system-settings/routes.js';
@@ -83,6 +88,13 @@ adminRouter.patch('/landings/:landingId/disable', disableLandingHandler);
 adminRouter.patch('/landings/:landingId/enable', enableLandingHandler);
 // E5: get sessions bound to a landing (for landing-side binding UI)
 adminRouter.get('/landings/:landingId/sessions', getLandingSessionsHandler);
+
+// 3.4 — MetaPixel CRUD (token never returned in responses)
+adminRouter.get('/meta-pixels', listMetaPixelsHandler);
+adminRouter.post('/meta-pixels', createMetaPixelHandler);
+adminRouter.get('/meta-pixels/:id', getMetaPixelHandler);
+adminRouter.put('/meta-pixels/:id', updateMetaPixelHandler);
+adminRouter.delete('/meta-pixels/:id', deleteMetaPixelHandler);
 
 // Fallback phones CRUD [REQ-3, REQ-4, REQ-5, REQ-6]
 adminRouter.get('/landings/:landingId/fallback-phones', listLandingFallbackPhonesHandler);

@@ -48,12 +48,79 @@ export const createLandingSchema = z.object({
   fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required'),
 });
 
+/**
+ * Task 3.6 — whatsappMessages validation schema (reusable).
+ * Each message is trimmed; empty/whitespace-only entries are discarded;
+ * max 5 messages after discarding empties; each ≤250 chars.
+ */
+const whatsappMessagesSchema = z
+  .array(z.string())
+  .transform((msgs) => msgs.map((m) => m.trim()).filter((m) => m.length > 0))
+  .superRefine((msgs, ctx) => {
+    if (msgs.length > 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.too_big,
+        maximum: 5,
+        type: 'array',
+        inclusive: true,
+        message: 'Maximum 5 whatsapp messages per landing',
+      });
+    }
+    for (const msg of msgs) {
+      if (msg.length > 250) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.too_big,
+          maximum: 250,
+          type: 'string',
+          inclusive: true,
+          message: `Message exceeds 250 characters (got ${msg.length})`,
+        });
+      }
+    }
+  });
+
+/**
+ * Task 3.7 — updateLandingSchema extended with metaPixelRef FK and whatsappMessages.
+ * Old scalar fields (metaPixelId number string + metaAccessToken) kept optional
+ * for backward compatibility during the Expand phase.
+ */
 export const updateLandingSchema = z.object({
   url: z.string().trim().url(),
-  metaPixelId: z.string().trim().min(1),
+  /** Legacy scalar pixel number string (kept for backward compat during Expand phase) */
+  metaPixelId: z.string().trim().min(1).optional(),
+  /** Legacy scalar access token (kept for backward compat during Expand phase) */
   metaAccessToken: z.string().trim().min(1).optional(),
+  /** Phase 3+: FK → MetaPixel.id (UUID). Replaces the scalar fields above. */
+  metaPixelRef: z.string().trim().min(1).optional(),
+  /** Per-landing WhatsApp messages (task 3.6). Validated: trim, discard empty, max 5, max 250 chars each. */
+  whatsappMessages: whatsappMessagesSchema.optional(),
   fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required').optional(),
 });
+
+// ---------------------------------------------------------------------------
+// 3.4 — MetaPixel Zod schemas
+// ---------------------------------------------------------------------------
+
+export const createMetaPixelSchema = z.object({
+  pixelId: z.string().trim().min(1, 'pixelId is required'),
+  accessToken: z.string().trim().min(1, 'accessToken is required'),
+  label: z.string().trim().optional(),
+});
+
+export type CreateMetaPixelInput = z.infer<typeof createMetaPixelSchema>;
+
+export const updateMetaPixelSchema = z
+  .object({
+    pixelId: z.string().trim().min(1).optional(),
+    accessToken: z.string().trim().min(1).optional(),
+    label: z.string().trim().nullable().optional(),
+  })
+  .refine(
+    (v) => v.pixelId !== undefined || v.accessToken !== undefined || v.label !== undefined,
+    { message: 'At least one field (pixelId, accessToken, or label) is required' },
+  );
+
+export type UpdateMetaPixelInput = z.infer<typeof updateMetaPixelSchema>;
 
 // ---------------------------------------------------------------------------
 // WhatsappSession admin schemas (E2, E6)

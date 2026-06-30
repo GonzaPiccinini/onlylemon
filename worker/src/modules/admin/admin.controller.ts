@@ -6,6 +6,7 @@ import {
   createCashierSchema,
   createLandingFallbackPhoneSchema,
   createLandingSchema,
+  createMetaPixelSchema,
   dateRangeSchema,
   leadHistoryQuerySchema,
   leadsFilterSchema,
@@ -17,6 +18,7 @@ import {
   updateCashierSchema,
   updateLandingFallbackPhoneSchema,
   updateLandingSchema,
+  updateMetaPixelSchema,
 } from './admin.types.js';
 import { addOneDayIsoDate } from '../../utils/timezone.js';
 import {
@@ -25,7 +27,9 @@ import {
   createCashierService,
   createLandingFallbackPhoneService,
   createLandingServiceWithFallbacks,
+  createMetaPixelService,
   deleteLandingFallbackPhoneService,
+  deleteMetaPixelService,
   disableCashierService,
   enableCashierService,
   finishCashierWorkSessionService,
@@ -33,6 +37,7 @@ import {
   getCashierStatsService,
   getFundsSeriesService,
   getLeadHistoryService,
+  getMetaPixelByIdService,
   getSummaryService,
   InvalidPhoneFormatError,
   LastFallbackError,
@@ -43,6 +48,10 @@ import {
   listLandingFallbackPhonesService,
   listLeadsService,
   listLandingsService,
+  listMetaPixelsService,
+  MetaPixelNotFoundError,
+  MetaPixelRestrictError,
+  PixelIdFrozenError,
   setAdminStatusService,
   setLandingStatusService,
   SelfDisableError,
@@ -51,6 +60,9 @@ import {
   updateCashierService,
   updateLandingFallbackPhoneService,
   updateLandingServiceWithFallbacks,
+  updateMetaPixelService,
+  WhatsappMessagesTooManyError,
+  WhatsappMessageTooLongError,
   createCashierSessionService,
   deleteCashierSessionService,
   getSessionLandingsService,
@@ -280,7 +292,116 @@ export const updateLandingHandler = async (req: Request, res: Response) => {
     if (e instanceof InvalidPhoneFormatError) {
       return res.status(400).json({ error: e.message });
     }
+    if (e instanceof WhatsappMessagesTooManyError || e instanceof WhatsappMessageTooLongError) {
+      return res.status(400).json({ error: e.message });
+    }
     return res.status(404).json({ error: 'Landing not found' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 3.4 — MetaPixel CRUD handlers
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /admin/meta-pixels
+ * Lists all MetaPixel rows. accessToken is NEVER returned.
+ */
+export const listMetaPixelsHandler = async (_req: Request, res: Response) => {
+  const data = await listMetaPixelsService();
+  return res.status(200).json(data);
+};
+
+/**
+ * POST /admin/meta-pixels
+ * Creates a new MetaPixel. Unique violation on pixelId → 409.
+ * accessToken is NEVER returned in the response.
+ */
+export const createMetaPixelHandler = async (req: Request, res: Response) => {
+  const parsed = createMetaPixelSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  try {
+    const data = await createMetaPixelService(parsed.data);
+    return res.status(201).json(data);
+  } catch (e) {
+    const prismaError = e as { code?: string };
+    if (prismaError?.code === 'P2002') {
+      return res.status(409).json({ error: 'A MetaPixel with this pixelId already exists' });
+    }
+    return res.status(500).json({ error: 'Could not create MetaPixel' });
+  }
+};
+
+/**
+ * GET /admin/meta-pixels/:id
+ * Fetches a single MetaPixel by id. accessToken NEVER returned.
+ */
+export const getMetaPixelHandler = async (req: Request, res: Response) => {
+  try {
+    const data = await getMetaPixelByIdService(req.params.id);
+    return res.status(200).json(data);
+  } catch (e) {
+    if (e instanceof MetaPixelNotFoundError) {
+      return res.status(404).json({ error: 'MetaPixel not found' });
+    }
+    throw e;
+  }
+};
+
+/**
+ * PUT /admin/meta-pixels/:id
+ * Updates a MetaPixel. Guards:
+ *  - pixelId frozen when ≥1 lead references the row → 409 PIXEL_ID_FROZEN
+ *  - accessToken and label always editable
+ */
+export const updateMetaPixelHandler = async (req: Request, res: Response) => {
+  const parsed = updateMetaPixelSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  try {
+    const data = await updateMetaPixelService(req.params.id, parsed.data);
+    return res.status(200).json(data);
+  } catch (e) {
+    if (e instanceof PixelIdFrozenError) {
+      return res.status(409).json({ error: 'PIXEL_ID_FROZEN', message: e.message });
+    }
+    if (e instanceof MetaPixelNotFoundError) {
+      return res.status(404).json({ error: 'MetaPixel not found' });
+    }
+    const prismaError = e as { code?: string };
+    if (prismaError?.code === 'P2002') {
+      return res.status(409).json({ error: 'A MetaPixel with this pixelId already exists' });
+    }
+    return res.status(500).json({ error: 'Could not update MetaPixel' });
+  }
+};
+
+/**
+ * DELETE /admin/meta-pixels/:id
+ * Deletes a MetaPixel. Blocked if any landing or lead references the row → 409 RESTRICT.
+ */
+export const deleteMetaPixelHandler = async (req: Request, res: Response) => {
+  try {
+    await deleteMetaPixelService(req.params.id);
+    return res.status(204).send();
+  } catch (e) {
+    if (e instanceof MetaPixelRestrictError) {
+      return res.status(409).json({
+        error: 'PIXEL_REFERENCED',
+        message: e.message,
+        references: e.references,
+      });
+    }
+    const prismaError = e as { code?: string };
+    if (prismaError?.code === 'P2025') {
+      return res.status(404).json({ error: 'MetaPixel not found' });
+    }
+    return res.status(500).json({ error: 'Could not delete MetaPixel' });
   }
 };
 

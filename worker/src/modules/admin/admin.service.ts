@@ -10,6 +10,10 @@ import {
   createLanding,
   createLandingFallbackPhone,
   createLandingWithFallbacks,
+  countMetaPixelLandings,
+  countMetaPixelLeads,
+  createMetaPixel,
+  deleteMetaPixel,
   deleteLandingFallbackPhoneIfNotLast,
   disableCashier,
   enableCashier,
@@ -22,6 +26,7 @@ import {
   getConversionsTotals,
   getLeadHistory,
   getLeadsByDateRange,
+  getMetaPixelById,
   getSessionActivitiesByDateRange,
   listAdmins,
   listCashiers,
@@ -30,6 +35,7 @@ import {
   listLandingFallbackPhonesByLandingId,
   listLandings,
   listLeadsAdmin,
+  listMetaPixels,
   replaceLandingFallbacks,
   setAdminStatus,
   setLandingStatus,
@@ -38,11 +44,13 @@ import {
   updateCashier,
   updateLanding,
   updateLandingFallbackPhone,
+  updateMetaPixel,
   updateCashierMaxSessions,
   countCashierSessions,
   getSessionWithLandings,
   replaceSessionLandings,
   getSessionsBoundToLandingId,
+  type MetaPixelPublicDto,
 } from './admin.repository.js';
 import {
   createSession,
@@ -973,6 +981,185 @@ export const getAdminConversionsTotalsService = (
   getAdminConversionsTotalsServiceImpl({ getConversionsTotals }, filters);
 
 // ---------------------------------------------------------------------------
+// 3.3 — MetaPixel typed errors
+// ---------------------------------------------------------------------------
+
+export class MetaPixelNotFoundError extends Error {
+  constructor() {
+    super('MetaPixel not found');
+    this.name = 'MetaPixelNotFoundError';
+  }
+}
+
+/**
+ * Thrown when an admin tries to edit the `pixelId` of a MetaPixel that
+ * already has leads pinned to it. Editing the pixel number in-place would
+ * retro-change the attribution of all pinned leads.
+ */
+export class PixelIdFrozenError extends Error {
+  constructor() {
+    super('Cannot edit pixelId: leads are pinned to this pixel. Rotate accessToken or label instead, or create a new MetaPixel row.');
+    this.name = 'PixelIdFrozenError';
+  }
+}
+
+/**
+ * Thrown when an admin tries to delete a MetaPixel that is still referenced
+ * by landings or leads. Carries reference counts for a friendly error message.
+ */
+export class MetaPixelRestrictError extends Error {
+  readonly references: { leads: number; landings: number };
+  constructor(refs: { leads: number; landings: number }) {
+    super(
+      `Cannot delete MetaPixel: referenced by ${refs.landings} landing(s) and ${refs.leads} lead(s). Re-assign or remove references first.`,
+    );
+    this.name = 'MetaPixelRestrictError';
+    this.references = refs;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3.6 — WhatsApp messages validation errors + pure helpers
+// ---------------------------------------------------------------------------
+
+export class WhatsappMessagesTooManyError extends Error {
+  constructor(count: number) {
+    super(`Too many messages: ${count}. Maximum is 5 per landing.`);
+    this.name = 'WhatsappMessagesTooManyError';
+  }
+}
+
+export class WhatsappMessageTooLongError extends Error {
+  constructor(length: number) {
+    super(`Message exceeds 250 characters (got ${length}).`);
+    this.name = 'WhatsappMessageTooLongError';
+  }
+}
+
+/**
+ * Pure function: trim each string and discard empty/whitespace-only entries.
+ * Result is suitable for persistence.
+ */
+export const normalizeWhatsappMessages = (messages: string[]): string[] =>
+  messages.map((m) => m.trim()).filter((m) => m.length > 0);
+
+/**
+ * Pure function: validate already-normalized messages.
+ * Throws WhatsappMessagesTooManyError (>5) or WhatsappMessageTooLongError (>250 chars).
+ * Call after normalizeWhatsappMessages.
+ */
+export const validateWhatsappMessages = (messages: string[]): void => {
+  if (messages.length > 5) {
+    throw new WhatsappMessagesTooManyError(messages.length);
+  }
+  for (const msg of messages) {
+    if (msg.length > 250) {
+      throw new WhatsappMessageTooLongError(msg.length);
+    }
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 3.3 — MetaPixel CRUD service (injectable deps for testability)
+// ---------------------------------------------------------------------------
+
+type CreateMetaPixelDeps = {
+  createMetaPixel: (input: { pixelId: string; accessToken: string; label?: string }) => Promise<MetaPixelPublicDto>;
+};
+
+export const createMetaPixelServiceImpl = async (
+  deps: CreateMetaPixelDeps,
+  input: { pixelId: string; accessToken: string; label?: string },
+): Promise<MetaPixelPublicDto> => deps.createMetaPixel(input);
+
+export const createMetaPixelService = (input: { pixelId: string; accessToken: string; label?: string }) =>
+  createMetaPixelServiceImpl({ createMetaPixel }, input);
+
+// -----------
+
+type ListMetaPixelsDeps = {
+  listMetaPixels: () => Promise<MetaPixelPublicDto[]>;
+};
+
+export const listMetaPixelsServiceImpl = async (deps: ListMetaPixelsDeps): Promise<MetaPixelPublicDto[]> =>
+  deps.listMetaPixels();
+
+export const listMetaPixelsService = () => listMetaPixelsServiceImpl({ listMetaPixels });
+
+// -----------
+
+type GetMetaPixelByIdDeps = {
+  getMetaPixelById: (id: string) => Promise<MetaPixelPublicDto | null>;
+};
+
+export const getMetaPixelByIdServiceImpl = async (
+  deps: GetMetaPixelByIdDeps,
+  id: string,
+): Promise<MetaPixelPublicDto> => {
+  const pixel = await deps.getMetaPixelById(id);
+  if (!pixel) throw new MetaPixelNotFoundError();
+  return pixel;
+};
+
+export const getMetaPixelByIdService = (id: string) =>
+  getMetaPixelByIdServiceImpl({ getMetaPixelById }, id);
+
+// -----------
+
+type UpdateMetaPixelDeps = {
+  countMetaPixelLeads: (id: string) => Promise<number>;
+  updateMetaPixel: (
+    id: string,
+    input: { pixelId?: string; accessToken?: string; label?: string | null },
+  ) => Promise<MetaPixelPublicDto | null>;
+};
+
+export const updateMetaPixelServiceImpl = async (
+  deps: UpdateMetaPixelDeps,
+  id: string,
+  input: { pixelId?: string; accessToken?: string; label?: string | null },
+): Promise<MetaPixelPublicDto> => {
+  // Guard: pixelId is quasi-immutable once leads are pinned to this row
+  if (input.pixelId !== undefined) {
+    const leadCount = await deps.countMetaPixelLeads(id);
+    if (leadCount > 0) {
+      throw new PixelIdFrozenError();
+    }
+  }
+  const updated = await deps.updateMetaPixel(id, input);
+  if (!updated) throw new MetaPixelNotFoundError();
+  return updated;
+};
+
+export const updateMetaPixelService = (
+  id: string,
+  input: { pixelId?: string; accessToken?: string; label?: string | null },
+) => updateMetaPixelServiceImpl({ countMetaPixelLeads, updateMetaPixel }, id, input);
+
+// -----------
+
+type DeleteMetaPixelDeps = {
+  countMetaPixelLeads: (id: string) => Promise<number>;
+  countMetaPixelLandings: (id: string) => Promise<number>;
+  deleteMetaPixel: (id: string) => Promise<void>;
+};
+
+export const deleteMetaPixelServiceImpl = async (deps: DeleteMetaPixelDeps, id: string): Promise<void> => {
+  // Proactive reference check (DB uses ON DELETE SET NULL in Expand phase; we enforce Restrict here)
+  const [leadCount, landingCount] = await Promise.all([
+    deps.countMetaPixelLeads(id),
+    deps.countMetaPixelLandings(id),
+  ]);
+  if (leadCount > 0 || landingCount > 0) {
+    throw new MetaPixelRestrictError({ leads: leadCount, landings: landingCount });
+  }
+  await deps.deleteMetaPixel(id);
+};
+
+export const deleteMetaPixelService = (id: string) =>
+  deleteMetaPixelServiceImpl({ countMetaPixelLeads, countMetaPixelLandings, deleteMetaPixel }, id);
+
+// ---------------------------------------------------------------------------
 // B5.3 — Typed errors for LandingFallbackPhone domain
 // ---------------------------------------------------------------------------
 
@@ -1133,7 +1320,13 @@ export const updateLandingServiceImpl = async (
   deps: {
     updateLanding: (
       id: string,
-      input: { url: string; metaPixelId: string; metaAccessToken?: string },
+      input: {
+        url: string;
+        metaPixelId?: string;
+        metaAccessToken?: string;
+        metaPixelRef?: string | null;
+        whatsappMessages?: string[];
+      },
     ) => Promise<{
       id: string;
       url: string;
@@ -1151,8 +1344,12 @@ export const updateLandingServiceImpl = async (
   landingId: string,
   input: {
     url: string;
-    metaPixelId: string;
+    metaPixelId?: string;
     metaAccessToken?: string;
+    /** New FK → MetaPixel.id (Phase 3+). Replaces scalar metaPixelId+metaAccessToken fields. */
+    metaPixelRef?: string | null;
+    /** Per-landing WhatsApp messages (task 3.6). Each trimmed, empty discarded, max 5, each ≤250 chars. */
+    whatsappMessages?: string[];
     fallbackPhones?: { phone: string; label?: string; order?: number }[];
   },
 ) => {
@@ -1164,10 +1361,20 @@ export const updateLandingServiceImpl = async (
       validatePhone(fp.phone);
     }
   }
+
+  // Normalize and validate whatsappMessages (task 3.6)
+  let normalizedMessages: string[] | undefined;
+  if (input.whatsappMessages !== undefined) {
+    normalizedMessages = normalizeWhatsappMessages(input.whatsappMessages);
+    validateWhatsappMessages(normalizedMessages);
+  }
+
   const landing = await deps.updateLanding(landingId, {
     url: input.url,
-    metaPixelId: input.metaPixelId,
-    metaAccessToken: input.metaAccessToken,
+    ...(input.metaPixelId !== undefined ? { metaPixelId: input.metaPixelId } : {}),
+    ...(input.metaAccessToken !== undefined ? { metaAccessToken: input.metaAccessToken } : {}),
+    ...(input.metaPixelRef !== undefined ? { metaPixelRef: input.metaPixelRef } : {}),
+    ...(normalizedMessages !== undefined ? { whatsappMessages: normalizedMessages } : {}),
   });
   if (input.fallbackPhones !== undefined) {
     await deps.replaceLandingFallbacks(landingId, input.fallbackPhones);
@@ -1179,8 +1386,10 @@ export const updateLandingServiceWithFallbacks = async (
   landingId: string,
   input: {
     url: string;
-    metaPixelId: string;
+    metaPixelId?: string;
     metaAccessToken?: string;
+    metaPixelRef?: string | null;
+    whatsappMessages?: string[];
     fallbackPhones?: { phone: string; label?: string; order?: number }[];
   },
 ) => updateLandingServiceImpl({ updateLanding, replaceLandingFallbacks }, landingId, input);
