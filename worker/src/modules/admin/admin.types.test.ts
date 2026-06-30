@@ -108,3 +108,61 @@ test('UpdateLandingFallbackPhoneInput: compile-time shape — all fields optiona
   const withNulls: UpdateLandingFallbackPhoneInput = { label: null, order: null };
   assert.equal(withNulls.label, null);
 });
+
+// ---------------------------------------------------------------------------
+// leads-date-range — leadsFilterSchema dateFrom / dateTo validation
+// ---------------------------------------------------------------------------
+
+test('leadsFilterSchema: accepts valid dateFrom YYYY-MM-DD', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ dateFrom: '2026-05-01' });
+  assert.equal(result.success, true);
+  if (result.success) assert.equal(result.data.dateFrom, '2026-05-01');
+});
+
+test('leadsFilterSchema: accepts valid dateTo YYYY-MM-DD', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ dateTo: '2026-05-31' });
+  assert.equal(result.success, true);
+  if (result.success) assert.equal(result.data.dateTo, '2026-05-31');
+});
+
+test('leadsFilterSchema: omitted dateFrom/dateTo defaults to undefined', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({});
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.dateFrom, undefined);
+    assert.equal(result.data.dateTo, undefined);
+  }
+});
+
+test('leadsFilterSchema: rejects bad dateFrom format (2026/05/01)', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ dateFrom: '2026/05/01' });
+  assert.equal(result.success, false);
+});
+
+test('leadsFilterSchema: rejects invalid calendar date "2026-02-30" as dateFrom (Feb 30 does not exist)', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ dateFrom: '2026-02-30' });
+  assert.equal(result.success, false);
+});
+
+test('leadsFilterSchema: rejects inverted range (dateFrom after dateTo)', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ dateFrom: '2026-06-30', dateTo: '2026-06-01' });
+  assert.equal(result.success, false);
+});
+
+test('leadsFilterSchema: accepts equal dateFrom and dateTo (single-day range)', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ dateFrom: '2026-06-15', dateTo: '2026-06-15' });
+  assert.equal(result.success, true);
+});
+
+test('leadsFilterSchema: accepts a valid ordered range (dateFrom before dateTo)', async () => {
+  const { leadsFilterSchema } = await import('./admin.types.js');
+  const result = leadsFilterSchema.safeParse({ dateFrom: '2026-06-01', dateTo: '2026-06-30' });
+  assert.equal(result.success, true);
+});

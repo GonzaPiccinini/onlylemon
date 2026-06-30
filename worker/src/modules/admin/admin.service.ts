@@ -56,7 +56,7 @@ import {
   finishCurrentSessionActivity,
   getCurrentSessionActivity,
 } from '../cashier/cashier.repository.js';
-import type { ConversionsTotalsDto, DateRangeQuery, LeadsFilterQuery } from './admin.types.js';
+import type { ConversionsTotalsDto, DateRangeQuery } from './admin.types.js';
 import {
   argentinaDayEndUtcExclusive,
   argentinaDayStartUtc,
@@ -677,6 +677,8 @@ type ListLeadsFn = (filters: {
   phone?: string;
   page?: number;
   pageSize?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
   conversionCount?: { kind: 'gte' | 'lte'; value: number };
 }) => Promise<[LeadRow[], number]>;
 
@@ -686,7 +688,7 @@ type PostFilterMode = 'none' | 'converted-strict' | 'recarga-only';
 
 export const listLeadsServiceImpl = async (
   deps: { listLeads: ListLeadsFn; getConversionsAggregateForLeads: GetConversionsAggregateFn },
-  filters: { statuses?: string[]; cashierId?: string; cashierIds?: string[]; adCode?: string; code?: string; phone?: string; page?: number; pageSize?: number },
+  filters: { statuses?: string[]; cashierId?: string; cashierIds?: string[]; adCode?: string; code?: string; phone?: string; page?: number; pageSize?: number; dateFrom?: Date; dateTo?: Date },
 ) => {
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 25;
@@ -727,7 +729,20 @@ export const listLeadsServiceImpl = async (
   };
 };
 
-export const listLeadsService = async (filters: LeadsFilterQuery) =>
+type ListLeadsFilters = {
+  statuses?: string[];
+  cashierId?: string;
+  cashierIds?: string[];
+  adCode?: string;
+  code?: string;
+  phone?: string;
+  page?: number;
+  pageSize?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
+};
+
+export const listLeadsService = async (filters: ListLeadsFilters) =>
   listLeadsServiceImpl(
     {
       listLeads: (f) => listLeadsAdmin(f, f.page ?? 1, f.pageSize ?? 25),

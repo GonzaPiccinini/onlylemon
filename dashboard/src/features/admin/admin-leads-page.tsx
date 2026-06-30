@@ -1,5 +1,15 @@
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronDownIcon, ChevronRightIcon, FilterIcon, HashIcon, MegaphoneIcon, PhoneIcon, TagIcon, UsersIcon } from 'lucide-react';
+import {
+  CalendarIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FilterIcon,
+  HashIcon,
+  MegaphoneIcon,
+  PhoneIcon,
+  TagIcon,
+  UsersIcon,
+} from 'lucide-react';
 import { AccentIconBadge, IconBadge } from '@/components/common/icon-badge';
 import { FilterChips } from '@/components/common/filter-chips';
 import { PageHeader } from '@/components/common/page-header';
@@ -18,7 +28,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { MultiSelect } from '@/components/ui/multi-select';
 import {
@@ -35,12 +44,12 @@ import {
   leadDisplayStatus,
   leadDisplayStatusLabel,
   leadStatusBadge,
-  type FullTimelineEntry,
   type LeadDisplayStatus,
 } from '@/lib/lead-status';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { LeadTimeline } from '@/features/admin/lead-timeline';
 
 const STATUS_OPTIONS: Array<{ label: string; value: LeadFilterStatus }> = [
   { label: 'No contactado', value: 'NOT_CONTACTED' },
@@ -60,23 +69,7 @@ const renderDisplayStatusBadge = (status: LeadDisplayStatus) => {
   );
 };
 
-const renderTimelineEntryBadge = (entry: FullTimelineEntry) => {
-  const { variant, icon, className } = leadStatusBadge(entry.status);
-  return (
-    <StatusBadge
-      variant={variant}
-      icon={icon}
-      className={cn('shrink-0', className)}
-    >
-      {leadDisplayStatusLabel(entry.status)}
-    </StatusBadge>
-  );
-};
-
 const FullTimeline = ({ leadId }: { leadId: string }) => {
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-
   const {
     data,
     isLoading,
@@ -84,11 +77,7 @@ const FullTimeline = ({ leadId }: { leadId: string }) => {
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
-  } = useAdminLeadHistory(leadId, {
-    enabled: true,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
-  });
+  } = useAdminLeadHistory(leadId, { enabled: true });
 
   const firstPage = data?.pages[0];
   const allConversions = useMemo(
@@ -108,8 +97,6 @@ const FullTimeline = ({ leadId }: { leadId: string }) => {
     [firstPage, allConversions],
   );
 
-  const isFilterActive = Boolean(dateFrom || dateTo);
-
   if (isLoading) {
     return (
       <div className='py-2 text-xs text-muted-foreground'>
@@ -126,52 +113,15 @@ const FullTimeline = ({ leadId }: { leadId: string }) => {
   }
 
   const total = firstPage.total;
-  const counterText = isFilterActive
-    ? `${entries.length} eventos · ${allConversions.length} conversiones (de ${total} totales)`
-    : `Histórico completo · ${entries.length} eventos · ${total} conversiones`;
+  const counterText = `Histórico completo · ${entries.length} eventos · ${total} conversiones`;
 
   return (
     <div className='flex flex-col gap-1.5 py-2'>
-      <div className='flex flex-wrap items-end gap-3 pb-1'>
-        <div className='flex flex-col gap-1'>
-          <FieldLabel>Desde</FieldLabel>
-          <Input
-            type='date'
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className='w-36 text-xs'
-          />
-        </div>
-        <div className='flex flex-col gap-1'>
-          <FieldLabel>Hasta</FieldLabel>
-          <Input
-            type='date'
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className='w-36 text-xs'
-          />
-        </div>
-      </div>
       <span className='text-xs font-medium text-muted-foreground'>
         {counterText}
       </span>
-      <div className='grid max-h-80 grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 overflow-y-auto pr-2'>
-        {entries.map((entry, index) => (
-          <Fragment key={`${entry.status}-${entry.at}-${index}`}>
-            {renderTimelineEntryBadge(entry)}
-            <time
-              dateTime={entry.at}
-              className='text-xs text-muted-foreground whitespace-nowrap'
-            >
-              {formatDateTime(entry.at)}
-            </time>
-          </Fragment>
-        ))}
-        {isFilterActive && allConversions.length === 0 && (
-          <p className='col-span-2 py-1 text-xs text-muted-foreground'>
-            No hay conversiones en este rango.
-          </p>
-        )}
+      <div className='max-h-80 overflow-y-auto pl-1 pr-2'>
+        <LeadTimeline entries={entries} />
       </div>
       {hasNextPage && (
         <Button
@@ -194,6 +144,8 @@ export const AdminLeadsPage = () => {
   const [adCode, setAdCode] = useState('');
   const [code, setCode] = useState('');
   const [phone, setPhone] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -204,7 +156,8 @@ export const AdminLeadsPage = () => {
     (cashierIds.length > 0 ? 1 : 0) +
     (adCode.trim() ? 1 : 0) +
     (code.trim() ? 1 : 0) +
-    (phone.trim() ? 1 : 0);
+    (phone.trim() ? 1 : 0) +
+    (dateFrom.trim() || dateTo.trim() ? 1 : 0);
 
   const { data: cashiers = [] } = useAdminCashiers();
   const cashierOptions = useMemo(
@@ -218,10 +171,12 @@ export const AdminLeadsPage = () => {
       adCode: adCode.trim() || undefined,
       code: code.trim() || undefined,
       phone: phone.trim() || undefined,
+      dateFrom: dateFrom.trim() || undefined,
+      dateTo: dateTo.trim() || undefined,
       page,
       pageSize,
     }),
-    [adCode, cashierIds, code, page, pageSize, phone, statuses],
+    [adCode, cashierIds, code, dateFrom, dateTo, page, pageSize, phone, statuses],
   );
   const { data, isLoading } = useAdminLeads(filters);
   const items = data?.items ?? [];
@@ -370,6 +325,42 @@ export const AdminLeadsPage = () => {
                 }}
               />
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <CalendarIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Desde</span>
+              </div>
+              <Input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(event) => {
+                  setDateFrom(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <IconBadge>
+                  <CalendarIcon className="size-3.5" />
+                </IconBadge>
+                <span className="text-xs font-semibold text-foreground/80">Hasta</span>
+              </div>
+              <Input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(event) => {
+                  setDateTo(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -387,8 +378,20 @@ export const AdminLeadsPage = () => {
           ...(adCode.trim() ? [{ key: 'adCode', label: `Publicidad: ${adCode}`, onRemove: () => { setAdCode(''); setPage(1); } }] : []),
           ...(code.trim() ? [{ key: 'code', label: `Código: ${code}`, onRemove: () => { setCode(''); setPage(1); } }] : []),
           ...(phone.trim() ? [{ key: 'phone', label: `Teléfono: ${phone}`, onRemove: () => { setPhone(''); setPage(1); } }] : []),
+          ...(dateFrom.trim() || dateTo.trim()
+            ? [{
+                key: 'dateRange',
+                label:
+                  dateFrom.trim() && dateTo.trim()
+                    ? `Fecha: ${dateFrom} → ${dateTo}`
+                    : dateFrom.trim()
+                      ? `Fecha: desde ${dateFrom}`
+                      : `Fecha: hasta ${dateTo}`,
+                onRemove: () => { setDateFrom(''); setDateTo(''); setPage(1); },
+              }]
+            : []),
         ]}
-        onClearAll={() => { setStatuses([]); setCashierIds([]); setAdCode(''); setCode(''); setPhone(''); setPage(1); }}
+        onClearAll={() => { setStatuses([]); setCashierIds([]); setAdCode(''); setCode(''); setPhone(''); setDateFrom(''); setDateTo(''); setPage(1); }}
       />
 
       <Card>

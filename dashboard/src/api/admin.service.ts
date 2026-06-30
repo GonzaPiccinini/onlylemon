@@ -128,6 +128,8 @@ export const adminService = {
         ...(filters.adCode ? { adCode: filters.adCode } : {}),
         ...(filters.code ? { code: filters.code } : {}),
         ...(filters.phone ? { phone: filters.phone } : {}),
+        ...(filters.dateFrom ? { dateFrom: filters.dateFrom } : {}),
+        ...(filters.dateTo ? { dateTo: filters.dateTo } : {}),
         ...(filters.page !== undefined ? { page: filters.page } : {}),
         ...(filters.pageSize !== undefined ? { pageSize: filters.pageSize } : {}),
       },
