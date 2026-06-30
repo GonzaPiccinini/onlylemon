@@ -105,6 +105,10 @@ export const handle401 = async (
   const original = error.config as RetriableConfig | undefined;
   if (!original) throw error;
 
+  // A 401 from the login endpoint means bad credentials, not an expired
+  // session — let it propagate to the form instead of forcing a logout.
+  if (original.url?.includes(endpoints.auth.login)) throw error;
+
   // Loop guard: skip if this IS the refresh call or if we already retried
   if (original.url?.includes("/auth/refresh") || original._retried) {
     deps.forceLogout();
