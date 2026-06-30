@@ -1,5 +1,6 @@
 import { createChallenge, verifySolution } from 'altcha-lib/v1';
 import { config } from '../config/env.js';
+import { logger } from '../lib/logger.js';
 import { getRedisClient } from '../lib/redis.js';
 
 const REPLAY_TTL_SECONDS = 700; // slightly more than 10-minute challenge expiry
@@ -71,8 +72,14 @@ export async function verifyCaptcha(
     return false;
   }
 
-  // Step 3: one-time use via Redis SET NX
+  // Step 3: one-time use via Redis SET NX. A store outage must NEVER crash the
+  // request handler — the payload is already HMAC-verified and expires in ~10min,
+  // so we fail open (allow) and log, rather than 500-ing/crashing on lead capture.
   const replayKey = `altcha:replay:${signature}`;
-  const wasSet = await replayStore(replayKey, REPLAY_TTL_SECONDS);
-  return wasSet; // false → key already existed → replay rejected
+  try {
+    return await replayStore(replayKey, REPLAY_TTL_SECONDS); // false → already existed → replay rejected
+  } catch (err) {
+    logger.warn({ err }, 'altcha replay store unavailable; allowing without replay check');
+    return true;
+  }
 }

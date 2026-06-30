@@ -11,6 +11,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createChallenge } from 'altcha-lib/v1';
 
 process.env.PORT = process.env.PORT ?? '3002';
 process.env.LEADS_CODE_TTL_HOURS = process.env.LEADS_CODE_TTL_HOURS ?? '24';
@@ -162,4 +163,94 @@ test('altcha module exports ReplayStoreFn type and verifyCaptcha + createAltchaC
   assert.equal(typeof mod.createAltchaChallenge, 'function');
   assert.equal(typeof mod.verifyCaptcha, 'function');
   // ReplayStoreFn is a type — not a runtime export. Just verify the functions exist.
+});
+
+// ---------------------------------------------------------------------------
+// REGRESSION #81: verifyCaptcha fail-open when replayStore throws
+//
+// Before the fix, if replayStore threw (e.g., Redis "Stream isn't writeable"
+// due to enableOfflineQueue:false), the error propagated unhandled inside the
+// async Express request handler and killed the worker process (RestartCount++).
+//
+// The fix wraps the replayStore call in try/catch and fails open (returns true)
+// so a transient Redis outage never crashes lead capture. The payload is already
+// HMAC-verified and self-expires in ~10 min, making fail-open safe.
+//
+// These tests require a genuinely valid altcha payload (real HMAC + solved PoW)
+// so that verifySolution passes and execution reaches the replayStore call.
+// We reuse the solveAltchaChallenge helper exported from the embed bundle.
+// ---------------------------------------------------------------------------
+
+test('REGRESSION #81: verifyCaptcha returns true (fail-open) when replayStore throws — must NOT rethrow', async () => {
+  const { verifyCaptcha } = await import('../integrations/altcha.js');
+  const { solveAltchaChallenge } = await import('../modules/embed/bundle.js');
+
+  const TEST_HMAC_KEY = process.env.ALTCHA_HMAC_SECRET!;
+
+  // Build a genuine valid altcha payload (real HMAC + solved PoW, maxnumber=10
+  // so the hash search completes in milliseconds)
+  const challenge = await createChallenge({
+    hmacKey: TEST_HMAC_KEY,
+    maxnumber: 10,
+    expires: new Date(Date.now() + 600_000),
+  });
+  const payload = await solveAltchaChallenge(challenge);
+
+  // Simulate a Redis error (e.g., "Stream isn't writeable" with offline queue disabled)
+  const failingStore = async (_key: string, _ttl: number): Promise<boolean> => {
+    throw new Error("Stream isn't writeable");
+  };
+
+  // OLD CODE (no try/catch): replayStore rejection propagates → test would fail
+  // with an unhandled error here. NEW CODE (try/catch): returns true silently.
+  let threw = false;
+  let result = false;
+  try {
+    result = await verifyCaptcha(payload, undefined, failingStore);
+  } catch {
+    threw = true;
+  }
+
+  assert.equal(
+    threw,
+    false,
+    'verifyCaptcha must NOT rethrow when replayStore throws (old code without try/catch would fail here)',
+  );
+  assert.equal(result, true, 'verifyCaptcha must return true (fail-open) when replayStore throws');
+});
+
+test('verifyCaptcha returns false (replay detected) when replayStore returns false — valid payload', async () => {
+  const { verifyCaptcha } = await import('../integrations/altcha.js');
+  const { solveAltchaChallenge } = await import('../modules/embed/bundle.js');
+
+  const TEST_HMAC_KEY = process.env.ALTCHA_HMAC_SECRET!;
+
+  const challenge = await createChallenge({
+    hmacKey: TEST_HMAC_KEY,
+    maxnumber: 10,
+    expires: new Date(Date.now() + 600_000),
+  });
+  const payload = await solveAltchaChallenge(challenge);
+
+  // replayStore returns false = key already existed (replay attack)
+  const result = await verifyCaptcha(payload, undefined, async () => false);
+  assert.equal(result, false, 'verifyCaptcha must return false when replayStore signals replay (key already exists)');
+});
+
+test('verifyCaptcha returns true (first use) when replayStore returns true — valid payload', async () => {
+  const { verifyCaptcha } = await import('../integrations/altcha.js');
+  const { solveAltchaChallenge } = await import('../modules/embed/bundle.js');
+
+  const TEST_HMAC_KEY = process.env.ALTCHA_HMAC_SECRET!;
+
+  const challenge = await createChallenge({
+    hmacKey: TEST_HMAC_KEY,
+    maxnumber: 10,
+    expires: new Date(Date.now() + 600_000),
+  });
+  const payload = await solveAltchaChallenge(challenge);
+
+  // replayStore returns true = key was freshly set (legitimate first use)
+  const result = await verifyCaptcha(payload, undefined, async () => true);
+  assert.equal(result, true, 'verifyCaptcha must return true when replayStore returns true (first use)');
 });
