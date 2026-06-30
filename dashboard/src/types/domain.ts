@@ -260,6 +260,8 @@ export interface LeadsFilters {
   phone?: string;
   page?: number;
   pageSize?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface ConversionsFilters {
