@@ -413,8 +413,9 @@ test('createLandingWithFallbacks: arity is 2 (landing, fallbacks)', async () => 
 
 test('createLandingWithFallbacks: returns a thenable (structural)', async () => {
   const { createLandingWithFallbacks } = await import('./admin.repository.js');
+  // Phase 4: signature now uses metaPixelRef (FK UUID) instead of old scalar fields.
   const result = createLandingWithFallbacks(
-    { url: 'https://example.com', metaPixelId: 'px1', metaAccessToken: 'tok1' },
+    { url: 'https://example.com', metaPixelRef: 'mp-uuid-123' },
     [{ phone: '+5491123456789' }],
   );
   assert.equal(typeof (result as Promise<unknown>).then, 'function');

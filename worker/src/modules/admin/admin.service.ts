@@ -51,6 +51,7 @@ import {
   replaceSessionLandings,
   getSessionsBoundToLandingId,
   type MetaPixelPublicDto,
+  type MetaPixelWithCountsDto,
 } from './admin.repository.js';
 import {
   createSession,
@@ -83,19 +84,32 @@ const maskToken = (token: string): string => {
   return `${'*'.repeat(Math.max(token.length - 4, 6))}${visibleTail}`;
 };
 
+/**
+ * Phase 4 — toLandingDto:
+ * - `metaPixelId` now carries the FK UUID (Landing.metaPixelRef), not the old pixel number.
+ * - `metaPixel` is the nested MetaPixel relation (id, pixelId, label) — null if not loaded.
+ * - `whatsappMessages` is the per-landing message list.
+ * - Old `metaAccessTokenMasked` is removed (token lives on MetaPixel, never exposed).
+ * - `metaPixelRelation` and `whatsappMessages` are optional in the input type so callers
+ *   that don't include the relation (e.g. setLandingStatus) still compile.
+ */
 const toLandingDto = (landing: {
   id: string;
   url: string;
   metaPixelId: string;
   metaAccessToken: string;
+  metaPixelRef?: string | null;
+  metaPixelRelation?: { id: string; pixelId: string; label: string | null } | null;
+  whatsappMessages?: string[];
   status: 'ACTIVE' | 'DISABLED';
   createdAt: Date;
   updatedAt: Date;
 }) => ({
   id: landing.id,
   url: landing.url,
-  metaPixelId: landing.metaPixelId,
-  metaAccessTokenMasked: maskToken(landing.metaAccessToken),
+  metaPixelId: landing.metaPixelRef ?? null,
+  metaPixel: landing.metaPixelRelation ?? null,
+  whatsappMessages: landing.whatsappMessages ?? [],
   status: landing.status,
   createdAt: landing.createdAt,
   updatedAt: landing.updatedAt,
@@ -1078,10 +1092,10 @@ export const createMetaPixelService = (input: { pixelId: string; accessToken: st
 // -----------
 
 type ListMetaPixelsDeps = {
-  listMetaPixels: () => Promise<MetaPixelPublicDto[]>;
+  listMetaPixels: () => Promise<MetaPixelWithCountsDto[]>;
 };
 
-export const listMetaPixelsServiceImpl = async (deps: ListMetaPixelsDeps): Promise<MetaPixelPublicDto[]> =>
+export const listMetaPixelsServiceImpl = async (deps: ListMetaPixelsDeps): Promise<MetaPixelWithCountsDto[]> =>
   deps.listMetaPixels();
 
 export const listMetaPixelsService = () => listMetaPixelsServiceImpl({ listMetaPixels });
@@ -1276,13 +1290,16 @@ export const deleteLandingFallbackPhoneService = async (id: string): Promise<voi
 export const createLandingServiceImpl = async (
   deps: {
     createLandingWithFallbacks: (
-      landing: { url: string; metaPixelId: string; metaAccessToken: string },
+      landing: { url: string; metaPixelRef: string; whatsappMessages?: string[] },
       fallbacks: { phone: string; label?: string; order?: number }[],
     ) => Promise<{
       id: string;
       url: string;
       metaPixelId: string;
       metaAccessToken: string;
+      metaPixelRef?: string | null;
+      metaPixelRelation?: { id: string; pixelId: string; label: string | null } | null;
+      whatsappMessages?: string[];
       status: 'ACTIVE' | 'DISABLED';
       createdAt: Date;
       updatedAt: Date;
@@ -1290,8 +1307,8 @@ export const createLandingServiceImpl = async (
   },
   input: {
     url: string;
-    metaPixelId: string;
-    metaAccessToken: string;
+    metaPixelRef: string;
+    whatsappMessages?: string[];
     fallbackPhones: { phone: string; label?: string; order?: number }[];
   },
 ) => {
@@ -1302,7 +1319,7 @@ export const createLandingServiceImpl = async (
     validatePhone(fp.phone);
   }
   const landing = await deps.createLandingWithFallbacks(
-    { url: input.url, metaPixelId: input.metaPixelId, metaAccessToken: input.metaAccessToken },
+    { url: input.url, metaPixelRef: input.metaPixelRef, whatsappMessages: input.whatsappMessages },
     input.fallbackPhones,
   );
   return toLandingDto(landing);
@@ -1310,8 +1327,8 @@ export const createLandingServiceImpl = async (
 
 export const createLandingServiceWithFallbacks = async (input: {
   url: string;
-  metaPixelId: string;
-  metaAccessToken: string;
+  metaPixelRef: string;
+  whatsappMessages?: string[];
   fallbackPhones: { phone: string; label?: string; order?: number }[];
 }) => createLandingServiceImpl({ createLandingWithFallbacks }, input);
 

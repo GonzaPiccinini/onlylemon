@@ -1,5 +1,10 @@
+import { randomUUID as cryptoRandomUUID } from 'node:crypto';
 import { prisma } from '../../persistence/prisma/client.js';
 import { Prisma } from '../../generated/prisma/client.js';
+
+// Expose crypto.randomUUID under a named alias so the global `crypto` object
+// doesn't need to be called directly (avoids subtle ESM/CJS differences).
+const randomUUID = cryptoRandomUUID;
 
 export const listCashiers = () =>
   prisma.cashier.findMany({
@@ -303,6 +308,15 @@ export const listLandings = () =>
   prisma.landing.findMany({
     orderBy: {
       createdAt: 'desc',
+    },
+    include: {
+      metaPixelRelation: {
+        select: {
+          id: true,
+          pixelId: true,
+          label: true,
+        },
+      },
     },
   });
 
@@ -974,11 +988,24 @@ export const createMetaPixel = (input: {
     select: metaPixelPublicSelect,
   });
 
-export const listMetaPixels = (): Promise<MetaPixelPublicDto[]> =>
-  prisma.metaPixel.findMany({
-    select: metaPixelPublicSelect,
+export type MetaPixelWithCountsDto = MetaPixelPublicDto & { leadCount: number; landingCount: number };
+
+export const listMetaPixels = async (): Promise<MetaPixelWithCountsDto[]> => {
+  const rows = await prisma.metaPixel.findMany({
+    select: {
+      ...metaPixelPublicSelect,
+      _count: {
+        select: { leads: true, landings: true },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   });
+  return rows.map(({ _count, ...rest }) => ({
+    ...rest,
+    leadCount: _count.leads,
+    landingCount: _count.landings,
+  }));
+};
 
 export const getMetaPixelById = (id: string): Promise<MetaPixelPublicDto | null> =>
   prisma.metaPixel.findUnique({
@@ -1010,16 +1037,34 @@ export const countMetaPixelLeads = (metaPixelId: string): Promise<number> =>
 export const countMetaPixelLandings = (metaPixelId: string): Promise<number> =>
   prisma.landing.count({ where: { metaPixelRef: metaPixelId } });
 
+/**
+ * Phase 4 — createLandingWithFallbacks uses MetaPixel FK selector.
+ * Looks up the MetaPixel internally (accessToken never exposed) to populate the
+ * legacy NOT-NULL columns during the Expand phase. A UUID placeholder is used for
+ * the old @unique `metaPixelId` scalar so multiple landings can share one MetaPixel.
+ * Both legacy columns are dropped in the Contract migration (Phase 5).
+ */
 export const createLandingWithFallbacks = async (
-  landing: { url: string; metaPixelId: string; metaAccessToken: string },
+  landing: { url: string; metaPixelRef: string; whatsappMessages?: string[] },
   fallbacks: { phone: string; label?: string; order?: number }[],
 ) =>
   prisma.$transaction(async (tx) => {
+    // Internal lookup — accessToken is NEVER returned to the client.
+    const pixel = await tx.metaPixel.findUniqueOrThrow({
+      where: { id: landing.metaPixelRef },
+      select: { accessToken: true },
+    });
+
     const created = await tx.landing.create({
       data: {
         url: landing.url,
-        metaPixelId: landing.metaPixelId,
-        metaAccessToken: landing.metaAccessToken,
+        // Legacy columns (NOT NULL + @unique) — dropped at Contract.
+        // UUID ensures uniqueness when multiple landings share one MetaPixel.
+        metaPixelId: `__mp__${randomUUID()}`,
+        metaAccessToken: pixel.accessToken,
+        // New FK + optional messages
+        metaPixelRef: landing.metaPixelRef,
+        whatsappMessages: landing.whatsappMessages ?? [],
       },
     });
 

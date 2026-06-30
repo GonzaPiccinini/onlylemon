@@ -41,13 +41,6 @@ const fallbackPhoneItemSchema = z.object({
   order: z.number().int().optional(),
 });
 
-export const createLandingSchema = z.object({
-  url: z.string().trim().url(),
-  metaPixelId: z.string().trim().min(1),
-  metaAccessToken: z.string().trim().min(1),
-  fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required'),
-});
-
 /**
  * Task 3.6 — whatsappMessages validation schema (reusable).
  * Each message is trimmed; empty/whitespace-only entries are discarded;
@@ -61,7 +54,7 @@ const whatsappMessagesSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.too_big,
         maximum: 5,
-        type: 'array',
+        origin: 'array',
         inclusive: true,
         message: 'Maximum 5 whatsapp messages per landing',
       });
@@ -71,13 +64,27 @@ const whatsappMessagesSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.too_big,
           maximum: 250,
-          type: 'string',
+          origin: 'string',
           inclusive: true,
           message: `Message exceeds 250 characters (got ${msg.length})`,
         });
       }
     }
   });
+
+/**
+ * Phase 4 — createLandingSchema uses MetaPixel FK selector.
+ * `metaPixelRef` (FK → MetaPixel.id) replaces old scalar `metaPixelId` + `metaAccessToken`.
+ * `whatsappMessages` is optional (validated: trim, discard empty, max 5, max 250 chars each).
+ * Declared AFTER whatsappMessagesSchema to avoid temporal dead zone errors.
+ */
+export const createLandingSchema = z.object({
+  url: z.string().trim().url(),
+  /** FK → MetaPixel.id (UUID). Required for create. */
+  metaPixelRef: z.string().trim().min(1, 'metaPixelRef (MetaPixel FK) is required'),
+  fallbackPhones: z.array(fallbackPhoneItemSchema).min(1, 'At least one fallback phone is required'),
+  whatsappMessages: whatsappMessagesSchema.optional(),
+});
 
 /**
  * Task 3.7 — updateLandingSchema extended with metaPixelRef FK and whatsappMessages.

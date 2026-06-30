@@ -54,8 +54,8 @@
 
 ## Phase 4: Admin — Frontend
 
-- [ ] 4.1 Update `dashboard/src/types/domain.ts`: add `MetaPixel { id: string; pixelId: string; label?: string }` (no `accessToken`); update `Landing`: add `metaPixelId: string`, `metaPixel?: MetaPixel`, `whatsappMessages: string[]`; remove scalar `metaAccessToken` and scalar `metaPixelId` number fields
-- [ ] 4.2 Update `dashboard/src/features/admin/admin-landings-page.tsx`: replace scalar `metaPixelId` number input + `metaAccessToken` input with a `<Select>` populated from `/admin/meta-pixels` list (option label = `label ?? pixelId`); add messages list editor with add/remove/reorder, client-side validation (≤5, ≤250 chars, non-empty after trim); show frozen `pixelId` field with explanation when the pixel has leads; show clear block message with reference count when delete is rejected by the server
+- [x] 4.1 Update `dashboard/src/types/domain.ts`: add `MetaPixel { id: string; pixelId: string; label?: string }` (no `accessToken`); update `Landing`: add `metaPixelId: string`, `metaPixel?: MetaPixel`, `whatsappMessages: string[]`; remove scalar `metaAccessToken` and scalar `metaPixelId` number fields
+- [x] 4.2 Update `dashboard/src/features/admin/admin-landings-page.tsx`: replace scalar `metaPixelId` number input + `metaAccessToken` input with a `<Select>` populated from `/admin/meta-pixels` list (option label = `label ?? pixelId`); add messages list editor with add/remove/reorder, client-side validation (≤5, ≤250 chars, non-empty after trim); show frozen `pixelId` field with explanation when the pixel has leads; show clear block message with reference count when delete is rejected by the server
 
 ---
 
