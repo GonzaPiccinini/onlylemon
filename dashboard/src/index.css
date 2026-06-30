@@ -110,7 +110,12 @@ body {
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    /* Paint the root canvas dark too: body alone left html transparent, so a
+       heavy repaint during mobile route changes briefly exposed the browser's
+       default (white) canvas — a white flash. color-scheme: dark also tells the
+       browser to use a dark default backdrop for overscroll and transitions. */
+    @apply bg-background font-sans;
+    color-scheme: dark;
   }
 }
 
