@@ -63,9 +63,9 @@
 
 > Run only after cutover verify window and a DB backup.
 
-- [ ] 5.1 `[T]` Extend `migration-pixel-normalization.test.ts`: tighten — FKs `NOT NULL` + `onDelete: Restrict` enforced; contract — old scalar columns absent, `metaPixelRef` renamed to `metaPixelId` on `Landing` and `Lead`
-- [ ] 5.2 Generate tighten Prisma migration: set `Landing.metaPixelRef`, `Lead.metaPixelRef`, `Lead.eventSourceUrl`, `Lead.landingId` to `NOT NULL`; set `onDelete: Restrict` on both MetaPixel FKs
-- [ ] 5.3 Generate contract Prisma migration: drop `Landing.metaAccessToken`; drop old scalar `Landing.metaPixelId` (number + `@unique`); drop old pixel-number column on `Lead`; rename `metaPixelRef → metaPixelId` on both `Landing` and `Lead`; update `schema.prisma` to final contracted state (matches design.md model)
+- [x] 5.1 `[T]` Extend `migration-pixel-normalization.test.ts`: tighten — FKs `NOT NULL` + `onDelete: Restrict` enforced; contract — old scalar columns absent, `metaPixelRef` renamed to `metaPixelId` on `Landing` and `Lead`
+- [x] 5.2 Generate tighten Prisma migration: set `Landing.metaPixelRef`, `Lead.metaPixelRef`, `Lead.eventSourceUrl`, `Lead.landingId` to `NOT NULL`; set `onDelete: Restrict` on both MetaPixel FKs
+- [x] 5.3 Generate contract Prisma migration: drop `Landing.metaAccessToken`; drop old scalar `Landing.metaPixelId` (number + `@unique`); drop old pixel-number column on `Lead`; rename `metaPixelRef → metaPixelId` on both `Landing` and `Lead`; update `schema.prisma` to final contracted state (matches design.md model)
 
 ---
 
@@ -86,7 +86,7 @@
 | Phase 2: Cutover | 7 | 3 (2.1, 2.3, 2.5) |
 | Phase 3: Admin Backend | 7 | 2 (3.1, 3.5) |
 | Phase 4: Admin Frontend | 2 | 0 |
-| Phase 5: Contract | 3 | 1 (5.1) |
+| Phase 5: Contract | 3 | 3 (5.1, 5.2, 5.3) |
 | Phase 6: Rollout | 3 | 0 |
 | **Total** | **28** | **7** |
 
