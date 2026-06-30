@@ -32,8 +32,8 @@ export const StatusRingAvatar = ({
     <span
       className={cn(
         'relative inline-flex rounded-full',
-        // Outer span: glow-pulse here so its box-shadow doesn't conflict with ring-* on the inner span.
-        // prefers-reduced-motion: existing global CSS already disables animate-glow-pulse.
+        // Outer span: the glow's box-shadow goes here so it doesn't conflict with ring-* on the inner span.
+        // .animate-glow-pulse is now a STATIC lit glow — the infinite box-shadow pulse was removed for perf.
         pulse && 'animate-glow-pulse',
         className,
       )}
