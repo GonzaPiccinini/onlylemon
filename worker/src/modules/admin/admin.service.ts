@@ -1332,7 +1332,7 @@ export const updateLandingServiceImpl = async (
       id: string,
       input: {
         url: string;
-        metaPixelId?: string | null;
+        metaPixelId?: string;
         whatsappMessages?: string[];
       },
     ) => Promise<{
@@ -1353,7 +1353,7 @@ export const updateLandingServiceImpl = async (
   input: {
     url: string;
     /** FK → MetaPixel.id (UUID). Replaces old scalar fields. */
-    metaPixelId?: string | null;
+    metaPixelId?: string;
     /** Per-landing WhatsApp messages (task 3.6). Each trimmed, empty discarded, max 5, each ≤250 chars. */
     whatsappMessages?: string[];
     fallbackPhones?: { phone: string; label?: string; order?: number }[];
@@ -1390,7 +1390,7 @@ export const updateLandingServiceWithFallbacks = async (
   landingId: string,
   input: {
     url: string;
-    metaPixelId?: string | null;
+    metaPixelId?: string;
     whatsappMessages?: string[];
     fallbackPhones?: { phone: string; label?: string; order?: number }[];
   },

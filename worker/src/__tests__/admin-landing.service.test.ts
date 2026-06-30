@@ -108,7 +108,7 @@ test('validateWhatsappMessages: message of exactly 250 chars → accepted', asyn
 const makeLandingRow = (overrides: Record<string, unknown> = {}) => ({
   id: 'land-1',
   url: 'https://example.com',
-  metaPixelId: 'mp-uuid-default' as string | null,
+  metaPixelId: 'mp-uuid-default' as string,
   whatsappMessages: [] as string[],
   status: 'ACTIVE' as const,
   createdAt: new Date('2026-01-01T00:00:00Z'),

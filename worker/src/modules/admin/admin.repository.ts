@@ -329,7 +329,7 @@ export const updateLanding = (
   landingId: string,
   input: {
     url: string;
-    metaPixelId?: string | null;
+    metaPixelId?: string;
     whatsappMessages?: string[];
   },
 ) =>
