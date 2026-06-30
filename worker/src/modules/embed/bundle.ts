@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
  * Bump this constant to invalidate all ETags globally (forces CDN re-fetch
  * after a runtime logic change, independent of per-landing config changes).
  */
-export const RUNTIME_VERSION = '1.0.0';
+export const RUNTIME_VERSION = '1.1.0';
 
 export type EmbedConfig = {
   landingId: string;
@@ -117,6 +117,12 @@ export function renderEmbedBundle(config: EmbedConfig): string {
   // Public config — baked at bundle generation time. No server secrets included.
   var CTA_CONFIG = ${configJson};
 
+  // ── State ─────────────────────────────────────────────────────────────────
+  var _submitting = false;       // double-click guard
+  var _solvedPayload = null;     // pre-solved captcha payload string
+  var _solvedAt = 0;             // timestamp of pre-solve (ms)
+  var CAPTCHA_FRESH_MS = 8 * 60 * 1000; // 8 min (server challenge expires in 10 min)
+
   // ── Utilities ──────────────────────────────────────────────────────────────
 
   function getCookie(name) {
@@ -196,10 +202,45 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     return solveAltchaChallenge(ch);
   }
 
+  // ── Captcha pre-solve ─────────────────────────────────────────────────────
+  // Warm up the captcha in the background so it is ready when the user clicks.
+  // Uses requestIdleCallback when available, falls back to setTimeout.
+
+  function prepareCaptcha() {
+    var idle = typeof requestIdleCallback !== 'undefined'
+      ? requestIdleCallback
+      : function (fn) { setTimeout(fn, 0); };
+    idle(function () {
+      return fetchAndSolveAltcha()
+        .then(function (payload) {
+          _solvedPayload = payload;
+          _solvedAt = Date.now();
+        })
+        .catch(function () {
+          // Silent — getReadyCaptcha will solve inline on click if this fails
+        });
+    });
+  }
+
+  // Returns a captcha payload ready to submit.
+  // If a pre-solved payload is still fresh (<8 min), consumes it instantly and
+  // re-queues a new pre-solve for the next click.
+  // Otherwise falls through to an inline solve (slower path).
+  function getReadyCaptcha() {
+    if (_solvedPayload && (Date.now() - _solvedAt) < CAPTCHA_FRESH_MS) {
+      var p = _solvedPayload;
+      _solvedPayload = null;
+      _solvedAt = 0;
+      prepareCaptcha(); // re-queue for the next click
+      return Promise.resolve(p);
+    }
+    return fetchAndSolveAltcha();
+  }
+
   // ── Lead submission ────────────────────────────────────────────────────────
 
-  async function submitLead() {
-    var altcha = await fetchAndSolveAltcha();
+  async function submitLead(btn, waWin) {
+    var altcha = await getReadyCaptcha();
     var fbc = getCookie('_fbc') || null;
     var fbp = getCookie('_fbp') || null;
     var adCode = resolveAdCode();
@@ -224,15 +265,67 @@ export function renderEmbedBundle(config: EmbedConfig): string {
       ? messages[Math.floor(Math.random() * messages.length)]
       : 'Hola';
     var text = encodeURIComponent(msg + ' CODIGO:' + data.code);
-    window.open('https://wa.me/' + data.number + '?text=' + text, '_blank');
+    var waUrl = 'https://wa.me/' + data.number + '?text=' + text;
+
+    // Update button text just before navigating (skip for solo-logica — not our button)
+    if (btn && ctaMode !== 'solo-logica') {
+      btn.textContent = 'Abriendo WhatsApp\\u2026';
+    }
+
+    // Navigate the placeholder tab opened in the click handler.
+    // If popup was blocked (waWin is null/undefined), fall back to window.open or location.
+    if (waWin) {
+      waWin.location.href = waUrl;
+    } else {
+      var win = window.open ? window.open(waUrl, '_blank') : null;
+      if (!win) window.location.href = waUrl;
+    }
   }
 
-  async function handleClick(e) {
+  // ── Click handler ──────────────────────────────────────────────────────────
+  // btn  — the element that triggered the action (for state feedback).
+  //
+  // solo-logica: owner styles the button via data-cta-state attribute:
+  //   [data-cta][data-cta-state='loading'] — request in progress (disabled)
+  //   [data-cta][data-cta-state='error']   — submission failed (re-enabled)
+  //
+  // widget-automontado / boton-flotante: our own button — text is updated directly.
+
+  async function handleClick(e, btn) {
     if (e && e.preventDefault) e.preventDefault();
+    if (_submitting) return; // double-click guard
+    _submitting = true;
+
+    // Disable the button synchronously — still inside the click gesture, which
+    // is required by mobile browsers for popup policy to allow window.open.
+    if (btn) {
+      btn.disabled = true;
+      if (ctaMode === 'solo-logica') {
+        btn.setAttribute('data-cta-state', 'loading');
+      } else {
+        btn.textContent = 'Conectando\\u2026';
+      }
+    }
+
+    // Open a placeholder tab synchronously to bypass mobile popup blockers.
+    // After the POST we set location.href to the real wa.me URL.
+    var waWin = (window.open) ? window.open('about:blank', '_blank') : null;
+
     try {
-      await submitLead();
+      await submitLead(btn, waWin);
+      // On success: button stays disabled — WhatsApp is opening.
     } catch (err) {
       console.error('[CTA] click error:', err);
+      if (waWin) waWin.close();
+      _submitting = false;
+      if (btn) {
+        btn.disabled = false;
+        if (ctaMode === 'solo-logica') {
+          btn.setAttribute('data-cta-state', 'error');
+        } else {
+          btn.textContent = 'No pudimos conectarte, reintent\\u00e1';
+        }
+      }
     }
   }
 
@@ -241,7 +334,10 @@ export function renderEmbedBundle(config: EmbedConfig): string {
   // Script only wires the click handler — no DOM injection.
   if (ctaMode === 'solo-logica') {
     var btn = document.querySelector(ctaTarget);
-    if (btn) btn.addEventListener('click', handleClick);
+    if (btn) {
+      btn.addEventListener('click', function (e) { return handleClick(e, btn); });
+      prepareCaptcha();
+    }
   }
 
   // ── Mode: widget-automontado ───────────────────────────────────────────────
@@ -258,14 +354,14 @@ export function renderEmbedBundle(config: EmbedConfig): string {
       captchaContainer.setAttribute('data-cta-captcha', '');
       root.appendChild(widgetBtn);
       root.appendChild(captchaContainer);
-      widgetBtn.addEventListener('click', handleClick);
+      widgetBtn.addEventListener('click', function (e) { return handleClick(e, widgetBtn); });
+      prepareCaptcha();
     }
   }
 
   // ── Mode: boton-flotante (FAB + modal) ─────────────────────────────────────
   // Owner markup: none — script injects everything.
   // A fixed floating button (FAB) opens a modal; submit in the modal triggers lead.
-  // Captcha container is lazy-initialized inside the modal on first open.
   else if (ctaMode === 'boton-flotante') {
     // FAB
     var fab = document.createElement('button');
@@ -315,7 +411,7 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     modal.appendChild(modalInner);
     document.body.appendChild(modal);
 
-    // Open modal on FAB click (captcha mounts lazily inside modal)
+    // Open modal on FAB click
     fab.addEventListener('click', function () {
       modal.removeAttribute('hidden');
     });
@@ -326,7 +422,8 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     });
 
     // Submit lead on modal submit button
-    submitBtn.addEventListener('click', handleClick);
+    submitBtn.addEventListener('click', function (e) { return handleClick(e, submitBtn); });
+    prepareCaptcha();
   }
 
 })();

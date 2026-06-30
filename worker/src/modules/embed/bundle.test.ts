@@ -326,3 +326,18 @@ test('bundle output contains RUNTIME_VERSION comment', async () => {
   const bundle = renderEmbedBundle(FIXTURE_CONFIG);
   assert.ok(bundle.includes(RUNTIME_VERSION), 'bundle must reference RUNTIME_VERSION');
 });
+
+// ---------------------------------------------------------------------------
+// Altcha challenge difficulty — createAltchaChallenge must return maxnumber = 50_000
+// ---------------------------------------------------------------------------
+
+test('createAltchaChallenge returns maxnumber=50000 for fast client pre-solve', async () => {
+  const { createAltchaChallenge } = await import('../../integrations/altcha.js');
+
+  const challenge = await createAltchaChallenge();
+  assert.equal(
+    challenge.maxnumber,
+    50_000,
+    'createAltchaChallenge must set maxnumber=50000 so client pre-solve completes in <1s',
+  );
+});

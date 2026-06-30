@@ -33,6 +33,7 @@ export async function createAltchaChallenge(): Promise<AltchaChallenge> {
   return createChallenge({
     hmacKey: config.ALTCHA_HMAC_SECRET,
     expires: new Date(Date.now() + 600_000), // 10 minutes
+    maxnumber: 50_000, // Lowered from default (1M) so client pre-solve completes in <1s
   });
 }
 
