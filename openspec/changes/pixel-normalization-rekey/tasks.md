@@ -26,17 +26,17 @@
 
 > **[NEEDS-B]** coordinated deploy: Change B embed must be live and every ACTIVE landing's snippet deployed before flipping the worker.
 
-- [ ] 2.1 `[T]` Add/update `worker/src/__tests__/leads.http.test.ts`: missing `landingId` → 400 `{ message: 'Invalid body data' }`; unknown `landingId` → 404 `{ message: 'Landing not found' }`; DISABLED landing → 404 `{ message: 'Landing not found or disabled' }` (never 403); duplicate `fbc` → 409; success → 201 `{ code, number }`; client-supplied `metaPixelId` field is ignored
-- [ ] 2.2 Update `worker/src/integrations/leads/http.ts`: `CreateLeadPayloadSchema` requires `landingId`; remove `metaPixelId` from schema; 400 on zod fail
-- [ ] 2.3 `[T]` Write/update `worker/src/__tests__/leadsRepository.test.ts`: `getActiveLandingCashierCandidatesByLandingId`, `getAllLinkedCashierCandidatesByLandingId`, `getLandingFallbackPhonesByLandingId`, `getContactedLeadCountByCashierForLanding` keyed by `landingId`; assert deficit count for L1 and L2 sharing one pixel is NOT conflated (L1 contacts don't count for L2)
-- [ ] 2.4 Update `worker/src/persistence/repositories/leadsRepository.ts`: rename all 4 `…ByMetaPixelId` functions to `…ByLandingId` (update callers); `saveLead` writes `landingId`, `metaPixelId` (FK = landing.metaPixelRef), `eventSourceUrl` (= landing.url) and returns `include: { metaPixel: true }`; `getLeadByCode` adds `include: { metaPixel: true }`
-- [ ] 2.5 `[T]` Write/update `worker/src/__tests__/leads.service.test.ts`:
+- [x] 2.1 `[T]` Add/update `worker/src/__tests__/leads.http.test.ts`: missing `landingId` → 400 `{ message: 'Invalid body data' }`; unknown `landingId` → 404 `{ message: 'Landing not found' }`; DISABLED landing → 404 `{ message: 'Landing not found or disabled' }` (never 403); duplicate `fbc` → 409; success → 201 `{ code, number }`; client-supplied `metaPixelId` field is ignored
+- [x] 2.2 Update `worker/src/integrations/leads/http.ts`: `CreateLeadPayloadSchema` requires `landingId`; remove `metaPixelId` from schema; 400 on zod fail
+- [x] 2.3 `[T]` Write/update `worker/src/__tests__/leadsRepository.test.ts`: `getActiveLandingCashierCandidatesByLandingId`, `getAllLinkedCashierCandidatesByLandingId`, `getLandingFallbackPhonesByLandingId`, `getContactedLeadCountByCashierForLanding` keyed by `landingId`; assert deficit count for L1 and L2 sharing one pixel is NOT conflated (L1 contacts don't count for L2)
+- [x] 2.4 Update `worker/src/persistence/repositories/leadsRepository.ts`: rename all 4 `…ByMetaPixelId` functions to `…ByLandingId` (update callers); `saveLead` writes `landingId`, `metaPixelId` (FK = landing.metaPixelRef), `eventSourceUrl` (= landing.url) and returns `include: { metaPixel: true }`; `getLeadByCode` adds `include: { metaPixel: true }`
+- [x] 2.5 `[T]` Write/update `worker/src/__tests__/leads.service.test.ts`:
   - Snapshot captured at create: `Lead.metaPixelId` = P1.id, `Lead.eventSourceUrl` = U1
   - Snapshot immunity: reassign landing to P2 → `Contact` dispatch still uses P1 + U1
   - Token rotation: rotate `accessToken` on pinned row M → `Contact` reads M's current token (pin holds, value drifts)
   - `accessToken` absent from any lead DTO or response
-- [ ] 2.6 Update `worker/src/integrations/leads/service.ts`: `createLead(landingId)` → `getLandingById(landingId, { include: { metaPixel: true } })`; pass `metaPixelId: landing.metaPixelId (FK)` + `eventSourceUrl: landing.url` snapshots to `saveLead`; `dispatchLeadCreatedEvent` and `dispatchLeadContactedEvent` read `lead.metaPixel.{pixelId, accessToken}` + `lead.eventSourceUrl`; remove `getLandingByMetaPixelId` from dispatch path; update `mapLeadCodeToPhone` to propagate snapshot fields
-- [ ] 2.7 Verify `worker/src/integrations/leads/conversion.ts` unchanged — it already accepts `{ pixelId, accessToken, eventSourceUrl }` per call
+- [x] 2.6 Update `worker/src/integrations/leads/service.ts`: `createLead(landingId)` → `getLandingById(landingId, { include: { metaPixel: true } })`; pass `metaPixelId: landing.metaPixelId (FK)` + `eventSourceUrl: landing.url` snapshots to `saveLead`; `dispatchLeadCreatedEvent` and `dispatchLeadContactedEvent` read `lead.metaPixel.{pixelId, accessToken}` + `lead.eventSourceUrl`; remove `getLandingByMetaPixelId` from dispatch path; update `mapLeadCodeToPhone` to propagate snapshot fields
+- [x] 2.7 Verify `worker/src/integrations/leads/conversion.ts` unchanged — it already accepts `{ pixelId, accessToken, eventSourceUrl }` per call
 
 ---
 
