@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -18,6 +18,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
+} from "@/components/ui/combobox";
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,6 +40,7 @@ import { getDefaultDateRange } from "@/lib/date-range";
 import { formatDuration, formatPercentage } from "@/lib/format";
 import { useMoneyFormatter } from "@/lib/use-currency";
 import {
+  useAdminCashiers,
   useAdminSummary,
   useCashierStats,
   useFundsSeries,
@@ -67,12 +78,56 @@ const ChartTooltip = ({ active, payload, label, formatValue }: ChartTooltipProps
 export const AdminStatsPage = () => {
   const money = useMoneyFormatter();
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
+  const [cashierId, setCashierId] = useState("");
   const [view, setView] = useState<StatsView>("total");
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const { data: summary, isLoading: summaryLoading } = useAdminSummary(dateRange);
-  const { data: cashierStats = [], isLoading: cashierStatsLoading } = useCashierStats(dateRange);
-  const { data: fundsSeries, isLoading: seriesLoading } = useFundsSeries(dateRange);
+  const { data: cashiers = [] } = useAdminCashiers();
+  // value → label map for the Combobox. A bare name is shown for unique cashiers;
+  // cashiers that share a name get their @username appended so homonyms can be
+  // told apart. "all" is the sentinel for "Todos los cajeros" (base-ui can't use
+  // an empty value).
+  const cashierItems = useMemo<Record<string, string>>(() => {
+    const nameCounts = new Map<string, number>();
+    cashiers.forEach((c) => nameCounts.set(c.name, (nameCounts.get(c.name) ?? 0) + 1));
+    const entries = cashiers.map((c) => {
+      const label =
+        (nameCounts.get(c.name) ?? 0) > 1 ? `${c.name} · @${c.username}` : c.name;
+      return [c.id, label] as const;
+    });
+    return { all: "Todos los cajeros", ...Object.fromEntries(entries) };
+  }, [cashiers]);
+  // Stable reference so base-ui's internal filter/memo isn't invalidated on every
+  // parent render (e.g. the 5s cashier-list poll) while the user is searching.
+  const cashierLabel = useCallback(
+    (id: string) => cashierItems[id] ?? id,
+    [cashierItems],
+  );
+  // Combobox items are the cashier ids plus the "all" sentinel; cashierLabel maps
+  // each id to its label for both display and the search filter.
+  const cashierIdList = useMemo(
+    () => ["all", ...cashiers.map((c) => c.id)],
+    [cashiers],
+  );
+  // If the selected cashier disappears from the list (e.g. deleted while it is the
+  // active filter), treat the selection as cleared — derived during render so the
+  // chip never degrades to a raw id and the stats stop targeting a stale cashier
+  // (no setState-in-effect needed). An empty list is a transient refetch, so keep
+  // the selection in that case.
+  const validCashierId =
+    cashierId && (cashiers.length === 0 || cashiers.some((c) => c.id === cashierId))
+      ? cashierId
+      : "";
+  // Single cashier filter is folded into the shared DateRangeFilters object that
+  // every stats hook already accepts (and keys its query by), so KPIs, charts and
+  // the per-cashier table all narrow together.
+  const statsFilters = useMemo(
+    () => ({ ...dateRange, cashierId: validCashierId || undefined }),
+    [dateRange, validCashierId],
+  );
+  const { data: summary, isLoading: summaryLoading } = useAdminSummary(statsFilters);
+  const { data: cashierStats = [], isLoading: cashierStatsLoading } = useCashierStats(statsFilters);
+  const { data: fundsSeries, isLoading: seriesLoading } = useFundsSeries(statsFilters);
   // "total" charts overall gross income; each category view charts its own series.
   const chartData =
     view === "contacted"
@@ -113,6 +168,34 @@ export const AdminStatsPage = () => {
         }}
       />
 
+      <div className="glass rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cajero</span>
+        <Combobox
+          items={cashierIdList}
+          value={validCashierId || "all"}
+          itemToStringLabel={cashierLabel}
+          onValueChange={(value) => {
+            setCashierId(!value || value === "all" ? "" : value);
+            setPage(1);
+          }}
+        >
+          <ComboboxTrigger aria-label="Filtrar por cajero" className="w-56">
+            <ComboboxValue />
+          </ComboboxTrigger>
+          <ComboboxContent>
+            <ComboboxInput placeholder="Buscar cajero..." />
+            <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+            <ComboboxList>
+              {(id: string) => (
+                <ComboboxItem key={id} value={id}>
+                  {cashierLabel(id)}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+      </div>
+
       <FilterChips
         chips={[
           ...(dateRange.from !== getDefaultDateRange().from
@@ -124,8 +207,11 @@ export const AdminStatsPage = () => {
           ...(view !== 'total'
             ? [{ key: 'view', label: `Vista: ${view === 'contacted' ? 'Por contacto' : view === 'gross' ? 'Bruto' : 'Primeras cargas'}`, onRemove: () => setView('total') }]
             : []),
+          ...(validCashierId
+            ? [{ key: 'cashier', label: `Cajero: ${cashierItems[validCashierId] ?? validCashierId}`, onRemove: () => { setCashierId(''); setPage(1); } }]
+            : []),
         ]}
-        onClearAll={() => { setDateRange(getDefaultDateRange()); setView('total'); setPage(1); }}
+        onClearAll={() => { setDateRange(getDefaultDateRange()); setCashierId(''); setView('total'); setPage(1); }}
       />
 
       <div className="glass rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
