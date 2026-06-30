@@ -79,14 +79,37 @@ export function resolveCreateLeadHttpError(
   return null;
 }
 
-export async function leadsPost(req: Request, res: Response) {
+/**
+ * Injectable dependencies for the `POST /api/leads` handler.
+ *
+ * The real handler talks to two external systems — the Altcha verifier
+ * (HMAC + Redis replay store) and `createLead` (DB + Meta CAPI). Both are
+ * captured here so tests can exercise the captcha gate and the 201 success
+ * path without solving a real proof-of-work or hitting Postgres. Mirrors the
+ * `*WithDependencies` convention already used across the leads service.
+ */
+export interface LeadsPostDependencies {
+  verifyCaptcha: typeof verifyCaptcha;
+  createLead: typeof createLead;
+}
+
+const defaultLeadsPostDependencies: LeadsPostDependencies = {
+  verifyCaptcha,
+  createLead,
+};
+
+export async function leadsPostWithDependencies(
+  req: Request,
+  res: Response,
+  deps: LeadsPostDependencies = defaultLeadsPostDependencies,
+) {
   // Change B: Altcha proof-of-work captcha (replaces Turnstile)
   const altcha = req.body?.altcha;
   if (typeof altcha !== 'string' || altcha.trim().length === 0) {
     return res.status(400).json({ message: 'Captcha token required' });
   }
 
-  const captchaValid = await verifyCaptcha(altcha, req.ip);
+  const captchaValid = await deps.verifyCaptcha(altcha, req.ip);
   if (!captchaValid) {
     return res.status(403).json({ message: 'Captcha verification failed' });
   }
@@ -105,7 +128,7 @@ export async function leadsPost(req: Request, res: Response) {
   }
 
   try {
-    const lead = await createLead(parseResult.data);
+    const lead = await deps.createLead(parseResult.data);
 
     leadsCreatedTotal.labels(parseResult.data.landingId).inc();
     logger.info(
@@ -127,6 +150,10 @@ export async function leadsPost(req: Request, res: Response) {
       message: 'Internal server error',
     });
   }
+}
+
+export async function leadsPost(req: Request, res: Response) {
+  return leadsPostWithDependencies(req, res, defaultLeadsPostDependencies);
 }
 
 export async function mapLeadsToPhone(

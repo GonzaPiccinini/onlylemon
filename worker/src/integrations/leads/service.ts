@@ -582,10 +582,71 @@ export async function createLead(
   return createLeadWithDependencies(payload, defaultCreateLeadDependencies);
 }
 
-export async function mapLeadCodeToPhone(
+/**
+ * Minimal lead snapshot shape consumed by the Contact dispatch path.
+ * `metaPixel` + `eventSourceUrl` are frozen at lead-create time, so the Contact
+ * event is dispatched from THIS snapshot — never from the live landing — which
+ * keeps attribution immune to later landing/pixel re-pointing.
+ */
+export interface LeadContactSnapshot {
+  id: string;
+  code: string;
+  status: string;
+  contactedAt: Date | null;
+  metaPixel: { pixelId: string; accessToken: string } | null;
+  eventSourceUrl: string;
+  fbc: string;
+  fbp: string;
+  userAgent: string;
+}
+
+/**
+ * Injectable dependencies for `mapLeadCodeToPhone`. Mirrors the
+ * `*WithDependencies` convention already used in this module so the contact
+ * matching flow (and its snapshot-based Contact dispatch) can be unit-tested
+ * without a live DB / WAHA / Meta CAPI.
+ */
+export interface MapLeadCodeToPhoneDependencies {
+  getLeadByCode: (code: string) => Promise<LeadContactSnapshot | null>;
+  getSessionBySessionName: (
+    session: string,
+  ) => Promise<{ cashier: { id: string } } | null>;
+  getNumberByLid: (session: string, chatId: string) => Promise<{ pn: string }>;
+  markLeadAsContacted: (
+    id: string,
+    phone: string,
+    cashierId: string,
+    now: Date,
+  ) => Promise<number>;
+  dispatchLeadContactedEvent: (lead: {
+    id: string;
+    code: string;
+    metaPixel: { pixelId: string; accessToken: string } | null;
+    eventSourceUrl: string;
+    fbc: string;
+    fbp: string;
+    userAgent: string;
+    phone: string;
+  }) => Promise<void>;
+  getNow: () => Date;
+}
+
+const defaultMapLeadCodeToPhoneDependencies: MapLeadCodeToPhoneDependencies = {
+  getLeadByCode:
+    getLeadByCode as unknown as MapLeadCodeToPhoneDependencies['getLeadByCode'],
+  getSessionBySessionName:
+    getSessionBySessionName as unknown as MapLeadCodeToPhoneDependencies['getSessionBySessionName'],
+  getNumberByLid,
+  markLeadAsContacted,
+  dispatchLeadContactedEvent,
+  getNow: () => new Date(),
+};
+
+export async function mapLeadCodeToPhoneWithDependencies(
   session: string,
   chatId: string,
   body: string,
+  deps: MapLeadCodeToPhoneDependencies = defaultMapLeadCodeToPhoneDependencies,
 ): Promise<LeadMatchResult> {
   if (!body.trim()) return 'NO_CODE';
 
@@ -595,31 +656,31 @@ export async function mapLeadCodeToPhone(
   }
 
   // getLeadByCode includes metaPixel relation for snapshot-based dispatch
-  const lead = await getLeadByCode(code);
+  const lead = await deps.getLeadByCode(code);
   if (!lead) return 'NOT_FOUND';
 
   if (lead.status !== 'NOT_CONTACTED' || lead.contactedAt) {
     return 'ALREADY_USED';
   }
 
-  const now = new Date();
+  const now = deps.getNow();
 
   // D4: Use getSessionBySessionName (C1) instead of getCashierBySessionName
-  const whatsappSession = await getSessionBySessionName(session);
+  const whatsappSession = await deps.getSessionBySessionName(session);
   if (!whatsappSession) {
     return 'SESSION_NOT_MAPPED';
   }
   const cashierId = whatsappSession.cashier.id;
 
   try {
-    const { pn } = await getNumberByLid(session, chatId);
+    const { pn } = await deps.getNumberByLid(session, chatId);
     const phone = pn.split('@')[0];
 
     if (!phone) {
       return 'PHONE_LOOKUP_FAILED';
     }
 
-    const updatedRows = await markLeadAsContacted(
+    const updatedRows = await deps.markLeadAsContacted(
       lead.id,
       phone,
       cashierId,
@@ -631,24 +692,39 @@ export async function mapLeadCodeToPhone(
     }
 
     // Dispatch Contact from lead snapshot (metaPixel relation + eventSourceUrl)
-    void dispatchLeadContactedEvent({
-      id: lead.id,
-      code: lead.code,
-      metaPixel: lead.metaPixel,
-      eventSourceUrl: lead.eventSourceUrl,
-      fbc: lead.fbc,
-      fbp: lead.fbp,
-      userAgent: lead.userAgent,
-      phone,
-    }).catch((err) => {
-      logger.error(
-        { err, leadId: lead.id },
-        'meta_contact_event_dispatch_error',
-      );
-    });
+    void deps
+      .dispatchLeadContactedEvent({
+        id: lead.id,
+        code: lead.code,
+        metaPixel: lead.metaPixel,
+        eventSourceUrl: lead.eventSourceUrl,
+        fbc: lead.fbc,
+        fbp: lead.fbp,
+        userAgent: lead.userAgent,
+        phone,
+      })
+      .catch((err) => {
+        logger.error(
+          { err, leadId: lead.id },
+          'meta_contact_event_dispatch_error',
+        );
+      });
 
     return 'MATCHED';
   } catch {
     return 'PHONE_LOOKUP_FAILED';
   }
+}
+
+export async function mapLeadCodeToPhone(
+  session: string,
+  chatId: string,
+  body: string,
+): Promise<LeadMatchResult> {
+  return mapLeadCodeToPhoneWithDependencies(
+    session,
+    chatId,
+    body,
+    defaultMapLeadCodeToPhoneDependencies,
+  );
 }

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import type { Request, Response } from 'express';
 import type { SessionsList } from '../waha/client.js';
 
 process.env.PORT = process.env.PORT ?? '3002';
@@ -319,4 +320,94 @@ test('extractAdCodeFromQueryParam resolves utm_content values safely', async () 
   );
   assert.equal(extractAdCodeFromQueryParam(undefined), undefined);
   assert.equal(extractAdCodeFromQueryParam('   '), undefined);
+});
+
+// ---------------------------------------------------------------------------
+// Change B — Altcha captcha gate on POST /api/leads (HTTP contract)
+// ---------------------------------------------------------------------------
+
+type MockResponse = {
+  statusCode: number;
+  jsonBody: unknown;
+  status(code: number): MockResponse;
+  json(payload: unknown): MockResponse;
+};
+
+function createMockResponse(): MockResponse {
+  const res: MockResponse = {
+    statusCode: 0,
+    jsonBody: undefined,
+    status(code) {
+      res.statusCode = code;
+      return res;
+    },
+    json(payload) {
+      res.jsonBody = payload;
+      return res;
+    },
+  };
+  return res;
+}
+
+function createMockRequest(
+  body: Record<string, unknown>,
+  query: Record<string, unknown> = {},
+): Request {
+  return { body, query, ip: '127.0.0.1' } as unknown as Request;
+}
+
+test('POST /api/leads — missing altcha field → 400 "Captcha token required"', async () => {
+  const { leadsPost } = await import('./http.js');
+
+  const res = createMockResponse();
+  // BASE_PAYLOAD intentionally has no `altcha` field.
+  await leadsPost(createMockRequest({ ...BASE_PAYLOAD }), res as unknown as Response);
+
+  assert.equal(res.statusCode, 400);
+  assert.deepEqual(res.jsonBody, { message: 'Captcha token required' });
+});
+
+test('POST /api/leads — invalid/expired/replayed captcha (verifyCaptcha false) → 403 "Captcha verification failed"', async () => {
+  const { leadsPost } = await import('./http.js');
+
+  const res = createMockResponse();
+  // A malformed Altcha payload: the real verifyCaptcha rejects it at the HMAC
+  // step (verifySolution throws → caught → false) WITHOUT touching Redis, so
+  // this exercises the real 403 gate against production code.
+  await leadsPost(
+    createMockRequest({ ...BASE_PAYLOAD, altcha: 'not-a-valid-altcha-token' }),
+    res as unknown as Response,
+  );
+
+  assert.equal(res.statusCode, 403);
+  assert.deepEqual(res.jsonBody, { message: 'Captcha verification failed' });
+});
+
+test('POST /api/leads — valid captcha + valid body → 201 with { code, number }', async () => {
+  const { leadsPostWithDependencies } = await import('./http.js');
+
+  let verifyCaptchaCalls = 0;
+  let createLeadCalls = 0;
+
+  const res = createMockResponse();
+  await leadsPostWithDependencies(
+    createMockRequest({ ...BASE_PAYLOAD, altcha: 'solved-altcha-payload' }),
+    res as unknown as Response,
+    {
+      // Injected so the test never solves a real proof-of-work nor hits the DB.
+      verifyCaptcha: async () => {
+        verifyCaptchaCalls += 1;
+        return true;
+      },
+      createLead: async () => {
+        createLeadCalls += 1;
+        return { code: 'TEST0001', number: '5491234567890' };
+      },
+    },
+  );
+
+  assert.equal(verifyCaptchaCalls, 1, 'captcha verified once');
+  assert.equal(createLeadCalls, 1, 'createLead invoked once after captcha passes');
+  assert.equal(res.statusCode, 201);
+  assert.deepEqual(res.jsonBody, { code: 'TEST0001', number: '5491234567890' });
 });

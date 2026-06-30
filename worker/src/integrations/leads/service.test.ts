@@ -327,6 +327,91 @@ test('2.5 snapshot immunity: dispatchLeadCreatedEvent called with lead.metaPixel
   assert.equal(dispatched.eventSourceUrl, LANDING_L1.url, 'dispatch uses snapshotted url');
 });
 
+test('2.6 Contact snapshot immunity: dispatchLeadContactedEvent fires with the lead snapshot pixel + url, never the re-pointed live landing', async () => {
+  const { mapLeadCodeToPhoneWithDependencies } = await import('./service.js');
+
+  // URL captured on the lead at create time (when the landing pointed at P1).
+  const URL_U1 = 'https://example.com/lp1-at-create-time';
+
+  // A DIFFERENT pixel the landing was later re-pointed to. It must NEVER appear
+  // in the Contact dispatch — the matcher reads only the lead snapshot, and the
+  // landing is not consulted at all on the contact path.
+  const PIXEL_P2 = {
+    pixelId: '111111111111111',
+    accessToken: 'P2-access-token-secret',
+  };
+
+  // getLeadByCode returns the frozen snapshot (P1 + U1), as persisted at create.
+  const leadSnapshot = {
+    id: 'lead-contact-1',
+    code: 'CONTACT1',
+    status: 'NOT_CONTACTED',
+    contactedAt: null as Date | null,
+    metaPixel: { pixelId: PIXEL_P1.pixelId, accessToken: PIXEL_P1.accessToken },
+    eventSourceUrl: URL_U1,
+    fbc: 'fb.1.contact',
+    fbp: 'fb.1.contactfbp',
+    userAgent: 'Mozilla/5.0 contact',
+  };
+
+  const dispatched: Array<{
+    metaPixel: { pixelId: string; accessToken: string } | null;
+    eventSourceUrl: string;
+  }> = [];
+
+  const result = await mapLeadCodeToPhoneWithDependencies(
+    'session-1',
+    'lid@c.us',
+    'CODIGO: CONTACT1',
+    {
+      getLeadByCode: async () => leadSnapshot,
+      getSessionBySessionName: async () => ({ cashier: { id: 'cashier-1' } }),
+      getNumberByLid: async () => ({ pn: '5491234567890@c.us' }),
+      markLeadAsContacted: async () => 1,
+      dispatchLeadContactedEvent: async (lead) => {
+        dispatched.push({
+          metaPixel: lead.metaPixel,
+          eventSourceUrl: lead.eventSourceUrl,
+        });
+      },
+      getNow: () => new Date('2026-05-10T15:00:00.000Z'),
+    },
+  );
+
+  assert.equal(result, 'MATCHED');
+
+  // The Contact dispatch is fire-and-forget (void). The injected handler captures
+  // synchronously on invocation; drain the microtask queue defensively.
+  await Promise.resolve();
+
+  assert.equal(dispatched.length, 1, 'Contact event dispatched exactly once');
+  const ev = dispatched[0]!;
+
+  // dispatchLeadContactedEvent maps these snapshot fields 1:1 into the CAPI call:
+  //   metaPixel.pixelId    -> metaPixelId
+  //   metaPixel.accessToken -> metaAccessToken
+  //   eventSourceUrl        -> eventSourceUrl
+  assert.equal(
+    ev.metaPixel?.pixelId,
+    PIXEL_P1.pixelId,
+    'Contact CAPI uses snapshot pixelId (P1), not the re-pointed landing pixel (P2)',
+  );
+  assert.equal(
+    ev.metaPixel?.accessToken,
+    PIXEL_P1.accessToken,
+    'Contact CAPI uses snapshot accessToken (P1)',
+  );
+  assert.equal(
+    ev.eventSourceUrl,
+    URL_U1,
+    'Contact CAPI uses snapshot eventSourceUrl (U1), not the live landing url',
+  );
+
+  // Explicit immunity guarantee: P2 must be nowhere in the dispatched event.
+  assert.notEqual(ev.metaPixel?.pixelId, PIXEL_P2.pixelId);
+  assert.notEqual(ev.metaPixel?.accessToken, PIXEL_P2.accessToken);
+});
+
 test('2.5 accessToken not in any lead DTO or HTTP response', async () => {
   const { createLeadWithDependencies } = await import('./service.js');
 
