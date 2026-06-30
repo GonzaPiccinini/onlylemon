@@ -53,12 +53,12 @@ const PIXELS = {
   l1: {
     pixelId: "pixel-aaa-111",
     accessToken: "tok-aaa-secret",
-    url: "https://lemon.com/promo-a",
+    url: "https://example.com/promo-a",
   },
   l2: {
     pixelId: "pixel-bbb-222",
     accessToken: "tok-bbb-secret",
-    url: "https://lemon.com/promo-b",
+    url: "https://example.com/promo-b",
   },
 };
 
