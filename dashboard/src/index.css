@@ -115,18 +115,24 @@ body {
 }
 
 @layer utilities {
-  /* Frosted glass — the signature of the new component language: a translucent
-     themed surface, a real backdrop blur, and a lit top edge. */
+  /* Themed surface — the cheap default for cards, rows, controls and any
+     repeated or scrolled element. NO backdrop-filter on purpose: a real blur
+     here forced the GPU to recompute on every scroll frame across dozens of
+     stacked surfaces, which is what made the dashboard janky on phones. The
+     blur is reserved for the few non-scrolled overlays (.glass-strong). Fully
+     opaque: with no blur to soften it, any translucency let the page background
+     show through sharply (most visible on large surfaces like the chat panes). */
   .glass {
-    background-color: color-mix(in oklab, var(--card) 68%, transparent);
-    backdrop-filter: blur(16px) saturate(140%);
+    background-color: var(--card);
     border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
     box-shadow:
       inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 9%, transparent),
       0 10px 30px -14px rgb(0 0 0 / 0.55);
   }
-  /* More opaque — for overlays above content (dialogs, sheets, dropdowns,
-     selects) where legibility matters most. */
+  /* Overlay surface — dialogs, sheets, dropdowns, selects. This is the ONLY
+     glass variant that keeps a real backdrop blur: overlays are few, ephemeral
+     and not scrolled behind in bulk, so the blur is cheap here and worth it for
+     legibility over busy content. Do NOT use this on repeated/scrolled surfaces. */
   .glass-strong {
     background-color: color-mix(in oklab, var(--popover) 86%, transparent);
     backdrop-filter: blur(22px) saturate(140%);
@@ -135,11 +141,21 @@ body {
       inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 9%, transparent),
       0 18px 50px -18px rgb(0 0 0 / 0.6);
   }
-  /* Lighter veil — for inputs, chips and inline controls. */
+  /* Lighter surface — inputs, chips and inline controls. No backdrop-filter:
+     these are repeated and live inside scroll areas. Opaque so the background
+     doesn't show through; the lack of shadow keeps it visually lighter than .glass. */
   .glass-subtle {
-    background-color: color-mix(in oklab, var(--card) 45%, transparent);
-    backdrop-filter: blur(10px);
+    background-color: var(--card);
     border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  }
+
+  /* Borderless opaque surface for table cells — a per-row "card" look with a
+     whisper of top-edge light. Can't reuse .glass-subtle here: its border would
+     draw cell grid lines. No backdrop-filter (a per-cell blur was the worst
+     source of table scroll jank). */
+  .table-cell-surface {
+    background-color: var(--card);
+    box-shadow: inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 5%, transparent);
   }
 
   /* Brand glow scale — soft primary halos for accents and hovers. */
@@ -191,6 +207,8 @@ body {
   .accent-gradient {
     background-image: linear-gradient(135deg, var(--primary), var(--accent-violet));
   }
+  /* Static gradient. The infinite background-position pan was removed: it
+     repainted every frame on every glow button, idle or not. */
   .accent-gradient-animated {
     background-image: linear-gradient(
       135deg,
@@ -198,8 +216,6 @@ body {
       var(--accent-violet),
       var(--primary)
     );
-    background-size: 200% 200%;
-    animation: gradient-pan 6s ease infinite;
   }
   .text-accent-gradient {
     background-image: linear-gradient(135deg, var(--primary), var(--accent-violet));
@@ -207,8 +223,12 @@ body {
     background-clip: text;
     color: transparent;
   }
+  /* Static lit glow. The infinite box-shadow pulse was removed: animating
+     box-shadow repaints every frame, and this class sits on always-visible
+     elements (the app-shell status dot, status rings, metric cards, glow
+     buttons) — so it kept the GPU busy across the whole app, even when idle. */
   .animate-glow-pulse {
-    animation: glow-pulse 2.4s ease-in-out infinite;
+    box-shadow: 0 0 12px -1px color-mix(in oklab, var(--primary) 45%, transparent);
   }
   /* Quoted-reply jump target — a brief "pop" + primary veil on the bubble you
      land on after tapping a reply preview. The veil is an ::after overlay so it
@@ -230,24 +250,6 @@ body {
   }
 }
 
-@keyframes gradient-pan {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-@keyframes glow-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 35%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 20px 2px color-mix(in oklab, var(--primary) 30%, transparent);
-  }
-}
 @keyframes shimmer {
   0% {
     transform: translateX(-100%);
@@ -280,10 +282,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .accent-gradient-animated,
-  .animate-glow-pulse {
-    animation: none;
-  }
   /* No pop/veil — fall back to a static primary ring for the highlight window. */
   .quote-jump-highlight {
     animation: none;
