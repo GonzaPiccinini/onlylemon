@@ -4,6 +4,7 @@ import {
   ChevronRightIcon,
   CheckCircle2Icon,
   CircleDashedIcon,
+  LoaderIcon,
   PlayIcon,
   QrCodeIcon,
   RefreshCcwIcon,
@@ -11,6 +12,7 @@ import {
   SquareIcon,
   PlusIcon,
   Trash2Icon,
+  TriangleAlertIcon,
   XIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -63,10 +65,20 @@ import { CapacityMeter } from '@/components/common/capacity-meter';
 import { SessionStatusBadge } from '@/components/common/session-status-badge';
 import { InlineRename } from '@/components/common/inline-rename';
 import { StatusRingAvatar } from '@/components/common/status-ring-avatar';
+import { SessionLinkStepper } from '@/features/cashier/session-link-stepper';
 import { useSetSessionAlias } from '@/features/chat/hooks/useSetSessionAlias';
 import type { MyWhatsappSession } from '@/types/domain';
 
 const REFRESH_INTERVAL_SECONDS = 45;
+
+/** Centered spinner panel used for the booting and connecting link steps. */
+const LinkLoaderPanel = ({ title, hint }: { title: string; hint?: string }) => (
+  <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center">
+    <LoaderIcon className="size-7 animate-spin text-primary" />
+    <p className="text-sm font-medium">{title}</p>
+    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+  </div>
+);
 
 // ---------------------------------------------------------------------------
 // Session modal (per-session QR/pairing/status/refresh/delete)
@@ -87,6 +99,9 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL_SECONDS);
   const timerRef = useRef<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Tracks whether the QR was ever reached, so a later STARTING reads as
+  // "connecting after the scan" instead of the initial "booting" step.
+  const [reachedQr, setReachedQr] = useState(false);
 
   const REFRESH_CAP = 3;
 
@@ -203,6 +218,33 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   const wahaStatus = liveStatus?.status ?? session.wahaStatus;
   const isWorking = wahaStatus === 'WORKING';
   const needsQr = wahaStatus === 'SCAN_QR_CODE';
+  const isFailed = wahaStatus === 'FAILED';
+  const isStarting = wahaStatus === 'STARTING';
+  // The link flow is "active" once a session is booting/scanning/connected.
+  const inLinkFlow = isStarting || needsQr || isWorking;
+
+  // Step index for the stepper, derived from the real WAHA status:
+  // 0 booting (STARTING, no QR yet) · 1 scan (SCAN_QR_CODE) ·
+  // 2 connecting (STARTING after the QR was shown) · 3 connected (WORKING).
+  const linkStep = isWorking
+    ? 3
+    : needsQr
+      ? 1
+      : isStarting
+        ? reachedQr
+          ? 2
+          : 0
+        : 0;
+
+  // Mark progress once the QR is reachable; stop the auto-refresh timer once
+  // the session is connected so it doesn't keep polling for a new QR.
+  useEffect(() => {
+    if (needsQr || qrValue) setReachedQr(true);
+  }, [needsQr, qrValue]);
+
+  useEffect(() => {
+    if (isWorking) stopTimer();
+  }, [isWorking]);
 
   return (
     <DialogContent className="sm:max-w-md">
@@ -222,6 +264,11 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
       </DialogHeader>
 
       <div className="flex flex-col gap-4">
+        {inLinkFlow && (
+          <div className="rounded-xl glass-subtle p-3">
+            <SessionLinkStepper currentStep={linkStep} failed={isFailed} />
+          </div>
+        )}
         {isWorking ? (
           <div className="flex items-center gap-3 rounded-xl glass-subtle p-3">
             <StatusRingAvatar status={wahaStatus} size="md" className="shrink-0" />
@@ -234,28 +281,47 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
               )}
             </div>
           </div>
+        ) : isStarting ? (
+          <LinkLoaderPanel
+            title={
+              linkStep === 2
+                ? 'Conectando con WhatsApp…'
+                : 'Preparando tu sesión…'
+            }
+            hint={
+              linkStep === 2
+                ? 'Ya casi: no cierres esta ventana'
+                : 'Estamos generando tu código QR'
+            }
+          />
         ) : (
           <>
-            <div className="rounded-xl border border-dashed p-3">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">
-                Cómo vincular tu WhatsApp:
-              </p>
-              <ol className="flex list-none flex-col gap-1 text-xs text-muted-foreground">
-                <li>1. Abrí WhatsApp en tu celular</li>
-                <li>2. Tocá <strong>Dispositivos vinculados</strong> › <strong>Vincular dispositivo</strong></li>
-                <li>3. Escaneá el código QR o ingresá el código de vinculación</li>
-              </ol>
-            </div>
+            {/* Setup form — only before the QR is up. Once scanning, the modal
+                stays compact: just the stepper, the code and the QR. */}
+            {!needsQr && (
+              <>
+                <div className="rounded-xl border border-dashed p-3">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Cómo vincular tu WhatsApp:
+                  </p>
+                  <ol className="flex list-none flex-col gap-1 text-xs text-muted-foreground">
+                    <li>1. Abrí WhatsApp en tu celular</li>
+                    <li>2. Tocá <strong>Dispositivos vinculados</strong> › <strong>Vincular dispositivo</strong></li>
+                    <li>3. Escaneá el código QR o ingresá el código de vinculación</li>
+                  </ol>
+                </div>
 
-            <div className="flex flex-col gap-2 rounded-lg border p-3">
-              <p className="text-sm font-medium">Numero de telefono</p>
-              <Input
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Ej: 5491112345678"
-                disabled={linkSession.isPending}
-              />
-            </div>
+                <div className="flex flex-col gap-2 rounded-lg border p-3">
+                  <p className="text-sm font-medium">Numero de telefono</p>
+                  <Input
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Ej: 5491112345678"
+                    disabled={linkSession.isPending}
+                  />
+                </div>
+              </>
+            )}
 
             {pairingCode && (
               <div className="flex flex-col gap-1 rounded-lg border p-3">
@@ -267,8 +333,8 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
             )}
 
             {(qrValue || needsQr) && (
-              <div className="flex flex-col gap-2 rounded-lg border p-3">
-                <p className="text-sm font-medium">QR</p>
+              <div className="flex flex-col items-center gap-2 rounded-lg border p-3">
+                <p className="self-start text-sm font-medium">Escaneá este código</p>
                 {qrValue ? (
                   <img
                     src={qrValue}
@@ -276,10 +342,20 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
                     className="h-48 w-48 rounded-md border object-contain"
                   />
                 ) : (
-                  <div className="flex h-32 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-                    QR no disponible
-                  </div>
+                  <Skeleton className="h-48 w-48 rounded-md" />
                 )}
+              </div>
+            )}
+
+            {isFailed && (
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-center">
+                <TriangleAlertIcon className="size-6 text-destructive" />
+                <p className="text-sm font-medium text-destructive">
+                  No se pudo conectar
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Volvé a generar el QR e intentá de nuevo.
+                </p>
               </div>
             )}
 
@@ -291,34 +367,38 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
               </p>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                onClick={handleStartLink}
-                disabled={linkSession.isPending || refreshSession.isPending}
-              >
-                <QrCodeIcon data-icon="inline-start" />
-                {linkSession.isPending
-                  ? 'Solicitando...'
-                  : 'Generar QR y codigo'}
-              </Button>
+            {(!needsQr || reachedAutoLimit) && (
+              <div className="flex flex-wrap gap-2">
+                {!needsQr && (
+                  <Button
+                    size="sm"
+                    onClick={handleStartLink}
+                    disabled={linkSession.isPending || refreshSession.isPending}
+                  >
+                    <QrCodeIcon data-icon="inline-start" />
+                    {linkSession.isPending
+                      ? 'Solicitando...'
+                      : 'Generar QR y codigo'}
+                  </Button>
+                )}
 
-              {reachedAutoLimit && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleManualReset}
-                  disabled={
-                    resetRefresh.isPending ||
-                    linkSession.isPending ||
-                    !phoneNumber.trim()
-                  }
-                >
-                  <RefreshCcwIcon data-icon="inline-start" />
-                  Volver a cargar
-                </Button>
-              )}
-            </div>
+                {reachedAutoLimit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleManualReset}
+                    disabled={
+                      resetRefresh.isPending ||
+                      linkSession.isPending ||
+                      !phoneNumber.trim()
+                    }
+                  >
+                    <RefreshCcwIcon data-icon="inline-start" />
+                    Volver a cargar
+                  </Button>
+                )}
+              </div>
+            )}
           </>
         )}
 
