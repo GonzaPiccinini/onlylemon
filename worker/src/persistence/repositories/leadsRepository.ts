@@ -18,7 +18,10 @@ type CreateLeadData = {
   fbc: string;
   fbp: string;
   userAgent: string;
-  metaPixelId: string;
+  metaPixelId: string;     // OLD scalar pixel number — still NOT NULL during Expand phase
+  metaPixelRef: string;    // transitional FK → MetaPixel.id (snapshot at create time)
+  eventSourceUrl: string;  // snapshot of Landing.url at create time
+  landingId: string;       // routing key — NOT NULL after tighten
 };
 
 type UpdateLeadData = {
@@ -31,19 +34,23 @@ type UpdateLeadData = {
 export async function saveLead(data: CreateLeadData) {
   return prisma.lead.create({
     data,
+    include: {
+      metaPixelRelation: true, // include full MetaPixel row (with accessToken) for CAPI dispatch
+    },
   });
 }
 
 /**
  * C2 — L1 query: sessions bound to a landing whose cashier is ACTIVE and En turno (open SessionActivity).
- * Returns null when the landing is not found.
+ * Returns null when the landing is not found or not ACTIVE.
+ * Re-keyed from metaPixelId to landingId (Phase 2 cutover).
  */
-export async function getActiveLandingCashierCandidatesByMetaPixelId(
-  metaPixelId: string,
+export async function getActiveLandingCashierCandidatesByLandingId(
+  landingId: string,
 ): Promise<LandingCashierCandidate[] | null> {
   const landing = await prisma.landing.findFirst({
     where: {
-      metaPixelId,
+      id: landingId,
       status: 'ACTIVE',
     },
     select: {
@@ -105,12 +112,12 @@ export type LandingCashierWaCandidate = {
   sessionName: string;
 };
 
-export async function getAllLinkedCashierCandidatesByMetaPixelId(
-  metaPixelId: string,
+export async function getAllLinkedCashierCandidatesByLandingId(
+  landingId: string,
 ): Promise<LandingCashierWaCandidate[] | null> {
   const landing = await prisma.landing.findFirst({
     where: {
-      metaPixelId,
+      id: landingId,
       status: 'ACTIVE',
     },
     select: {
@@ -148,12 +155,12 @@ export async function getAllLinkedCashierCandidatesByMetaPixelId(
 
 export type LandingFallbackPhoneRow = { id: string; phone: string };
 
-export async function getLandingFallbackPhonesByMetaPixelId(
-  metaPixelId: string,
+export async function getLandingFallbackPhonesByLandingId(
+  landingId: string,
 ): Promise<LandingFallbackPhoneRow[] | null> {
   const landing = await prisma.landing.findFirst({
     where: {
-      metaPixelId,
+      id: landingId,
       status: 'ACTIVE',
     },
     select: {
@@ -173,8 +180,13 @@ export async function getLandingFallbackPhonesByMetaPixelId(
   return landing.fallbackPhones;
 }
 
+/**
+ * Counts leads contacted by each cashier for a specific landing within a time window.
+ * Re-keyed from metaPixelId (old scalar) to landingId (Phase 2 cutover).
+ * This prevents two landings sharing one pixel from conflating their deficit counts.
+ */
 export async function getContactedLeadCountByCashierForLanding(
-  metaPixelId: string,
+  landingId: string,
   cashierIds: string[],
   since: Date,
   until: Date,
@@ -186,7 +198,7 @@ export async function getContactedLeadCountByCashierForLanding(
   const grouped = await prisma.lead.groupBy({
     by: ['cashierId'],
     where: {
-      metaPixelId,
+      landingId,
       contactedAt: {
         gte: since,
         lt: until,
@@ -215,6 +227,9 @@ export async function getContactedLeadCountByCashierForLanding(
 export async function getLeadByCode(code: string) {
   return prisma.lead.findUnique({
     where: { code },
+    include: {
+      metaPixelRelation: true, // include full MetaPixel row (with accessToken) for CAPI dispatch
+    },
   });
 }
 

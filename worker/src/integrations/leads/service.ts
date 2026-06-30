@@ -4,9 +4,9 @@ import { leadCodeCollisionsTotal } from '../../lib/metrics.js';
 import { logger } from '../../lib/logger.js';
 import { getNumberByLid } from '../waha/client.js';
 import {
-  getActiveLandingCashierCandidatesByMetaPixelId,
-  getAllLinkedCashierCandidatesByMetaPixelId,
-  getLandingFallbackPhonesByMetaPixelId,
+  getActiveLandingCashierCandidatesByLandingId,
+  getAllLinkedCashierCandidatesByLandingId,
+  getLandingFallbackPhonesByLandingId,
   getContactedLeadCountByCashierForLanding,
   getLeadByCode,
   getLeadByFbc,
@@ -14,7 +14,7 @@ import {
   saveLead,
 } from '../../persistence/repositories/leadsRepository.js';
 import { getSessionBySessionName } from '../../modules/cashier/whatsapp-session.repository.js';
-import { getLandingByMetaPixelId } from '../../modules/admin/admin.repository.js';
+import { getLandingById } from '../../modules/admin/admin.repository.js';
 import { getSessions } from '../waha/client.js';
 import { sendContactEvent, sendLeadEvent } from './conversion.js';
 import {
@@ -30,6 +30,10 @@ const generateCode = customAlphabet(
   CODE_LENGTH,
 );
 
+/**
+ * Phase 2 — re-keyed payload: `landingId` replaces `metaPixelId` as the
+ * public routing key. The pixel number is now a server-side snapshot.
+ */
 export const CreateLeadPayloadSchema = z.object({
   // fbc/fbp come from cookies set by the Meta pixel. Ad-blockers block the
   // pixel (net::ERR_BLOCKED_BY_CLIENT), so the cookies never get created and
@@ -48,7 +52,7 @@ export const CreateLeadPayloadSchema = z.object({
     .nullish()
     .transform((value) => value ?? ''),
   userAgent: z.string().trim().min(1).max(2048),
-  metaPixelId: z.string().trim().min(1).max(256),
+  landingId: z.string().trim().min(1).max(256),
   adCode: z.string().trim().min(1).max(256).optional(),
 });
 
@@ -86,11 +90,11 @@ export class LeadFbcConflictError extends Error {
 }
 
 export class FallbackInvariantViolationError extends Error {
-  metaPixelId: string;
-  constructor(metaPixelId: string) {
+  landingId: string;
+  constructor(landingId: string) {
     super('FALLBACK_INVARIANT_VIOLATION');
     this.name = 'FallbackInvariantViolationError';
-    this.metaPixelId = metaPixelId;
+    this.landingId = landingId;
   }
 }
 
@@ -126,23 +130,60 @@ function getUniqueConstraintKind(error: unknown): UniqueConstraintKind {
   return 'unknown';
 }
 
+/**
+ * Shape returned by saveLead (Phase 2): includes the MetaPixel snapshot
+ * (metaPixelRelation) so both CAPI events read the same pixel/token/url.
+ */
 type LeadForCreateFlow = {
   id: string;
   code: string;
-  metaPixelId: string;
+  metaPixelId: string;          // OLD scalar — returned by Prisma (still NOT NULL)
+  metaPixelRef: string | null;  // transitional FK → MetaPixel.id
+  metaPixelRelation: {
+    id: string;
+    pixelId: string;
+    accessToken: string;
+    label: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+  eventSourceUrl: string | null;  // snapshot of Landing.url
+  landingId: string | null;
   fbc: string;
   fbp: string;
   userAgent: string;
 };
 
-type LeadToCreate = CreateLeadPayload & {
+type LeadToCreate = {
   code: string;
+  adCode?: string;
+  fbc: string;
+  fbp: string;
+  userAgent: string;
+  landingId: string;
+  metaPixelRef: string;
+  eventSourceUrl: string;
+  metaPixelId: string;  // OLD scalar still NOT NULL — written from landing.metaPixelRelation.pixelId
 };
+
+/**
+ * Minimal structural type for the landing data needed by the create flow.
+ * Using a plain type (not `typeof getLandingById`) keeps mocks simple
+ * and avoids coupling tests to Prisma's fluent API wrapper types.
+ */
+type LandingForCreate = {
+  id: string;
+  url: string;
+  status: string;
+  metaPixelRef: string | null;
+  metaPixelRelation: { id: string; pixelId: string; label: string | null } | null;
+} | null;
 
 export type CreateLeadDependencies = {
   selectCashierNumberForLanding: (
-    metaPixelId: string,
+    landingId: string,
   ) => Promise<SelectNumberResult>;
+  getLandingById: (id: string) => Promise<LandingForCreate>;
   getLeadByFbc: (fbc: string) => Promise<{ id: string } | null>;
   saveLead: (data: LeadToCreate) => Promise<LeadForCreateFlow>;
   dispatchLeadCreatedEvent: (lead: LeadForCreateFlow) => Promise<void>;
@@ -162,9 +203,9 @@ const MIN_ACTIVE_MS = 1;
 const DEFICIT_TIE_EPSILON = 0.25;
 
 type SelectCashierDependencies = {
-  getActiveLandingCashierCandidatesByMetaPixelId: typeof getActiveLandingCashierCandidatesByMetaPixelId;
-  getAllLinkedCashierCandidatesByMetaPixelId: typeof getAllLinkedCashierCandidatesByMetaPixelId;
-  getLandingFallbackPhonesByMetaPixelId: typeof getLandingFallbackPhonesByMetaPixelId;
+  getActiveLandingCashierCandidatesByLandingId: typeof getActiveLandingCashierCandidatesByLandingId;
+  getAllLinkedCashierCandidatesByLandingId: typeof getAllLinkedCashierCandidatesByLandingId;
+  getLandingFallbackPhonesByLandingId: typeof getLandingFallbackPhonesByLandingId;
   getSessions: typeof getSessions;
   getContactedLeadCountByCashierForLanding: typeof getContactedLeadCountByCashierForLanding;
   getNow: () => Date;
@@ -172,9 +213,9 @@ type SelectCashierDependencies = {
 };
 
 const defaultSelectCashierDependencies: SelectCashierDependencies = {
-  getActiveLandingCashierCandidatesByMetaPixelId,
-  getAllLinkedCashierCandidatesByMetaPixelId,
-  getLandingFallbackPhonesByMetaPixelId,
+  getActiveLandingCashierCandidatesByLandingId,
+  getAllLinkedCashierCandidatesByLandingId,
+  getLandingFallbackPhonesByLandingId,
   getSessions,
   getContactedLeadCountByCashierForLanding,
   getNow: () => new Date(),
@@ -182,11 +223,11 @@ const defaultSelectCashierDependencies: SelectCashierDependencies = {
 };
 
 export async function selectCashierNumberForLandingWithDependencies(
-  metaPixelId: string,
+  landingId: string,
   dependencies: SelectCashierDependencies,
 ): Promise<SelectNumberResult> {
   const candidates =
-    await dependencies.getActiveLandingCashierCandidatesByMetaPixelId(metaPixelId);
+    await dependencies.getActiveLandingCashierCandidatesByLandingId(landingId);
   if (!candidates) {
     return {
       ok: false,
@@ -216,13 +257,11 @@ export async function selectCashierNumberForLandingWithDependencies(
   }
 
   // D1: Level 1 — En-turno cashiers with WORKING sessions bound to landing.
-  // Pivot: candidates are now sessions (not cashiers). Each session has a cashierId.
-  // Filter by WORKING set, then group by cashier for deficit algorithm.
   const l1Eligible = candidates.filter((c) => workingSessionNumbers.has(c.sessionName));
 
   if (l1Eligible.length === 0) {
     // D2: Level 2 — any ACTIVE cashier session bound to landing that is WAHA-WORKING
-    const l2Candidates = await dependencies.getAllLinkedCashierCandidatesByMetaPixelId(metaPixelId);
+    const l2Candidates = await dependencies.getAllLinkedCashierCandidatesByLandingId(landingId);
 
     if (l2Candidates && l2Candidates.length > 0) {
       const l2Eligible = l2Candidates.filter((c) => workingSessionNumbers.has(c.sessionName));
@@ -239,7 +278,7 @@ export async function selectCashierNumberForLandingWithDependencies(
     }
 
     // D3: Level 3 — fallback phones for this landing (random uniform pick), unchanged
-    const fallbackPhones = await dependencies.getLandingFallbackPhonesByMetaPixelId(metaPixelId);
+    const fallbackPhones = await dependencies.getLandingFallbackPhonesByLandingId(landingId);
 
     if (!fallbackPhones || fallbackPhones.length === 0) {
       return { ok: false, reason: 'FALLBACK_INVARIANT_VIOLATION' };
@@ -264,7 +303,7 @@ export async function selectCashierNumberForLandingWithDependencies(
   const eligibleCashierIds = [...new Set(l1Eligible.map((c) => c.cashierId))];
 
   const countsByCashier = await dependencies.getContactedLeadCountByCashierForLanding(
-    metaPixelId,
+    landingId,
     eligibleCashierIds,
     startOfDay,
     startOfNextDay,
@@ -340,28 +379,26 @@ export async function selectCashierNumberForLandingWithDependencies(
 }
 
 async function selectCashierNumberForLanding(
-  metaPixelId: string,
+  landingId: string,
 ): Promise<SelectNumberResult> {
   return selectCashierNumberForLandingWithDependencies(
-    metaPixelId,
+    landingId,
     defaultSelectCashierDependencies,
   );
 }
 
-async function dispatchLeadCreatedEvent(lead: {
-  id: string;
-  code: string;
-  metaPixelId: string;
-  fbc: string;
-  fbp: string;
-  userAgent: string;
-}): Promise<void> {
-  const landing = await getLandingByMetaPixelId(lead.metaPixelId);
-  if (!landing) {
+/**
+ * Phase 2 — dispatch Lead CAPI event from the lead's snapshot.
+ * Reads pixel + token from `lead.metaPixelRelation` and url from `lead.eventSourceUrl`.
+ * Never resolves live from the landing — immune to later pixel/url reassignments.
+ */
+async function dispatchLeadCreatedEvent(lead: LeadForCreateFlow): Promise<void> {
+  if (!lead.metaPixelRelation || !lead.eventSourceUrl) {
     logger.error({
-      event: 'meta_landing_not_found',
+      event: 'meta_snapshot_missing',
       leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
+      hasRelation: Boolean(lead.metaPixelRelation),
+      hasUrl: Boolean(lead.eventSourceUrl),
     });
     return;
   }
@@ -372,9 +409,9 @@ async function dispatchLeadCreatedEvent(lead: {
     fbc: lead.fbc,
     fbp: lead.fbp,
     userAgent: lead.userAgent,
-    metaPixelId: lead.metaPixelId,
-    metaAccessToken: landing.metaAccessToken,
-    eventSourceUrl: landing.url,
+    metaPixelId: lead.metaPixelRelation.pixelId,
+    metaAccessToken: lead.metaPixelRelation.accessToken,
+    eventSourceUrl: lead.eventSourceUrl,
   });
 
   if (!sent) {
@@ -386,21 +423,30 @@ async function dispatchLeadCreatedEvent(lead: {
   }
 }
 
+/**
+ * Phase 2 — dispatch Contact CAPI event from the lead's snapshot.
+ * Same source of truth as Lead event: metaPixelRelation + eventSourceUrl.
+ */
 async function dispatchLeadContactedEvent(lead: {
   id: string;
   code: string;
-  metaPixelId: string;
+  metaPixelId: string;           // OLD scalar, still present in Lead row
+  metaPixelRelation: {
+    pixelId: string;
+    accessToken: string;
+  } | null;
+  eventSourceUrl: string | null;
   fbc: string;
   fbp: string;
   userAgent: string;
   phone: string;
 }): Promise<void> {
-  const landing = await getLandingByMetaPixelId(lead.metaPixelId);
-  if (!landing) {
+  if (!lead.metaPixelRelation || !lead.eventSourceUrl) {
     logger.error({
-      event: 'meta_landing_not_found',
+      event: 'meta_snapshot_missing',
       leadId: lead.id,
-      metaPixelId: lead.metaPixelId,
+      hasRelation: Boolean(lead.metaPixelRelation),
+      hasUrl: Boolean(lead.eventSourceUrl),
     });
     return;
   }
@@ -412,9 +458,9 @@ async function dispatchLeadContactedEvent(lead: {
     fbc: lead.fbc,
     fbp: lead.fbp,
     userAgent: lead.userAgent,
-    metaPixelId: lead.metaPixelId,
-    metaAccessToken: landing.metaAccessToken,
-    eventSourceUrl: landing.url,
+    metaPixelId: lead.metaPixelRelation.pixelId,
+    metaAccessToken: lead.metaPixelRelation.accessToken,
+    eventSourceUrl: lead.eventSourceUrl,
   });
 
   if (!sent) {
@@ -428,6 +474,9 @@ async function dispatchLeadContactedEvent(lead: {
 
 const defaultCreateLeadDependencies: CreateLeadDependencies = {
   selectCashierNumberForLanding,
+  // Cast: Prisma fluent client is structurally compatible with LandingForCreate
+  // (it extends the plain data type), but TS cannot infer that automatically.
+  getLandingById: getLandingById as (id: string) => Promise<LandingForCreate>,
   getLeadByFbc,
   saveLead,
   dispatchLeadCreatedEvent,
@@ -442,8 +491,19 @@ export async function createLeadWithDependencies(
   payload: CreateLeadPayload,
   dependencies: CreateLeadDependencies,
 ): Promise<CreateLeadResult> {
+  // Phase 2 — resolve landing first to get snapshot data and check status.
+  const landing = await dependencies.getLandingById(payload.landingId);
+
+  if (!landing) {
+    throw new Error('LANDING_NOT_FOUND');
+  }
+
+  if (landing.status === 'DISABLED') {
+    throw new Error('LANDING_DISABLED');
+  }
+
   const selectedNumber = await dependencies.selectCashierNumberForLanding(
-    payload.metaPixelId,
+    payload.landingId,
   );
 
   if (!selectedNumber.ok) {
@@ -453,17 +513,16 @@ export async function createLeadWithDependencies(
     if (selectedNumber.reason === 'FALLBACK_INVARIANT_VIOLATION') {
       logger.error({
         event: 'fallback_invariant_violation',
-        metaPixelId: payload.metaPixelId,
+        landingId: payload.landingId,
       });
-      throw new FallbackInvariantViolationError(payload.metaPixelId);
+      throw new FallbackInvariantViolationError(payload.landingId);
     }
   }
 
   const resolvedNumber = selectedNumber.ok ? selectedNumber.number : '';
 
   // Only dedup when we actually have an fbc. Leads from blocked-pixel visitors
-  // share an empty fbc, so dedup-ing on '' would reject every one after the
-  // first.
+  // share an empty fbc, so dedup-ing on '' would reject every one after the first.
   if (payload.fbc) {
     const existingLeadByFbc = await dependencies.getLeadByFbc(payload.fbc);
     if (existingLeadByFbc) {
@@ -471,13 +530,27 @@ export async function createLeadWithDependencies(
     }
   }
 
+  // Build snapshot data from the landing resolved above.
+  // metaPixelRef is the FK → MetaPixel.id (UUID snapshot).
+  // metaPixelId (old scalar) is the pixel NUMBER — still NOT NULL in schema during Expand.
+  const metaPixelRef = landing.metaPixelRef ?? '';
+  const eventSourceUrl = landing.url;
+  const oldScalarPixelId = landing.metaPixelRelation?.pixelId ?? '';
+
   for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
     const code = dependencies.generateCode();
 
     try {
       const lead = await dependencies.saveLead({
-        ...payload,
+        fbc: payload.fbc,
+        fbp: payload.fbp,
+        userAgent: payload.userAgent,
+        landingId: payload.landingId,
+        adCode: payload.adCode,
         code,
+        metaPixelRef,
+        eventSourceUrl,
+        metaPixelId: oldScalarPixelId,  // OLD scalar — still NOT NULL during Expand
       });
 
       void dependencies.dispatchLeadCreatedEvent(lead).catch((err) => {
@@ -524,6 +597,7 @@ export async function mapLeadCodeToPhone(
     return /CODIGO\s*:/i.test(body) ? 'INVALID_CODE' : 'NO_CODE';
   }
 
+  // Phase 2: getLeadByCode now includes metaPixelRelation for snapshot-based dispatch
   const lead = await getLeadByCode(code);
   if (!lead) return 'NOT_FOUND';
 
@@ -559,10 +633,13 @@ export async function mapLeadCodeToPhone(
       return 'ALREADY_USED';
     }
 
+    // Phase 2 — dispatch Contact from lead snapshot (metaPixelRelation + eventSourceUrl)
     void dispatchLeadContactedEvent({
       id: lead.id,
       code: lead.code,
       metaPixelId: lead.metaPixelId,
+      metaPixelRelation: lead.metaPixelRelation,
+      eventSourceUrl: lead.eventSourceUrl,
       fbc: lead.fbc,
       fbp: lead.fbp,
       userAgent: lead.userAgent,
