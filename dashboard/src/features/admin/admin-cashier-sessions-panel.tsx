@@ -21,6 +21,7 @@ import {
   useUpdateCashierMaxSessions,
 } from '@/features/admin/admin-hooks';
 import { useSetSessionAlias } from '@/features/chat/hooks/useSetSessionAlias';
+import { localPhonePart, toArgentinePhone } from '@/lib/phone';
 import type { Cashier, WhatsappLinkArtifacts, WhatsappSession } from '@/types/domain';
 import { SessionLineCard } from '@/components/common/session-line-card';
 import { CapacityMeter } from '@/components/common/capacity-meter';
@@ -63,7 +64,9 @@ interface QrDialogProps {
 }
 
 const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
-  const [phoneNumber, setPhoneNumber] = useState(session.whatsappPhoneNumber ?? '');
+  const [phoneNumber, setPhoneNumber] = useState(
+    localPhonePart(session.whatsappPhoneNumber ?? ''),
+  );
   const [artifacts, setArtifacts] = useState<WhatsappLinkArtifacts | null>(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL_SECONDS);
   const timerRef = useRef<number | null>(null);
@@ -87,7 +90,7 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
   // Reset state when dialog opens for a fresh session
   useEffect(() => {
     if (open) {
-      setPhoneNumber(session.whatsappPhoneNumber ?? '');
+      setPhoneNumber(localPhonePart(session.whatsappPhoneNumber ?? ''));
       setArtifacts(null);
       setCountdown(REFRESH_INTERVAL_SECONDS);
       stopTimer();
@@ -120,9 +123,9 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
   }, []);
 
   const handleAutoRefresh = useCallback(async () => {
-    if (!phoneNumber.trim()) return;
+    if (!localPhonePart(phoneNumber)) return;
     try {
-      const data = await linkSession.mutateAsync({ sessionId: session.id, phoneNumber: phoneNumber.trim() });
+      const data = await linkSession.mutateAsync({ sessionId: session.id, phoneNumber: toArgentinePhone(phoneNumber) });
       applyArtifacts(data);
     } catch {
       stopTimer();
@@ -144,12 +147,12 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
   }, [handleAutoRefresh]);
 
   const handleGenerate = async () => {
-    if (!phoneNumber.trim()) {
+    if (!localPhonePart(phoneNumber)) {
       toast.error('Ingresá un número de teléfono');
       return;
     }
     try {
-      const data = await linkSession.mutateAsync({ sessionId: session.id, phoneNumber: phoneNumber.trim() });
+      const data = await linkSession.mutateAsync({ sessionId: session.id, phoneNumber: toArgentinePhone(phoneNumber) });
       applyArtifacts(data);
       if (data.refreshCount < REFRESH_CAP) {
         startTimer();
@@ -206,12 +209,21 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
 
           <div className='flex flex-col gap-2 rounded-lg border p-3'>
             <p className='text-sm font-medium'>Número de teléfono</p>
-            <Input
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder='Ej: 5491112345678'
-              disabled={linkSession.isPending}
-            />
+            <div className='flex items-center gap-2'>
+              <span className='shrink-0 rounded-md border bg-muted/40 px-2.5 py-2 font-mono text-sm text-muted-foreground'>
+                +549
+              </span>
+              <Input
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder='Ej: 1123456789'
+                disabled={linkSession.isPending}
+                inputMode='numeric'
+              />
+            </div>
+            <p className='text-xs text-muted-foreground'>
+              El prefijo 549 se agrega automáticamente.
+            </p>
           </div>
 
           {pairingCode && (

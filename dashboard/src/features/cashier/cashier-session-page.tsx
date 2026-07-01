@@ -67,6 +67,7 @@ import { InlineRename } from '@/components/common/inline-rename';
 import { StatusRingAvatar } from '@/components/common/status-ring-avatar';
 import { SessionLinkStepper } from '@/features/cashier/session-link-stepper';
 import { useSetSessionAlias } from '@/features/chat/hooks/useSetSessionAlias';
+import { localPhonePart, toArgentinePhone } from '@/lib/phone';
 import type { MyWhatsappSession } from '@/types/domain';
 
 const REFRESH_INTERVAL_SECONDS = 45;
@@ -91,7 +92,7 @@ interface SessionModalProps {
 
 const SessionModal = ({ session, onClose }: SessionModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState(
-    session.whatsappPhoneNumber ?? '',
+    localPhonePart(session.whatsappPhoneNumber ?? ''),
   );
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [qrValue, setQrValue] = useState<string | null>(null);
@@ -169,7 +170,7 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   }, []);
 
   const handleStartLink = async () => {
-    if (!phoneNumber.trim()) {
+    if (!localPhonePart(phoneNumber)) {
       toast.error('Ingresa un numero de telefono');
       return;
     }
@@ -177,7 +178,7 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
     try {
       const data = await linkSession.mutateAsync({
         sessionId: session.id,
-        phoneNumber: phoneNumber.trim(),
+        phoneNumber: toArgentinePhone(phoneNumber),
       });
       applyArtifacts(data);
       startTimer();
@@ -313,12 +314,21 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
 
                 <div className="flex flex-col gap-2 rounded-lg border p-3">
                   <p className="text-sm font-medium">Numero de telefono</p>
-                  <Input
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="Ej: 5491112345678"
-                    disabled={linkSession.isPending}
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 rounded-md border bg-muted/40 px-2.5 py-2 font-mono text-sm text-muted-foreground">
+                      +549
+                    </span>
+                    <Input
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="Ej: 1123456789"
+                      disabled={linkSession.isPending}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    El prefijo 549 se agrega automáticamente.
+                  </p>
                 </div>
               </>
             )}
@@ -390,7 +400,7 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
                     disabled={
                       resetRefresh.isPending ||
                       linkSession.isPending ||
-                      !phoneNumber.trim()
+                      !localPhonePart(phoneNumber)
                     }
                   >
                     <RefreshCcwIcon data-icon="inline-start" />
