@@ -35,6 +35,33 @@ export const formatDateTime = (value: string): string => {
   return `${datePart}, ${timePart}`;
 };
 
+/**
+ * Compact relative time in Spanish, e.g. "hace 2 h", "hace 5 min", "hace 3 d".
+ * Falls back to a short absolute date for anything older than a week.
+ */
+export const formatRelativeTime = (value: string): string => {
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return "";
+
+  const diffSeconds = Math.round((Date.now() - then) / 1000);
+  if (diffSeconds < 45) return "hace instantes";
+
+  const minutes = Math.round(diffSeconds / 60);
+  if (minutes < 60) return `hace ${minutes} min`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+
+  const days = Math.round(hours / 24);
+  if (days < 7) return `hace ${days} d`;
+
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "numeric",
+    month: "short",
+    timeZone: ARGENTINA_TZ,
+  }).format(new Date(value));
+};
+
 export const formatHours = (value: number): string => `${value.toFixed(2)} h`;
 
 /**
