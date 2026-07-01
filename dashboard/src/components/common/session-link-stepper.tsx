@@ -27,6 +27,35 @@ export const LINK_STEPS = [
   { label: 'Listo', icon: CheckCircle2Icon, spins: false },
 ] as const;
 
+/**
+ * Step index (0-3) from the real WAHA status. `reachedQr` disambiguates the two
+ * STARTING moments: before the QR is up (0) vs. connecting after the scan (2).
+ */
+export const computeLinkStep = (
+  status: string | undefined | null,
+  reachedQr: boolean,
+): number => {
+  if (status === 'WORKING') return 3;
+  if (status === 'SCAN_QR_CODE') return 1;
+  if (status === 'STARTING') return reachedQr ? 2 : 0;
+  return 0;
+};
+
+/** Centered spinner panel used for the booting and connecting link steps. */
+export const LinkLoaderPanel = ({
+  title,
+  hint,
+}: {
+  title: string;
+  hint?: string;
+}) => (
+  <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center">
+    <LoaderIcon className="size-7 animate-spin text-primary" />
+    <p className="text-sm font-medium">{title}</p>
+    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+  </div>
+);
+
 interface SessionLinkStepperProps {
   /** Index of the active step (0-3). */
   currentStep: number;

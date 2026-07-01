@@ -4,7 +4,6 @@ import {
   ChevronRightIcon,
   CheckCircle2Icon,
   CircleDashedIcon,
-  LoaderIcon,
   PlayIcon,
   QrCodeIcon,
   RefreshCcwIcon,
@@ -65,21 +64,16 @@ import { CapacityMeter } from '@/components/common/capacity-meter';
 import { SessionStatusBadge } from '@/components/common/session-status-badge';
 import { InlineRename } from '@/components/common/inline-rename';
 import { StatusRingAvatar } from '@/components/common/status-ring-avatar';
-import { SessionLinkStepper } from '@/features/cashier/session-link-stepper';
+import {
+  SessionLinkStepper,
+  LinkLoaderPanel,
+  computeLinkStep,
+} from '@/components/common/session-link-stepper';
 import { useSetSessionAlias } from '@/features/chat/hooks/useSetSessionAlias';
 import { localPhonePart, toArgentinePhone } from '@/lib/phone';
 import type { MyWhatsappSession } from '@/types/domain';
 
 const REFRESH_INTERVAL_SECONDS = 45;
-
-/** Centered spinner panel used for the booting and connecting link steps. */
-const LinkLoaderPanel = ({ title, hint }: { title: string; hint?: string }) => (
-  <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center">
-    <LoaderIcon className="size-7 animate-spin text-primary" />
-    <p className="text-sm font-medium">{title}</p>
-    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-  </div>
-);
 
 // ---------------------------------------------------------------------------
 // Session modal (per-session QR/pairing/status/refresh/delete)
@@ -227,15 +221,7 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   // Step index for the stepper, derived from the real WAHA status:
   // 0 booting (STARTING, no QR yet) · 1 scan (SCAN_QR_CODE) ·
   // 2 connecting (STARTING after the QR was shown) · 3 connected (WORKING).
-  const linkStep = isWorking
-    ? 3
-    : needsQr
-      ? 1
-      : isStarting
-        ? reachedQr
-          ? 2
-          : 0
-        : 0;
+  const linkStep = computeLinkStep(wahaStatus, reachedQr);
 
   // Mark progress once the QR is reachable; stop the auto-refresh timer once
   // the session is connected so it doesn't keep polling for a new QR.
