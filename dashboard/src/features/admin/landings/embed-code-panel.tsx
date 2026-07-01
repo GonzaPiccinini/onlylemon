@@ -1,3 +1,5 @@
+import { ShieldCheck } from "lucide-react";
+
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CodeBlock } from "@/components/ui/code-block";
 import type { Landing } from "@/types/domain";
@@ -35,6 +37,22 @@ function ModeIntroCard({ mode }: { mode: EmbedMode }) {
   );
 }
 
+/** Cross-cutting trust signal: every mode ships with the invisible captcha. */
+function SecurityFeature() {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/8 p-3">
+      <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+      <div className="space-y-0.5">
+        <p className="text-sm font-medium">Protección anti-spam incluida</p>
+        <p className="text-sm text-muted-foreground">
+          Todos los botones incluyen un captcha invisible que filtra bots automáticamente. Tus
+          visitantes no ven nada ni tienen que resolver nada.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /**
  * The signature panel: pick an integration mode via a segmented control, learn
  * what it does in plain language, preview it, copy the snippet, and follow a
@@ -64,6 +82,8 @@ export const EmbedCodePanel = ({ landing, mode, onModeChange }: EmbedCodePanelPr
       </div>
 
       <ModeIntroCard mode={mode} />
+
+      <SecurityFeature />
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">Vista previa</span>
