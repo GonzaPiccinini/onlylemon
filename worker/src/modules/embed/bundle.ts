@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
  * Bump this constant to invalidate all ETags globally (forces CDN re-fetch
  * after a runtime logic change, independent of per-landing config changes).
  */
-export const RUNTIME_VERSION = '1.1.0';
+export const RUNTIME_VERSION = '1.2.0';
 
 export type EmbedConfig = {
   landingId: string;
@@ -107,6 +107,11 @@ export function renderEmbedBundle(config: EmbedConfig): string {
 (function () {
   'use strict';
 
+  // ── Idempotence guard ─────────────────────────────────────────────────────
+  // Prevents double-init if this script is inadvertently included twice on the page.
+  if (window.__ctaEmbedInit) return;
+  window.__ctaEmbedInit = true;
+
   // Capture currentScript synchronously at the top.
   // Must be classic script (not module) — currentScript is null in modules and async callbacks.
   var _cs = document.currentScript;
@@ -116,6 +121,46 @@ export function renderEmbedBundle(config: EmbedConfig): string {
 
   // Public config — baked at bundle generation time. No server secrets included.
   var CTA_CONFIG = ${configJson};
+
+  // ── Meta Pixel init ────────────────────────────────────────────────────────
+  // Auto-initializes the Meta Pixel for this landing unless data-cta-pixel="off".
+  // Uses trackSingle (not track) so the event is scoped to our pixel only and does
+  // not interfere with other pixels already on the page (scenario 2/7).
+  // Fully wrapped in try/catch — a pixel failure must NEVER block the CTA flow.
+
+  var pixelMode = (_cs && _cs.getAttribute('data-cta-pixel')) || 'auto';
+
+  function isValidPixelId(p) {
+    return typeof p === 'string' && /^\\d{6,}$/.test(p);
+  }
+
+  if (pixelMode !== 'off' && isValidPixelId(CTA_CONFIG.pixelId)) {
+    try {
+      if (!window.fbq) {
+        // Bootstrap fbq queue synchronously — calls are queued until fbevents.js processes them.
+        // fbevents.js is loaded async in a separate inner try/catch so queue works even on failure.
+        var _fbq = function() { _fbq.queue.push(Array.prototype.slice.call(arguments)); };
+        _fbq.queue = [];
+        _fbq.loaded = true;
+        _fbq.version = '2.0';
+        window.fbq = _fbq;
+        window._fbq = _fbq;
+        try {
+          var _fbScript = document.createElement('script');
+          _fbScript.async = true;
+          _fbScript.src = 'https://connect.facebook.net/en_US/fbevents.js';
+          var _firstScript = document.getElementsByTagName('script')[0];
+          if (_firstScript && _firstScript.parentNode) {
+            _firstScript.parentNode.insertBefore(_fbScript, _firstScript);
+          }
+        } catch (_e) { /* fbevents.js injection non-blocking — queue still works */ }
+      }
+      window.fbq('init', CTA_CONFIG.pixelId);
+      window.fbq('trackSingle', CTA_CONFIG.pixelId, 'PageView');
+    } catch (_e) {
+      // Pixel init failed — CTA flow continues unaffected.
+    }
+  }
 
   // ── State ─────────────────────────────────────────────────────────────────
   var _submitting = false;       // double-click guard

@@ -341,3 +341,45 @@ test('createAltchaChallenge returns maxnumber=50000 for fast client pre-solve', 
     'createAltchaChallenge must set maxnumber=50000 so client pre-solve completes in <1s',
   );
 });
+
+// ---------------------------------------------------------------------------
+// RUNTIME_VERSION bump — pixel-init release
+// ---------------------------------------------------------------------------
+
+test('RUNTIME_VERSION is 1.2.0 (pixel-init bump invalidates ETags)', async () => {
+  const { RUNTIME_VERSION } = await import('./bundle.js');
+  assert.equal(RUNTIME_VERSION, '1.2.0', 'RUNTIME_VERSION must be bumped to 1.2.0 for pixel-init release');
+});
+
+// ---------------------------------------------------------------------------
+// Idempotence guard present in bundle string
+// ---------------------------------------------------------------------------
+
+test('bundle contains idempotence guard __ctaEmbedInit', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundle = renderEmbedBundle(FIXTURE_CONFIG);
+  assert.ok(bundle.includes('__ctaEmbedInit'), 'bundle must contain the idempotence guard flag');
+});
+
+// ---------------------------------------------------------------------------
+// Pixel bootstrap: fbevents.js URL present in bundle
+// ---------------------------------------------------------------------------
+
+test('bundle contains fbevents.js URL for pixel bootstrap', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundle = renderEmbedBundle(FIXTURE_CONFIG);
+  assert.ok(
+    bundle.includes('fbevents.js'),
+    'bundle must reference fbevents.js for pixel auto-init bootstrap',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// trackSingle (not track) used in pixel-init
+// ---------------------------------------------------------------------------
+
+test('bundle uses trackSingle (not track) for pixel PageView — isolation from other pixels', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundle = renderEmbedBundle(FIXTURE_CONFIG);
+  assert.ok(bundle.includes('trackSingle'), 'bundle must use trackSingle for pixel isolation');
+});

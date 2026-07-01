@@ -125,3 +125,70 @@ code.
 - WHEN the CTA is clicked and the captcha is solved
 - THEN it POSTs to `{apiBase}/api/leads` with `landingId = L`, `altcha`, `fbc`, `fbp`, `userAgent`, and `adCode` (from `utm_content`)
 - AND on `201 { code, number }` it opens `wa.me/{number}?text={encoded message + ' CODIGO:' + code}`
+
+### Requirement: Autonomous Meta Pixel Initialization (v1.2.0)
+
+The bundle MUST auto-initialize the Meta Pixel for the landing's `pixelId` on load, unless the operator opts out via `data-cta-pixel="off"`. All pixel operations are scoped using `trackSingle` (not `track`) to avoid interfering with other pixels on the page. The entire pixel-init block MUST be guarded by `try/catch` so a pixel failure never blocks the CTA flow.
+
+#### Scenario 1 (auto-init): Default pixel initialization
+
+- GIVEN a `<script>` tag without `data-cta-pixel` attribute (or `data-cta-pixel="auto"`)
+- AND `CTA_CONFIG.pixelId` is a valid numeric string of 6 or more digits
+- WHEN the bundle initializes
+- THEN it bootstraps `window.fbq` if not already present (defines queue, loads `fbevents.js` async)
+- AND calls `fbq('init', pixelId)` and `fbq('trackSingle', pixelId, 'PageView')`
+- AND does NOT call `fbq('track', ...)` (non-isolated form)
+
+#### Scenario 2 (trackSingle isolation): No interference with co-resident pixels
+
+- GIVEN other Meta Pixels may already be active on the host page
+- WHEN the bundle fires the PageView event
+- THEN it uses `fbq('trackSingle', pixelId, 'PageView')` — scoped to our pixel only
+- AND does NOT use `fbq('track', 'PageView')` which would fire for ALL pixels on the page
+
+#### Scenario 3 (opt-out): Pixel suppressed by operator
+
+- GIVEN a `<script>` tag with `data-cta-pixel="off"`
+- WHEN the bundle initializes
+- THEN pixel initialization is entirely skipped
+- AND `fbq('init', ...)` and `fbq('trackSingle', ...)` are NOT called
+- AND the CTA flow (lead submission) is unaffected
+
+#### Scenario 4 (idempotence): Script loaded twice produces one init
+
+- GIVEN the embed script is included twice on the same page (misconfiguration)
+- WHEN both script tags execute
+- THEN `window.__ctaEmbedInit` guard fires on the second execution
+- AND the pixel is initialized exactly once
+- AND the CTA click handlers are registered exactly once
+
+#### Scenario 5 (resilience): Pixel failure never blocks CTA
+
+- GIVEN `window.fbq` throws an exception when called
+- WHEN the bundle initializes
+- THEN the exception is caught silently
+- AND the CTA is still wired and functional (lead submission proceeds normally)
+- AND `_fbc` synthesis from `fbclid` is preserved as a fallback
+
+#### Scenario 6 (invalid pixelId): Skip pixel for placeholder or empty values
+
+- GIVEN `CTA_CONFIG.pixelId` is an empty string, `"-"`, or any non-numeric value
+- WHEN the bundle initializes
+- THEN `isValidPixelId` returns false
+- AND `fbq` is NOT called
+- AND the CTA flow is unaffected
+
+#### Scenario 7 (pre-existing fbq): No re-bootstrap when fbq already loaded
+
+- GIVEN `window.fbq` is already defined (another pixel or script bootstrapped it first)
+- WHEN the bundle initializes
+- THEN the bootstrap block (`window.fbq = ...`) is skipped (no re-injection of `fbevents.js`)
+- AND `fbq('init', pixelId)` and `fbq('trackSingle', pixelId, 'PageView')` are still called
+
+#### Scenario 8 (GTM constraint — not supported): Dynamic injection breaks currentScript
+
+- GIVEN the embed script is injected dynamically (e.g., via GTM `Custom HTML` tag)
+- WHEN the bundle executes
+- THEN `document.currentScript` is `null` (browser spec — null in dynamically injected scripts)
+- AND `apiBase`, `ctaMode`, `pixelMode` all fall back to defaults
+- NOTE: dynamic injection is NOT a supported deployment path; the bundle must be a static `<script src="...">` tag
