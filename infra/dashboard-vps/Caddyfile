@@ -13,6 +13,16 @@
         reverse_proxy dashboard:80
     }
 
+    # Embed loader público (servido por el worker en la raíz)
+    handle /embed/* {
+        reverse_proxy worker:4000
+    }
+
+    # Altcha challenge público (servido por el worker en la raíz)
+    handle /altcha/* {
+        reverse_proxy worker:4000
+    }
+
     # API del worker
     handle /api/* {
         reverse_proxy worker:4000
