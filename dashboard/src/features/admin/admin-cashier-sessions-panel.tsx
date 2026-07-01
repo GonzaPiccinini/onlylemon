@@ -31,8 +31,8 @@ import { localPhonePart, toArgentinePhone } from '@/lib/phone';
 import {
   SessionLinkStepper,
   LinkLoaderPanel,
-  computeLinkStep,
 } from '@/components/common/session-link-stepper';
+import { computeLinkStep } from '@/components/common/session-link-steps';
 import { StatusRingAvatar } from '@/components/common/status-ring-avatar';
 import type { Cashier, WhatsappLinkArtifacts, WhatsappSession } from '@/types/domain';
 import { SessionLineCard } from '@/components/common/session-line-card';
@@ -122,13 +122,6 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
     if (session.wahaStatus === 'WORKING') stopTimer();
   }, [session.wahaStatus]);
 
-  // Track whether the QR was reached, so a later STARTING reads as "connecting
-  // after the scan" (step 2) instead of the initial "booting" step (step 0).
-  useEffect(() => {
-    if (session.wahaStatus === 'SCAN_QR_CODE' || artifacts?.qr) {
-      setReachedQr(true);
-    }
-  }, [session.wahaStatus, artifacts?.qr]);
 
   const applyArtifacts = useCallback((data: WhatsappLinkArtifacts) => {
     const normalizedQr =
@@ -202,6 +195,13 @@ const QrDialog = ({ session, cashierId, open, onClose }: QrDialogProps) => {
   const isStarting = wahaStatus === 'STARTING';
   const isFailed = wahaStatus === 'FAILED';
   const inLinkFlow = isStarting || needsQr || isWorking;
+
+  // Latch (adjust during render, not in an effect): remember once the QR was
+  // reachable so a later STARTING reads as "connecting after the scan".
+  if ((needsQr || qrSrc) && !reachedQr) {
+    setReachedQr(true);
+  }
+
   const linkStep = computeLinkStep(wahaStatus, reachedQr);
 
   return (

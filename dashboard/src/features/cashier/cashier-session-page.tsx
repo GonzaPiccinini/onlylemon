@@ -67,8 +67,8 @@ import { StatusRingAvatar } from '@/components/common/status-ring-avatar';
 import {
   SessionLinkStepper,
   LinkLoaderPanel,
-  computeLinkStep,
 } from '@/components/common/session-link-stepper';
+import { computeLinkStep } from '@/components/common/session-link-steps';
 import { useSetSessionAlias } from '@/features/chat/hooks/useSetSessionAlias';
 import { localPhonePart, toArgentinePhone } from '@/lib/phone';
 import type { MyWhatsappSession } from '@/types/domain';
@@ -218,17 +218,21 @@ const SessionModal = ({ session, onClose }: SessionModalProps) => {
   // The link flow is "active" once a session is booting/scanning/connected.
   const inLinkFlow = isStarting || needsQr || isWorking;
 
+  // Latch: once the QR is reachable, remember it so a later STARTING reads as
+  // "connecting after the scan" (step 2) instead of the initial "booting" step
+  // (step 0). Adjusting state during render (not in an effect) avoids a
+  // cascading re-render and keeps linkStep correct on the same pass.
+  if ((needsQr || qrValue) && !reachedQr) {
+    setReachedQr(true);
+  }
+
   // Step index for the stepper, derived from the real WAHA status:
   // 0 booting (STARTING, no QR yet) · 1 scan (SCAN_QR_CODE) ·
   // 2 connecting (STARTING after the QR was shown) · 3 connected (WORKING).
   const linkStep = computeLinkStep(wahaStatus, reachedQr);
 
-  // Mark progress once the QR is reachable; stop the auto-refresh timer once
-  // the session is connected so it doesn't keep polling for a new QR.
-  useEffect(() => {
-    if (needsQr || qrValue) setReachedQr(true);
-  }, [needsQr, qrValue]);
-
+  // Stop the auto-refresh timer once the session is connected so it doesn't
+  // keep polling for a new QR.
   useEffect(() => {
     if (isWorking) stopTimer();
   }, [isWorking]);
