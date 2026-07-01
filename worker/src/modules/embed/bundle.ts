@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
  * Bump this constant to invalidate all ETags globally (forces CDN re-fetch
  * after a runtime logic change, independent of per-landing config changes).
  */
-export const RUNTIME_VERSION = '1.2.0';
+export const RUNTIME_VERSION = '1.3.0';
 
 export type EmbedConfig = {
   landingId: string;
@@ -312,9 +312,9 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     var text = encodeURIComponent(msg + ' CODIGO:' + data.code);
     var waUrl = 'https://wa.me/' + data.number + '?text=' + text;
 
-    // Update button text just before navigating (skip for solo-logica — not our button)
+    // Update button label just before navigating (skip for solo-logica — not our button)
     if (btn && ctaMode !== 'solo-logica') {
-      btn.textContent = 'Abriendo WhatsApp\\u2026';
+      setBtnLabel(btn, 'Abriendo WhatsApp\\u2026');
     }
 
     // Navigate the placeholder tab opened in the click handler.
@@ -334,7 +334,8 @@ export function renderEmbedBundle(config: EmbedConfig): string {
   //   [data-cta][data-cta-state='loading'] — request in progress (disabled)
   //   [data-cta][data-cta-state='error']   — submission failed (re-enabled)
   //
-  // widget-automontado / boton-flotante: our own button — text is updated directly.
+  // widget-automontado / boton-flotante: our own button — the label span is
+  // updated via setBtnLabel so the injected icon is preserved.
 
   async function handleClick(e, btn) {
     if (e && e.preventDefault) e.preventDefault();
@@ -348,7 +349,7 @@ export function renderEmbedBundle(config: EmbedConfig): string {
       if (ctaMode === 'solo-logica') {
         btn.setAttribute('data-cta-state', 'loading');
       } else {
-        btn.textContent = 'Conectando\\u2026';
+        setBtnLabel(btn, 'Conectando\\u2026');
       }
     }
 
@@ -368,10 +369,45 @@ export function renderEmbedBundle(config: EmbedConfig): string {
         if (ctaMode === 'solo-logica') {
           btn.setAttribute('data-cta-state', 'error');
         } else {
-          btn.textContent = 'No pudimos conectarte, reintent\\u00e1';
+          setBtnLabel(btn, 'No pudimos conectarte, reintent\\u00e1');
         }
       }
     }
+  }
+
+  // ── Brand icon ─────────────────────────────────────────────────────────────
+  // Inline SVG of Lucide's "message-circle" — the same icon shown in the
+  // dashboard preview. Rendered white via stroke:currentColor + color:#fff.
+  function ctaIcon(size) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size +
+      '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0">' +
+      '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>';
+  }
+
+  // Update a button's visible label WITHOUT wiping an injected icon. Our buttons
+  // wrap the label in <span class="cta-label">; owner buttons (solo-logica) and
+  // the test mock (no querySelector) fall back to textContent.
+  function setBtnLabel(btn, text) {
+    var label = btn.querySelector ? btn.querySelector('.cta-label') : null;
+    if (label) label.textContent = text;
+    else btn.textContent = text;
+  }
+
+  // Inject the widget button's default styles ONCE, at zero specificity (:where)
+  // so a merchant's own \`.cta-btn\` rules always win — a real override, no
+  // !important needed. Guarded on document.head so the test mock is a no-op.
+  function ensureWidgetStyles() {
+    if (!document.head || document.getElementById('cta-widget-styles')) return;
+    var style = document.createElement('style');
+    style.setAttribute('id', 'cta-widget-styles');
+    style.textContent =
+      ':where(.cta-btn){display:inline-flex;align-items:center;justify-content:center;' +
+      'gap:8px;background:#25D366;color:#fff;border:none;border-radius:10px;' +
+      'padding:12px 22px;font-size:16px;font-weight:600;line-height:1;cursor:pointer;' +
+      'box-shadow:0 2px 6px rgba(37,211,102,0.35);}' +
+      ':where(.cta-btn:disabled){opacity:0.6;cursor:default;}';
+    document.head.appendChild(style);
   }
 
   // ── Mode: solo-logica ──────────────────────────────────────────────────────
@@ -394,7 +430,10 @@ export function renderEmbedBundle(config: EmbedConfig): string {
       var widgetBtn = document.createElement('button');
       widgetBtn.setAttribute('type', 'button');
       widgetBtn.setAttribute('class', 'cta-btn');
-      widgetBtn.textContent = 'Contactarse';
+      // Default styling comes from an injected zero-specificity stylesheet (see
+      // ensureWidgetStyles) so a merchant's own .cta-btn rules override cleanly.
+      ensureWidgetStyles();
+      widgetBtn.innerHTML = ctaIcon(18) + '<span class="cta-label">Contactarse</span>';
       var captchaContainer = document.createElement('div');
       captchaContainer.setAttribute('data-cta-captcha', '');
       root.appendChild(widgetBtn);
@@ -408,29 +447,42 @@ export function renderEmbedBundle(config: EmbedConfig): string {
   // Owner markup: none — script injects everything.
   // A fixed floating button (FAB) opens a modal; submit in the modal triggers lead.
   else if (ctaMode === 'boton-flotante') {
-    // FAB
+    // FAB — fixed, round, WhatsApp green, with the same message-circle icon the
+    // dashboard preview shows (replaces the OS-dependent 💬 emoji that rendered
+    // inconsistently across browsers).
     var fab = document.createElement('button');
     fab.setAttribute('type', 'button');
     fab.setAttribute('id', 'cta-fab');
     fab.setAttribute('aria-label', 'Contactarse');
     fab.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;border:none;' +
-      'cursor:pointer;border-radius:50%;width:56px;height:56px;background:#25D366;' +
-      'color:#fff;font-size:24px;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
-    fab.textContent = '\\u{1F4AC}'; // 💬
+      'cursor:pointer;border-radius:50%;width:56px;height:56px;background:#25D366;color:#fff;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'box-shadow:0 6px 16px rgba(0,0,0,0.28);';
+    fab.innerHTML = ctaIcon(28);
     document.body.appendChild(fab);
 
-    // Modal (hidden initially)
+    // Modal — hidden on load via BOTH the [hidden] attribute (semantics/a11y)
+    // and inline display:none (visual). The previous version set inline
+    // display:flex, which overrode the UA stylesheet's [hidden]{display:none}
+    // in the cascade, so the modal appeared on page load. Toggled below.
     var modal = document.createElement('div');
     modal.setAttribute('id', 'cta-modal');
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('hidden', '');
-    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.5);' +
-      'display:flex;align-items:center;justify-content:center;';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.55);' +
+      'align-items:center;justify-content:center;padding:16px;';
+    modal.style.display = 'none';
 
     var modalInner = document.createElement('div');
-    modalInner.style.cssText = 'background:#fff;border-radius:8px;padding:24px;min-width:280px;' +
-      'display:flex;flex-direction:column;gap:12px;';
+    modalInner.style.cssText = 'position:relative;background:#fff;border-radius:14px;padding:24px;' +
+      'width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px;' +
+      'box-shadow:0 12px 40px rgba(0,0,0,0.35);';
+
+    var modalTitle = document.createElement('div');
+    modalTitle.textContent = 'Contactar por WhatsApp';
+    modalTitle.style.cssText = 'font-size:17px;font-weight:700;color:#111827;' +
+      'text-align:center;padding:0 16px;';
 
     var captchaModalDiv = document.createElement('div');
     captchaModalDiv.setAttribute('data-cta-captcha', '');
@@ -438,32 +490,40 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     var submitBtn = document.createElement('button');
     submitBtn.setAttribute('type', 'button');
     submitBtn.setAttribute('id', 'cta-modal-submit');
-    submitBtn.style.cssText = 'padding:12px 24px;background:#25D366;color:#fff;border:none;' +
-      'border-radius:6px;cursor:pointer;font-size:16px;';
-    submitBtn.textContent = 'Contactarse';
+    submitBtn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;' +
+      'padding:12px 24px;background:#25D366;color:#fff;border:none;border-radius:10px;' +
+      'cursor:pointer;font-size:16px;font-weight:600;line-height:1;';
+    submitBtn.innerHTML = ctaIcon(18) + '<span class="cta-label">Contactarse</span>';
 
     var closeBtn = document.createElement('button');
     closeBtn.setAttribute('type', 'button');
     closeBtn.setAttribute('id', 'cta-modal-close');
     closeBtn.setAttribute('aria-label', 'Cerrar');
-    closeBtn.style.cssText = 'position:absolute;top:8px;right:12px;background:none;border:none;' +
-      'font-size:20px;cursor:pointer;';
+    closeBtn.style.cssText = 'position:absolute;top:8px;right:10px;background:none;border:none;' +
+      'font-size:22px;line-height:1;color:#6b7280;cursor:pointer;';
     closeBtn.textContent = '\\u00D7'; // ×
 
+    modalInner.appendChild(closeBtn);
+    modalInner.appendChild(modalTitle);
     modalInner.appendChild(captchaModalDiv);
     modalInner.appendChild(submitBtn);
-    modal.appendChild(closeBtn);
     modal.appendChild(modalInner);
     document.body.appendChild(modal);
 
-    // Open modal on FAB click
-    fab.addEventListener('click', function () {
+    function openCtaModal() {
       modal.removeAttribute('hidden');
-    });
-
-    // Close modal on close button
-    closeBtn.addEventListener('click', function () {
+      modal.style.display = 'flex';
+    }
+    function closeCtaModal() {
       modal.setAttribute('hidden', '');
+      modal.style.display = 'none';
+    }
+
+    // Open on FAB click; close on × or on a backdrop click (outside the box).
+    fab.addEventListener('click', openCtaModal);
+    closeBtn.addEventListener('click', closeCtaModal);
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeCtaModal();
     });
 
     // Submit lead on modal submit button
