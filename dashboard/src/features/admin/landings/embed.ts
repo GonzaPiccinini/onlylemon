@@ -7,18 +7,70 @@ import { env } from "@/config/env";
 
 export type EmbedMode = "boton-flotante" | "widget-automontado" | "solo-logica";
 
-/** Short labels for the segmented control. Values feed `data-cta-mode`. */
-export const EMBED_MODES: { value: EmbedMode; label: string }[] = [
-  { value: "boton-flotante", label: "Botón flotante" },
-  { value: "widget-automontado", label: "Widget" },
-  { value: "solo-logica", label: "Solo lógica" },
-];
+/** Relative effort to install a mode — drives the badge and the chooser copy. */
+export type EmbedDifficulty = "facil" | "intermedio" | "avanzado";
 
-/** One-line, plain-language helper shown under the snippet for each mode. */
-export const EMBED_MODE_HINT: Record<EmbedMode, string> = {
-  "boton-flotante": "Pegá esto antes de </body> en tu landing.",
-  "widget-automontado": "Pegá esto antes de </body> en tu landing.",
-  "solo-logica": "Pegá esto antes de </body> en tu landing.",
+/**
+ * Plain-language description of each mode, written for shop owners who don't
+ * code. Powers the mode intro card and the "¿cuál me conviene?" chooser dialog.
+ */
+export type EmbedModeInfo = {
+  value: EmbedMode;
+  /** Short label for the segmented control. */
+  label: string;
+  /** Two/three-word essence shown next to the label. */
+  tagline: string;
+  difficulty: EmbedDifficulty;
+  /** What the visitor actually sees/does on the merchant's page. */
+  whatItDoes: string;
+  /** Who should pick this — the deciding factor, in the chooser dialog. */
+  bestFor: string;
+};
+
+/** Single source of truth for every mode's UI copy. Order = display order. */
+export const EMBED_MODE_INFO: Record<EmbedMode, EmbedModeInfo> = {
+  "boton-flotante": {
+    value: "boton-flotante",
+    label: "Botón flotante",
+    tagline: "Lo más fácil",
+    difficulty: "facil",
+    whatItDoes:
+      "Aparece un botón de WhatsApp fijo, abajo a la derecha de tu página. Al tocarlo se abre el formulario de contacto.",
+    bestFor:
+      "Es tu primera vez o querés la instalación más simple: pegás un solo código y ya funciona.",
+  },
+  "widget-automontado": {
+    value: "widget-automontado",
+    label: "Widget",
+    tagline: "Integrado en tu página",
+    difficulty: "intermedio",
+    whatItDoes:
+      "El botón «Contactarse» aparece dentro del contenido de tu página, en el lugar exacto donde vos lo coloques.",
+    bestFor:
+      "Querés que el botón viva dentro de una sección (por ejemplo, debajo de un producto) en vez de flotar en la esquina.",
+  },
+  "solo-logica": {
+    value: "solo-logica",
+    label: "Solo lógica",
+    tagline: "Para quien maneja código",
+    difficulty: "avanzado",
+    whatItDoes:
+      "El código solo aporta el comportamiento. Vos ponés tu propio botón y el contenedor del captcha usando los atributos indicados.",
+    bestFor:
+      "Tenés a alguien técnico y querés control total sobre el diseño y la ubicación del botón.",
+  },
+};
+
+/** Short labels for the segmented control. Values feed `data-cta-mode`. */
+export const EMBED_MODES: { value: EmbedMode; label: string }[] = Object.values(
+  EMBED_MODE_INFO,
+).map(({ value, label }) => ({ value, label }));
+
+/** Human-readable badge text for each difficulty level. */
+export const EMBED_DIFFICULTY_LABEL: Record<EmbedDifficulty, string> = {
+  facil: "Fácil",
+  intermedio: "Intermedio",
+  avanzado: "Avanzado",
 };
 
 /** Strip the /api suffix from the dashboard API base URL to get the worker root. */

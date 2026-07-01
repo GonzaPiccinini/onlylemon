@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { MessageCircle, ShieldCheck } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { EmbedMode } from "./embed";
@@ -86,35 +86,6 @@ function Highlight({
   );
 }
 
-/**
- * A compact representation of the Altcha captcha container the script fills in.
- * `dashed` marks it as merchant-provided markup (solo-logica) rather than
- * something the snippet injects for you.
- */
-function MiniCaptcha({ dashed = false, tag }: { dashed?: boolean; tag?: string }) {
-  return (
-    <div className="space-y-1">
-      {tag && (
-        <span className="block font-mono text-[10px] leading-none text-muted-foreground/70">
-          {tag}
-        </span>
-      )}
-      <div
-        className={cn(
-          "flex items-center gap-2 rounded-md px-2 py-1.5",
-          dashed
-            ? "border border-dashed border-border bg-transparent"
-            : "border border-border bg-muted/40",
-        )}
-      >
-        <span className="size-3.5 rounded-sm border border-foreground/25" aria-hidden="true" />
-        <span className="text-[10px] text-muted-foreground">Verificación</span>
-        <ShieldCheck className="ml-auto size-3 text-muted-foreground/60" aria-hidden="true" />
-      </div>
-    </div>
-  );
-}
-
 /** Centers an in-flow mockup (widget / solo-logica) over the faux page so it
  *  can't overflow or hug the left edge of the canvas. */
 function CanvasCenter({ children }: { children: ReactNode }) {
@@ -132,7 +103,7 @@ export function EmbedPreview({ mode }: { mode: EmbedMode }) {
         <FauxContent />
         {/* FAB — faithful to the worker embed: fixed bottom-right, round, brand
             WhatsApp green via the --whatsapp token (real bundle bakes #25d366),
-            white 💬 icon. Icon-only, like the real FAB. */}
+            white message-circle icon. Icon-only, like the real FAB. */}
         <div className="absolute bottom-3 right-3">
           <Highlight round>
             <div className="grid size-10 place-items-center rounded-full bg-whatsapp text-white shadow-lg shadow-black/30">
@@ -148,10 +119,10 @@ export function EmbedPreview({ mode }: { mode: EmbedMode }) {
     return (
       <PageFrame>
         {/* Widget auto-mounted into <div id="cta-root">: the script appends a
-            "Contactarse" button + a captcha container. The real button is an
-            unstyled `.cta-btn` (merchant-styled); shown here in brand WhatsApp
-            green — the same fidelity exception as the FAB — so it reads clearly
-            as the CTA that opens WhatsApp. Centered so it never clips. */}
+            "Contactarse" button (plus an invisible captcha container — not shown,
+            since nothing renders into it). The real button ships with a default
+            WhatsApp-green style (class `.cta-btn`, still overridable), matching
+            the brand green shown here. Centered so it never clips. */}
         <CanvasCenter>
           <div className="w-fit max-w-full space-y-2 rounded-lg border border-border bg-card/90 p-2.5 shadow-lg shadow-black/20">
             <span className="block font-mono text-[10px] leading-none text-muted-foreground/70">
@@ -163,16 +134,15 @@ export function EmbedPreview({ mode }: { mode: EmbedMode }) {
                 Contactarse
               </span>
             </Highlight>
-            <MiniCaptcha />
           </div>
         </CanvasCenter>
       </PageFrame>
     );
   }
 
-  // solo-logica: the merchant supplies their own [data-cta] button and
-  // [data-cta-captcha] container. Rendered as dashed placeholders (neutral, not
-  // brand-colored) to make clear this markup is provided by them, not injected.
+  // solo-logica: the merchant supplies their own [data-cta] button and (an
+  // invisible) [data-cta-captcha] container. Only the button placeholder is
+  // shown here (dashed, neutral) — the captcha renders nothing visible.
   return (
     <PageFrame>
       <CanvasCenter>
@@ -187,7 +157,6 @@ export function EmbedPreview({ mode }: { mode: EmbedMode }) {
               </span>
             </Highlight>
           </div>
-          <MiniCaptcha dashed tag="[data-cta-captcha]" />
         </div>
       </CanvasCenter>
     </PageFrame>

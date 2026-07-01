@@ -343,12 +343,12 @@ test('createAltchaChallenge returns maxnumber=50000 for fast client pre-solve', 
 });
 
 // ---------------------------------------------------------------------------
-// RUNTIME_VERSION bump — pixel-init release
+// RUNTIME_VERSION bump — FAB/modal/widget UI fix release
 // ---------------------------------------------------------------------------
 
-test('RUNTIME_VERSION is 1.2.0 (pixel-init bump invalidates ETags)', async () => {
+test('RUNTIME_VERSION is 1.3.0 (FAB icon + modal visibility + widget style fix invalidates ETags)', async () => {
   const { RUNTIME_VERSION } = await import('./bundle.js');
-  assert.equal(RUNTIME_VERSION, '1.2.0', 'RUNTIME_VERSION must be bumped to 1.2.0 for pixel-init release');
+  assert.equal(RUNTIME_VERSION, '1.3.0', 'RUNTIME_VERSION must be bumped to 1.3.0 for the embed UI fix release');
 });
 
 // ---------------------------------------------------------------------------

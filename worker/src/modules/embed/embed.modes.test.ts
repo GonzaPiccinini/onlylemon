@@ -100,7 +100,7 @@ type MockElement = {
   _attrs: Record<string, string>;
   _listeners: Record<string, (...args: unknown[]) => unknown>;
   _children: MockElement[];
-  style: { cssText: string };
+  style: { cssText: string; display?: string };
   textContent: string;
   disabled: boolean;
   hidden: boolean;
@@ -390,15 +390,22 @@ test('boton-flotante mode: bundle injects FAB and modal; modal submit click → 
   assert.equal(fab._attrs['id'], 'cta-fab', 'FAB must have id="cta-fab"');
   assert.ok(typeof fab._listeners['click'] === 'function', 'FAB must have a click listener');
 
-  // Trigger FAB click (opens modal)
-  (fab._listeners['click'] as () => void)();
-
-  // Second child: modal
+  // Second child: modal — must be HIDDEN on page load.
+  // Regression guard: a prior version set inline display:flex, which overrode
+  // the UA [hidden]{display:none} rule in the cascade, so the modal appeared on
+  // page load, darkening the whole page.
   const modal = body._children[1];
   assert.ok(modal, 'Modal element must exist');
   assert.equal(modal._attrs['id'], 'cta-modal', 'modal must have id="cta-modal"');
-  // After FAB click, modal should no longer have hidden attribute
+  assert.ok('hidden' in modal._attrs, 'modal must have the [hidden] attribute on load');
+  assert.equal(modal.style.display, 'none', 'modal must be display:none on load (must NOT appear before FAB click)');
+
+  // Trigger FAB click (opens modal)
+  (fab._listeners['click'] as () => void)();
+
+  // After FAB click, modal is visible: hidden attribute removed AND display:flex
   assert.ok(!('hidden' in modal._attrs), 'modal must be visible after FAB click');
+  assert.equal(modal.style.display, 'flex', 'modal must be display:flex after FAB click');
 
   // Find submit button inside modal (nested inside modalInner)
   // Structure: modal > [closeBtn, modalInner > [captchaDiv, submitBtn]]
