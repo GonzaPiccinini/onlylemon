@@ -278,11 +278,14 @@ export const useDeleteLandingFallbackPhone = (landingId: string) => {
 // E/F — WhatsappSession admin hooks
 // ---------------------------------------------------------------------------
 
-export const useCashierSessions = (cashierId: string) =>
+export const useCashierSessions = (
+  cashierId: string,
+  opts?: { fast?: boolean },
+) =>
   useQuery({
     queryKey: adminKeys.cashierSessions(cashierId),
     queryFn: () => adminService.listCashierSessions(cashierId),
-    refetchInterval: 5000,
+    refetchInterval: opts?.fast ? 1500 : 5000,
     refetchIntervalInBackground: true,
   });
 

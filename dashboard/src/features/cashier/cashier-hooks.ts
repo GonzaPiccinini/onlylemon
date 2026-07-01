@@ -328,5 +328,12 @@ export const useMySessionStatus = (sessionId: string, enabled = true) =>
     queryKey: cashierKeys.mySessionStatus(sessionId),
     queryFn: () => cashierService.getMySessionStatus(sessionId),
     enabled: enabled && Boolean(sessionId),
-    refetchInterval: enabled ? 5_000 : false,
+    // Poll fast while the session is still settling (booting QR or connecting
+    // right after the scan) so the link stepper feels live; fall back to a
+    // calm interval once it reaches a stable state.
+    refetchInterval: (query) => {
+      if (!enabled) return false;
+      const status = query.state.data?.status;
+      return status === 'STARTING' || status === 'SCAN_QR_CODE' ? 1_500 : 5_000;
+    },
   });
