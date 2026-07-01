@@ -29,6 +29,8 @@ const tabsListVariants = cva(
       variant: {
         default: "glass-subtle",
         line: "gap-1 bg-transparent",
+        segmented:
+          "gap-1 w-fit [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:flex-initial [&_[data-slot=tabs-trigger]]:h-7 [&_[data-slot=tabs-trigger]]:px-3 [&_[data-slot=tabs-trigger]]:text-xs",
       },
     },
     defaultVariants: {
