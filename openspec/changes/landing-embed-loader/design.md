@@ -136,6 +136,34 @@ Public-only data in the bundle: `landingId`, `metaPixel.pixelId` (number). No ca
 
 **Depends on Change A** (deployed together in the hard cutover): `landingId` routing on `/api/leads`, `MetaPixel` FK (`pixelId` read), `whatsappMessages`, and the landing read shape. Change B now **also owns the worker captcha seam** (challenge endpoint + verify + Redis replay store).
 
+## Pixel Init — Design Addendum (v1.2.0)
+
+### Auto-init approach
+
+The bundle bootstraps the Meta Pixel autonomously on load. No separate `<script>` tag for `fbevents.js` is required on the landing page. Design decisions:
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Event call | `fbq('trackSingle', pixelId, 'PageView')` | Scoped to our pixel only; `fbq('track', ...)` fires for ALL pixels on page (wrong for multi-pixel pages) |
+| Bootstrap guard | `if (!window.fbq)` | Skip re-injection if another script already bootstrapped fbq — do not clobber it |
+| Resilience | Outer `try/catch` wraps entire pixel block | Pixel failure (blocked fbq, 3P cookie restrictions, etc.) must never break the CTA flow |
+| fbevents.js injection | Inner `try/catch` around DOM insertion | DOM may not have a `<script>` sibling; queue still works even if injection fails |
+| Opt-out | `data-cta-pixel="off"` on the `<script>` tag | Operator escape hatch; consistent with existing `data-cta-*` attribute convention |
+| Pixel ID validation | `isValidPixelId`: numeric string ≥ 6 digits | Skips placeholders (`"-"`, `""`) that may appear in misconfigured or staging landings |
+| Idempotence | `window.__ctaEmbedInit` guard at IIFE start | Prevents double-init if script tag is accidentally included twice |
+
+### GTM Constraint (NOT supported)
+
+**The embed `<script>` must be a static tag; dynamic injection via GTM or `document.createElement` is NOT supported.**
+
+When a script is injected dynamically (e.g., GTM `Custom HTML` tag uses `document.write` or `appendChild`), `document.currentScript` is `null` per the HTML spec — the browser only sets `currentScript` for parser-inserted classic scripts. This breaks:
+
+- `apiBase` derivation (falls back to `''` — all API calls to relative paths, which may or may not resolve)
+- `ctaMode` (falls back to `'solo-logica'`)
+- `pixelMode` (falls back to `'auto'`)
+
+The bundle is designed for `<script src=".../embed/{landingId}.js" data-cta-mode="..." async>` placed statically in the HTML. GTM-based deployment is an out-of-scope future enhancement requiring a different distribution strategy.
+
 ## Open Questions
 
 - [ ] Confirm the `Cache-Control` TTL (`max-age=300, stale-while-revalidate=600`) vs. ops preference for faster edit propagation.

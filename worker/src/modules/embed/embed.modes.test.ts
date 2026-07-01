@@ -82,6 +82,8 @@ type MockContext = {
   /** The mock window object returned by window.open */
   getMockWaWin: () => MockWaWin;
   getFetchCalls: () => string[];
+  /** Returns the mutable sandbox window object — inspect fbq, __ctaEmbedInit, etc. after bundle run */
+  getWindow: () => Record<string, unknown>;
   document: {
     querySelector: (sel: string) => MockElement | null;
     getElementById: (id: string) => MockElement | null;
@@ -133,6 +135,10 @@ type VmContextOptions = {
   failLeads?: boolean;
   /** Override requestIdleCallback in the VM context (captures the idle fn for testing pre-solve) */
   requestIdleCallback?: (fn: () => unknown) => void;
+  /** Value for data-cta-pixel attribute on currentScript (null = attribute absent → 'auto') */
+  ctaPixelAttr?: string | null;
+  /** Pre-existing window.fbq — simulates a pixel already bootstrapped on the page */
+  preExistingFbq?: (...args: unknown[]) => void;
 };
 
 function createVmContext(ctaMode: string, options?: VmContextOptions): MockContext {
@@ -158,6 +164,7 @@ function createVmContext(ctaMode: string, options?: VmContextOptions): MockConte
       getAttribute(name: string): string | null {
         if (name === 'data-cta-mode') return ctaMode;
         if (name === 'data-cta-target') return null;
+        if (name === 'data-cta-pixel') return options?.ctaPixelAttr ?? null;
         return null;
       },
     },
@@ -170,6 +177,11 @@ function createVmContext(ctaMode: string, options?: VmContextOptions): MockConte
     },
     createElement(tag: string): MockElement {
       return makeMockElement(tag);
+    },
+    // Returns empty array — no real script elements in mock DOM.
+    // The pixel bootstrap checks the result before using it, so no error is thrown.
+    getElementsByTagName(_tag: string): MockElement[] {
+      return [];
     },
     body,
   };
@@ -208,17 +220,24 @@ function createVmContext(ctaMode: string, options?: VmContextOptions): MockConte
     return { ok: false, status: 404, json: async () => ({}) };
   };
 
+  // Mutable window object — bundle can set window.fbq, window.__ctaEmbedInit, etc.
+  // Exposed via getWindow() so tests can inspect state after bundle execution.
+  const win: Record<string, unknown> = {
+    location: { search: '', href: '' },
+    open(url: string) {
+      windowOpenCalls.push(url);
+      return mockWaWin;
+    },
+  };
+  if (options?.preExistingFbq) {
+    win.fbq = options.preExistingFbq;
+  }
+
   // Build the sandbox — requestIdleCallback is injected only when provided via options
   // (so typeof checks in the bundle correctly fall back to setTimeout when omitted).
   const sandbox: Record<string, unknown> = {
     document: mockDoc,
-    window: {
-      location: { search: '', href: '' },
-      open(url: string) {
-        windowOpenCalls.push(url);
-        return mockWaWin;
-      },
-    },
+    window: win,
     navigator: { userAgent: 'vm-test-agent' },
     fetch: mockFetch,
     sessionStorage: {
@@ -269,6 +288,7 @@ function createVmContext(ctaMode: string, options?: VmContextOptions): MockConte
     getWindowOpenCalls: () => windowOpenCalls,
     getMockWaWin: () => mockWaWin,
     getFetchCalls: () => fetchCalls,
+    getWindow: () => win,
     document: mockDoc as unknown as MockContext['document'],
   };
 }
@@ -587,4 +607,172 @@ test('popup: window.open("about:blank") called first; waWin.location.href set to
     waWin.location.href.includes(MOCK_LEAD_RESPONSE.number),
     'wa.me URL must contain the phone number',
   );
+});
+
+// ---------------------------------------------------------------------------
+// Pixel-init: auto-init
+// ---------------------------------------------------------------------------
+
+test('pixel-init: valid pixelId without opt-out → fbq init and trackSingle called, not track', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundleCode = renderEmbedBundle(TEST_CONFIG); // pixelId = '976916338006290' (valid)
+
+  const ctx = createVmContext('solo-logica'); // no preExistingFbq, no ctaPixelAttr
+  vm.runInContext(bundleCode, ctx.context);
+
+  // The bundle bootstraps window.fbq because it was undefined. Inspect its call queue.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fbq = ctx.getWindow().fbq as any;
+  assert.ok(fbq, 'window.fbq must be defined after pixel-init bootstrap');
+  assert.ok(Array.isArray(fbq.queue), 'fbq.queue must be an array');
+
+  const queue: unknown[][] = fbq.queue;
+  const initCall = queue.find(a => a[0] === 'init');
+  assert.ok(initCall, 'fbq("init", pixelId) must be called');
+  assert.equal(initCall![1], TEST_CONFIG.pixelId, 'init must use the pixelId from CTA_CONFIG');
+
+  const trackSingleCall = queue.find(a => a[0] === 'trackSingle');
+  assert.ok(trackSingleCall, 'fbq("trackSingle", pixelId, "PageView") must be called');
+  assert.equal(trackSingleCall![1], TEST_CONFIG.pixelId);
+  assert.equal(trackSingleCall![2], 'PageView');
+
+  // trackSingle (not track) — scoped to our pixel only, does not fire for other pixels
+  const trackCall = queue.find(a => a[0] === 'track');
+  assert.ok(!trackCall, 'fbq("track") must NOT be called — must use trackSingle for pixel isolation');
+});
+
+// ---------------------------------------------------------------------------
+// Pixel-init: opt-out
+// ---------------------------------------------------------------------------
+
+test('pixel-init: data-cta-pixel="off" → fbq init/trackSingle NOT called', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundleCode = renderEmbedBundle(TEST_CONFIG);
+
+  const fbqCalls: unknown[][] = [];
+  const fbqSpy = (...args: unknown[]) => { fbqCalls.push(args); };
+
+  const ctx = createVmContext('solo-logica', { ctaPixelAttr: 'off', preExistingFbq: fbqSpy });
+  vm.runInContext(bundleCode, ctx.context);
+
+  const initCalls = fbqCalls.filter(a => a[0] === 'init');
+  const trackCalls = fbqCalls.filter(a => a[0] === 'trackSingle' || a[0] === 'track');
+  assert.equal(initCalls.length, 0, 'fbq("init") must NOT be called when data-cta-pixel="off"');
+  assert.equal(trackCalls.length, 0, 'fbq page-view must NOT be called when data-cta-pixel="off"');
+});
+
+// ---------------------------------------------------------------------------
+// Pixel-init: idempotence guard
+// ---------------------------------------------------------------------------
+
+test('idempotence: running bundle twice → pixel-init fires once, CTA wired once', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundleCode = renderEmbedBundle(TEST_CONFIG);
+
+  const ctx = createVmContext('solo-logica');
+
+  // First run — init fires, __ctaEmbedInit set to true
+  vm.runInContext(bundleCode, ctx.context);
+  // Second run — guard fires immediately, no double-init
+  vm.runInContext(bundleCode, ctx.context);
+
+  const win = ctx.getWindow();
+  assert.equal((win as Record<string, unknown>).__ctaEmbedInit, true, 'guard flag must be set');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const queue: unknown[][] = (win.fbq as any)?.queue ?? [];
+  const initCalls = queue.filter(a => a[0] === 'init');
+  assert.equal(initCalls.length, 1, 'fbq("init") must fire exactly once despite two bundle runs');
+
+  // CTA is still wired (registered on the first run, not duplicated on the second)
+  const btn = ctx.document.querySelector('[data-cta]') as MockElement;
+  assert.ok(typeof btn._listeners['click'] === 'function', 'CTA click listener must be wired');
+});
+
+// ---------------------------------------------------------------------------
+// Pixel-init: resilience — fbq throws
+// ---------------------------------------------------------------------------
+
+test('resilience: window.fbq throws → bundle does not throw, CTA is still wired', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundleCode = renderEmbedBundle(TEST_CONFIG);
+
+  // Pre-existing fbq that throws on every call
+  const throwingFbq = (..._args: unknown[]) => { throw new Error('fbq unavailable in test'); };
+  const ctx = createVmContext('solo-logica', { preExistingFbq: throwingFbq });
+
+  // The bundle must not propagate the fbq exception
+  assert.doesNotThrow(
+    () => { vm.runInContext(bundleCode, ctx.context); },
+    'bundle must not throw when window.fbq throws',
+  );
+
+  // CTA must still be wired despite pixel failure
+  const btn = ctx.document.querySelector('[data-cta]') as MockElement;
+  assert.ok(btn, '[data-cta] button must exist');
+  assert.ok(
+    typeof btn._listeners['click'] === 'function',
+    'CTA click listener must still be wired after fbq failure',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Pixel-init: invalid pixelId
+// ---------------------------------------------------------------------------
+
+test('pixel-init: empty pixelId → fbq NOT called, lead flow unaffected', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const invalidConfig = { ...TEST_CONFIG, pixelId: '' };
+  const bundleCode = renderEmbedBundle(invalidConfig);
+
+  const fbqCalls: unknown[][] = [];
+  const ctx = createVmContext('solo-logica', { preExistingFbq: (...a) => { fbqCalls.push(a); } });
+  vm.runInContext(bundleCode, ctx.context);
+
+  assert.equal(fbqCalls.filter(a => a[0] === 'init').length, 0,
+    'fbq("init") must NOT be called for empty pixelId');
+
+  // CTA flow unaffected — lead submission still wired
+  const btn = ctx.document.querySelector('[data-cta]') as MockElement;
+  assert.ok(typeof btn._listeners['click'] === 'function', 'CTA must still be wired');
+});
+
+test('pixel-init: non-numeric pixelId ("-") → fbq NOT called', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const invalidConfig = { ...TEST_CONFIG, pixelId: '-' };
+  const bundleCode = renderEmbedBundle(invalidConfig);
+
+  const fbqCalls: unknown[][] = [];
+  const ctx = createVmContext('solo-logica', { preExistingFbq: (...a) => { fbqCalls.push(a); } });
+  vm.runInContext(bundleCode, ctx.context);
+
+  assert.equal(fbqCalls.filter(a => a[0] === 'init').length, 0,
+    'fbq("init") must NOT be called for non-numeric pixelId "-"');
+});
+
+// ---------------------------------------------------------------------------
+// Pixel-init: pre-existing fbq (no re-bootstrap)
+// ---------------------------------------------------------------------------
+
+test('pixel-init: pre-existing window.fbq → no re-bootstrap, but init+trackSingle called', async () => {
+  const { renderEmbedBundle } = await import('./bundle.js');
+  const bundleCode = renderEmbedBundle(TEST_CONFIG);
+
+  const fbqCalls: unknown[][] = [];
+  const existingFbq = (...args: unknown[]) => { fbqCalls.push(args); };
+
+  const ctx = createVmContext('solo-logica', { preExistingFbq: existingFbq });
+  vm.runInContext(bundleCode, ctx.context);
+
+  // fbq must NOT be replaced by the bundle (pre-existing wins)
+  assert.strictEqual(ctx.getWindow().fbq, existingFbq, 'window.fbq must not be replaced');
+
+  // But init+trackSingle must still be called on the pre-existing fbq
+  const initCalls = fbqCalls.filter(a => a[0] === 'init');
+  assert.equal(initCalls.length, 1, 'fbq("init") must be called exactly once');
+  assert.equal(initCalls[0]![1], TEST_CONFIG.pixelId, 'init must pass the correct pixelId');
+
+  const trackCalls = fbqCalls.filter(a => a[0] === 'trackSingle');
+  assert.equal(trackCalls.length, 1, 'fbq("trackSingle") must be called exactly once');
+  assert.equal(trackCalls[0]![2], 'PageView', 'trackSingle must pass "PageView"');
 });
