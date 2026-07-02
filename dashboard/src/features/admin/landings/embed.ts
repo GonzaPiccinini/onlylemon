@@ -21,6 +21,8 @@ export type EmbedModeInfo = {
   whatItDoes: string;
   /** Who should pick this — the deciding factor, in the chooser dialog. */
   bestFor: string;
+  /** True for modes that require editing the merchant's own markup — a technical profile. */
+  advanced?: boolean;
 };
 
 /** Single source of truth for every mode's UI copy. Order = display order. */
@@ -46,11 +48,12 @@ export const EMBED_MODE_INFO: Record<EmbedMode, EmbedModeInfo> = {
   "solo-logica": {
     value: "solo-logica",
     label: "Solo lógica",
-    tagline: "Usás tu propio botón",
+    tagline: "Para tu propio código",
     whatItDoes:
-      "El código solo aporta el comportamiento. Vos ponés tu propio botón y el contenedor del captcha usando los atributos indicados.",
+      "El código solo aporta el comportamiento. Vos ponés tu propio botón con el atributo indicado y el script se encarga del resto, incluido el captcha invisible. Necesitás poder editar el HTML de tu botón.",
     bestFor:
       "Querés usar tu propio botón y controlar del todo su diseño y ubicación.",
+    advanced: true,
   },
 };
 
@@ -62,23 +65,42 @@ export const EMBED_MODES: { value: EmbedMode; label: string }[] = Object.values(
 /** Strip the /api suffix from the dashboard API base URL to get the worker root. */
 const workerBase = env.apiBaseUrl.replace(/\/api$/, "");
 
-export function buildSnippet(landingId: string, mode: EmbedMode): string {
+export type SnippetBlock = {
+  /** Optional heading rendered above the block, telling the owner where it goes. */
+  label?: string;
+  code: string;
+};
+
+export function buildSnippetBlocks(landingId: string, mode: EmbedMode): SnippetBlock[] {
   const scriptTag = `<script src="${workerBase}/embed/${landingId}.js" data-cta-mode="${mode}" async></script>`;
+  const scriptBlock: SnippetBlock = {
+    label: "El código · pegalo al final de todo, justo antes de </body>",
+    code: scriptTag,
+  };
 
   if (mode === "boton-flotante") {
-    return scriptTag;
+    // The FAB needs no markup on the page — a single script does everything.
+    return [{ code: scriptTag }];
   }
 
   if (mode === "widget-automontado") {
-    return `<div id="cta-root"></div>\n${scriptTag}`;
+    // The script injects the button wherever this empty div is placed.
+    return [
+      {
+        label: "Dónde va el botón · pegá esto donde querés que aparezca en tu página",
+        code: `<div id="cta-root"></div>`,
+      },
+      scriptBlock,
+    ];
   }
 
-  // solo-logica: owner must provide a [data-cta] button and a [data-cta-captcha] container
+  // solo-logica: the owner already has their own button — they only add the
+  // data-cta attribute to it. No button element or captcha container is provided.
   return [
-    `<!-- Botón de CTA (atributo data-cta requerido) -->`,
-    `<button type="button" data-cta>Contactarse</button>`,
-    `<!-- Contenedor para el captcha (atributo data-cta-captcha requerido) -->`,
-    `<div data-cta-captcha></div>`,
-    scriptTag,
-  ].join("\n");
+    {
+      label: "Tu botón · agregale este atributo al botón que ya tenés en tu página",
+      code: `data-cta`,
+    },
+    scriptBlock,
+  ];
 }
