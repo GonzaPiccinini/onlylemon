@@ -372,65 +372,35 @@ test('widget-automontado mode: bundle injects button into #cta-root and wires cl
 // Mode 3: boton-flotante
 // ---------------------------------------------------------------------------
 
-test('boton-flotante mode: bundle injects FAB and modal; modal submit click → window.open', async () => {
+test('boton-flotante mode: bundle injects a FAB (no modal); FAB click → lead POST → window.open', async () => {
   const { renderEmbedBundle } = await import('./bundle.js');
   const bundleCode = renderEmbedBundle(TEST_CONFIG);
 
   const ctx = createVmContext('boton-flotante');
 
-  // Execute the bundle (should append FAB + modal to document.body)
+  // Execute the bundle (should append the FAB to document.body)
   vm.runInContext(bundleCode, ctx.context);
 
   const body = ctx.document.body as MockElement;
-  assert.ok(body._children.length >= 2, 'body must have at least 2 children (FAB + modal)');
+  assert.ok(body._children.length >= 1, 'body must have the FAB child');
 
-  // First child: FAB button
+  // The FAB — icon-only, wired straight to the lead flow (no modal step).
   const fab = body._children[0];
   assert.ok(fab, 'FAB element must exist');
   assert.equal(fab._attrs['id'], 'cta-fab', 'FAB must have id="cta-fab"');
   assert.ok(typeof fab._listeners['click'] === 'function', 'FAB must have a click listener');
 
-  // Second child: modal — must be HIDDEN on page load.
-  // Regression guard: a prior version set inline display:flex, which overrode
-  // the UA [hidden]{display:none} rule in the cascade, so the modal appeared on
-  // page load, darkening the whole page.
-  const modal = body._children[1];
-  assert.ok(modal, 'Modal element must exist');
-  assert.equal(modal._attrs['id'], 'cta-modal', 'modal must have id="cta-modal"');
-  assert.ok('hidden' in modal._attrs, 'modal must have the [hidden] attribute on load');
-  assert.equal(modal.style.display, 'none', 'modal must be display:none on load (must NOT appear before FAB click)');
+  // Regression guard: the modal was removed — clicking the FAB opens WhatsApp
+  // directly instead of showing a middle-of-screen popup. Nothing with
+  // id="cta-modal" must be injected anymore.
+  const modal = body._children.find((c) => c._attrs['id'] === 'cta-modal');
+  assert.ok(!modal, 'no modal must be injected — the FAB opens WhatsApp directly');
 
-  // Trigger FAB click (opens modal)
-  (fab._listeners['click'] as () => void)();
-
-  // After FAB click, modal is visible: hidden attribute removed AND display:flex
-  assert.ok(!('hidden' in modal._attrs), 'modal must be visible after FAB click');
-  assert.equal(modal.style.display, 'flex', 'modal must be display:flex after FAB click');
-
-  // Find submit button inside modal (nested inside modalInner)
-  // Structure: modal > [closeBtn, modalInner > [captchaDiv, submitBtn]]
-  // The submit button is the last child of modalInner
-  let submitBtn: MockElement | undefined;
-  function findById(el: MockElement, id: string): MockElement | undefined {
-    if (el._attrs['id'] === id) return el;
-    for (const child of el._children) {
-      const found = findById(child, id);
-      if (found) return found;
-    }
-    return undefined;
-  }
-  submitBtn = findById(modal, 'cta-modal-submit');
-  assert.ok(submitBtn, 'modal submit button (id="cta-modal-submit") must exist');
-  assert.ok(
-    typeof submitBtn!._listeners['click'] === 'function',
-    'modal submit button must have a click listener',
-  );
-
-  // Trigger submit click → lead POST → window.open
-  await (submitBtn!._listeners['click'] as () => Promise<void>)();
+  // Trigger the FAB click → lead POST → window.open (no intermediate submit).
+  await (fab._listeners['click'] as () => Promise<void>)();
 
   const waUrl = ctx.getWindowOpen();
-  assert.ok(waUrl !== undefined, 'window.open must be called after modal submit click');
+  assert.ok(waUrl !== undefined, 'window.open must be called after FAB click');
   assert.ok(waUrl!.startsWith('https://wa.me/'), `URL must start with https://wa.me/, got: ${waUrl}`);
   assert.ok(waUrl!.includes(MOCK_LEAD_RESPONSE.number), 'URL must contain the phone number');
   assert.ok(

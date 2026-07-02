@@ -246,14 +246,15 @@ test('bundle contains widget-automontado mode branch with cta-root', async () =>
   assert.ok(bundle.includes('cta-root'), 'widget-automontado must reference cta-root id');
 });
 
-test('bundle contains boton-flotante mode branch with FAB and modal', async () => {
+test('bundle contains boton-flotante mode branch with a FAB and NO modal', async () => {
   const { renderEmbedBundle } = await import('./bundle.js');
 
   const bundle = renderEmbedBundle(FIXTURE_CONFIG);
   assert.ok(bundle.includes("'boton-flotante'") || bundle.includes('"boton-flotante"'),
     'bundle must have boton-flotante branch');
   assert.ok(bundle.includes('cta-fab'), 'boton-flotante must create FAB element');
-  assert.ok(bundle.includes('cta-modal'), 'boton-flotante must create modal element');
+  assert.ok(!bundle.includes('cta-modal'),
+    'boton-flotante must NOT create a modal — the FAB opens WhatsApp directly');
 });
 
 // ---------------------------------------------------------------------------
@@ -343,12 +344,12 @@ test('createAltchaChallenge returns maxnumber=50000 for fast client pre-solve', 
 });
 
 // ---------------------------------------------------------------------------
-// RUNTIME_VERSION bump — FAB/modal/widget UI fix release
+// RUNTIME_VERSION bump — FAB opens WhatsApp directly (modal removed)
 // ---------------------------------------------------------------------------
 
-test('RUNTIME_VERSION is 1.3.0 (FAB icon + modal visibility + widget style fix invalidates ETags)', async () => {
+test('RUNTIME_VERSION is 1.4.0 (FAB direct-open, modal removed, invalidates ETags)', async () => {
   const { RUNTIME_VERSION } = await import('./bundle.js');
-  assert.equal(RUNTIME_VERSION, '1.3.0', 'RUNTIME_VERSION must be bumped to 1.3.0 for the embed UI fix release');
+  assert.equal(RUNTIME_VERSION, '1.4.0', 'RUNTIME_VERSION must be bumped to 1.4.0 for the FAB direct-open release');
 });
 
 // ---------------------------------------------------------------------------

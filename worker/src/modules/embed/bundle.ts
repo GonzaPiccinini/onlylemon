@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
  * Bump this constant to invalidate all ETags globally (forces CDN re-fetch
  * after a runtime logic change, independent of per-landing config changes).
  */
-export const RUNTIME_VERSION = '1.3.0';
+export const RUNTIME_VERSION = '1.4.0';
 
 export type EmbedConfig = {
   landingId: string;
@@ -91,7 +91,7 @@ export async function solveAltchaChallenge(ch: {
  *   - Branches on `data-cta-mode` for 3 runtime modes:
  *       solo-logica       — wires owner-provided button + captcha container
  *       widget-automontado — injects button + captcha into #cta-root
- *       boton-flotante    — injects fixed FAB + modal (captcha lazy-init on open)
+ *       boton-flotante    — injects a fixed FAB that triggers the lead flow directly
  *
  * SECURITY: config is serialized with safeJsonSerialize (XSS-safe).
  *           accessToken is never in EmbedConfig and never reaches this function.
@@ -312,8 +312,9 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     var text = encodeURIComponent(msg + ' CODIGO:' + data.code);
     var waUrl = 'https://wa.me/' + data.number + '?text=' + text;
 
-    // Update button label just before navigating (skip for solo-logica — not our button)
-    if (btn && ctaMode !== 'solo-logica') {
+    // Update button label just before navigating. Only the widget button carries
+    // a text label — solo-logica isn't our button, and the FAB is icon-only.
+    if (btn && ctaMode === 'widget-automontado') {
       setBtnLabel(btn, 'Abriendo WhatsApp\\u2026');
     }
 
@@ -348,6 +349,9 @@ export function renderEmbedBundle(config: EmbedConfig): string {
       btn.disabled = true;
       if (ctaMode === 'solo-logica') {
         btn.setAttribute('data-cta-state', 'loading');
+      } else if (ctaMode === 'boton-flotante') {
+        // Icon-only FAB — dim it while working; never overwrite the icon with text.
+        btn.style.opacity = '0.6';
       } else {
         setBtnLabel(btn, 'Conectando\\u2026');
       }
@@ -368,6 +372,9 @@ export function renderEmbedBundle(config: EmbedConfig): string {
         btn.disabled = false;
         if (ctaMode === 'solo-logica') {
           btn.setAttribute('data-cta-state', 'error');
+        } else if (ctaMode === 'boton-flotante') {
+          // Restore the FAB so the visitor can retry; keep the icon intact.
+          btn.style.opacity = '1';
         } else {
           setBtnLabel(btn, 'No pudimos conectarte, reintent\\u00e1');
         }
@@ -443,9 +450,12 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     }
   }
 
-  // ── Mode: boton-flotante (FAB + modal) ─────────────────────────────────────
-  // Owner markup: none — script injects everything.
-  // A fixed floating button (FAB) opens a modal; submit in the modal triggers lead.
+  // ── Mode: boton-flotante (FAB → WhatsApp, no modal) ────────────────────────
+  // Owner markup: none — script injects the FAB only.
+  // Clicking the FAB triggers the lead flow directly (POST /api/leads → open
+  // WhatsApp). There is no intermediate modal: the captcha is an invisible PoW
+  // solved in the background, so a confirmation step only cost an extra click
+  // without protecting anything.
   else if (ctaMode === 'boton-flotante') {
     // FAB — fixed, round, WhatsApp green, with the same message-circle icon the
     // dashboard preview shows (replaces the OS-dependent 💬 emoji that rendered
@@ -453,7 +463,7 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     var fab = document.createElement('button');
     fab.setAttribute('type', 'button');
     fab.setAttribute('id', 'cta-fab');
-    fab.setAttribute('aria-label', 'Contactarse');
+    fab.setAttribute('aria-label', 'Contactar por WhatsApp');
     fab.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;border:none;' +
       'cursor:pointer;border-radius:50%;width:56px;height:56px;background:#25D366;color:#fff;' +
       'display:flex;align-items:center;justify-content:center;' +
@@ -461,73 +471,10 @@ export function renderEmbedBundle(config: EmbedConfig): string {
     fab.innerHTML = ctaIcon(28);
     document.body.appendChild(fab);
 
-    // Modal — hidden on load via BOTH the [hidden] attribute (semantics/a11y)
-    // and inline display:none (visual). The previous version set inline
-    // display:flex, which overrode the UA stylesheet's [hidden]{display:none}
-    // in the cascade, so the modal appeared on page load. Toggled below.
-    var modal = document.createElement('div');
-    modal.setAttribute('id', 'cta-modal');
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('hidden', '');
-    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.55);' +
-      'align-items:center;justify-content:center;padding:16px;';
-    modal.style.display = 'none';
-
-    var modalInner = document.createElement('div');
-    modalInner.style.cssText = 'position:relative;background:#fff;border-radius:14px;padding:24px;' +
-      'width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px;' +
-      'box-shadow:0 12px 40px rgba(0,0,0,0.35);';
-
-    var modalTitle = document.createElement('div');
-    modalTitle.textContent = 'Contactar por WhatsApp';
-    modalTitle.style.cssText = 'font-size:17px;font-weight:700;color:#111827;' +
-      'text-align:center;padding:0 16px;';
-
-    var captchaModalDiv = document.createElement('div');
-    captchaModalDiv.setAttribute('data-cta-captcha', '');
-
-    var submitBtn = document.createElement('button');
-    submitBtn.setAttribute('type', 'button');
-    submitBtn.setAttribute('id', 'cta-modal-submit');
-    submitBtn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;' +
-      'padding:12px 24px;background:#25D366;color:#fff;border:none;border-radius:10px;' +
-      'cursor:pointer;font-size:16px;font-weight:600;line-height:1;';
-    submitBtn.innerHTML = ctaIcon(18) + '<span class="cta-label">Contactarse</span>';
-
-    var closeBtn = document.createElement('button');
-    closeBtn.setAttribute('type', 'button');
-    closeBtn.setAttribute('id', 'cta-modal-close');
-    closeBtn.setAttribute('aria-label', 'Cerrar');
-    closeBtn.style.cssText = 'position:absolute;top:8px;right:10px;background:none;border:none;' +
-      'font-size:22px;line-height:1;color:#6b7280;cursor:pointer;';
-    closeBtn.textContent = '\\u00D7'; // ×
-
-    modalInner.appendChild(closeBtn);
-    modalInner.appendChild(modalTitle);
-    modalInner.appendChild(captchaModalDiv);
-    modalInner.appendChild(submitBtn);
-    modal.appendChild(modalInner);
-    document.body.appendChild(modal);
-
-    function openCtaModal() {
-      modal.removeAttribute('hidden');
-      modal.style.display = 'flex';
-    }
-    function closeCtaModal() {
-      modal.setAttribute('hidden', '');
-      modal.style.display = 'none';
-    }
-
-    // Open on FAB click; close on × or on a backdrop click (outside the box).
-    fab.addEventListener('click', openCtaModal);
-    closeBtn.addEventListener('click', closeCtaModal);
-    modal.addEventListener('click', function (e) {
-      if (e.target === modal) closeCtaModal();
-    });
-
-    // Submit lead on modal submit button
-    submitBtn.addEventListener('click', function (e) { return handleClick(e, submitBtn); });
+    // Click the FAB → run the lead flow directly. The click is a user gesture,
+    // so the synchronous window.open('about:blank') in handleClick is allowed
+    // by mobile popup policy.
+    fab.addEventListener('click', function (e) { return handleClick(e, fab); });
     prepareCaptcha();
   }
 
