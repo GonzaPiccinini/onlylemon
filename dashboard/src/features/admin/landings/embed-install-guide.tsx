@@ -45,7 +45,7 @@ function ModeRequirement({ mode }: { mode: EmbedMode }) {
 
   return (
     <Alert>
-      <AlertTitle>Este modo es para perfiles técnicos</AlertTitle>
+      <AlertTitle>Qué necesita tu página</AlertTitle>
       <AlertDescription>
         Tu página debe incluir un elemento con el atributo <Mono>data-cta</Mono> (el botón que dispara
         el contacto) y un contenedor con el atributo <Mono>data-cta-captcha</Mono> (donde se muestra el
