@@ -418,7 +418,9 @@ export function renderEmbedBundle(config: EmbedConfig): string {
   }
 
   // ── Mode: solo-logica ──────────────────────────────────────────────────────
-  // Owner markup: own button (matching ctaTarget) + [data-cta-captcha] container.
+  // Owner markup: just their own button (matching ctaTarget). No captcha
+  // container — the captcha is an invisible proof-of-work solved in the
+  // background (see prepareCaptcha), never a DOM element the owner provides.
   // Script only wires the click handler — no DOM injection.
   if (ctaMode === 'solo-logica') {
     var btn = document.querySelector(ctaTarget);
