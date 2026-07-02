@@ -21,6 +21,8 @@ export type EmbedModeInfo = {
   whatItDoes: string;
   /** Who should pick this — the deciding factor, in the chooser dialog. */
   bestFor: string;
+  /** True for modes that require editing the merchant's own markup — a technical profile. */
+  advanced?: boolean;
 };
 
 /** Single source of truth for every mode's UI copy. Order = display order. */
@@ -46,11 +48,12 @@ export const EMBED_MODE_INFO: Record<EmbedMode, EmbedModeInfo> = {
   "solo-logica": {
     value: "solo-logica",
     label: "Solo lógica",
-    tagline: "Usás tu propio botón",
+    tagline: "Para tu propio código",
     whatItDoes:
-      "El código solo aporta el comportamiento. Vos ponés tu propio botón con el atributo indicado y el script se encarga del resto, incluido el captcha invisible.",
+      "El código solo aporta el comportamiento. Vos ponés tu propio botón con el atributo indicado y el script se encarga del resto, incluido el captcha invisible. Necesitás poder editar el HTML de tu botón.",
     bestFor:
       "Querés usar tu propio botón y controlar del todo su diseño y ubicación.",
+    advanced: true,
   },
 };
 

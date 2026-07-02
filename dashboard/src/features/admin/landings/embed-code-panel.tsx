@@ -8,6 +8,8 @@ import { buildSnippetBlocks, EMBED_MODE_INFO, EMBED_MODES, type EmbedMode } from
 import { MODE_ICON } from "./embed-shared";
 import { EmbedModeHelpDialog } from "./embed-mode-help-dialog";
 import { EmbedInstallGuide } from "./embed-install-guide";
+import { MODE_EXAMPLE } from "./embed-install";
+import { HighlightedSnippet } from "./highlighted-snippet";
 
 type EmbedCodePanelProps = {
   landing: Landing;
@@ -101,7 +103,12 @@ export const EmbedCodePanel = ({ landing, mode, onModeChange }: EmbedCodePanelPr
         ))}
       </div>
 
-      <EmbedInstallGuide mode={mode} />
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">Cómo se aplica</span>
+        <HighlightedSnippet example={MODE_EXAMPLE[mode]} />
+      </div>
+
+      <EmbedInstallGuide mode={mode} onModeChange={onModeChange} />
     </div>
   );
 };
