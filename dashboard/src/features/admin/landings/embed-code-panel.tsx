@@ -5,7 +5,7 @@ import { CodeBlock } from "@/components/ui/code-block";
 import type { Landing } from "@/types/domain";
 import { EmbedPreview } from "./embed-preview";
 import { buildSnippet, EMBED_MODE_INFO, EMBED_MODES, type EmbedMode } from "./embed";
-import { DifficultyBadge, MODE_ICON } from "./embed-shared";
+import { MODE_ICON } from "./embed-shared";
 import { EmbedModeHelpDialog } from "./embed-mode-help-dialog";
 import { EmbedInstallGuide } from "./embed-install-guide";
 
@@ -29,7 +29,6 @@ function ModeIntroCard({ mode }: { mode: EmbedMode }) {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-heading text-sm font-semibold">{info.label}</span>
           <span className="text-xs text-muted-foreground">· {info.tagline}</span>
-          <DifficultyBadge difficulty={info.difficulty} className="ml-auto" />
         </div>
         <p className="text-sm text-muted-foreground">{info.whatItDoes}</p>
       </div>
@@ -56,7 +55,7 @@ function SecurityFeature() {
 /**
  * The signature panel: pick an integration mode via a segmented control, learn
  * what it does in plain language, preview it, copy the snippet, and follow a
- * step-by-step install guide tailored to non-technical users.
+ * step-by-step install guide in plain, jargon-free language.
  */
 export const EmbedCodePanel = ({ landing, mode, onModeChange }: EmbedCodePanelProps) => {
   const snippet = buildSnippet(landing.id, mode);

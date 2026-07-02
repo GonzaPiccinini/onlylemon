@@ -1,7 +1,6 @@
 import { AppWindow, Code2, MessageCircle, type LucideIcon } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import { EMBED_DIFFICULTY_LABEL, type EmbedDifficulty, type EmbedMode } from "./embed";
+import { type EmbedMode } from "./embed";
 
 // ---------------------------------------------------------------------------
 // Shared atoms for the integration ("Integración") panel — kept in one place so
@@ -16,33 +15,6 @@ export const MODE_ICON: Record<EmbedMode, LucideIcon> = {
   "widget-automontado": AppWindow,
   "solo-logica": Code2,
 };
-
-const DIFFICULTY_STYLES: Record<EmbedDifficulty, string> = {
-  facil: "bg-primary/15 text-primary",
-  intermedio: "bg-warning/15 text-warning",
-  avanzado: "bg-muted text-muted-foreground",
-};
-
-/** Small pill communicating how hard a mode is to install. */
-export function DifficultyBadge({
-  difficulty,
-  className,
-}: {
-  difficulty: EmbedDifficulty;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none",
-        DIFFICULTY_STYLES[difficulty],
-        className,
-      )}
-    >
-      {EMBED_DIFFICULTY_LABEL[difficulty]}
-    </span>
-  );
-}
 
 /** A friendly, plain-language ordered list with circular step numbers. */
 export function NumberedSteps({ steps }: { steps: string[] }) {

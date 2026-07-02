@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { EMBED_MODE_INFO, type EmbedMode } from "./embed";
-import { DifficultyBadge, MODE_ICON } from "./embed-shared";
+import { MODE_ICON } from "./embed-shared";
 
 type EmbedModeHelpDialogProps = {
   mode: EmbedMode;
@@ -67,7 +67,6 @@ export function EmbedModeHelpDialog({ mode, onSelect }: EmbedModeHelpDialogProps
                 <span className="min-w-0 flex-1 space-y-1">
                   <span className="flex items-center gap-2">
                     <span className="font-medium">{info.label}</span>
-                    <DifficultyBadge difficulty={info.difficulty} className="ml-auto" />
                   </span>
                   <span className="block text-xs text-muted-foreground">{info.whatItDoes}</span>
                   <span className="block text-xs text-foreground/70">
@@ -80,8 +79,8 @@ export function EmbedModeHelpDialog({ mode, onSelect }: EmbedModeHelpDialogProps
         </div>
 
         <p className="text-xs text-muted-foreground">
-          ¿Dudás? Elegí <span className="font-medium text-foreground">Botón flotante</span>: es el más
-          simple y funciona en cualquier página.
+          ¿Dudás? Elegí <span className="font-medium text-foreground">Botón flotante</span>: aparece
+          solo en tu página y funciona en cualquier lado.
         </p>
       </DialogContent>
     </Dialog>

@@ -7,9 +7,6 @@ import { env } from "@/config/env";
 
 export type EmbedMode = "boton-flotante" | "widget-automontado" | "solo-logica";
 
-/** Relative effort to install a mode — drives the badge and the chooser copy. */
-export type EmbedDifficulty = "facil" | "intermedio" | "avanzado";
-
 /**
  * Plain-language description of each mode, written for shop owners who don't
  * code. Powers the mode intro card and the "¿cuál me conviene?" chooser dialog.
@@ -20,7 +17,6 @@ export type EmbedModeInfo = {
   label: string;
   /** Two/three-word essence shown next to the label. */
   tagline: string;
-  difficulty: EmbedDifficulty;
   /** What the visitor actually sees/does on the merchant's page. */
   whatItDoes: string;
   /** Who should pick this — the deciding factor, in the chooser dialog. */
@@ -32,18 +28,16 @@ export const EMBED_MODE_INFO: Record<EmbedMode, EmbedModeInfo> = {
   "boton-flotante": {
     value: "boton-flotante",
     label: "Botón flotante",
-    tagline: "Lo más fácil",
-    difficulty: "facil",
+    tagline: "Aparece solo en tu página",
     whatItDoes:
-      "Aparece un botón de WhatsApp fijo, abajo a la derecha de tu página. Al tocarlo se abre el formulario de contacto.",
+      "Aparece un botón de WhatsApp fijo, abajo a la derecha de tu página. Al tocarlo se abre WhatsApp directamente, sin pasos intermedios.",
     bestFor:
-      "Es tu primera vez o querés la instalación más simple: pegás un solo código y ya funciona.",
+      "Querés pegar un solo código y que el botón aparezca solo, sin tocar el diseño de tu página.",
   },
   "widget-automontado": {
     value: "widget-automontado",
     label: "Widget",
     tagline: "Integrado en tu página",
-    difficulty: "intermedio",
     whatItDoes:
       "El botón «Contactarse» aparece dentro del contenido de tu página, en el lugar exacto donde vos lo coloques.",
     bestFor:
@@ -52,12 +46,11 @@ export const EMBED_MODE_INFO: Record<EmbedMode, EmbedModeInfo> = {
   "solo-logica": {
     value: "solo-logica",
     label: "Solo lógica",
-    tagline: "Para quien maneja código",
-    difficulty: "avanzado",
+    tagline: "Usás tu propio botón",
     whatItDoes:
       "El código solo aporta el comportamiento. Vos ponés tu propio botón y el contenedor del captcha usando los atributos indicados.",
     bestFor:
-      "Tenés a alguien técnico y querés control total sobre el diseño y la ubicación del botón.",
+      "Querés usar tu propio botón y controlar del todo su diseño y ubicación.",
   },
 };
 
@@ -65,13 +58,6 @@ export const EMBED_MODE_INFO: Record<EmbedMode, EmbedModeInfo> = {
 export const EMBED_MODES: { value: EmbedMode; label: string }[] = Object.values(
   EMBED_MODE_INFO,
 ).map(({ value, label }) => ({ value, label }));
-
-/** Human-readable badge text for each difficulty level. */
-export const EMBED_DIFFICULTY_LABEL: Record<EmbedDifficulty, string> = {
-  facil: "Fácil",
-  intermedio: "Intermedio",
-  avanzado: "Avanzado",
-};
 
 /** Strip the /api suffix from the dashboard API base URL to get the worker root. */
 const workerBase = env.apiBaseUrl.replace(/\/api$/, "");

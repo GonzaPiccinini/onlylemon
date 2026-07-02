@@ -16,7 +16,8 @@ import type { EmbedMode } from "./embed";
 // Visual traits are lifted from the worker embed runtime
 // (worker/src/modules/embed/bundle.ts):
 //   - boton-flotante:    fixed round FAB, bottom-right (24px), 56px, WhatsApp
-//                        green (#25d366), 💬 icon, white — opens a modal.
+//                        green (#25d366), message-circle icon, white — opens
+//                        WhatsApp directly (no modal).
 //   - widget-automontado: a "Contactarse" button + [data-cta-captcha] container
 //                        injected into <div id="cta-root">.
 //   - solo-logica:       the merchant's OWN [data-cta] button + [data-cta-captcha]
