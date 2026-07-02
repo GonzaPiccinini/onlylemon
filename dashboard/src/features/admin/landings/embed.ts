@@ -48,7 +48,7 @@ export const EMBED_MODE_INFO: Record<EmbedMode, EmbedModeInfo> = {
     label: "Solo lógica",
     tagline: "Usás tu propio botón",
     whatItDoes:
-      "El código solo aporta el comportamiento. Vos ponés tu propio botón y el contenedor del captcha usando los atributos indicados.",
+      "El código solo aporta el comportamiento. Vos ponés tu propio botón con el atributo indicado y el script se encarga del resto, incluido el captcha invisible.",
     bestFor:
       "Querés usar tu propio botón y controlar del todo su diseño y ubicación.",
   },
@@ -62,23 +62,34 @@ export const EMBED_MODES: { value: EmbedMode; label: string }[] = Object.values(
 /** Strip the /api suffix from the dashboard API base URL to get the worker root. */
 const workerBase = env.apiBaseUrl.replace(/\/api$/, "");
 
-export function buildSnippet(landingId: string, mode: EmbedMode): string {
+export type SnippetBlock = {
+  /** Optional heading rendered above the block, telling the owner where it goes. */
+  label?: string;
+  code: string;
+};
+
+export function buildSnippetBlocks(landingId: string, mode: EmbedMode): SnippetBlock[] {
   const scriptTag = `<script src="${workerBase}/embed/${landingId}.js" data-cta-mode="${mode}" async></script>`;
 
   if (mode === "boton-flotante") {
-    return scriptTag;
+    return [{ code: scriptTag }];
   }
 
   if (mode === "widget-automontado") {
-    return `<div id="cta-root"></div>\n${scriptTag}`;
+    return [{ code: `<div id="cta-root"></div>\n${scriptTag}` }];
   }
 
-  // solo-logica: owner must provide a [data-cta] button and a [data-cta-captcha] container
+  // solo-logica: the owner supplies their own [data-cta] button. The captcha is
+  // an invisible proof-of-work solved by the script, so no container is needed.
+  // Two blocks so a non-technical owner knows where each part goes.
   return [
-    `<!-- Botón de CTA (atributo data-cta requerido) -->`,
-    `<button type="button" data-cta>Contactarse</button>`,
-    `<!-- Contenedor para el captcha (atributo data-cta-captcha requerido) -->`,
-    `<div data-cta-captcha></div>`,
-    scriptTag,
-  ].join("\n");
+    {
+      label: "El botón · pegalo donde quieras que aparezca",
+      code: `<button type="button" data-cta>Contactarse</button>`,
+    },
+    {
+      label: "El script · pegalo al final de todo, antes de </body>",
+      code: scriptTag,
+    },
+  ];
 }

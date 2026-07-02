@@ -47,10 +47,9 @@ function ModeRequirement({ mode }: { mode: EmbedMode }) {
     <Alert>
       <AlertTitle>Qué necesita tu página</AlertTitle>
       <AlertDescription>
-        Tu página debe incluir un elemento con el atributo <Mono>data-cta</Mono> (el botón que dispara
-        el contacto) y un contenedor con el atributo <Mono>data-cta-captcha</Mono> (donde se muestra el
-        captcha). El código de arriba ya incluye un ejemplo listo para pegar antes de{" "}
-        <Mono>&lt;/body&gt;</Mono>.
+        Tu página necesita un botón con el atributo <Mono>data-cta</Mono>: ese es el que dispara el
+        contacto. Los dos bloques de arriba ya te dan un ejemplo listo —pegá el botón donde quieras
+        que aparezca y el script al final de la página, antes de <Mono>&lt;/body&gt;</Mono>.
       </AlertDescription>
     </Alert>
   );

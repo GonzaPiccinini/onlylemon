@@ -4,7 +4,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CodeBlock } from "@/components/ui/code-block";
 import type { Landing } from "@/types/domain";
 import { EmbedPreview } from "./embed-preview";
-import { buildSnippet, EMBED_MODE_INFO, EMBED_MODES, type EmbedMode } from "./embed";
+import { buildSnippetBlocks, EMBED_MODE_INFO, EMBED_MODES, type EmbedMode } from "./embed";
 import { MODE_ICON } from "./embed-shared";
 import { EmbedModeHelpDialog } from "./embed-mode-help-dialog";
 import { EmbedInstallGuide } from "./embed-install-guide";
@@ -58,7 +58,7 @@ function SecurityFeature() {
  * step-by-step install guide in plain, jargon-free language.
  */
 export const EmbedCodePanel = ({ landing, mode, onModeChange }: EmbedCodePanelProps) => {
-  const snippet = buildSnippet(landing.id, mode);
+  const blocks = buildSnippetBlocks(landing.id, mode);
 
   return (
     <div className="flex flex-col gap-4">
@@ -89,9 +89,16 @@ export const EmbedCodePanel = ({ landing, mode, onModeChange }: EmbedCodePanelPr
         <EmbedPreview mode={mode} />
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <span className="text-sm font-medium">Tu código</span>
-        <CodeBlock code={snippet} copyLabel="Copiar código" />
+        {blocks.map((block, index) => (
+          <div key={block.label ?? `block-${index}`} className="flex flex-col gap-1.5">
+            {block.label && (
+              <span className="text-xs text-muted-foreground">{block.label}</span>
+            )}
+            <CodeBlock code={block.code} copyLabel="Copiar código" />
+          </div>
+        ))}
       </div>
 
       <EmbedInstallGuide mode={mode} />
