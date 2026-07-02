@@ -56,7 +56,7 @@ export const INTEGRATION: Record<EmbedMode, Record<PlatformId, IntegrationGuide>
       steps: [
         "Abrí el editor de código de tu página (o el archivo .html).",
         "Buscá la etiqueta </body>, casi al final del código.",
-        "Pegá el código que copiaste justo antes de esa etiqueta.",
+        "Pegá el código que copiaste justo antes de esa etiqueta </body>.",
         "Guardá y publicá los cambios.",
       ],
     },
@@ -120,7 +120,7 @@ export const INTEGRATION: Record<EmbedMode, Record<PlatformId, IntegrationGuide>
         "Abrí el editor de código de tu página (o el archivo .html).",
         "Pegá el bloque <div id=\"cta-root\"></div> en el lugar exacto donde querés que aparezca el botón.",
         "Buscá la etiqueta </body>, casi al final del código.",
-        "Pegá el segundo bloque (el código) justo antes de esa etiqueta.",
+        "Pegá el segundo bloque (el código) justo antes de esa etiqueta </body>.",
         "Guardá y publicá los cambios.",
       ],
     },
@@ -177,7 +177,7 @@ export const INTEGRATION: Record<EmbedMode, Record<PlatformId, IntegrationGuide>
         "Abrí el editor de código de tu página (o el archivo .html).",
         "Buscá el botón que ya tenés y agregale el atributo data-cta.",
         "Buscá la etiqueta </body>, casi al final del código.",
-        "Pegá el código que copiaste justo antes de esa etiqueta.",
+        "Pegá el código que copiaste justo antes de esa etiqueta </body>.",
         "Guardá y publicá los cambios.",
       ],
     },
@@ -229,30 +229,72 @@ export const INTEGRATION: Record<EmbedMode, Record<PlatformId, IntegrationGuide>
   },
 };
 
-export type ModeExample = {
-  /** Code shown; the `highlight` substring within it is painted as "what you add". */
-  code: string;
-  /** Substring of `code` to paint. If omitted, the whole `code` is painted. */
-  highlight?: string;
-  /** For solo-logica: the "before" state shown above `code`, dimmed, unpainted. */
+export type ExamplePart = {
+  /** Small heading above this snippet (e.g. "El script", "El botón"). */
+  label: string;
+  /** The "before" state for an attribute edit — shown dimmed above `code`. */
   before?: string;
-  /** Short caption under the example. */
+  /** Code shown WITH surrounding context; the `highlight` substring is painted. */
+  code: string;
+  /** Substring of `code` to paint as "what you add". If omitted, the whole `code` is painted. */
+  highlight?: string;
+  /** Line above the snippet explaining what to do. */
   caption: string;
 };
 
+export type ModeExample = {
+  /** One or more example snippets, each shown in realistic HTML context. */
+  parts: ExamplePart[];
+  /** Warning under the example: what breaks if the owner skips a piece. */
+  warning: string;
+};
+
+// The <script> every mode needs, shown in context right before </body> so the
+// owner sees WHERE it goes, not an isolated tag. `…` stands for the rest of the
+// page; `highlight` is the exact line to paste.
+function scriptPart(mode: EmbedMode): ExamplePart {
+  const script = `<script src="https://…/tu-boton.js" data-cta-mode="${mode}" async></script>`;
+  return {
+    label: "El script",
+    caption: "Y el script, justo antes de la etiqueta </body>:",
+    code: `    …\n    ${script}\n  </body>\n</html>`,
+    highlight: script,
+  };
+}
+
 export const MODE_EXAMPLE: Record<EmbedMode, ModeExample> = {
   "boton-flotante": {
-    code: `<script src="https://…/tu-boton.js" data-cta-mode="boton-flotante" async></script>`,
-    caption: "Pegás este código tal cual. No hay que tocar el diseño de tu página.",
+    parts: [
+      {
+        ...scriptPart("boton-flotante"),
+        caption: "Pegás el script tal cual, justo antes de la etiqueta </body>:",
+      },
+    ],
+    warning: "Si no pegás el script, el botón de WhatsApp no aparece.",
   },
   "widget-automontado": {
-    code: `<div id="cta-root"></div>`,
-    caption: "Pegás este bloque en el lugar donde querés que aparezca el botón.",
+    parts: [
+      {
+        label: "El botón",
+        caption: "Pegás este bloque donde querés que aparezca el botón:",
+        code: `<!-- donde querés que aparezca el botón -->\n<div id="cta-root"></div>`,
+        highlight: `<div id="cta-root"></div>`,
+      },
+      scriptPart("widget-automontado"),
+    ],
+    warning: "Si falta el <div> o el script, el botón no aparece.",
   },
   "solo-logica": {
-    before: `<button>Contactar</button>`,
-    code: `<button data-cta>Contactar</button>`,
-    highlight: "data-cta",
-    caption: "Le agregás data-cta a tu botón, así:",
+    parts: [
+      {
+        label: "Tu botón",
+        caption: "Le agregás data-cta al botón que ya tenés en tu página:",
+        before: `<button>Contactar</button>`,
+        code: `<button data-cta>Contactar</button>`,
+        highlight: "data-cta",
+      },
+      scriptPart("solo-logica"),
+    ],
+    warning: "Si falta el atributo data-cta o el script, tu botón no va a funcionar.",
   },
 };

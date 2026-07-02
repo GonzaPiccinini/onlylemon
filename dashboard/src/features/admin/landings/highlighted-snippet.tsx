@@ -1,49 +1,49 @@
 import { type ReactNode } from "react";
+import { TriangleAlert } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { type ModeExample } from "./embed-install";
+import { type ExamplePart, type ModeExample } from "./embed-install";
 
 // ---------------------------------------------------------------------------
-// Presentational-only: renders a `ModeExample` and visibly PAINTS the piece
-// the owner has to add, so the "what changes" reads at a glance without a
-// full syntax highlighter. Mirrors `CodeBlock`'s surface (rounded, bordered,
-// bg-background, mono) but skips the copy button and line numbers — this is
-// a teaching snippet, not something meant to be copied verbatim.
+// Presentational-only: renders a `ModeExample` as one or more snippets shown in
+// realistic HTML context, PAINTING the exact piece the owner has to add (the
+// <div>, the data-cta attribute, or the <script>). Seeing the piece surrounded
+// by context (e.g. the <script> sitting right before </body></html>) tells a
+// non-technical owner WHERE it goes, not just what it is. A warning below spells
+// out what breaks if they skip a piece.
 //
 // The painted piece is never injected as HTML: `code` is split around the
-// `highlight` substring with a plain `indexOf` and rendered as React text
-// nodes, so arbitrary content stays inert (no dangerouslySetInnerHTML).
+// `highlight` substring with a plain `indexOf` and rendered as React text nodes
+// (no dangerouslySetInnerHTML). Context (the un-highlighted remainder) is dimmed
+// so the addition stands out.
 // ---------------------------------------------------------------------------
 
-/** Distinguishable by weight + ring, not just color, so it isn't relying on hue alone. */
+/** Distinguishable by weight + ring, not color alone, so it isn't relying on hue. */
 const PAINTED_CLASS = "rounded bg-primary/15 px-1 font-semibold text-primary ring-1 ring-primary/30";
 
 /**
- * Renders `code` as inline mono text with the `highlight` substring painted
- * as "what you add". If `highlight` is omitted (or not found in `code`), the
- * whole snippet is painted instead — that's the case for modes where the
- * entire pasted block is the addition (e.g. the FAB's single `<script>`).
+ * Renders `code` as mono text with the `highlight` substring painted as "what
+ * you add"; the rest is dimmed context. If `highlight` is absent or not found,
+ * the whole snippet is painted (used when the entire block is the addition).
  */
 function PaintedCode({ code, highlight }: { code: string; highlight?: string }) {
   const index = highlight ? code.indexOf(highlight) : -1;
 
   if (!highlight || index === -1) {
     return (
-      <code className="font-mono text-sm text-foreground/80">
+      <code className="font-mono text-sm text-muted-foreground">
         <span className={cn("not-italic", PAINTED_CLASS)}>{code}</span>
       </code>
     );
   }
 
-  const before = code.slice(0, index);
-  const match = code.slice(index, index + highlight.length);
-  const after = code.slice(index + highlight.length);
-
   return (
-    <code className="font-mono text-sm text-foreground/80">
-      {before}
-      <span className={cn("not-italic", PAINTED_CLASS)}>{match}</span>
-      {after}
+    <code className="font-mono text-sm text-muted-foreground">
+      {code.slice(0, index)}
+      <span className={cn("not-italic", PAINTED_CLASS)}>
+        {code.slice(index, index + highlight.length)}
+      </span>
+      {code.slice(index + highlight.length)}
     </code>
   );
 }
@@ -64,26 +64,45 @@ function SnippetRow({ label, children }: { label?: string; children: ReactNode }
   );
 }
 
+/** One example part: a heading + caption, then a painted snippet (or Antes/Después). */
+function ExamplePartView({ part }: { part: ExamplePart }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-foreground">{part.label}</span>
+      <p className="text-sm text-muted-foreground">{part.caption}</p>
+
+      {part.before ? (
+        <div className="flex flex-col gap-2">
+          <SnippetRow label="Antes">
+            <code className="font-mono text-sm text-muted-foreground">{part.before}</code>
+          </SnippetRow>
+          <SnippetRow label="Después">
+            <PaintedCode code={part.code} highlight={part.highlight} />
+          </SnippetRow>
+        </div>
+      ) : (
+        <SnippetRow>
+          <PaintedCode code={part.code} highlight={part.highlight} />
+        </SnippetRow>
+      )}
+    </div>
+  );
+}
+
 /**
- * Shows a `ModeExample`: the caption, then either a single painted snippet or
- * (when `before` is present) a dimmed "Antes" row followed by a painted
- * "Después" row — the before/after teaching pattern used for solo-logica.
+ * Shows a `ModeExample`: each part painted in context, then a warning that
+ * makes the stakes explicit ("si no pegás el script, no funciona").
  */
 export function HighlightedSnippet({ example }: { example: ModeExample }) {
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm text-muted-foreground">{example.caption}</p>
+    <div className="flex flex-col gap-4">
+      {example.parts.map((part, index) => (
+        <ExamplePartView key={`${part.label}-${index}`} part={part} />
+      ))}
 
-      <div className="flex flex-col gap-2">
-        {example.before && (
-          <SnippetRow label="Antes">
-            <code className="font-mono text-sm text-muted-foreground">{example.before}</code>
-          </SnippetRow>
-        )}
-
-        <SnippetRow label={example.before ? "Después" : undefined}>
-          <PaintedCode code={example.code} highlight={example.highlight} />
-        </SnippetRow>
+      <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+        <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span>{example.warning}</span>
       </div>
     </div>
   );
