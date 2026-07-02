@@ -35,9 +35,10 @@ function ModeRequirement({ mode }: { mode: EmbedMode }) {
       <Alert>
         <AlertTitle>Dónde aparece el botón</AlertTitle>
         <AlertDescription>
-          Pegá el código en el lugar exacto de tu página donde querés que aparezca el botón
-          «Contactarse» —normalmente con un bloque de «HTML» o «Código» de tu editor—. Si lo pegás en
-          el pie de página, el botón aparecerá al final.
+          Son dos partes. Pegá el primer bloque (el <Mono>&lt;div&gt;</Mono>) en el lugar exacto de tu
+          página donde querés que aparezca el botón «Contactarse» —normalmente con un bloque de «HTML»
+          o «Código» de tu editor—. El segundo bloque (el código) va al final de la página, antes de{" "}
+          <Mono>&lt;/body&gt;</Mono>.
         </AlertDescription>
       </Alert>
     );
@@ -47,9 +48,10 @@ function ModeRequirement({ mode }: { mode: EmbedMode }) {
     <Alert>
       <AlertTitle>Qué necesita tu página</AlertTitle>
       <AlertDescription>
-        Tu página necesita un botón con el atributo <Mono>data-cta</Mono>: ese es el que dispara el
-        contacto. Los dos bloques de arriba ya te dan un ejemplo listo —pegá el botón donde quieras
-        que aparezca y el script al final de la página, antes de <Mono>&lt;/body&gt;</Mono>.
+        Este modo usa el botón que YA tenés en tu página. Agregale el atributo <Mono>data-cta</Mono> a
+        ese botón (lo tenés en el primer bloque de arriba) y después pegá el código al final de la
+        página, antes de <Mono>&lt;/body&gt;</Mono>. No hace falta crear un botón nuevo ni ningún
+        contenedor extra.
       </AlertDescription>
     </Alert>
   );
@@ -104,7 +106,7 @@ export function EmbedInstallGuide({ mode }: { mode: EmbedMode }) {
       <ModeRequirement mode={mode} />
 
       <p className="text-sm text-muted-foreground">
-        Ya copiaste el código con el botón de arriba. Elegí dónde tenés hecha tu página y seguí los
+        Ya copiaste el código de arriba. Elegí dónde tenés hecha tu página y seguí los
         pasos:
       </p>
 

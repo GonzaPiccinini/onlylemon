@@ -70,26 +70,34 @@ export type SnippetBlock = {
 
 export function buildSnippetBlocks(landingId: string, mode: EmbedMode): SnippetBlock[] {
   const scriptTag = `<script src="${workerBase}/embed/${landingId}.js" data-cta-mode="${mode}" async></script>`;
+  const scriptBlock: SnippetBlock = {
+    label: "El código · pegalo al final de todo, justo antes de </body>",
+    code: scriptTag,
+  };
 
   if (mode === "boton-flotante") {
+    // The FAB needs no markup on the page — a single script does everything.
     return [{ code: scriptTag }];
   }
 
   if (mode === "widget-automontado") {
-    return [{ code: `<div id="cta-root"></div>\n${scriptTag}` }];
+    // The script injects the button wherever this empty div is placed.
+    return [
+      {
+        label: "Dónde va el botón · pegá esto donde querés que aparezca en tu página",
+        code: `<div id="cta-root"></div>`,
+      },
+      scriptBlock,
+    ];
   }
 
-  // solo-logica: the owner supplies their own [data-cta] button. The captcha is
-  // an invisible proof-of-work solved by the script, so no container is needed.
-  // Two blocks so a non-technical owner knows where each part goes.
+  // solo-logica: the owner already has their own button — they only add the
+  // data-cta attribute to it. No button element or captcha container is provided.
   return [
     {
-      label: "El botón · pegalo donde quieras que aparezca",
-      code: `<button type="button" data-cta>Contactarse</button>`,
+      label: "Tu botón · agregale este atributo al botón que ya tenés en tu página",
+      code: `data-cta`,
     },
-    {
-      label: "El script · pegalo al final de todo, antes de </body>",
-      code: scriptTag,
-    },
+    scriptBlock,
   ];
 }
